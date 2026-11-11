@@ -248,3 +248,35 @@ func TestImportCSVFile(t *testing.T) {
 		}
 	}
 }
+
+// optsProvider records the options of its searches and finds nothing.
+type optsProvider struct {
+	mu   sync.Mutex
+	opts []media.Options
+}
+
+func (p *optsProvider) Name() string { return "opts" }
+
+func (p *optsProvider) Search(_ context.Context, _ media.Item, opts media.Options) ([]media.Candidate, error) {
+	p.mu.Lock()
+	p.opts = append(p.opts, opts)
+	p.mu.Unlock()
+	return nil, media.ErrNotFound
+}
+
+func TestStartCountry(t *testing.T) {
+	tests := map[string]string{"": "es", "  ": "es", " GB ": "gb", "us": "us"}
+	for in, want := range tests {
+		p := &optsProvider{}
+		a, rec := testApp(t, p)
+		if _, err := a.Start(StartRequest{MediaType: "books", Text: "Dune", OutputDir: t.TempDir(), Country: in}); err != nil {
+			t.Fatalf("Start: %v", err)
+		}
+		rec.waitDone(t)
+		p.mu.Lock()
+		if len(p.opts) != 1 || p.opts[0].Country != want {
+			t.Errorf("country %q: provider options = %+v, want Country %q", in, p.opts, want)
+		}
+		p.mu.Unlock()
+	}
+}

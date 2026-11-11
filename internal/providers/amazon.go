@@ -41,6 +41,10 @@ func AmazonDomain(countryCode string) string {
 	return c
 }
 
+// amazonImageBaseURL is Amazon's public image CDN. Unlike the store search
+// page it serves covers by ASIN (an ISBN-10 for print books) without bot checks.
+const amazonImageBaseURL = "https://images-na.ssl-images-amazon.com"
+
 // Amazon scrapes Amazon book search results. It may be blocked by bot checks,
 // so it is best used as a last resort.
 type Amazon struct {
@@ -62,7 +66,7 @@ func NewAmazon(client *http.Client) *Amazon {
 	}
 	return &Amazon{
 		Client:       client,
-		ImageBaseURL: "https://images-na.ssl-images-amazon.com",
+		ImageBaseURL: amazonImageBaseURL,
 		RetryDelay:   3 * time.Second,
 		Attempts:     2,
 	}

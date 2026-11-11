@@ -5,10 +5,12 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -179,6 +181,149 @@ func TestOpenLibraryOmitsEmptyAuthor(t *testing.T) {
 	}
 	if _, ok := rec.last.URL.Query()["author"]; ok {
 		t.Error("author parameter should be omitted when the creator is empty")
+	}
+}
+
+// olServer answers language queries (those with q) with langBody and plain
+// title searches with the plain fixture, recording the queries it receives.
+func olServer(t *testing.T, langStatus int, langBody []byte) (*OpenLibrary, *[]url.Values) {
+	t.Helper()
+	var mu sync.Mutex
+	var queries []url.Values
+	plain := fixture(t, "openlibrary_search.json")
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		queries = append(queries, r.URL.Query())
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Has("q") {
+			w.WriteHeader(langStatus)
+			w.Write(langBody)
+			return
+		}
+		w.Write(plain)
+	}))
+	t.Cleanup(srv.Close)
+	p := NewOpenLibrary(srv.Client())
+	p.BaseURL = srv.URL + "/search.json"
+	p.CoverBaseURL = "https://covers.example"
+	p.AmazonImageBaseURL = "https://amazon.example"
+	return p, &queries
+}
+
+func TestOpenLibraryLanguageEditionsFirst(t *testing.T) {
+	p, queries := olServer(t, 200, fixture(t, "openlibrary_spa.json"))
+
+	got, err := p.Search(context.Background(), media.Item{Title: "Dune", Creator: "Frank Herbert"}, media.Options{Country: "es", Language: "spa"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(*queries) != 2 {
+		t.Fatalf("requests = %d, want 2 (language query, then plain search)", len(*queries))
+	}
+	lq := (*queries)[0]
+	if want := "title:(Dune) author:(Frank Herbert) language:spa"; lq.Get("q") != want {
+		t.Errorf("q = %q, want %q", lq.Get("q"), want)
+	}
+	for _, field := range []string{"editions.isbn", "editions.cover_i", "editions.title", "cover_i", "author_name"} {
+		if !strings.Contains(","+lq.Get("fields")+",", ","+field+",") {
+			t.Errorf("fields %q missing %q", lq.Get("fields"), field)
+		}
+	}
+
+	want := media.Candidate{
+		Title:   "Dune",
+		Creator: "Frank Herbert",
+		Year:    "1965",
+		ImageURLs: []string{
+			"https://amazon.example/images/P/8401469317.01._SCRMZZZZZZ_.jpg",
+			"https://covers.example/b/id/15202652-L.jpg?default=false",
+			"https://covers.example/b/id/11481354-L.jpg?default=false",
+		},
+		Source: "openlibrary",
+		ISBN:   "9788401469312",
+	}
+	if !reflect.DeepEqual(got[0], want) {
+		t.Errorf("first = %+v\nwant    %+v", got[0], want)
+	}
+
+	if len(got) != 7 {
+		t.Fatalf("got %d candidates, want 3 editions + 4 plain results: %q", len(got), candidateTitles(got))
+	}
+	for _, c := range got[:3] {
+		if !strings.HasPrefix(c.ISBN, "97884") {
+			t.Errorf("edition %q ISBN = %q, want a Spanish ISBN", c.Title, c.ISBN)
+		}
+	}
+	// The coverless movie tie-in still has the Amazon cover by ISBN-10.
+	for _, c := range got[:3] {
+		if c.ISBN == "9788466376969" && !reflect.DeepEqual(c.ImageURLs, []string{"https://amazon.example/images/P/8466376968.01._SCRMZZZZZZ_.jpg"}) {
+			t.Errorf("movie tie-in ImageURLs = %q", c.ImageURLs)
+		}
+	}
+	// The plain search follows, unchanged, as the fallback.
+	if titles := candidateTitles(got[3:]); !reflect.DeepEqual(titles, []string{"Dune", "Dune Messiah", "Children of Dune", "Frank Herbert"}) {
+		t.Errorf("fallback titles = %q", titles)
+	}
+	if got[3].ISBN != "" {
+		t.Errorf("plain result ISBN = %q, want empty (a work has many editions)", got[3].ISBN)
+	}
+}
+
+func TestOpenLibraryLanguageQueryFallback(t *testing.T) {
+	tests := []struct {
+		name   string
+		status int
+		body   string
+	}{
+		{"HTTP error", 500, "boom"},
+		{"no results", 200, `{"docs":[]}`},
+		{"no usable edition", 200, `{"docs":[{"title":"Dune","editions":{"docs":[{"title":"Dune","isbn":["979-10-323-0569-0"]}]}}]}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, queries := olServer(t, tt.status, []byte(tt.body))
+			got, err := p.Search(context.Background(), media.Item{Title: "Dune", Creator: "Frank Herbert"}, media.Options{Language: "spa"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(*queries) != 2 {
+				t.Errorf("requests = %d, want 2", len(*queries))
+			}
+			if titles := candidateTitles(got); !reflect.DeepEqual(titles, []string{"Dune", "Dune Messiah", "Children of Dune", "Frank Herbert"}) {
+				t.Errorf("titles = %q, want the plain search results", titles)
+			}
+		})
+	}
+}
+
+func TestOpenLibraryLanguageQueryEscaping(t *testing.T) {
+	p, queries := olServer(t, 200, []byte(`{"docs":[]}`))
+	_, err := p.Search(context.Background(), media.Item{Title: ` Dune: "Messiah" (1/2) `, Creator: "Frank Herbert AND O'Brien-Smith"}, media.Options{Language: "spa"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := (*queries)[0].Get("q"), "title:(Dune Messiah 1 2) author:(Frank Herbert and O'Brien Smith) language:spa"; got != want {
+		t.Errorf("q = %q, want %q", got, want)
+	}
+
+	// Without a creator the author clause is omitted.
+	if _, err := p.Search(context.Background(), media.Item{Title: "Dune", Creator: " "}, media.Options{Language: "spa"}); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := (*queries)[2].Get("q"), "title:(Dune) language:spa"; got != want {
+		t.Errorf("q = %q, want %q", got, want)
+	}
+}
+
+func TestOpenLibraryWithoutLanguageMakesOneRequest(t *testing.T) {
+	p, queries := olServer(t, 200, fixture(t, "openlibrary_spa.json"))
+	if _, err := p.Search(context.Background(), media.Item{Title: "Dune"}, media.Options{Country: "zz"}); err != nil {
+		t.Fatal(err)
+	}
+	if len(*queries) != 1 || (*queries)[0].Has("q") {
+		t.Errorf("queries = %v, want only the plain search", *queries)
 	}
 }
 

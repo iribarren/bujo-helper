@@ -206,7 +206,7 @@ async function startDownload() {
     hideError();
     const country = ui.country.value.trim().toLowerCase();
     if (!/^[a-z]{2}$/.test(country)) {
-        showError('Country must be a two-letter code, e.g. us, gb, es.');
+        showError('Country must be a two-letter code, e.g. es, us, gb.');
         ui.country.focus();
         return;
     }

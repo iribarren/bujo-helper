@@ -34,6 +34,10 @@ type MediaTypeInfo struct {
 	CreatorLabel string `json:"creatorLabel"`
 }
 
+// defaultCountry is used when the UI sends no country: Spain, so covers of
+// Spanish editions are preferred.
+const defaultCountry = "es"
+
 // StartRequest is what the UI sends to start a job.
 type StartRequest struct {
 	MediaType string `json:"mediaType"`
@@ -200,7 +204,7 @@ func (a *App) Start(req StartRequest) ([]ItemView, error) {
 	}
 	country := strings.ToLower(strings.TrimSpace(req.Country))
 	if country == "" {
-		country = "us"
+		country = defaultCountry
 	}
 
 	a.mu.Lock()

@@ -111,3 +111,44 @@ func TestRunCancelled(t *testing.T) {
 		}
 	}
 }
+
+// countryProvider records the country of each search and finds nothing.
+type countryProvider struct{ got chan string }
+
+func (p countryProvider) Name() string { return "country" }
+
+func (p countryProvider) Search(_ context.Context, _ media.Item, opts media.Options) ([]media.Candidate, error) {
+	p.got <- opts.Country
+	return nil, media.ErrNotFound
+}
+
+func TestRunCountry(t *testing.T) {
+	tests := []struct {
+		args []string
+		want string
+	}{
+		{nil, "es"},
+		{[]string{"-country", "US"}, "us"},
+	}
+	for _, tt := range tests {
+		p := countryProvider{got: make(chan string, 1)}
+		reg := media.NewRegistry()
+		if err := reg.Register(media.MediaType{ID: "books", Providers: []media.Provider{p}}); err != nil {
+			t.Fatal(err)
+		}
+		var stdout, stderr bytes.Buffer
+		args := append(append([]string{"-o", t.TempDir()}, tt.args...), "Dune")
+		run(context.Background(), args, &stdout, &stderr, reg)
+		if got := <-p.got; got != tt.want {
+			t.Errorf("args %q: country = %q, want %q", tt.args, got, tt.want)
+		}
+	}
+}
+
+func TestUsageShowsDefaultCountry(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, testRegistry(t))
+	if !strings.Contains(stderr.String(), "[-country es]") {
+		t.Errorf("usage does not show the es default:\n%s", &stderr)
+	}
+}

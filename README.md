@@ -13,7 +13,7 @@ Books are supported today. The core is media-agnostic, so movies, music or games
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
 - Placeholder images, error pages and non-images are rejected, so you never get a blank "no cover" file.
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
-- Store country selection (for example `us`, `gb`, `es`, `de`), which helps with localized titles.
+- Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
 - Light and dark themes follow the system setting.
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
@@ -24,8 +24,35 @@ Books are supported today. The core is media-agnostic, so movies, music or games
 Sources are tried in this order for books:
 
 1. **Apple Books** (iTunes Search API): large, high-quality covers. It uses the store country.
-2. **Open Library**: a free, open catalog. Covers are often smaller.
+2. **Open Library**: a free, open catalog. Its own covers are often smaller, so editions with an ISBN also try the Amazon image CDN (see below).
 3. **Amazon** (store search page): broad coverage, but Amazon may answer with a bot check. When that happens the item falls back to the other sources or fails with `blocked by bot check`.
+
+## Local editions
+
+The default country is `es` (Spain), so you get the covers of Spanish editions when they exist.
+
+For each item the app makes two passes over the sources, searching each source only once:
+
+1. **Local editions first.** Only candidates whose ISBN belongs to the country's publishers are tried, in source order. ISBNs come from Apple's artwork file names, Amazon's print-edition ASINs and Open Library editions.
+2. **Any edition.** If no local edition has a usable cover, the normal order is used. This fallback is silent: the item is reported as saved, like any other.
+
+When the country has a language, Open Library is first asked for editions in that language (for example `language:spa`). Those editions come with their ISBN, and the high-resolution cover is fetched from the Amazon image CDN by ISBN-10 (`images-na.ssl-images-amazon.com/images/P/<isbn10>.01._SCRMZZZZZZ_.jpg`), with the Open Library covers as fallbacks. This CDN is a plain image service, not the bot-checked store search.
+
+The country table lives in [`internal/locale/locale.go`](internal/locale/locale.go):
+
+| Country      | Open Library language | ISBN-13 prefixes             |
+|--------------|-----------------------|------------------------------|
+| `es`         | `spa`                 | `97884`                      |
+| `mx`         | `spa`                 | `978607`, `978968`, `978970` |
+| `ar`         | `spa`                 | `978950`, `978987`           |
+| `fr`         | `fre`                 | `9782`                       |
+| `de`         | `ger`                 | `9783`                       |
+| `it`         | `ita`                 | `97888`                      |
+| `pt`         | `por`                 | `978972`, `978989`           |
+| `br`         | `por`                 | `97885`, `978655`            |
+| `gb`, `us`   | `eng`                 | `9780`, `9781`               |
+
+Any other country only selects the store, with no edition preference. To add a country, add a line to the table with its Open Library (MARC) language code and the ISBN-13 prefixes of its registration groups.
 
 ## CSV format
 
@@ -44,7 +71,7 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 1. Choose the media type (only **Books** for now).
 2. Type or paste items, one per line, or click **Import CSV…**.
 3. Check the output folder (default: `~/Pictures/Covers`, or `%USERPROFILE%\Pictures\Covers` on Windows), and change it with **Browse…** if needed.
-4. Optionally change the two-letter store country (default `us`).
+4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
 5. Click **Download covers** or press **Ctrl+Enter**.
 6. When items finish, click **Open folder** to see the images.
 
@@ -54,7 +81,7 @@ The `covers` CLI runs the same downloader without a window:
 
 ```sh
 go run ./cmd/covers -o covers "Dune, Frank Herbert" "Emma, Jane Austen"
-go run ./cmd/covers -country es -csv sample_books.csv -o covers
+go run ./cmd/covers -country us -csv sample_books.csv -o covers
 ```
 
 Flags must come before the items:
@@ -63,7 +90,7 @@ Flags must come before the items:
 |------------|----------|-------------------------------------------------|
 | `-type`    | `books`  | Media type                                      |
 | `-o`       | `covers` | Output folder                                   |
-| `-country` | `us`     | Store country code                              |
+| `-country` | `es`     | Store country code; its editions are preferred  |
 | `-csv`     | (none)   | CSV file, added after the positional items       |
 
 The exit code is `0` when every item succeeded, `1` when any item failed or was cancelled, and `2` for usage errors.
@@ -129,7 +156,9 @@ internal/
   providers/           Apple Books, Open Library, Amazon
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
-  downloader/          concurrent batch downloads, image validation, file naming
+  downloader/          concurrent batch downloads, local-edition preference, image validation, file naming
+  locale/              country table: language and ISBN prefixes of local editions
+  isbn/                ISBN-10/13 validation, conversion and extraction
   web/                 shared HTTP client, headers and bounded reads
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
 legacy/                the original Python script

@@ -2,7 +2,7 @@
 //
 // Usage:
 //
-//	covers [-type books] [-o dir] [-country us] [-csv file] ["Title, Author" ...]
+//	covers [-type books] [-o dir] [-country es] [-csv file] ["Title, Author" ...]
 //
 // Each positional argument is one "Title, Creator" item (split on the last
 // comma). Items from -csv are added after them. Flags must come before the
@@ -36,10 +36,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, reg *medi
 	fs.SetOutput(stderr)
 	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg))
 	outDir := fs.String("o", "covers", "output directory")
-	country := fs.String("country", "us", "store country code (us, es, gb, de, ...)")
+	country := fs.String("country", "es", "store country code (es, us, gb, de, ...); local editions are preferred")
 	csvPath := fs.String("csv", "", "CSV file with title and creator columns")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, `usage: covers [-type books] [-o dir] [-country us] [-csv file] ["Title, Author" ...]`)
+		fmt.Fprintln(stderr, `usage: covers [-type books] [-o dir] [-country es] [-csv file] ["Title, Author" ...]`)
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
