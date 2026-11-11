@@ -1,26 +1,382 @@
-html {
-    background-color: rgba(27, 38, 54, 1);
-    text-align: center;
-    color: white;
+/* Colors are CSS variables; the dark theme follows the system setting.
+   Keep --bg in sync with BackgroundColour in main.go. */
+:root {
+    color-scheme: light dark;
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --border: #d5d9e0;
+    --text: #1d2330;
+    --muted: #667085;
+    --accent: #2f6fde;
+    --accent-hover: #255bb8;
+    --accent-text: #ffffff;
+    --ok: #1f8a4c;
+    --failed: #c8372d;
+    --cancelled: #8a919c;
+    --banner-bg: #fdecea;
+    --banner-border: #f1b5ae;
+    --track: #e3e6eb;
+    --radius: 6px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans",
+        "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, "DejaVu Sans Mono",
+        "Liberation Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #1b1e24;
+        --surface: #23272f;
+        --border: #3a404b;
+        --text: #e6e8ec;
+        --muted: #9aa3b2;
+        --accent: #4c8dff;
+        --accent-hover: #6aa0ff;
+        --accent-text: #0d1117;
+        --ok: #4cc27f;
+        --failed: #ff6b5e;
+        --cancelled: #8a919c;
+        --banner-bg: #3a2220;
+        --banner-border: #6b3631;
+        --track: #313641;
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
 }
 
 body {
-    margin: 0;
-    color: white;
-    font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
-}
-
-@font-face {
-    font-family: "Nunito";
-    font-style: normal;
-    font-weight: 400;
-    src: local(""),
-    url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 var(--font);
 }
 
 #app {
-    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    padding: 14px 18px;
+    overflow: auto;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+/* --- controls --- */
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+    color: inherit;
+}
+
+button,
+input,
+select {
+    height: 32px;
+}
+
+button {
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+button:hover:not(:disabled) {
+    border-color: var(--accent);
+}
+
+button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-text);
+    font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+input,
+select,
+textarea {
+    min-width: 0;
+    padding: 0 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+input[readonly] {
+    color: var(--muted);
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.icon-button {
+    height: 24px;
+    padding: 0 6px;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    line-height: 1;
+}
+
+/* --- header --- */
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* --- error banner --- */
+
+.banner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--banner-border);
+    border-radius: var(--radius);
+    background: var(--banner-bg);
+    color: var(--failed);
+    overflow-wrap: anywhere;
+    user-select: text;
+}
+
+/* --- items --- */
+
+.input {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+textarea {
+    width: 100%;
+    height: 170px;
+    min-height: 90px;
+    padding: 8px;
+    resize: vertical;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre;
+}
+
+/* --- options --- */
+
+.options {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.field input,
+.field button {
+    font-size: 14px;
+    color: var(--text);
+}
+
+.field.grow {
+    flex: 1;
+    min-width: 0;
+}
+
+.row {
+    display: flex;
+    gap: 8px;
+}
+
+.row input {
+    flex: 1;
+}
+
+#country {
+    width: 56px;
+    text-transform: lowercase;
     text-align: center;
+}
+
+/* --- actions and progress --- */
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.progress {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--track);
+    overflow: hidden;
+}
+
+.progress-bar {
+    width: 0;
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.2s ease;
+}
+
+#progress-text {
+    min-width: 56px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- results --- */
+
+.results {
+    flex: 1 1 auto;
+    min-height: 120px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow-y: auto;
+}
+
+.results:empty::before {
+    content: "Results appear here.";
+    display: block;
+    padding: 12px;
+    color: var(--muted);
+}
+
+.result {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.result:last-child {
+    border-bottom: none;
+}
+
+.status {
+    flex: none;
+    width: 18px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.result.ok .status {
+    color: var(--ok);
+}
+
+.result.failed .status {
+    color: var(--failed);
+}
+
+.result.cancelled .status {
+    color: var(--cancelled);
+}
+
+.result-body {
+    min-width: 0;
+    flex: 1;
+}
+
+.result-title {
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.result-detail {
+    font-size: 12px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+    user-select: text;
+    cursor: text;
+}
+
+.result.failed .result-detail {
+    color: var(--failed);
+}
+
+/* --- footer --- */
+
+.footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 32px;
+}
+
+/* --- narrow windows --- */
+
+@media (max-width: 700px) {
+    #app {
+        padding: 10px 12px;
+    }
+
+    .options {
+        flex-wrap: wrap;
+    }
+
+    .field.grow {
+        flex-basis: 100%;
+    }
 }

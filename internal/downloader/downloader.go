@@ -203,10 +203,12 @@ func (j *itemJob) tryProvider(ctx context.Context, p media.Provider, item media.
 	if len(cands) > j.maxCandidates {
 		cands = cands[:j.maxCandidates]
 	}
+	var last error
 	for _, c := range cands {
 		for _, u := range c.ImageURLs {
-			data, contentType, ok := fetchImage(ctx, j.client, u)
-			if !ok {
+			data, contentType, err := fetchImage(ctx, j.client, u)
+			if err != nil {
+				last = err
 				continue
 			}
 			path, err := saveUnique(j.outDir, fileName(item, imageExt(u, contentType)), data)
@@ -216,20 +218,35 @@ func (j *itemJob) tryProvider(ctx context.Context, p media.Provider, item media.
 			return path, describe(c), nil
 		}
 	}
+	if last != nil {
+		return "", "", fmt.Errorf("no downloadable cover image (last: %w)", last)
+	}
 	return "", "", errors.New("no downloadable cover image")
 }
 
-// fetchImage downloads url and reports whether it is a real image.
-func fetchImage(ctx context.Context, client *http.Client, url string) ([]byte, string, bool) {
+// fetchImage downloads url and returns its body and content type when it is
+// a real image. Otherwise the error says why: a transport failure (including
+// web.ErrBodyTooLarge), an HTTP status, a non-image content type or an image
+// small enough to be a placeholder.
+func fetchImage(ctx context.Context, client *http.Client, url string) ([]byte, string, error) {
 	resp, err := web.Get(ctx, client, url, web.SetBrowserHeaders)
-	if err != nil || !resp.OK() {
-		return nil, "", false
+	if err != nil {
+		return nil, "", err
+	}
+	if !resp.OK() {
+		return nil, "", fmt.Errorf("HTTP %d", resp.Status)
 	}
 	contentType := resp.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "image/") || len(resp.Body) <= minImageSize {
-		return nil, "", false
+	if !strings.HasPrefix(contentType, "image/") {
+		if contentType == "" {
+			contentType = "no content type"
+		}
+		return nil, "", fmt.Errorf("not an image (%s)", contentType)
 	}
-	return resp.Body, contentType, true
+	if len(resp.Body) <= minImageSize {
+		return nil, "", fmt.Errorf("image too small (%d bytes), likely a placeholder", len(resp.Body))
+	}
+	return resp.Body, contentType, nil
 }
 
 func describe(c media.Candidate) string {

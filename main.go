@@ -12,24 +12,25 @@ import (
 var assets embed.FS
 
 func main() {
-	// Create an instance of the app structure
 	app := NewApp()
 
-	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "Cover Downloader",
-		Width:  1024,
-		Height: 768,
+		Title:     "Cover Downloader",
+		Width:     900,
+		Height:    720,
+		MinWidth:  640,
+		MinHeight: 560,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		// Matches --bg in frontend/src/style.css (light theme).
+		BackgroundColour: &options.RGBA{R: 245, G: 246, B: 248, A: 255},
 		OnStartup:        app.startup,
+		OnShutdown:       app.shutdown,
 		Bind: []interface{}{
 			app,
 		},
 	})
-
 	if err != nil {
 		println("Error:", err.Error())
 	}

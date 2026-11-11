@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"cover-downloader/internal/media"
+	"cover-downloader/internal/web"
 )
 
 var (
@@ -359,5 +360,53 @@ func TestRunErrors(t *testing.T) {
 	sum, err := d.Run(context.Background(), Request{MediaType: "books", Items: []media.Item{{Title: "X"}}, OutputDir: t.TempDir()}, nil)
 	if err != nil || sum.OK != 1 {
 		t.Errorf("nil callback run = %+v, %v", sum, err)
+	}
+}
+
+func TestFetchImageReasons(t *testing.T) {
+	srv := imageServer(t)
+	tests := []struct {
+		path    string
+		wantErr string // empty means success
+	}{
+		{"/cover.jpg", ""},
+		{"/missing.jpg", "HTTP 404"},
+		{"/page.html", "not an image (text/html; charset=utf-8)"},
+		{"/tiny.gif", "image too small"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			data, _, err := fetchImage(context.Background(), srv.Client(), srv.URL+tt.path)
+			if tt.wantErr == "" {
+				if err != nil || len(data) == 0 {
+					t.Fatalf("fetchImage = %d bytes, %v", len(data), err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("err = %v, want it to contain %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestFetchImageBodyTooLarge(t *testing.T) {
+	srv := imageServer(t)
+	old := web.MaxBodySize
+	web.MaxBodySize = 2048
+	t.Cleanup(func() { web.MaxBodySize = old })
+
+	_, _, err := fetchImage(context.Background(), srv.Client(), srv.URL+"/cover.jpg")
+	if !errors.Is(err, web.ErrBodyTooLarge) {
+		t.Fatalf("err = %v, want ErrBodyTooLarge", err)
+	}
+}
+
+func TestProviderErrorIncludesLastReason(t *testing.T) {
+	srv := imageServer(t)
+	d := newDownloader(srv, returns("amazon", srv.URL+"/tiny.gif", srv.URL+"/missing.jpg"))
+	res, _ := run(t, d, context.Background(), Request{MediaType: "books", Items: []media.Item{{Title: "Emma"}}, OutputDir: t.TempDir()})
+	if want := "amazon: no downloadable cover image (last: HTTP 404)"; res[0].Error != want {
+		t.Errorf("Error = %q, want %q", res[0].Error, want)
 	}
 }

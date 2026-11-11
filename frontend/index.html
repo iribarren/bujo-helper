@@ -3,10 +3,59 @@
 <head>
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>cover-downloader</title>
+    <title>Cover Downloader</title>
 </head>
 <body>
-<div id="app"></div>
+<div id="app">
+    <header class="header">
+        <h1>Cover Downloader</h1>
+        <select id="media-type" aria-label="Media type"></select>
+    </header>
+
+    <div id="banner" class="banner" role="alert" hidden>
+        <span id="banner-text"></span>
+        <button id="banner-close" class="icon-button" type="button" aria-label="Dismiss">×</button>
+    </div>
+
+    <section class="input">
+        <div class="toolbar">
+            <button id="import" type="button">Import CSV…</button>
+            <span id="count" class="muted">0 items</span>
+        </div>
+        <textarea id="items" spellcheck="false" autocomplete="off" aria-label="Items, one per line"></textarea>
+    </section>
+
+    <section class="options">
+        <div class="field grow">
+            <label for="output-dir">Output folder</label>
+            <div class="row">
+                <input id="output-dir" type="text" readonly/>
+                <button id="browse" type="button">Browse…</button>
+            </div>
+        </div>
+        <label class="field">
+            <span>Country</span>
+            <input id="country" type="text" value="us" maxlength="2" size="3" autocomplete="off" spellcheck="false"
+                   title="Two-letter store country code, e.g. us, gb, es, de"/>
+        </label>
+    </section>
+
+    <section class="actions">
+        <button id="start" class="primary" type="button" title="Ctrl+Enter">Download covers</button>
+        <button id="cancel" type="button" hidden>Cancel</button>
+        <div class="progress" aria-hidden="true">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <span id="progress-text" class="muted">0 / 0</span>
+    </section>
+
+    <ul id="results" class="results" aria-live="polite"></ul>
+
+    <footer class="footer">
+        <span id="summary" class="muted"></span>
+        <button id="open-folder" type="button" hidden>Open folder</button>
+    </footer>
+</div>
 <script src="./src/main.ts" type="module"></script>
 </body>
 </html>

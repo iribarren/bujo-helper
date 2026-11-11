@@ -2,26 +2,289 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	goruntime "runtime"
+	"strings"
+	"sync"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+
+	"cover-downloader/internal/batch"
+	"cover-downloader/internal/catalog"
+	"cover-downloader/internal/downloader"
+	"cover-downloader/internal/media"
+	"cover-downloader/internal/web"
 )
 
-// App struct
+// Events emitted to the frontend while a job runs.
+const (
+	EventItem = "job:item" // one ItemEvent per finished item
+	EventDone = "job:done" // one DoneEvent when the job ends
+)
+
+// MediaTypeInfo describes a media type for the media type selector.
+type MediaTypeInfo struct {
+	ID           string `json:"id"`
+	Label        string `json:"label"`
+	CreatorLabel string `json:"creatorLabel"`
+}
+
+// StartRequest is what the UI sends to start a job.
+type StartRequest struct {
+	MediaType string `json:"mediaType"`
+	Text      string `json:"text"`
+	OutputDir string `json:"outputDir"`
+	Country   string `json:"country"`
+}
+
+// ItemView is one parsed item, rendered as a pending row before results
+// arrive.
+type ItemView struct {
+	Index   int    `json:"index"`
+	Title   string `json:"title"`
+	Creator string `json:"creator"`
+}
+
+// ItemEvent is the payload of EventItem.
+type ItemEvent struct {
+	Index   int    `json:"index"`
+	Title   string `json:"title"`
+	Creator string `json:"creator"`
+	Status  string `json:"status"`
+	Path    string `json:"path"`
+	Source  string `json:"source"`
+	Matched string `json:"matched"`
+	Error   string `json:"error"`
+}
+
+// DoneEvent is the payload of EventDone. Error is set when the job could
+// not run at all.
+type DoneEvent struct {
+	OK        int    `json:"ok"`
+	Failed    int    `json:"failed"`
+	Cancelled int    `json:"cancelled"`
+	Error     string `json:"error,omitempty"`
+}
+
+// App is the Go side of the UI. Its exported methods are bound to the
+// frontend by Wails.
 type App struct {
-	ctx context.Context
+	ctx        context.Context
+	registry   *media.Registry
+	downloader downloader.Downloader
+
+	// emit sends an event to the frontend. Nil means runtime.EventsEmit;
+	// tests replace it to capture events.
+	emit func(event string, data any)
+
+	mu     sync.Mutex
+	cancel context.CancelFunc // non-nil while a job is running
 }
 
-// NewApp creates a new App application struct
+// NewApp returns an App with the built-in media types.
 func NewApp() *App {
-	return &App{}
+	client := web.NewClient()
+	return newApp(catalog.Default(client), client)
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
+func newApp(reg *media.Registry, client *http.Client) *App {
+	return &App{
+		registry:   reg,
+		downloader: downloader.Downloader{Registry: reg, Client: client},
+	}
+}
+
+// startup is called when the app starts. The context is kept for the
+// runtime calls (dialogs, events).
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
+// shutdown cancels a running job when the window closes.
+func (a *App) shutdown(context.Context) {
+	a.Cancel()
+}
+
+func (a *App) send(event string, data any) {
+	if a.emit != nil {
+		a.emit(event, data)
+		return
+	}
+	runtime.EventsEmit(a.ctx, event, data)
+}
+
+// MediaTypes lists the registered media types in registration order.
+func (a *App) MediaTypes() []MediaTypeInfo {
+	var out []MediaTypeInfo
+	for _, t := range a.registry.List() {
+		out = append(out, MediaTypeInfo{ID: t.ID, Label: t.Label, CreatorLabel: t.CreatorLabel})
+	}
+	return out
+}
+
+// DefaultOutputDir is <home>/Pictures/Covers, or "Covers" in the working
+// directory when the home directory is unknown.
+func (a *App) DefaultOutputDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "Covers"
+	}
+	return filepath.Join(home, "Pictures", "Covers")
+}
+
+// ImportCSV asks for a CSV file and returns its items as "Title, Creator"
+// lines. It returns "" with no error when the dialog is cancelled.
+func (a *App) ImportCSV() (string, error) {
+	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Import CSV",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "CSV files (*.csv)", Pattern: "*.csv"},
+			{DisplayName: "All files (*.*)", Pattern: "*.*"},
+		},
+	})
+	if err != nil || path == "" {
+		return "", err
+	}
+	return importCSVFile(path)
+}
+
+func importCSVFile(path string) (string, error) {
+	name := filepath.Base(path)
+	f, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", name, err)
+	}
+	defer f.Close()
+	items, err := batch.ReadCSV(f)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", name, err)
+	}
+	if len(items) == 0 {
+		return "", fmt.Errorf("%s: no items found", name)
+	}
+	return batch.FormatLines(items), nil
+}
+
+// ChooseFolder asks for an output folder, starting at current. It returns
+// "" with no error when the dialog is cancelled.
+func (a *App) ChooseFolder(current string) (string, error) {
+	opts := runtime.OpenDialogOptions{Title: "Choose output folder", CanCreateDirectories: true}
+	if info, err := os.Stat(current); err == nil && info.IsDir() {
+		opts.DefaultDirectory = current
+	}
+	return runtime.OpenDirectoryDialog(a.ctx, opts)
+}
+
+// Start parses req.Text and downloads the covers in the background. It
+// returns the parsed items at once; results arrive as EventItem events and
+// the job ends with one EventDone event.
+func (a *App) Start(req StartRequest) ([]ItemView, error) {
+	items := batch.ParseLines(req.Text)
+	if len(items) == 0 {
+		return nil, errors.New("no items: enter one \"Title, Creator\" per line")
+	}
+	if _, ok := a.registry.Get(req.MediaType); !ok {
+		return nil, fmt.Errorf("unknown media type %q", req.MediaType)
+	}
+	outDir := strings.TrimSpace(req.OutputDir)
+	if outDir == "" {
+		return nil, errors.New("choose an output folder")
+	}
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create output folder: %w", err)
+	}
+	country := strings.ToLower(strings.TrimSpace(req.Country))
+	if country == "" {
+		country = "us"
+	}
+
+	a.mu.Lock()
+	if a.cancel != nil {
+		a.mu.Unlock()
+		return nil, errors.New("a download is already running")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	a.cancel = cancel
+	a.mu.Unlock()
+
+	views := make([]ItemView, len(items))
+	for i, it := range items {
+		views[i] = ItemView{Index: i, Title: it.Title, Creator: it.Creator}
+	}
+	go a.run(ctx, downloader.Request{
+		MediaType: req.MediaType,
+		Items:     items,
+		OutputDir: outDir,
+		Options:   media.Options{Country: country},
+	})
+	return views, nil
+}
+
+func (a *App) run(ctx context.Context, req downloader.Request) {
+	sum, err := a.downloader.Run(ctx, req, func(r downloader.ItemResult) {
+		a.send(EventItem, ItemEvent{
+			Index:   r.Index,
+			Title:   r.Item.Title,
+			Creator: r.Item.Creator,
+			Status:  r.Status,
+			Path:    r.Path,
+			Source:  r.Source,
+			Matched: r.Matched,
+			Error:   r.Error,
+		})
+	})
+	done := DoneEvent{OK: sum.OK, Failed: sum.Failed, Cancelled: sum.Cancelled}
+	if err != nil {
+		done.Error = err.Error()
+	}
+
+	// Clear the running state before announcing the end, so the UI can
+	// start the next job as soon as it sees EventDone.
+	a.mu.Lock()
+	a.cancel()
+	a.cancel = nil
+	a.mu.Unlock()
+	a.send(EventDone, done)
+}
+
+// Cancel stops the running job, if any. Unfinished items are reported as
+// cancelled.
+func (a *App) Cancel() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.cancel != nil {
+		a.cancel()
+	}
+}
+
+// OpenFolder opens path in the system file manager, creating it first.
+func (a *App) OpenFolder(path string) error {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return errors.New("no folder to open")
+	}
+	if err := os.MkdirAll(path, 0o755); err != nil {
+		return fmt.Errorf("create folder: %w", err)
+	}
+	var cmd *exec.Cmd
+	switch goruntime.GOOS {
+	case "windows":
+		cmd = exec.Command("explorer", path)
+	case "darwin":
+		cmd = exec.Command("open", path)
+	default:
+		cmd = exec.Command("xdg-open", path)
+	}
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("open folder: %w", err)
+	}
+	// explorer exits with status 1 even on success, so the exit status is
+	// ignored; Wait only reaps the process.
+	go cmd.Wait()
+	return nil
 }
