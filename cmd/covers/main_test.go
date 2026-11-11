@@ -1,0 +1,113 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"cover-downloader/internal/media"
+)
+
+type fakeProvider struct{ imageURL string }
+
+func (f fakeProvider) Name() string { return "fake" }
+
+func (f fakeProvider) Search(_ context.Context, item media.Item, _ media.Options) ([]media.Candidate, error) {
+	if strings.HasPrefix(item.Title, "Missing") {
+		return nil, media.ErrNotFound
+	}
+	return []media.Candidate{{Title: item.Title, ImageURLs: []string{f.imageURL}}}, nil
+}
+
+func testRegistry(t *testing.T) *media.Registry {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Write(bytes.Repeat([]byte{0xFF}, 2048))
+	}))
+	t.Cleanup(srv.Close)
+	reg := media.NewRegistry()
+	if err := reg.Register(media.MediaType{ID: "books", Providers: []media.Provider{fakeProvider{srv.URL + "/c.jpg"}}}); err != nil {
+		t.Fatal(err)
+	}
+	return reg
+}
+
+func TestRun(t *testing.T) {
+	dir := t.TempDir()
+	csvPath := filepath.Join(dir, "list.csv")
+	if err := os.WriteFile(csvPath, []byte("Title;Author\nEmma;Jane Austen\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "out")
+
+	tests := []struct {
+		name     string
+		args     []string
+		wantCode int
+		wantOut  []string
+		wantErr  string
+		wantFile string
+	}{
+		{
+			name:     "all succeed",
+			args:     []string{"-o", out, "Dune, Frank Herbert"},
+			wantCode: 0,
+			wantOut:  []string{"OK  Dune -> " + filepath.Join(out, "Dune - Frank Herbert.jpg") + " (fake)", "1 ok, 0 failed"},
+			wantFile: "Dune - Frank Herbert.jpg",
+		},
+		{
+			name:     "one failure exits 1 but the batch continues",
+			args:     []string{"-o", out, "-csv", csvPath, "Missing book", "Dune"},
+			wantCode: 1,
+			wantOut:  []string{"FAIL Missing book: fake: not found", "OK  Emma -> ", "OK  Dune -> ", "2 ok, 1 failed"},
+			wantFile: "Emma - Jane Austen.jpg",
+		},
+		{name: "no items", args: []string{"-o", out}, wantCode: 2, wantErr: "no items"},
+		{name: "unknown type", args: []string{"-type", "games", "-o", out, "X"}, wantCode: 2, wantErr: `unknown media type "games"`},
+		{name: "missing csv", args: []string{"-csv", filepath.Join(dir, "nope.csv"), "X"}, wantCode: 2, wantErr: "nope.csv"},
+		{name: "bad flag", args: []string{"-nope"}, wantCode: 2, wantErr: "flag provided but not defined"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			code := run(context.Background(), tt.args, &stdout, &stderr, testRegistry(t))
+			if code != tt.wantCode {
+				t.Errorf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, tt.wantCode, &stdout, &stderr)
+			}
+			for _, want := range tt.wantOut {
+				if !strings.Contains(stdout.String(), want) {
+					t.Errorf("stdout missing %q:\n%s", want, &stdout)
+				}
+			}
+			if tt.wantErr != "" && !strings.Contains(stderr.String(), tt.wantErr) {
+				t.Errorf("stderr missing %q:\n%s", tt.wantErr, &stderr)
+			}
+			if tt.wantFile != "" {
+				if _, err := os.Stat(filepath.Join(out, tt.wantFile)); err != nil {
+					t.Errorf("expected file: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestRunCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	var stdout, stderr bytes.Buffer
+	code := run(ctx, []string{"-o", t.TempDir(), "Dune"}, &stdout, &stderr, testRegistry(t))
+	if code != 1 {
+		t.Errorf("exit code = %d, want 1", code)
+	}
+	for _, want := range []string{"CANCELLED Dune", "1 cancelled"} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Errorf("stdout missing %q: %q", want, &stdout)
+		}
+	}
+}
