@@ -199,18 +199,23 @@ func TestThumbsRejectsUnlistedPaths(t *testing.T) {
 	}
 }
 
-func TestThumbsAllowReplacesTheList(t *testing.T) {
+func TestThumbsAllowKeepsEarlierListings(t *testing.T) {
+	// A slower, older listing can reach the UI after a newer one, so paths
+	// allowed by any listing in the session keep being served.
 	dir := t.TempDir()
 	a := writeImage(t, dir, "a.jpg", 20, 30)
 	b := writeImage(t, dir, "b.jpg", 20, 30)
+	unlisted := writeImage(t, dir, "c.jpg", 20, 30)
 	th := NewThumbs()
 	th.Allow([]Cover{{Name: "a.jpg", Path: a}})
 	th.Allow([]Cover{{Name: "b.jpg", Path: b}})
-	if rec := get(th, a); rec.Code != http.StatusNotFound {
-		t.Errorf("old path: status %d, want 404", rec.Code)
+	for _, p := range []string{a, b} {
+		if rec := get(th, p); rec.Code != http.StatusOK {
+			t.Errorf("%s: status %d, want 200", filepath.Base(p), rec.Code)
+		}
 	}
-	if rec := get(th, b); rec.Code != http.StatusOK {
-		t.Errorf("new path: status %d, want 200", rec.Code)
+	if rec := get(th, unlisted); rec.Code != http.StatusNotFound {
+		t.Errorf("unlisted path: status %d, want 404", rec.Code)
 	}
 }
 

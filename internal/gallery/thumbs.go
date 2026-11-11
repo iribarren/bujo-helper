@@ -58,20 +58,15 @@ func NewThumbs() *Thumbs {
 	}
 }
 
-// Allow replaces the allowed paths with those of covers, and drops cached
-// thumbnails of paths no longer allowed.
+// Allow adds the paths of covers to the allowed set. Earlier listings stay
+// allowed for the session: a slower, older listing may reach the UI after a
+// newer one, and its thumbnails must still load. Only listed images are
+// ever served.
 func (t *Thumbs) Allow(covers []Cover) {
-	allowed := make(map[string]bool, len(covers))
-	for _, c := range covers {
-		allowed[c.Path] = true
-	}
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.allowed = allowed
-	for p := range t.cache {
-		if !allowed[p] {
-			delete(t.cache, p)
-		}
+	for _, c := range covers {
+		t.allowed[c.Path] = true
 	}
 }
 

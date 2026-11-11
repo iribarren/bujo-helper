@@ -310,8 +310,7 @@ type CoverView struct {
 }
 
 // ListCovers returns the images in dir, sorted by name, and makes their
-// thumbnails available to the UI. Thumbnails of earlier listings stop being
-// served.
+// thumbnails available to the UI.
 func (a *App) ListCovers(dir string) ([]CoverView, error) {
 	covers, err := gallery.List(dir)
 	if err != nil {
@@ -354,7 +353,22 @@ func (a *App) ExportPDF(paths []string, defaultDir string) (string, error) {
 		return "", err
 	}
 	if !strings.EqualFold(filepath.Ext(path), ".pdf") {
+		// The dialog only confirmed overwriting the name as typed, so ask
+		// again before replacing an existing file with the added extension.
 		path += ".pdf"
+		if _, err := os.Stat(path); err == nil {
+			answer, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+				Type:          runtime.QuestionDialog,
+				Title:         "Replace file?",
+				Message:       filepath.Base(path) + " already exists. Replace it?",
+				Buttons:       []string{"Replace", "Cancel"},
+				DefaultButton: "Cancel",
+				CancelButton:  "Cancel",
+			})
+			if err != nil || !isYes(answer) {
+				return "", err
+			}
+		}
 	}
 	if err := exportTo(path, paths); err != nil {
 		return "", err
@@ -435,4 +449,15 @@ func openWithSystem(path string) error {
 	// ignored; Wait only reaps the process.
 	go cmd.Wait()
 	return nil
+}
+
+// isYes reports whether a question dialog answer confirms the action. GTK
+// returns the button label; Windows returns "Yes"/"Ok" for its default
+// buttons.
+func isYes(answer string) bool {
+	switch strings.ToLower(answer) {
+	case "replace", "yes", "ok":
+		return true
+	}
+	return false
 }

@@ -410,3 +410,11 @@ func TestOpenFileRejectsMissingFiles(t *testing.T) {
 		}
 	}
 }
+
+func TestIsYes(t *testing.T) {
+	for answer, want := range map[string]bool{"Replace": true, "Yes": true, "Ok": true, "Cancel": false, "No": false, "": false} {
+		if got := isYes(answer); got != want {
+			t.Errorf("isYes(%q) = %v, want %v", answer, got, want)
+		}
+	}
+}
