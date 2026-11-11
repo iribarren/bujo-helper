@@ -10,6 +10,8 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
+	"sync"
 
 	// Decoders for the supported cover formats.
 	_ "image/gif"
@@ -27,6 +29,9 @@ const (
 	borderWidth = 0.2  // cut border line width, mm
 	borderGrey  = 0x99 // cut border colour, #999999
 	mmPerInch   = 25.4
+	// maxWorkers bounds the images decoded at once: each full-size cover
+	// takes tens of MB while it is scaled.
+	maxWorkers = 4
 )
 
 // Build writes a PDF of the images at paths, laid out by Layout, to w.
@@ -57,16 +62,21 @@ func Build(w io.Writer, paths []string) error {
 	pdf.SetLineWidth(borderWidth)
 	opts := fpdf.ImageOptions{ImageType: "JPG"}
 
+	var boxes []Box
+	for _, page := range pages {
+		boxes = append(boxes, page...)
+	}
+	images, err := printImages(paths, boxes)
+	if err != nil {
+		return err
+	}
+
 	i := 0
 	for _, page := range pages {
 		pdf.AddPage()
 		for _, box := range page {
-			data, err := printImage(paths[i], box.H)
-			if err != nil {
-				return err
-			}
 			name := fmt.Sprintf("cover-%d", i)
-			pdf.RegisterImageOptionsReader(name, opts, bytes.NewReader(data))
+			pdf.RegisterImageOptionsReader(name, opts, bytes.NewReader(images[i]))
 			pdf.ImageOptions(name, box.X, box.Y, box.W, box.H, false, opts, 0, "")
 			pdf.Rect(box.X, box.Y, box.W, box.H, "D")
 			if err := pdf.Error(); err != nil {
@@ -101,6 +111,36 @@ func aspectRatio(path string) (float64, error) {
 		return 0, fmt.Errorf("%s: image has no size", name)
 	}
 	return float64(cfg.Width) / float64(cfg.Height), nil
+}
+
+// printImages prepares the image of every cover with printImage, a few at a
+// time (decoding and scaling dominate the export time). On failure it
+// returns the error of the first failing cover in order.
+func printImages(paths []string, boxes []Box) ([][]byte, error) {
+	images := make([][]byte, len(paths))
+	errs := make([]error, len(paths))
+	next := make(chan int)
+	var wg sync.WaitGroup
+	for range min(maxWorkers, runtime.NumCPU(), len(paths)) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range next {
+				images[i], errs[i] = printImage(paths[i], boxes[i].H)
+			}
+		}()
+	}
+	for i := range paths {
+		next <- i
+	}
+	close(next)
+	wg.Wait()
+	for _, err := range errs {
+		if err != nil {
+			return nil, err
+		}
+	}
+	return images, nil
 }
 
 // printImage decodes the image at path and returns it as a JPEG sized for a
