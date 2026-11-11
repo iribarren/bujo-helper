@@ -45,9 +45,9 @@ They chose Go + Wails: a single executable per OS and an HTML UI suited to image
   - default country `es` (app, UI, CLI)
   - README
   - Check: `go test`, live smoke (Dune / Sapiens / El nombre del viento → Spanish editions; `-country us` Dune → English)
-- [ ] T10 `internal/sheet`: A4 layout (50 mm covers, 5×5, gap 4, shrink-to-fit wide covers, 0.2 mm grey cut border) + PDF build with go-pdf/fpdf (300 dpi downscale). Check: layout + PDF tests.
-- [ ] T11 `internal/gallery` (List, allowlisted thumbnail handler) + app bindings (ListCovers, ExportPDF via save dialog, OpenFile) + main.go AssetServer.Handler. Check: `go test`.
-- [ ] T12 Frontend Download | Print sheet tabs, `print.ts` (folder preview grid, selection, export, Open PDF), README. Check: npm build, real 30-cover PDF (pdfinfo 2 pages A4, rendered page viewed), wails builds.
+- [x] T10 `internal/sheet`: A4 layout (50 mm covers, 5×5, gap 4, shrink-to-fit wide covers, 0.2 mm grey cut border) + PDF build with go-pdf/fpdf (300 dpi downscale). Check: layout + PDF tests.
+- [x] T11 `internal/gallery` (List, allowlisted thumbnail handler) + app bindings (ListCovers, ExportPDF via save dialog, OpenFile) + main.go AssetServer.Handler. Check: `go test`.
+- [x] T12 Frontend Download | Print sheet tabs, `print.ts` (folder preview grid, selection, export, Open PDF), README. Check: npm build, real 30-cover PDF (pdfinfo 2 pages A4, rendered page viewed), wails builds.
 
 ## Routes
 - T0: user (needs sudo).
@@ -122,3 +122,9 @@ The user wants Spanish edition covers and `es` as the default country. Plan appr
 End goal: print small covers on A4 for bullet journaling. The user said the downloader works and must not be touched.
 - Plan approved: a new "Print sheet" tab that previews a folder (default = the download folder), selects covers and exports a PDF. Covers are 5 cm tall, 5×5 = 25 per A4 page, with extra pages as needed.
 - User decisions: wide covers shrink to fit the 35.6 mm column; thin grey cut border.
+- T10 9d2e014, T11 4231975, perf 4b28140, T12 3741d3c done (route: one delegated writer). RED→GREEN for the Go parts; the frontend was checked by tsc and vite plus a real PDF.
+  - The parent re-ran the tests: 137 passed in 13 packages. `git diff 86d56fb -- <downloader packages>` is empty, so the downloader is untouched.
+  - Real 30-cover PDF: 2 A4 pages, 326 KB, 6.3 s.
+  - The parent viewed both pages: a 5×5 grid with cut borders; page 2 has 5 covers and the square one is shrunk to fit.
+  - Pending manual checks (user): tabs and keyboard, thumbnails in WebKitGTK and WebView2, Export/Open PDF on Windows, and that a printed page measures 5 cm per cover.
+- Review assessment of range e5ea9f6..HEAD: high (process launch in app.go `OpenFile`).
