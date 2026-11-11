@@ -52,13 +52,27 @@ func FormatLines(items []media.Item) string {
 		switch {
 		case it.Creator != "":
 			b.WriteString(", ")
-			b.WriteString(it.Creator)
+			b.WriteString(lineSafeCreator(it.Creator))
 		case strings.Contains(it.Title, ","):
 			b.WriteByte(',')
 		}
 		b.WriteByte('\n')
 	}
 	return b.String()
+}
+
+// lineSafeCreator removes commas from a creator so ParseLines (which splits
+// on the last comma) keeps the title intact. "Last, First" becomes
+// "First Last"; with more commas they are simply dropped.
+func lineSafeCreator(creator string) string {
+	parts := strings.Split(creator, ",")
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+	if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+		return parts[1] + " " + parts[0]
+	}
+	return strings.Join(strings.Fields(strings.Join(parts, " ")), " ")
 }
 
 // headerNames are normalized first-column names that mark a header row.

@@ -105,3 +105,22 @@ func TestReadCSV(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatLinesCreatorWithCommaSurvivesParse(t *testing.T) {
+	cases := []struct {
+		in   media.Item
+		want media.Item
+	}{
+		// "Last, First" (common in catalog CSVs) becomes "First Last".
+		{media.Item{Title: "Dune", Creator: "Herbert, Frank"}, media.Item{Title: "Dune", Creator: "Frank Herbert"}},
+		{media.Item{Title: "Guns, Germs, and Steel", Creator: "Diamond, Jared"}, media.Item{Title: "Guns, Germs, and Steel", Creator: "Jared Diamond"}},
+		// Several commas (co-authors): commas are dropped so the title stays intact.
+		{media.Item{Title: "Good Omens", Creator: "Pratchett, Terry, Gaiman"}, media.Item{Title: "Good Omens", Creator: "Pratchett Terry Gaiman"}},
+	}
+	for _, c := range cases {
+		got := ParseLines(FormatLines([]media.Item{c.in}))
+		if len(got) != 1 || got[0] != c.want {
+			t.Errorf("round trip of %+v = %+v, want %+v", c.in, got, c.want)
+		}
+	}
+}
