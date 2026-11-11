@@ -186,3 +186,25 @@ func TestLanguageComesFromCountry(t *testing.T) {
 		}
 	}
 }
+
+func TestLocalPassSkipsImplausibleMatches(t *testing.T) {
+	srv := imageServer(t)
+	p := &editionProvider{name: "apple", cands: []media.Candidate{
+		{Title: "The Shadow of the Wind", Creator: "Carlos Ruiz Zafón", ISBN: englishISBN, ImageURLs: []string{srv.URL + "/cover.jpg"}},
+		// Local ISBNs, but a study guide by someone else and a different book.
+		{Title: "La sombra del viento (Guía de lectura)", Creator: "ResumenExpress", ISBN: spanishISBN, ImageURLs: []string{srv.URL + "/other.jpg"}},
+		{Title: "Marina", Creator: "Carlos Ruiz Zafón", ISBN: spanishISBN, ImageURLs: []string{srv.URL + "/other.jpg"}},
+	}}
+	d := newDownloader(srv, p)
+	d.MaxCandidates = 1
+
+	res, _ := run(t, d, context.Background(), Request{
+		MediaType: "books",
+		Items:     []media.Item{{Title: "La sombra del viento", Creator: "Carlos Ruiz Zafón"}},
+		OutputDir: t.TempDir(),
+		Options:   media.Options{Country: "es"},
+	})
+	if r := res[0]; r.Status != StatusOK || r.Matched != "The Shadow of the Wind - Carlos Ruiz Zafón" {
+		t.Fatalf("result = %+v, want the provider's best match, not an implausible local one", r)
+	}
+}

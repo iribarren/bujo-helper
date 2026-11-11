@@ -123,3 +123,25 @@ func TestTitleScoreEmptyMainTitleIsNotAPrefixMatch(t *testing.T) {
 		}
 	}
 }
+
+func TestPlausible(t *testing.T) {
+	item := media.Item{Title: "La sombra del viento", Creator: "Carlos Ruiz Zafón"}
+	cases := []struct {
+		title, creator string
+		want           bool
+	}{
+		{"La sombra del viento", "Carlos Ruiz Zafón", true},
+		{"La Sombra del Viento (Edición conmemorativa)", "Carlos Ruiz Zafon", true},
+		{"La sombra del viento", "", true}, // unknown creator is not evidence against
+		{"La sombra del viento (Guía de lectura)", "ResumenExpress", false},
+		{"Marina", "Carlos Ruiz Zafón", false},
+	}
+	for _, c := range cases {
+		if got := Plausible(item, c.title, c.creator); got != c.want {
+			t.Errorf("Plausible(%q, %q) = %v, want %v", c.title, c.creator, got, c.want)
+		}
+	}
+	if !Plausible(media.Item{Title: "Sapiens"}, "Sapiens. De animales a dioses", "Yuval Noah Harari") {
+		t.Error("a subtitle extension should be plausible")
+	}
+}

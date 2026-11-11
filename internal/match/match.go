@@ -104,3 +104,18 @@ func lastWord(s string) string {
 	}
 	return s
 }
+
+// Plausible reports whether a candidate is credibly the requested item: its
+// title is an exact or prefix match (score 0 or 1) and, when both creators
+// are known, the candidate's creator contains the requested surname. It
+// guards preferences that look beyond a provider's top-ranked result.
+func Plausible(item media.Item, title, creator string) bool {
+	if titleScore(Normalize(item.Title), title) > 1 {
+		return false
+	}
+	surname := lastWord(Normalize(item.Creator))
+	if surname == "" || strings.TrimSpace(creator) == "" {
+		return true
+	}
+	return strings.Contains(Normalize(creator), surname)
+}

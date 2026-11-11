@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"cover-downloader/internal/locale"
+	"cover-downloader/internal/match"
 	"cover-downloader/internal/media"
 	"cover-downloader/internal/web"
 )
@@ -182,7 +183,11 @@ func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResul
 	s := &itemSearch{job: j, item: item, results: make([]searchResult, len(j.mt.Providers)), failed: map[string]error{}}
 	var passes []func(media.Candidate) bool
 	if len(j.loc.ISBNPrefixes) > 0 {
-		passes = append(passes, func(c media.Candidate) bool { return j.loc.IsLocal(c.ISBN) })
+		passes = append(passes, func(c media.Candidate) bool {
+			// Local editions can sit far down a provider's ranking, so only
+			// accept those that plausibly are the requested book.
+			return j.loc.IsLocal(c.ISBN) && match.Plausible(item, c.Title, c.Creator)
+		})
 	}
 	passes = append(passes, nil) // nil keeps every candidate
 	var reasons []string
