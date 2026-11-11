@@ -8,9 +8,15 @@ export function ChooseFolder(arg1:string):Promise<string>;
 
 export function DefaultOutputDir():Promise<string>;
 
+export function ExportPDF(arg1:Array<string>,arg2:string):Promise<string>;
+
 export function ImportCSV():Promise<string>;
 
+export function ListCovers(arg1:string):Promise<Array<main.CoverView>>;
+
 export function MediaTypes():Promise<Array<main.MediaTypeInfo>>;
+
+export function OpenFile(arg1:string):Promise<void>;
 
 export function OpenFolder(arg1:string):Promise<void>;
 

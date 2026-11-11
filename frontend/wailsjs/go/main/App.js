@@ -14,12 +14,24 @@ export function DefaultOutputDir() {
   return window['go']['main']['App']['DefaultOutputDir']();
 }
 
+export function ExportPDF(arg1, arg2) {
+  return window['go']['main']['App']['ExportPDF'](arg1, arg2);
+}
+
 export function ImportCSV() {
   return window['go']['main']['App']['ImportCSV']();
 }
 
+export function ListCovers(arg1) {
+  return window['go']['main']['App']['ListCovers'](arg1);
+}
+
 export function MediaTypes() {
   return window['go']['main']['App']['MediaTypes']();
+}
+
+export function OpenFile(arg1) {
+  return window['go']['main']['App']['OpenFile'](arg1);
 }
 
 export function OpenFolder(arg1) {

@@ -17,7 +17,9 @@ import (
 	"cover-downloader/internal/batch"
 	"cover-downloader/internal/catalog"
 	"cover-downloader/internal/downloader"
+	"cover-downloader/internal/gallery"
 	"cover-downloader/internal/media"
+	"cover-downloader/internal/sheet"
 	"cover-downloader/internal/web"
 )
 
@@ -88,6 +90,10 @@ type App struct {
 
 	mu     sync.Mutex
 	cancel context.CancelFunc // non-nil while a job is running
+
+	// thumbs serves the thumbnails of the covers listed by ListCovers. It
+	// is the Wails asset server's fallback handler (see main.go).
+	thumbs *gallery.Thumbs
 }
 
 // NewApp returns an App with the built-in media types.
@@ -100,6 +106,7 @@ func newApp(reg *media.Registry, client *http.Client) *App {
 	return &App{
 		registry:   reg,
 		downloader: downloader.Downloader{Registry: reg, Client: client},
+		thumbs:     gallery.NewThumbs(),
 	}
 }
 
@@ -286,6 +293,143 @@ func (a *App) OpenFolder(path string) error {
 	}
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("open folder: %w", err)
+	}
+	// explorer exits with status 1 even on success, so the exit status is
+	// ignored; Wait only reaps the process.
+	go cmd.Wait()
+	return nil
+}
+
+// CoverView is one image of the print sheet gallery.
+type CoverView struct {
+	Name     string `json:"name"`
+	Path     string `json:"path"`
+	ThumbURL string `json:"thumbUrl"`
+	Width    int    `json:"width"`
+	Height   int    `json:"height"`
+}
+
+// ListCovers returns the images in dir, sorted by name, and makes their
+// thumbnails available to the UI. Thumbnails of earlier listings stop being
+// served.
+func (a *App) ListCovers(dir string) ([]CoverView, error) {
+	covers, err := gallery.List(dir)
+	if err != nil {
+		return nil, err
+	}
+	a.thumbs.Allow(covers)
+	views := make([]CoverView, len(covers))
+	for i, c := range covers {
+		views[i] = CoverView{
+			Name:     c.Name,
+			Path:     c.Path,
+			ThumbURL: gallery.URL(c.Path),
+			Width:    c.Width,
+			Height:   c.Height,
+		}
+	}
+	return views, nil
+}
+
+// ExportPDF asks where to save, then writes the print sheet PDF of the
+// images at paths, in that order. It returns the saved path, or "" with no
+// error when the dialog is cancelled.
+func (a *App) ExportPDF(paths []string, defaultDir string) (string, error) {
+	if len(paths) == 0 {
+		return "", errors.New("select at least one cover")
+	}
+	opts := runtime.SaveDialogOptions{
+		Title:                "Export PDF",
+		DefaultFilename:      "covers.pdf",
+		CanCreateDirectories: true,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "PDF files (*.pdf)", Pattern: "*.pdf"},
+		},
+	}
+	if info, err := os.Stat(defaultDir); err == nil && info.IsDir() {
+		opts.DefaultDirectory = defaultDir
+	}
+	path, err := runtime.SaveFileDialog(a.ctx, opts)
+	if err != nil || path == "" {
+		return "", err
+	}
+	if !strings.EqualFold(filepath.Ext(path), ".pdf") {
+		path += ".pdf"
+	}
+	if err := exportTo(path, paths); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// exportTo writes the print sheet PDF of files to path. It writes a
+// temporary file next to path and renames it, so a failure never leaves a
+// partial PDF behind.
+func exportTo(path string, files []string) error {
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".covers-*.pdf.tmp")
+	if err != nil {
+		return fmt.Errorf("create PDF: %w", err)
+	}
+	tmpName := tmp.Name()
+	ok := false
+	defer func() {
+		if !ok {
+			tmp.Close()
+			os.Remove(tmpName)
+		}
+	}()
+	if err := sheet.Build(tmp, files); err != nil {
+		return err
+	}
+	// CreateTemp makes the file private (0600); a saved PDF gets the usual
+	// permissions. Windows has no permission bits to set.
+	if goruntime.GOOS != "windows" {
+		if err := tmp.Chmod(0o644); err != nil {
+			return fmt.Errorf("write PDF: %w", err)
+		}
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("write PDF: %w", err)
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		return fmt.Errorf("save PDF: %w", err)
+	}
+	ok = true
+	return nil
+}
+
+// OpenFile opens the file at path with its default application.
+func (a *App) OpenFile(path string) error {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return errors.New("no file to open")
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("open file: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("open file: %s is not a file", filepath.Base(path))
+	}
+	if err := openWithSystem(path); err != nil {
+		return fmt.Errorf("open file: %w", err)
+	}
+	return nil
+}
+
+// openWithSystem hands path to the system opener without waiting for it.
+func openWithSystem(path string) error {
+	var cmd *exec.Cmd
+	switch goruntime.GOOS {
+	case "windows":
+		cmd = exec.Command("explorer", path)
+	case "darwin":
+		cmd = exec.Command("open", path)
+	default:
+		cmd = exec.Command("xdg-open", path)
+	}
+	if err := cmd.Start(); err != nil {
+		return err
 	}
 	// explorer exits with status 1 even on success, so the exit status is
 	// ignored; Wait only reaps the process.

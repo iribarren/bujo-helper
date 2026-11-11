@@ -1,5 +1,25 @@
 export namespace main {
 	
+	export class CoverView {
+	    name: string;
+	    path: string;
+	    thumbUrl: string;
+	    width: number;
+	    height: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CoverView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.path = source["path"];
+	        this.thumbUrl = source["thumbUrl"];
+	        this.width = source["width"];
+	        this.height = source["height"];
+	    }
+	}
 	export class ItemView {
 	    index: number;
 	    title: string;

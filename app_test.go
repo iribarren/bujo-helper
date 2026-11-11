@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"image"
+	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -278,5 +281,132 @@ func TestStartCountry(t *testing.T) {
 			t.Errorf("country %q: provider options = %+v, want Country %q", in, p.opts, want)
 		}
 		p.mu.Unlock()
+	}
+}
+
+// writeCover saves a w x h grey JPEG to dir/name.
+func writeCover(t *testing.T, dir, name string, w, h int) string {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	for i := range img.Pix {
+		img.Pix[i] = 0x80
+	}
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, nil); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestListCovers(t *testing.T) {
+	dir := t.TempDir()
+	writeCover(t, dir, "b 10.jpg", 66, 100)
+	writeCover(t, dir, "b 2.jpg", 40, 60)
+	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+
+	views, err := a.ListCovers(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(views) != 2 || views[0].Name != "b 2.jpg" || views[1].Name != "b 10.jpg" {
+		t.Fatalf("views = %+v, want b 2.jpg then b 10.jpg", views)
+	}
+	v := views[1]
+	if v.Width != 66 || v.Height != 100 || v.Path != filepath.Join(dir, "b 10.jpg") {
+		t.Errorf("view = %+v", v)
+	}
+	if !strings.HasPrefix(v.ThumbURL, "/thumbs?path=") {
+		t.Errorf("thumbUrl = %q", v.ThumbURL)
+	}
+
+	// The listed covers are served by the thumbnail handler; others are not.
+	rec := httptest.NewRecorder()
+	a.thumbs.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, v.ThumbURL, nil))
+	if rec.Code != http.StatusOK || rec.Header().Get("Content-Type") != "image/jpeg" {
+		t.Errorf("thumbnail: status %d, type %q", rec.Code, rec.Header().Get("Content-Type"))
+	}
+	other := writeCover(t, t.TempDir(), "other.jpg", 10, 10)
+	rec = httptest.NewRecorder()
+	a.thumbs.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/thumbs?path="+other, nil))
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("unlisted thumbnail: status %d, want 404", rec.Code)
+	}
+
+	if _, err := a.ListCovers(filepath.Join(dir, "missing")); err == nil {
+		t.Error("missing folder: want an error")
+	}
+}
+
+func TestExportTo(t *testing.T) {
+	src := t.TempDir()
+	var files []string
+	for i := 0; i < 26; i++ {
+		files = append(files, writeCover(t, src, fmt.Sprintf("c%02d.jpg", i), 66, 100))
+	}
+	outDir := t.TempDir()
+	out := filepath.Join(outDir, "covers.pdf")
+	// An existing file is replaced.
+	if err := os.WriteFile(out, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := exportTo(out, files); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.HasPrefix(data, []byte("%PDF")) {
+		t.Fatalf("output starts with %q, want %%PDF", data[:min(8, len(data))])
+	}
+	if n := bytes.Count(data, []byte("/Type /Page\n")); n != 2 {
+		t.Errorf("PDF has %d pages, want 2", n)
+	}
+	entries, _ := os.ReadDir(outDir)
+	if len(entries) != 1 {
+		t.Errorf("output folder has %d entries, want only covers.pdf", len(entries))
+	}
+}
+
+func TestExportToFailureLeavesNothing(t *testing.T) {
+	src := t.TempDir()
+	good := writeCover(t, src, "good.jpg", 66, 100)
+	bad := filepath.Join(src, "bad.jpg")
+	if err := os.WriteFile(bad, []byte("not an image"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	outDir := t.TempDir()
+	out := filepath.Join(outDir, "covers.pdf")
+
+	err := exportTo(out, []string{good, bad})
+	if err == nil || !strings.Contains(err.Error(), "bad.jpg") {
+		t.Fatalf("err = %v, want an error naming bad.jpg", err)
+	}
+	if entries, _ := os.ReadDir(outDir); len(entries) != 0 {
+		t.Errorf("output folder has %d entries after a failure, want none", len(entries))
+	}
+}
+
+func TestExportPDFNeedsCovers(t *testing.T) {
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	if _, err := a.ExportPDF(nil, ""); err == nil {
+		t.Error("no covers: want an error")
+	}
+}
+
+func TestOpenFileRejectsMissingFiles(t *testing.T) {
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	for _, p := range []string{"", "  ", filepath.Join(t.TempDir(), "missing.pdf"), t.TempDir()} {
+		if err := a.OpenFile(p); err == nil {
+			t.Errorf("OpenFile(%q): want an error", p)
+		}
 	}
 }
