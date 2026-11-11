@@ -34,12 +34,12 @@ They chose Go + Wails: a single executable per OS and an HTML UI suited to image
 - [x] T5 `cmd/covers` CLI. Check: live smoke test.
 - [x] T6 Frontend UI + bindings + events. Check: manual GUI run.
 - [x] T7 Linux + Windows builds, README. Check: both binaries produced.
-- [ ] T8 Spanish editions groundwork:
+- [x] T8 Spanish editions groundwork:
   - `internal/locale` (country → OL language + ISBN prefixes)
   - `internal/isbn`
   - `Candidate.ISBN` filled by Apple (artwork URL), Amazon (ASIN ISBN-10) and Open Library
   - Check: table tests
-- [ ] T9 Prefer local editions:
+- [x] T9 Prefer local editions:
   - downloader two-pass (local-ISBN pass first, then silent fallback; one search per provider per item)
   - Open Library `language:<lang>` edition search with Amazon CDN high-res by ISBN-10
   - default country `es` (app, UI, CLI)
@@ -100,3 +100,12 @@ The user wants Spanish edition covers and `es` as the default country. Plan appr
   - The Amazon CDN by ISBN-10 gives a high-res Spanish cover.
   - Todos tus libros rejected (robots.txt disallows /busquedas).
 - User decision: if no Spanish edition is found, fall back silently to any edition.
+- T8 d2ae204 and T9 2392b49 done (route: one delegated writer).
+  - RED→GREEN observed for both. The parent re-ran the tests: 105 passed in 11 packages.
+  - Live smoke with the default `es` gave Spanish editions for all 3 books, checked visually:
+    - Dune: Debolsillo, 9788466342667
+    - Sapiens: Debate, 9788499924748
+    - El nombre del viento: 9788401352799
+  - With `-country us`, Dune gave the English edition (9781101658055).
+  - Known limitation: the 97884 prefix also covers Catalan editions.
+- Review assessment of range c46654b..HEAD (includes 2a37407): medium, slice_budget_reached. Waiting on the user's consent.
