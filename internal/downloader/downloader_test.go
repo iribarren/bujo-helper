@@ -1,0 +1,363 @@
+package downloader
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+	"testing"
+
+	"cover-downloader/internal/media"
+)
+
+var (
+	jpegBody = append([]byte("\xff\xd8\xff\xe0"), bytes.Repeat([]byte{0xAB}, 4096)...)
+	pngBody  = append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{0xCD}, 2048)...)
+	tinyGIF  = []byte("GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;")
+)
+
+// imageServer serves a few fixed responses used as candidate image URLs.
+func imageServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	serve := func(path, contentType string, body []byte) {
+		mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			if !strings.Contains(r.Header.Get("User-Agent"), "Chrome") {
+				http.Error(w, "browser UA required", http.StatusForbidden)
+				return
+			}
+			w.Header().Set("Content-Type", contentType)
+			w.Write(body)
+		})
+	}
+	serve("/cover.jpg", "image/jpeg", jpegBody)
+	serve("/other.jpg", "image/jpeg", pngBody)
+	serve("/noext", "image/png", pngBody)
+	serve("/tiny.gif", "image/gif", tinyGIF)
+	serve("/page.html", "text/html; charset=utf-8", bytes.Repeat([]byte("<p>not an image</p>"), 200))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+// fakeProvider answers searches with a function of the item.
+type fakeProvider struct {
+	name   string
+	search func(ctx context.Context, item media.Item) ([]media.Candidate, error)
+}
+
+func (f *fakeProvider) Name() string { return f.name }
+
+func (f *fakeProvider) Search(ctx context.Context, item media.Item, _ media.Options) ([]media.Candidate, error) {
+	return f.search(ctx, item)
+}
+
+// returns builds a provider that returns one candidate with the given URLs.
+func returns(name string, urls ...string) *fakeProvider {
+	return &fakeProvider{name: name, search: func(_ context.Context, item media.Item) ([]media.Candidate, error) {
+		return []media.Candidate{{Title: item.Title + " (match)", Creator: item.Creator, ImageURLs: urls, Source: name}}, nil
+	}}
+}
+
+func notFound(name string) *fakeProvider {
+	return &fakeProvider{name: name, search: func(context.Context, media.Item) ([]media.Candidate, error) {
+		return nil, fmt.Errorf("%w: nothing", media.ErrNotFound)
+	}}
+}
+
+func newDownloader(srv *httptest.Server, providers ...media.Provider) *Downloader {
+	reg := media.NewRegistry()
+	if err := reg.Register(media.MediaType{ID: "books", Providers: providers}); err != nil {
+		panic(err)
+	}
+	return &Downloader{Registry: reg, Client: srv.Client()}
+}
+
+// run executes a batch and returns the results sorted by index.
+func run(t *testing.T, d *Downloader, ctx context.Context, req Request) ([]ItemResult, Summary) {
+	t.Helper()
+	var mu sync.Mutex
+	var results []ItemResult
+	sum, err := d.Run(ctx, req, func(r ItemResult) {
+		mu.Lock()
+		defer mu.Unlock()
+		results = append(results, r)
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	sort.Slice(results, func(i, j int) bool { return results[i].Index < results[j].Index })
+	if len(results) != len(req.Items) {
+		t.Fatalf("got %d results for %d items", len(results), len(req.Items))
+	}
+	return results, sum
+}
+
+func readFile(t *testing.T, path string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func TestFallbackToSecondProvider(t *testing.T) {
+	srv := imageServer(t)
+	d := newDownloader(srv, notFound("first"), returns("second", srv.URL+"/cover.jpg"))
+	dir := t.TempDir()
+
+	res, sum := run(t, d, context.Background(), Request{
+		MediaType: "books",
+		Items:     []media.Item{{Title: "Dune", Creator: "Frank Herbert"}},
+		OutputDir: dir,
+	})
+
+	r := res[0]
+	if r.Status != StatusOK || r.Source != "second" || r.Matched != "Dune (match) - Frank Herbert" {
+		t.Fatalf("result = %+v", r)
+	}
+	if want := filepath.Join(dir, "Dune - Frank Herbert.jpg"); r.Path != want {
+		t.Errorf("Path = %q, want %q", r.Path, want)
+	}
+	if !bytes.Equal(readFile(t, r.Path), jpegBody) {
+		t.Error("saved bytes differ from served image")
+	}
+	if sum != (Summary{OK: 1}) {
+		t.Errorf("summary = %+v", sum)
+	}
+}
+
+func TestImageValidation(t *testing.T) {
+	srv := imageServer(t)
+	tests := []struct {
+		name       string
+		providers  []media.Provider
+		wantStatus string
+		wantSource string
+		wantFile   string
+		wantErr    []string
+	}{
+		{
+			name:       "tiny GIF placeholder is skipped for the next URL",
+			providers:  []media.Provider{returns("p", srv.URL+"/tiny.gif", srv.URL+"/cover.jpg")},
+			wantStatus: StatusOK, wantSource: "p", wantFile: "Emma.jpg",
+		},
+		{
+			name:       "tiny GIF only falls through to the next provider",
+			providers:  []media.Provider{returns("p1", srv.URL+"/tiny.gif"), returns("p2", srv.URL+"/noext")},
+			wantStatus: StatusOK, wantSource: "p2", wantFile: "Emma.png",
+		},
+		{
+			name:       "non-image and missing URLs fail",
+			providers:  []media.Provider{returns("p1", srv.URL+"/page.html", srv.URL+"/missing.jpg"), notFound("p2")},
+			wantStatus: StatusFailed,
+			wantErr:    []string{"p1: no downloadable cover image", "p2: not found: nothing"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			d := newDownloader(srv, tt.providers...)
+			res, _ := run(t, d, context.Background(), Request{MediaType: "books", Items: []media.Item{{Title: "Emma"}}, OutputDir: dir})
+			r := res[0]
+			if r.Status != tt.wantStatus || r.Source != tt.wantSource {
+				t.Fatalf("result = %+v", r)
+			}
+			if tt.wantFile != "" && r.Path != filepath.Join(dir, tt.wantFile) {
+				t.Errorf("Path = %q, want %s", r.Path, tt.wantFile)
+			}
+			for _, want := range tt.wantErr {
+				if !strings.Contains(r.Error, want) {
+					t.Errorf("Error = %q, want it to contain %q", r.Error, want)
+				}
+			}
+			if tt.wantStatus == StatusFailed {
+				if entries, _ := os.ReadDir(dir); len(entries) != 0 {
+					t.Errorf("failed item left files: %v", entries)
+				}
+			}
+		})
+	}
+}
+
+func TestDedupeIsRaceSafe(t *testing.T) {
+	srv := imageServer(t)
+	d := newDownloader(srv, returns("p", srv.URL+"/cover.jpg"))
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "Dune - Frank Herbert.jpg"), []byte("existing"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	items := make([]media.Item, 5)
+	for i := range items {
+		items[i] = media.Item{Title: "Dune", Creator: "Frank Herbert"}
+	}
+	res, sum := run(t, d, context.Background(), Request{MediaType: "books", Items: items, OutputDir: dir, Workers: 5})
+	if sum.OK != 5 {
+		t.Fatalf("summary = %+v, results = %+v", sum, res)
+	}
+
+	var got []string
+	for _, r := range res {
+		got = append(got, filepath.Base(r.Path))
+	}
+	sort.Strings(got)
+	want := []string{
+		"Dune - Frank Herbert-2.jpg", "Dune - Frank Herbert-3.jpg", "Dune - Frank Herbert-4.jpg",
+		"Dune - Frank Herbert-5.jpg", "Dune - Frank Herbert-6.jpg",
+	}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Errorf("files = %q, want %q", got, want)
+	}
+	if string(readFile(t, filepath.Join(dir, "Dune - Frank Herbert.jpg"))) != "existing" {
+		t.Error("existing file was overwritten")
+	}
+}
+
+func TestWindowsUnsafeNames(t *testing.T) {
+	srv := imageServer(t)
+	d := newDownloader(srv, returns("p", srv.URL+"/cover.jpg"))
+	dir := t.TempDir()
+	res, _ := run(t, d, context.Background(), Request{
+		MediaType: "books",
+		Items:     []media.Item{{Title: `AC/DC: "Live"  <1990>?`, Creator: `Who|*\Else...`}},
+		OutputDir: dir,
+	})
+	if want := filepath.Join(dir, "ACDC Live 1990 - WhoElse.jpg"); res[0].Path != want {
+		t.Errorf("Path = %q, want %q", res[0].Path, want)
+	}
+}
+
+func TestSafeName(t *testing.T) {
+	tests := []struct{ in, want string }{
+		{"Dune", "Dune"},
+		{`a<b>c:d"e/f\g|h?i*j`, "abcdefghij"},
+		{"tab\there\nnew\x00line", "tab here newline"},
+		{"  spaced   out  ", "spaced out"},
+		{"trailing dots... . ", "trailing dots"},
+		{"???", ""},
+		{"Cien años de soledad", "Cien años de soledad"},
+		{strings.Repeat("é", 130), strings.Repeat("é", 120)},
+	}
+	for _, tt := range tests {
+		if got := safeName(tt.in); got != tt.want {
+			t.Errorf("safeName(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestFileName(t *testing.T) {
+	tests := []struct {
+		item media.Item
+		ext  string
+		want string
+	}{
+		{media.Item{Title: "Dune", Creator: "Frank Herbert"}, ".jpg", "Dune - Frank Herbert.jpg"},
+		{media.Item{Title: "Dune"}, ".png", "Dune.png"},
+		{media.Item{Title: "Dune", Creator: "???"}, ".jpg", "Dune.jpg"},
+		{media.Item{Title: "???"}, ".jpg", "cover.jpg"},
+		{media.Item{Title: "CON"}, ".jpg", "CON_.jpg"},
+		{media.Item{Title: "lpt1"}, ".png", "lpt1_.png"},
+		{media.Item{Title: "CON", Creator: "X"}, ".jpg", "CON - X.jpg"},
+	}
+	for _, tt := range tests {
+		if got := fileName(tt.item, tt.ext); got != tt.want {
+			t.Errorf("fileName(%+v) = %q, want %q", tt.item, got, tt.want)
+		}
+	}
+}
+
+func TestImageExt(t *testing.T) {
+	tests := []struct{ url, contentType, want string }{
+		{"https://x/a/10000x10000bb.jpg", "image/jpeg", ".jpg"},
+		{"https://x/b/id/1-L.jpg?default=false", "image/jpeg", ".jpg"},
+		{"https://x/img.PNG", "image/png", ".png"},
+		{"https://x/noext", "image/webp", ".webp"},
+		{"https://x/noext", "image/png; charset=binary", ".png"},
+		{"https://x/thing.php", "image/gif", ".gif"},
+		{"https://x/noext", "image/x-unknown", ".jpg"},
+	}
+	for _, tt := range tests {
+		if got := imageExt(tt.url, tt.contentType); got != tt.want {
+			t.Errorf("imageExt(%q, %q) = %q, want %q", tt.url, tt.contentType, got, tt.want)
+		}
+	}
+}
+
+func TestOneFailureDoesNotStopBatch(t *testing.T) {
+	srv := imageServer(t)
+	p := &fakeProvider{name: "p", search: func(_ context.Context, item media.Item) ([]media.Candidate, error) {
+		if item.Title == "Bad" {
+			return nil, errors.New("boom")
+		}
+		return []media.Candidate{{Title: item.Title, ImageURLs: []string{srv.URL + "/cover.jpg"}}}, nil
+	}}
+	d := newDownloader(srv, p)
+	items := []media.Item{{Title: "A"}, {Title: "Bad"}, {Title: "C"}, {Title: "   "}}
+	res, sum := run(t, d, context.Background(), Request{MediaType: "books", Items: items, OutputDir: filepath.Join(t.TempDir(), "nested", "out")})
+
+	wantStatus := []string{StatusOK, StatusFailed, StatusOK, StatusFailed}
+	for i, r := range res {
+		if r.Index != i || r.Item != items[i] || r.Status != wantStatus[i] {
+			t.Errorf("result %d = %+v, want status %s", i, r, wantStatus[i])
+		}
+	}
+	if res[1].Error != "p: boom" {
+		t.Errorf("Error = %q", res[1].Error)
+	}
+	if sum != (Summary{OK: 2, Failed: 2}) {
+		t.Errorf("summary = %+v", sum)
+	}
+}
+
+func TestCancellation(t *testing.T) {
+	srv := imageServer(t)
+	started := make(chan struct{})
+	var once sync.Once
+	p := &fakeProvider{name: "p", search: func(ctx context.Context, item media.Item) ([]media.Candidate, error) {
+		once.Do(func() { close(started) })
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}}
+	d := newDownloader(srv, p)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-started
+		cancel()
+	}()
+
+	items := []media.Item{{Title: "A"}, {Title: "B"}, {Title: "C"}, {Title: "D"}}
+	res, sum := run(t, d, ctx, Request{MediaType: "books", Items: items, OutputDir: t.TempDir(), Workers: 1})
+	for _, r := range res {
+		if r.Status != StatusCancelled {
+			t.Errorf("result = %+v, want cancelled", r)
+		}
+	}
+	if sum != (Summary{Cancelled: 4}) {
+		t.Errorf("summary = %+v", sum)
+	}
+}
+
+func TestRunErrors(t *testing.T) {
+	srv := imageServer(t)
+	d := newDownloader(srv, returns("p", srv.URL+"/cover.jpg"))
+	if _, err := d.Run(context.Background(), Request{MediaType: "games", OutputDir: t.TempDir()}, nil); err == nil {
+		t.Error("unknown media type should fail")
+	}
+	if _, err := d.Run(context.Background(), Request{MediaType: "books"}, nil); err == nil {
+		t.Error("empty output dir should fail")
+	}
+	// A nil callback is allowed.
+	sum, err := d.Run(context.Background(), Request{MediaType: "books", Items: []media.Item{{Title: "X"}}, OutputDir: t.TempDir()}, nil)
+	if err != nil || sum.OK != 1 {
+		t.Errorf("nil callback run = %+v, %v", sum, err)
+	}
+}
