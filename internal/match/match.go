@@ -81,7 +81,7 @@ func titleScore(query, title string) int {
 	switch {
 	case main == query || full == query:
 		return 0
-	case strings.HasPrefix(full, query) || strings.HasPrefix(query, main):
+	case strings.HasPrefix(full, query) || (main != "" && strings.HasPrefix(query, main)):
 		return 1
 	case strings.Contains(full, query):
 		return 2

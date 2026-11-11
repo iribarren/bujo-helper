@@ -4,6 +4,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,9 +21,15 @@ const (
 
 	// Timeout is the default per-request timeout.
 	Timeout = 15 * time.Second
-	// MaxBodySize caps how much of a response body is read into memory.
-	MaxBodySize = 32 << 20
 )
+
+// MaxBodySize caps how much of a response body is read into memory.
+// Larger bodies fail with ErrBodyTooLarge rather than being truncated, so a
+// partial image is never saved. It is a var so tests can lower it.
+var MaxBodySize int64 = 32 << 20
+
+// ErrBodyTooLarge is returned by Get when a body exceeds MaxBodySize.
+var ErrBodyTooLarge = errors.New("response body too large")
 
 // NewClient returns an HTTP client with the default timeout.
 func NewClient() *http.Client {
@@ -66,9 +73,12 @@ func Get(ctx context.Context, client *http.Client, url string, setHeaders func(*
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(resp.Body, MaxBodySize))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, MaxBodySize+1))
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
+	}
+	if int64(len(body)) > MaxBodySize {
+		return nil, fmt.Errorf("%w (over %d bytes)", ErrBodyTooLarge, MaxBodySize)
 	}
 	return &Response{Status: resp.StatusCode, Header: resp.Header, Body: body}, nil
 }

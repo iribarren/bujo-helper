@@ -113,3 +113,13 @@ func TestRankDoesNotMutateInput(t *testing.T) {
 		t.Error("Rank mutated its input")
 	}
 }
+
+func TestTitleScoreEmptyMainTitleIsNotAPrefixMatch(t *testing.T) {
+	// A title whose main part normalizes to "" (e.g. "(Unabridged)") must not
+	// count as a prefix of every query.
+	for _, title := range []string{"(Unabridged)", ": Notes", ""} {
+		if got := titleScore("dune", title); got != 3 {
+			t.Errorf("titleScore(%q, %q) = %d, want 3", "dune", title, got)
+		}
+	}
+}
