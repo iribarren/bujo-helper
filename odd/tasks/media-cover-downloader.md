@@ -26,8 +26,8 @@ They chose Go + Wails: a single executable per OS and an HTML UI suited to image
 - Linux and Windows binaries build.
 
 ## Tasks
-- [ ] T0 Prerequisites installed (Go, Wails CLI, GTK/WebKit dev headers, pkg-config). Run by the user (sudo).
-- [ ] T1 Scaffold Wails vanilla-ts, `.gitignore`, legacy script moved. Check: `wails build -tags webkit2_41`.
+- [x] T0 Prerequisites installed (Go, Wails CLI, GTK/WebKit dev headers, pkg-config). Run by the user (sudo).
+- [x] T1 Scaffold Wails vanilla-ts, `.gitignore`, legacy script moved. Check: `wails build -tags webkit2_41`.
 - [ ] T2 `internal/media` + `internal/batch` (lines, CSV). Check: table-driven `go test`.
 - [ ] T3 `internal/providers` + ranking (Apple, Open Library, Amazon). Check: `httptest` fixtures.
 - [ ] T4 `internal/downloader` (fallback, validation, naming/dedupe, workers, cancel, events). Check: `httptest` + temp dir.
@@ -41,6 +41,8 @@ They chose Go + Wails: a single executable per OS and an HTML UI suited to image
 
 ## Progress / evidence
 - 2026-11-11: `git init`. Python script moved to `legacy/`. Waiting on T0 (`sudo -n` unavailable).
+- T0 done. Go 1.26.8 and Wails v2.17.1 installed. `wails doctor` reports libwebkit missing only because it looks for 4.0; 4.1-dev is present (pkg-config 2.52.6).
+- T1 done (route: inline, generated scaffold). `wails build -tags webkit2_41` gives an 8.3M binary, and the window stayed up for 5s. Commit 60ce44b. Review: none. It is the root commit (generated scaffold, nothing to diff against); `main` is set to 60ce44b as the first review boundary.
 
 ## Next step
-User runs the prerequisites, then T1.
+T2–T5 (Go core + CLI): one delegated writer, one commit per task.
