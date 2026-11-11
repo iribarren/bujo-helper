@@ -90,7 +90,7 @@ User manual checks:
 - Browse and Open folder
 - the `.exe` on Windows
 
-Follow-ups: the 4 review SUGGESTIONs. Delivery (merge to main) is the user's decision.
+Follow-ups: the 4 review SUGGESTIONs; consider limiting pass-1 Amazon searches if bot checks become frequent. Delivery (merge to main) is the user's decision.
 
 ### 2026-11-11: Spanish editions request
 The user wants Spanish edition covers and `es` as the default country. Plan approved (`~/.claude/plans/let-s-make-it-easier-vivid-pearl.md`).
@@ -108,4 +108,8 @@ The user wants Spanish edition covers and `es` as the default country. Plan appr
     - El nombre del viento: 9788401352799
   - With `-country us`, Dune gave the English edition (9781101658055).
   - Known limitation: the 97884 prefix also covers Catalan editions.
-- Review assessment of range c46654b..HEAD (includes 2a37407): medium, slice_budget_reached. Waiting on the user's consent.
+- Review of range c46654b..HEAD (includes 2a37407): medium, slice_budget_reached. The user granted review.
+  - One lens (reliability) approved it; acknowledged with authority burned (lineage review-8d8e944caf067321).
+  - WARNING R3-local-filter-before-rank-cut, fixed by `match.Plausible`: local editions must have a title score ≤1 and a matching surname. RED showed the study guide being chosen; GREEN, 107 tests.
+  - Live re-smoke: Dune, Sapiens, El nombre del viento and La sombra del viento (Planeta) all gave Spanish editions, checked visually.
+  - WARNING R3-pass1-extra-amazon-searches, accepted: Amazon.es is a good source of local editions. The cost is one cached Amazon search when Apple and OL have no local edition. Documented here.
