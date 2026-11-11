@@ -45,10 +45,14 @@ They chose Go + Wails: a single executable per OS and an HTML UI suited to image
   - default country `es` (app, UI, CLI)
   - README
   - Check: `go test`, live smoke (Dune / Sapiens / El nombre del viento → Spanish editions; `-country us` Dune → English)
+- [ ] T10 `internal/sheet`: A4 layout (50 mm covers, 5×5, gap 4, shrink-to-fit wide covers, 0.2 mm grey cut border) + PDF build with go-pdf/fpdf (300 dpi downscale). Check: layout + PDF tests.
+- [ ] T11 `internal/gallery` (List, allowlisted thumbnail handler) + app bindings (ListCovers, ExportPDF via save dialog, OpenFile) + main.go AssetServer.Handler. Check: `go test`.
+- [ ] T12 Frontend Download | Print sheet tabs, `print.ts` (folder preview grid, selection, export, Open PDF), README. Check: npm build, real 30-cover PDF (pdfinfo 2 pages A4, rendered page viewed), wails builds.
 
 ## Routes
 - T0: user (needs sudo).
 - T8–T9: one delegated writer (2+ non-trivial files).
+- T10–T12: one delegated writer (new packages + frontend). Downloader code must not be modified (user request).
 - T1–T7: delegated writer per task (Go + frontend, 2+ non-trivial files). The parent verifies.
 
 ## Progress / evidence
@@ -113,3 +117,8 @@ The user wants Spanish edition covers and `es` as the default country. Plan appr
   - WARNING R3-local-filter-before-rank-cut, fixed by `match.Plausible`: local editions must have a title score ≤1 and a matching surname. RED showed the study guide being chosen; GREEN, 107 tests.
   - Live re-smoke: Dune, Sapiens, El nombre del viento and La sombra del viento (Planeta) all gave Spanish editions, checked visually.
   - WARNING R3-pass1-extra-amazon-searches, accepted: Amazon.es is a good source of local editions. The cost is one cached Amazon search when Apple and OL have no local edition. Documented here.
+
+### 2026-11-11: Print sheet request
+End goal: print small covers on A4 for bullet journaling. The user said the downloader works and must not be touched.
+- Plan approved: a new "Print sheet" tab that previews a folder (default = the download folder), selects covers and exports a PDF. Covers are 5 cm tall, 5×5 = 25 per A4 page, with extra pages as needed.
+- User decisions: wide covers shrink to fit the 35.6 mm column; thin grey cut border.
