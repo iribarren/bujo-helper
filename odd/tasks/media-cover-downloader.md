@@ -127,4 +127,15 @@ End goal: print small covers on A4 for bullet journaling. The user said the down
   - Real 30-cover PDF: 2 A4 pages, 326 KB, 6.3 s.
   - The parent viewed both pages: a 5×5 grid with cut borders; page 2 has 5 covers and the square one is shrunk to fit.
   - Pending manual checks (user): tabs and keyboard, thumbnails in WebKitGTK and WebView2, Export/Open PDF on Windows, and that a printed page measures 5 cm per cover.
-- Review assessment of range e5ea9f6..HEAD: high (process launch in app.go `OpenFile`).
+- Review of range e5ea9f6..HEAD: high (process launch in app.go `OpenFile`). The user granted review.
+  - 4 lenses approved it; acknowledged with authority burned (lineage review-21a478a7acbe0c86).
+  - Warnings fixed in 9ca5f50 (RED observed for the allowlist test; 138 tests pass; under_budget, so pending in the next slice):
+    - The thumbnail allowlist is now additive, so a stale listing keeps its previews.
+    - When `.pdf` is added to an existing file name, the app asks before replacing it (QuestionDialog).
+  - 10 SUGGESTIONs left as follow-ups, e.g.:
+    - OpenFile accepts any regular file
+    - unbounded decode size in thumbnails
+    - duplicated scale/flatten and system-opener code
+    - PER_PAGE constant duplicated in print.ts
+    - no progress or cancel during export
+- Binaries rebuilt: Linux and Windows. The Linux build launched for 6s without crashing.
