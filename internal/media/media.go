@@ -26,12 +26,18 @@ type Candidate struct {
 	ImageURLs []string
 	// Source is the name of the provider that returned the candidate.
 	Source string
+	// ISBN is the ISBN-13 of the edition the cover belongs to, or "" when
+	// the provider does not know it.
+	ISBN string
 }
 
 // Options tunes a search.
 type Options struct {
 	// Country is a lowercase ISO country code used by store-backed providers.
 	Country string
+	// Language is an Open Library (MARC) language code such as "spa". When
+	// set, providers that can filter by language look for editions in it.
+	Language string
 }
 
 // Provider searches one source of cover images.

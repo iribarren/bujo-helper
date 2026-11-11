@@ -52,6 +52,14 @@ func candidateTitles(cs []media.Candidate) []string {
 	return out
 }
 
+func candidateISBNs(cs []media.Candidate) []string {
+	out := make([]string, len(cs))
+	for i, c := range cs {
+		out[i] = c.ISBN
+	}
+	return out
+}
+
 func TestAppleSearch(t *testing.T) {
 	var rec recorder
 	srv := rec.serve(t, 200, "text/javascript; charset=utf-8", fixture(t, "apple_search.json"))
@@ -84,6 +92,11 @@ func TestAppleSearch(t *testing.T) {
 	}
 	if first.Creator != "Frank Herbert" || first.Year != "1975" || first.Source != "apple" {
 		t.Errorf("first = %+v", first)
+	}
+	// The edition ISBN-13 is read from the artwork URL.
+	wantISBNs := []string{"9781101658055", "9780553896954", "9781647006792", "9780593437230"}
+	if got := candidateISBNs(got); !reflect.DeepEqual(got, wantISBNs) {
+		t.Errorf("ISBNs = %q, want %q", got, wantISBNs)
 	}
 }
 
@@ -222,6 +235,13 @@ func TestAmazonSearch(t *testing.T) {
 	}
 	if printCard.Creator != "Frank Herbert" || printCard.Year != "2020" {
 		t.Errorf("print candidate = %+v", printCard)
+	}
+
+	// ISBN-13 from the first print ASIN (the Paperback 0441013597 on the
+	// audiobook card), or from the card's own ASIN on print cards.
+	wantISBNs := []string{"9780441013593", "9780593201893", "9780593955734"}
+	if got := candidateISBNs(got); !reflect.DeepEqual(got, wantISBNs) {
+		t.Errorf("ISBNs = %q, want %q", got, wantISBNs)
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 
+	"cover-downloader/internal/isbn"
 	"cover-downloader/internal/match"
 	"cover-downloader/internal/media"
 	"cover-downloader/internal/web"
@@ -68,6 +69,8 @@ func (a *Apple) Search(ctx context.Context, item media.Item, opts media.Options)
 			// Asking for an oversized box returns the original artwork resolution.
 			ImageURLs: []string{strings.Replace(r.ArtworkURL100, "100x100bb", "10000x10000bb", 1)},
 			Source:    a.Name(),
+			// The artwork file is usually named after the edition ISBN-13.
+			ISBN: isbn.Find(r.ArtworkURL100),
 		})
 	}
 	if len(hits) == 0 {

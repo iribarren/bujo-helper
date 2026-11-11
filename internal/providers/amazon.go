@@ -13,6 +13,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 
+	"cover-downloader/internal/isbn"
 	"cover-downloader/internal/media"
 	"cover-downloader/internal/web"
 )
@@ -169,8 +170,22 @@ func (a *Amazon) parseResult(s *goquery.Selection) (media.Candidate, bool) {
 		}
 	})
 
+	audioFirst := len(formats) > 0 && isAudio(formats[0].name)
+
+	// Print editions use their ISBN-10 as ASIN; take the first one.
+	for _, f := range formats {
+		if !isAudio(f.name) {
+			if c.ISBN = isbn.To13(f.asin); c.ISBN != "" {
+				break
+			}
+		}
+	}
+	if c.ISBN == "" && !audioFirst {
+		c.ISBN = isbn.To13(asin)
+	}
+
 	// Audiobook-first results show square artwork; prefer the print/Kindle cover.
-	if len(formats) > 0 && isAudio(formats[0].name) {
+	if audioFirst {
 		var urls []string
 		for _, f := range formats {
 			if !isAudio(f.name) {
@@ -198,7 +213,13 @@ func resultTitle(s, img *goquery.Selection) string {
 
 // asinImage asks Amazon's image service for the large (~1500px) cover.
 func (a *Amazon) asinImage(asin string) string {
-	return a.ImageBaseURL + "/images/P/" + asin + ".01._SCRMZZZZZZ_.jpg"
+	return asinImageURL(a.ImageBaseURL, asin)
+}
+
+// asinImageURL is the large cover of an ASIN (an ISBN-10 for print books)
+// on the Amazon image service at base.
+func asinImageURL(base, asin string) string {
+	return base + "/images/P/" + asin + ".01._SCRMZZZZZZ_.jpg"
 }
 
 func fullSizeImage(src string) string {
