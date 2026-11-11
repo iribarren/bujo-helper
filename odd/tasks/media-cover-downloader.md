@@ -34,9 +34,21 @@ They chose Go + Wails: a single executable per OS and an HTML UI suited to image
 - [x] T5 `cmd/covers` CLI. Check: live smoke test.
 - [x] T6 Frontend UI + bindings + events. Check: manual GUI run.
 - [x] T7 Linux + Windows builds, README. Check: both binaries produced.
+- [ ] T8 Spanish editions groundwork:
+  - `internal/locale` (country → OL language + ISBN prefixes)
+  - `internal/isbn`
+  - `Candidate.ISBN` filled by Apple (artwork URL), Amazon (ASIN ISBN-10) and Open Library
+  - Check: table tests
+- [ ] T9 Prefer local editions:
+  - downloader two-pass (local-ISBN pass first, then silent fallback; one search per provider per item)
+  - Open Library `language:<lang>` edition search with Amazon CDN high-res by ISBN-10
+  - default country `es` (app, UI, CLI)
+  - README
+  - Check: `go test`, live smoke (Dune / Sapiens / El nombre del viento → Spanish editions; `-country us` Dune → English)
 
 ## Routes
 - T0: user (needs sudo).
+- T8–T9: one delegated writer (2+ non-trivial files).
 - T1–T7: delegated writer per task (Go + frontend, 2+ non-trivial files). The parent verifies.
 
 ## Progress / evidence
@@ -79,3 +91,12 @@ User manual checks:
 - the `.exe` on Windows
 
 Follow-ups: the 4 review SUGGESTIONs. Delivery (merge to main) is the user's decision.
+
+### 2026-11-11: Spanish editions request
+The user wants Spanish edition covers and `es` as the default country. Plan approved (`~/.claude/plans/let-s-make-it-easier-vivid-pearl.md`).
+- Research:
+  - Apple es mixes languages (English Dune listed first; Sapiens has no Spanish edition).
+  - Open Library `language:spa` finds the Spanish editions plus their ISBNs.
+  - The Amazon CDN by ISBN-10 gives a high-res Spanish cover.
+  - Todos tus libros rejected (robots.txt disallows /busquedas).
+- User decision: if no Spanish edition is found, fall back silently to any edition.
