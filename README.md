@@ -15,6 +15,7 @@ Books are supported today. The core is media-agnostic, so movies, music or games
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
+- **Print sheet**: select downloaded covers and export them as an A4 PDF of 5 cm tall covers, 25 per page, ready to cut out. See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
@@ -74,6 +75,32 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
 5. Click **Download covers** or press **Ctrl+Enter**.
 6. When items finish, click **Open folder** to see the images.
+
+## Print sheet
+
+The **Print sheet** tab turns downloaded covers into an A4 PDF of small covers to cut out, for example for a bullet journal.
+
+1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
+2. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need.
+3. Click **Export PDF…**, choose where to save (default `covers.pdf`), then **Open PDF** to view it.
+
+Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
+
+Layout of each A4 page (210 × 297 mm):
+
+| Setting           | Value                                                        |
+|-------------------|--------------------------------------------------------------|
+| Cover height      | 50 mm; the width follows the cover's aspect ratio            |
+| Grid              | 5 columns × 5 rows = 25 covers per page                      |
+| Gap               | 4 mm between covers, both ways                               |
+| Column width      | 35.6 mm (8 mm side margins)                                  |
+| Top/bottom margin | 15.5 mm (the grid is centred)                                |
+| Cut border        | 0.2 mm grey (#999) line exactly around each cover            |
+
+- **Shrink to fit:** a cover wider than its column (wider than about 0.71:1, for example a square one) is shrunk to the 35.6 mm column width and keeps its aspect ratio, so it ends up shorter than 50 mm. Each cover is centred in its 35.6 × 50 mm cell. Typical book covers (about 2:3) are 50 mm tall and about 33 mm wide.
+- **Pagination:** covers fill each page left to right, top to bottom. More than 25 covers add pages; the last page may be partly filled.
+- **Print at 100 % / actual size** (not "fit to page") so covers come out 50 mm tall.
+- Images are downscaled to 300 dpi at their printed size (never upscaled) to keep the PDF small. If any image cannot be read, the export fails naming that file and no PDF is written.
 
 ## Using the command line
 
@@ -147,7 +174,7 @@ The root package embeds `frontend/dist`, so build the frontend once first (`cd f
 ```
 main.go, app.go        Wails entry point and the methods bound to the UI
 frontend/              Vanilla TypeScript + Vite UI
-  src/                 main.ts (UI logic) and style.css
+  src/                 main.ts (download tab and tabs), print.ts (print sheet tab) and style.css
   wailsjs/             generated bindings (committed)
 cmd/covers/            command-line tool
 internal/
@@ -160,6 +187,8 @@ internal/
   locale/              country table: language and ISBN prefixes of local editions
   isbn/                ISBN-10/13 validation, conversion and extraction
   web/                 shared HTTP client, headers and bounded reads
+  gallery/             print sheet: folder listing and thumbnails for the UI
+  sheet/               print sheet: A4 layout and PDF export
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
 legacy/                the original Python script
 ```

@@ -12,11 +12,19 @@
         <select id="media-type" aria-label="Media type"></select>
     </header>
 
+    <div class="tabs" role="tablist" aria-label="Sections">
+        <button id="tab-download" class="tab" type="button" role="tab" aria-selected="true"
+                aria-controls="panel-download">Download</button>
+        <button id="tab-print" class="tab" type="button" role="tab" aria-selected="false"
+                aria-controls="panel-print" tabindex="-1">Print sheet</button>
+    </div>
+
     <div id="banner" class="banner" role="alert" hidden>
         <span id="banner-text"></span>
         <button id="banner-close" class="icon-button" type="button" aria-label="Dismiss">×</button>
     </div>
 
+    <div id="panel-download" class="panel" role="tabpanel" aria-labelledby="tab-download">
     <section class="input">
         <div class="toolbar">
             <button id="import" type="button">Import CSV…</button>
@@ -55,6 +63,37 @@
         <span id="summary" class="muted"></span>
         <button id="open-folder" type="button" hidden>Open folder</button>
     </footer>
+    </div>
+
+    <div id="panel-print" class="panel" role="tabpanel" aria-labelledby="tab-print" hidden>
+    <section class="options">
+        <div class="field grow">
+            <label for="print-dir">Covers folder</label>
+            <div class="row">
+                <input id="print-dir" type="text" readonly/>
+                <button id="print-browse" type="button">Browse…</button>
+                <button id="print-refresh" type="button">Refresh</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="toolbar">
+        <button id="select-all" type="button">Select all</button>
+        <button id="select-none" type="button">Select none</button>
+        <span id="selection" class="muted" aria-live="polite">0 selected · 0 pages</span>
+    </div>
+
+    <ul id="gallery" class="gallery" aria-label="Covers in the folder"></ul>
+    <p id="gallery-empty" class="gallery-empty muted" hidden></p>
+
+    <footer class="footer">
+        <span id="export-status" class="muted" aria-live="polite"></span>
+        <div class="row">
+            <button id="open-pdf" type="button" hidden>Open PDF</button>
+            <button id="export-pdf" class="primary" type="button" disabled>Export PDF…</button>
+        </div>
+    </footer>
+    </div>
 </div>
 <script src="./src/main.ts" type="module"></script>
 </body>

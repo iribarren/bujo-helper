@@ -11,6 +11,7 @@ import {
 } from '../wailsjs/go/main/App';
 import {main} from '../wailsjs/go/models';
 import {EventsOn} from '../wailsjs/runtime/runtime';
+import {initPrint} from './print';
 
 // Payload of the "job:item" event (Go: ItemEvent).
 interface ItemEvent {
@@ -318,6 +319,55 @@ document.addEventListener('keydown', (e) => {
         startDownload();
     }
 });
+
+// --- tabs ------------------------------------------------------------------
+
+// outputFolder is the download output folder; the print sheet starts there.
+export function outputFolder(): string {
+    return ui.outputDir.value;
+}
+
+const printSheet = initPrint({outputFolder, showError, hideError});
+const appRoot = byId<HTMLDivElement>('app');
+const tabs = [
+    {name: 'download', tab: byId<HTMLButtonElement>('tab-download'), panel: byId<HTMLDivElement>('panel-download')},
+    {name: 'print', tab: byId<HTMLButtonElement>('tab-print'), panel: byId<HTMLDivElement>('panel-print')},
+];
+
+function selectTab(index: number, focus = false) {
+    tabs.forEach(({tab, panel}, i) => {
+        const on = i === index;
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+        panel.hidden = !on;
+    });
+    if (focus) tabs[index].tab.focus();
+    appRoot.dataset.tab = tabs[index].name;
+    if (tabs[index].name === 'print') printSheet.activate();
+}
+
+tabs.forEach(({tab}, i) => {
+    tab.addEventListener('click', () => selectTab(i));
+    tab.addEventListener('keydown', (e) => {
+        const next = {
+            ArrowRight: (i + 1) % tabs.length,
+            ArrowLeft: (i - 1 + tabs.length) % tabs.length,
+            Home: 0,
+            End: tabs.length - 1,
+        }[e.key];
+        if (next === undefined) return;
+        e.preventDefault();
+        selectTab(next, true);
+    });
+});
+
+// Ctrl+Enter starts a download; it does nothing while the print sheet is
+// shown. This capture listener runs before the document listener above.
+window.addEventListener('keydown', (e) => {
+    if (appRoot.dataset.tab === 'print' && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.stopPropagation();
+    }
+}, true);
 
 async function init() {
     try {
