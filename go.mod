@@ -4,7 +4,9 @@ go 1.26.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.13.0
+	github.com/go-pdf/fpdf v0.9.0
 	github.com/wailsapp/wails/v2 v2.17.1
+	golang.org/x/image v0.41.0
 	golang.org/x/text v0.42.0
 )
 
