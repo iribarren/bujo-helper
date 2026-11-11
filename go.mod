@@ -3,12 +3,14 @@ module cover-downloader
 go 1.26.0
 
 require (
+	github.com/PuerkitoBio/goquery v1.13.0
 	github.com/wailsapp/wails/v2 v2.17.1
 	golang.org/x/text v0.42.0
 )
 
 require (
 	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
+	github.com/andybalholm/cascadia v1.3.4 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.16 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect

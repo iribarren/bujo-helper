@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html><head>
+<!-- Akamai Bot Manager interstitial, shape copied from a real amazon.com response. -->
+<meta http-equiv="refresh" content="5; URL='/s?k=x&bm-verify=AAQAAAAJ_____xYz0bC9dKqEXAMPLEtokenonly'">
+<title>Amazon.com</title>
+</head><body>
+<script>
+var i = 1234; var j = i + Number("5678");
+var xhr = new XMLHttpRequest();
+xhr.open("POST", "/_sec/verify?provider=interstitial", false);
+xhr.setRequestHeader("Content-Type", "application/json");
+xhr.send(JSON.stringify({"bm-verify": "AAQAAAAJ_____xYz0bC9dKqEXAMPLEtokenonly", "pow": j}));
+window.location.reload();
+</script>
+</body></html>

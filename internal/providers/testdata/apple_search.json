@@ -1,0 +1,46 @@
+{
+  "resultCount": 5,
+  "results": [
+    {
+      "kind": "ebook",
+      "trackId": 1500000005,
+      "trackName": "Frank Herbert's Dune Saga Collection: Books 1-3",
+      "artistName": "Frank Herbert",
+      "releaseDate": "2020-12-22T08:00:00Z",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Publication221/v4/b3/24/9d/b3249d98-e376-0f1e-26fe-e02615c4bfc0/9780593437230.d.jpg/100x100bb.jpg"
+    },
+    {
+      "kind": "ebook",
+      "trackId": 1500000002,
+      "trackName": "Dune Without Artwork",
+      "artistName": "Frank Herbert",
+      "releaseDate": "1999-01-01T07:00:00Z"
+    },
+    {
+      "kind": "ebook",
+      "trackId": 597944491,
+      "trackName": "Dune",
+      "artistName": "Frank Herbert",
+      "releaseDate": "1975-09-01T07:00:00Z",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Publication122/v4/85/70/2f/85702f34-2982-e2ee-d883-b5ffc3ae0897/9781101658055.d.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Publication122/v4/85/70/2f/85702f34-2982-e2ee-d883-b5ffc3ae0897/9781101658055.d.jpg/100x100bb.jpg"
+    },
+    {
+      "kind": "ebook",
+      "trackId": 1500000003,
+      "trackName": "Dune: House Corrino",
+      "artistName": "Brian Herbert & Kevin J. Anderson",
+      "releaseDate": "2001-10-02T07:00:00Z",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Publication123/v4/b0/5f/92/b05f9281-893b-34a5-ea93-64ed674fb6a5/9780553896954.d.jpg/100x100bb.jpg"
+    },
+    {
+      "kind": "ebook",
+      "trackId": 1500000001,
+      "trackName": "DUNE: The Graphic Novel,  Book 2: Muad’Dib",
+      "artistName": "Frank Herbert, Brian Herbert, Kevin J. Anderson, Raúl Allén, Patricia Martin & Bill Sienkiewicz",
+      "releaseDate": "2022-08-09T07:00:00Z",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Publication122/v4/f5/69/12/f56912b2-6fdb-37ed-89c9-29ccecded58b/9781647006792.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Publication122/v4/f5/69/12/f56912b2-6fdb-37ed-89c9-29ccecded58b/9781647006792.jpg/100x100bb.jpg"
+    }
+  ]
+}
