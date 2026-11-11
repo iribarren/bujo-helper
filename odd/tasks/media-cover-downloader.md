@@ -61,5 +61,21 @@ They chose Go + Wails: a single executable per OS and an HTML UI suited to image
   - Linux binary 10.0M, launched 6s with no crash. Windows `.exe` 11.2M, cross-compiled without cgo. Screenshot shows the layout renders.
   - Pending manual checks (user): a real GUI download and cancel, CSV import variants, Browse, Open folder, the `.exe` on Windows.
 
+- Before review: removed the stray executable bit from the generated Wails bindings (commit "chore(ui): drop executable bit…").
+- Review of range 8607534..HEAD assessed high (process launch in app.go for Open folder). The user granted review.
+  - 4 lenses ran concurrently (risk, resilience, readability, reliability) and approved it; acknowledged with authority burned (lineage review-1e74e06c26b78a69).
+  - Advisory findings: 1 WARNING, 4 SUGGESTIONs.
+    - WARNING R3-csv-roundtrip-comma, fixed in 2a37407: imported creators with commas ("Last, First") became "First Last" so the line parse keeps the title. RED observed, then GREEN; 81 tests pass. Assessed medium, under_budget, so it stays pending in the next slice.
+    - SUGGESTIONs left as follow-ups:
+      - main.ts:15-33 and main.ts:109-121 readability
+      - web.go:26-29 readability
+      - app.go:198-209 (mkdir before the running check)
+
 ## Next step
-Review assessment on range 8607534..HEAD, then the user checks the GUI manually on Linux and Windows.
+User manual checks:
+- a real GUI download and cancel
+- CSV import (comma, semicolon, cp1252)
+- Browse and Open folder
+- the `.exe` on Windows
+
+Follow-ups: the 4 review SUGGESTIONs. Delivery (merge to main) is the user's decision.
