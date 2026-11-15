@@ -108,13 +108,25 @@ func rankCandidates(cs []media.Candidate, item media.Item) []media.Candidate {
 		func(c media.Candidate) string { return c.Creator })
 }
 
+// httpStatusError reports a non-2xx response.
+type httpStatusError struct{ Status int }
+
+func (e *httpStatusError) Error() string { return fmt.Sprintf("HTTP %d", e.Status) }
+
+// getJSON fetches u with the API headers and decodes the JSON body into v.
 func getJSON(ctx context.Context, client *http.Client, u string, v any) error {
-	resp, err := web.Get(ctx, client, u, web.SetAPIHeaders)
+	return getJSONWith(ctx, client, u, web.SetAPIHeaders, v)
+}
+
+// getJSONWith fetches u with the given header setter and decodes the JSON
+// body into v. A non-2xx status gives an *httpStatusError.
+func getJSONWith(ctx context.Context, client *http.Client, u string, setHeaders func(*http.Request), v any) error {
+	resp, err := web.Get(ctx, client, u, setHeaders)
 	if err != nil {
 		return err
 	}
 	if !resp.OK() {
-		return fmt.Errorf("HTTP %d", resp.Status)
+		return &httpStatusError{Status: resp.Status}
 	}
 	if err := json.Unmarshal(resp.Body, v); err != nil {
 		return fmt.Errorf("decode response: %w", err)

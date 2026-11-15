@@ -1,0 +1,53 @@
+{
+  "d": [
+    {
+      "i": {"height": 2048, "imageUrl": "https://m.media-amazon.com/images/M/MV5BMDQ0NjgyN2YtNWViNS00YjA3LTkxNDktYzFkZTExZGMxZDkxXkEyXkFqcGdeQXVyODE5NzE3OTE@._V1_.jpg", "width": 1382},
+      "id": "tt1160419",
+      "l": "Dune: Part One",
+      "q": "feature",
+      "qid": "movie",
+      "rank": 72,
+      "s": "Timothée Chalamet, Rebecca Ferguson",
+      "y": 2021
+    },
+    {
+      "i": {"height": 1500, "imageUrl": "https://m.media-amazon.com/images/M/MV5BNTg3NWQ5ZmEtMDY0Yi00YjZjLTk2YjAtNWZhYzU3MDhmMGQ0XkEyXkFqcGc@._V1_.jpg", "width": 1013},
+      "id": "tt10466872",
+      "l": "Dune: Prophecy",
+      "q": "TV series",
+      "qid": "tvSeries",
+      "rank": 180,
+      "s": "Emily Watson, Olivia Williams",
+      "y": 2024,
+      "yr": "2024-"
+    },
+    {
+      "id": "tt31378509",
+      "l": "Dune: Part Three",
+      "q": "feature",
+      "qid": "movie",
+      "rank": 900,
+      "s": "Timothée Chalamet, Zendaya",
+      "y": 2026
+    },
+    {
+      "i": {"height": 1463, "imageUrl": "https://m.media-amazon.com/images/M/MV5BMGJlMGM3NDAtOWNhMy00MWExLWI2MzEtMDQ0ZDIzZDY5ZGQ1XkEyXkFqcGc@._V1_.jpg", "width": 1000},
+      "id": "tt0087182",
+      "l": "Dune",
+      "q": "feature",
+      "qid": "movie",
+      "rank": 2400,
+      "s": "Kyle MacLachlan, Virginia Madsen",
+      "y": 1984
+    },
+    {
+      "i": {"height": 1024, "imageUrl": "https://m.media-amazon.com/images/M/MV5BMTk3NjQ4OTk0NV5BMl5BanBnXkFtZTcwNzE4MTkyMQ@@._V1_.jpg", "width": 683},
+      "id": "nm0000585",
+      "l": "Dune Herbert",
+      "rank": 15000,
+      "s": "Actress"
+    }
+  ],
+  "q": "dune",
+  "v": 1
+}
