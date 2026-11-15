@@ -38,8 +38,8 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 - [x] T3a S2 review follow-ups (TMDB: blank-title guard; retry without year when the year-filtered results have no posters). Route: delegated writer. Check: `go test ./internal/providers/`.
 - [x] T5 Wikidata→iTunes provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
 - [x] T6 `MediaType.LocalEditions` gate + `movies` catalog registration. Route: delegated writer. Check: `go test ./...`.
-- [ ] T7 Frontend: Settings dialog, TMDB notice, wait status, bindings. Route: delegated writer. Check: `wails build -tags webkit2_41`, manual GUI run.
-- [ ] T8 README + live end-to-end smoke test. Route: inline. Check: CLI live run, GUI print sheet.
+- [x] T7 Frontend: Settings dialog, TMDB notice, wait status, bindings. Route: delegated writer. Check: `wails build -tags webkit2_41`, manual GUI run.
+- [x] T8 README + live end-to-end smoke test. Route: inline. Check: CLI live run, GUI print sheet.
 
 ## Progress / evidence
 - 2026-11-15: plan approved; branch created. Doc commit `d92a32a`: RDD low risk, approved and acknowledged.
@@ -61,5 +61,12 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 - Checks: `go test -tags webkit2_41 ./...` 220 passed (14 packages, parent spot check); vet and gofmt clean. Live keyless CLI smoke: 3/3 OK, all from IMDb (Dune 1728x2552, Inception 700x1037, Matrix 2100x3156). Live Wikidata-iTunes via a temporary test: Dune 2021 → 2000x3000 image.
 - S3 review (b9b0603..3fa082d, 1173 lines, medium): consent granted, reliability lens approved, acknowledged. Advisory, optional follow-ups (not scheduled): `redactKey` handles the cause chain unevenly for non-*url.Error errors (not reachable today: status errors read "HTTP 401", v3 keys are hex); add Wikidata tests for errors on the entities and iTunes lookup steps.
 
+- A hook-issued review of in-progress workspace changes (README, app.go, app_test.go) was granted, approved and acknowledged. Its feedback was applied by the writer before commit: no direct reads of `DefaultThrottle.OnWait` in tests (race), and waits of zero or less are ignored.
+- T7 `319f7d6` feat(ui): Settings dialog (TMDB key, show/hide, BrowserOpenURL link, TMDB notice), media-type placeholder and validation text, movie tip, `ratelimit:wait` event and countdown. Route: delegated writer. RED (Go): undefined `EventRateLimitWait`/`RateLimitEvent`; "sent 1 events, want none" for d<=0. No frontend test runner; `tsc --noEmit` and `wails build -tags webkit2_41` ok.
+- T8 `355d0df` docs: README movies sources, TMDB key setup + attribution, rate limits, CLI flags, layout. Route: inline.
+- S4 review (3fa082d..355d0df, 454 lines, medium): consent granted, reliability lens approved, acknowledged. Fixed inline in `088527c` (47 lines, assess: under_budget, pending in the slice): the countdown keeps the latest deadline; settings save has an in-flight guard; a reload failure after a successful save is reported separately. Not done (advisory): a test of the startup/shutdown hook wiring (web.Throttle has no locked read accessor).
+- Final checks: `go test -race -tags webkit2_41 .` 24 passed; `go test -tags webkit2_41 ./...` 222 passed. Live CLI E2E (keyless, empty config): movies 5/5 OK via IMDb (Dune, Inception, Matrix, Amélie, El laberinto del fauno); books sample_books.csv 5/5 OK (Apple), unchanged.
+- Pending (needs the user): manual GUI check (Settings save + restart, movie tip, print sheet with posters, PDF export); live TMDB path with a real key; push and PRs for the chain (tracker draft PR + S1..S4).
+
 ## Next step
-S4: T7 frontend (Settings dialog, TMDB notice, rate-limit wait status), T8 README + E2E.
+User: manual GUI check with a TMDB key, then decide on push/PRs (feature-branch-chain).
