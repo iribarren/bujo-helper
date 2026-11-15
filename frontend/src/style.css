@@ -504,9 +504,13 @@ textarea {
     flex: 1 1 auto;
 }
 
-/* The media type only applies to downloads. */
+/* The media type and its tip only apply to downloads. */
 #app[data-tab="print"] #media-type {
     visibility: hidden;
+}
+
+#app[data-tab="print"] #movie-tip {
+    display: none;
 }
 
 /* --- print sheet --- */
