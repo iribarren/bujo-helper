@@ -367,6 +367,10 @@ function hideSampleStatus() {
 }
 
 async function saveSampleCSV() {
+    // One save at a time: the dialog may not block the window on every
+    // platform, and overlapping saves would mix up the "Saved" note.
+    if (ui.sampleCsv.disabled) return;
+    ui.sampleCsv.disabled = true;
     hideError();
     try {
         const path = await SaveSampleCSV(ui.mediaType.value);
@@ -377,6 +381,8 @@ async function saveSampleCSV() {
         sampleStatusTimer = window.setTimeout(hideSampleStatus, 5000);
     } catch (err) {
         showError(`Could not save the sample CSV: ${errorText(err)}`);
+    } finally {
+        ui.sampleCsv.disabled = false;
     }
 }
 

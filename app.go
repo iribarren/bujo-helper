@@ -545,7 +545,9 @@ func exportTo(path string, files []string) error {
 // to path and renames it, so a failure never leaves a partial file behind or
 // damages an existing one. kind names the file in errors, e.g. "PDF".
 func writeFileAtomic(path, kind string, write func(io.Writer) error) error {
-	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+"-*.tmp")
+	// A short fixed pattern keeps the temporary name within the file name
+	// limit even when the target's name is close to it.
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".cover-downloader-*.tmp")
 	if err != nil {
 		return fmt.Errorf("create %s: %w", kind, err)
 	}

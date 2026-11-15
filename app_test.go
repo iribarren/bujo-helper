@@ -632,3 +632,18 @@ func TestWriteFileAtomicFailureKeepsExistingFile(t *testing.T) {
 		t.Errorf("file = %q, want new", got)
 	}
 }
+
+func TestWriteFileAtomicLongName(t *testing.T) {
+	// A name at the usual 255-byte limit must still save: the temporary
+	// file name must not grow with the target's name.
+	path := filepath.Join(t.TempDir(), strings.Repeat("a", 251)+".csv")
+	if err := writeFileAtomic(path, "CSV", func(w io.Writer) error {
+		_, err := io.WriteString(w, "ok")
+		return err
+	}); err != nil {
+		t.Fatalf("writeFileAtomic: %v", err)
+	}
+	if got, _ := os.ReadFile(path); string(got) != "ok" {
+		t.Errorf("file = %q, want ok", got)
+	}
+}
