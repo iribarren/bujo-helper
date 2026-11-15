@@ -12,6 +12,7 @@ import (
 	goruntime "runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -29,7 +30,18 @@ import (
 const (
 	EventItem = "job:item" // one ItemEvent per finished item
 	EventDone = "job:done" // one DoneEvent when the job ends
+
+	// EventRateLimitWait is sent with a RateLimitEvent when a source
+	// rate-limits and the client waits before retrying.
+	EventRateLimitWait = "ratelimit:wait"
 )
+
+// RateLimitEvent is the payload of EventRateLimitWait. Seconds is the wait,
+// rounded up to a whole second.
+type RateLimitEvent struct {
+	Host    string `json:"host"`
+	Seconds int    `json:"seconds"`
+}
 
 // MediaTypeInfo describes a media type for the media type selector.
 type MediaTypeInfo struct {
@@ -187,11 +199,24 @@ func (a *App) tmdbKey() string {
 // runtime calls (dialogs, events).
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	web.DefaultThrottle.SetOnWait(a.onRateLimitWait)
 }
 
-// shutdown cancels a running job when the window closes.
+// shutdown cancels a running job when the window closes and removes the
+// rate-limit hook.
 func (a *App) shutdown(context.Context) {
 	a.Cancel()
+	web.DefaultThrottle.SetOnWait(nil)
+}
+
+// onRateLimitWait tells the UI that requests to host wait d before they
+// retry. A wait of zero or less sends nothing.
+func (a *App) onRateLimitWait(host string, d time.Duration) {
+	if d <= 0 {
+		return
+	}
+	seconds := int((d + time.Second - 1) / time.Second)
+	a.send(EventRateLimitWait, RateLimitEvent{Host: host, Seconds: seconds})
 }
 
 func (a *App) send(event string, data any) {

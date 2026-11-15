@@ -12,6 +12,7 @@ import {
 import {main} from '../wailsjs/go/models';
 import {EventsOn} from '../wailsjs/runtime/runtime';
 import {initPrint} from './print';
+import {initSettings} from './settings';
 
 // Payload of the "job:item" event (Go: ItemEvent).
 interface ItemEvent {
@@ -33,6 +34,18 @@ interface DoneEvent {
     error?: string;
 }
 
+// Payload of the "ratelimit:wait" event (Go: RateLimitEvent).
+interface RateLimitEvent {
+    host: string;
+    seconds: number;
+}
+
+// An example line for the items placeholder, per media type id.
+const EXAMPLES: Record<string, string> = {
+    books: 'Dune, Frank Herbert',
+    movies: 'Dune, 2021',
+};
+
 const STATUS_ICONS: Record<string, string> = {
     pending: '⏳',
     ok: '✔',
@@ -48,6 +61,10 @@ function byId<T extends HTMLElement>(id: string): T {
 
 const ui = {
     mediaType: byId<HTMLSelectElement>('media-type'),
+    settingsOpen: byId<HTMLButtonElement>('settings-open'),
+    movieTip: byId<HTMLParagraphElement>('movie-tip'),
+    movieTipSettings: byId<HTMLButtonElement>('movie-tip-settings'),
+    rateLimit: byId<HTMLParagraphElement>('rate-limit'),
     banner: byId<HTMLDivElement>('banner'),
     bannerText: byId<HTMLSpanElement>('banner-text'),
     bannerClose: byId<HTMLButtonElement>('banner-close'),
@@ -79,6 +96,9 @@ let rows = new Map<number, HTMLLIElement>();
 let awaitingStart = false;
 let earlyItems: ItemEvent[] = [];
 let earlyDone: DoneEvent | null = null;
+
+// The countdown timer of the rate-limit status line, if one is shown.
+let rateLimitTimer: number | undefined;
 
 // --- helpers ---------------------------------------------------------------
 
@@ -131,10 +151,56 @@ function updateCount() {
     ui.count.textContent = plural(countItems(ui.items.value), 'item');
 }
 
-function updatePlaceholder() {
+// creatorLabel is the creator column of the selected media type, e.g.
+// "Author" or "Year".
+function creatorLabel(): string {
     const type = mediaTypes.find((t) => t.id === ui.mediaType.value);
-    const creator = type?.creatorLabel || 'Creator';
-    ui.items.placeholder = `Title, ${creator}\nOne per line, e.g.\nDune, Frank Herbert`;
+    return type?.creatorLabel || 'Creator';
+}
+
+function updatePlaceholder() {
+    const example = EXAMPLES[ui.mediaType.value];
+    const first = `Title, ${creatorLabel()}`;
+    ui.items.placeholder = example ? `${first}\nOne per line, e.g.\n${example}` : `${first}\nOne per line`;
+}
+
+// updateMovieTip suggests a TMDB key while movies are selected and none is
+// saved.
+function updateMovieTip() {
+    ui.movieTip.hidden = ui.mediaType.value !== 'movies' || settingsDialog.hasTMDBKey();
+}
+
+function updateMediaType() {
+    updatePlaceholder();
+    updateMovieTip();
+}
+
+function hideRateLimit() {
+    window.clearInterval(rateLimitTimer);
+    rateLimitTimer = undefined;
+    ui.rateLimit.hidden = true;
+    ui.rateLimit.textContent = '';
+}
+
+// showRateLimit counts down a rate-limit wait once per second. A newer wait
+// replaces the countdown.
+function showRateLimit(ev: RateLimitEvent) {
+    hideRateLimit();
+    let left = Math.ceil(ev.seconds);
+    if (!(left > 0)) return;
+    const render = () => {
+        ui.rateLimit.textContent = `Waiting ${left}s — rate limit at ${ev.host}`;
+    };
+    render();
+    ui.rateLimit.hidden = false;
+    rateLimitTimer = window.setInterval(() => {
+        left--;
+        if (left <= 0) {
+            hideRateLimit();
+            return;
+        }
+        render();
+    }, 1000);
 }
 
 function updateProgress() {
@@ -193,6 +259,7 @@ function applyResult(ev: ItemEvent) {
 
 function finishJob(done: DoneEvent) {
     setRunning(false);
+    hideRateLimit();
     const parts = [`${done.ok} downloaded`, `${done.failed} failed`];
     if (done.cancelled > 0) parts.push(`${done.cancelled} cancelled`);
     ui.summary.textContent = parts.join(', ');
@@ -212,7 +279,7 @@ async function startDownload() {
         return;
     }
     if (countItems(ui.items.value) === 0) {
-        showError('Add at least one "Title, Creator" line or import a CSV file.');
+        showError(`Add at least one "Title, ${creatorLabel()}" line or import a CSV file.`);
         ui.items.focus();
         return;
     }
@@ -289,6 +356,8 @@ async function openFolder() {
 
 // --- wiring ----------------------------------------------------------------
 
+const settingsDialog = initSettings({onChange: updateMovieTip});
+
 EventsOn('job:item', (ev: ItemEvent) => {
     if (awaitingStart) {
         earlyItems.push(ev);
@@ -296,6 +365,8 @@ EventsOn('job:item', (ev: ItemEvent) => {
     }
     applyResult(ev);
 });
+
+EventsOn('ratelimit:wait', showRateLimit);
 
 EventsOn('job:done', (done: DoneEvent) => {
     if (awaitingStart) {
@@ -306,7 +377,9 @@ EventsOn('job:done', (done: DoneEvent) => {
 });
 
 ui.items.addEventListener('input', updateCount);
-ui.mediaType.addEventListener('change', updatePlaceholder);
+ui.mediaType.addEventListener('change', updateMediaType);
+ui.settingsOpen.addEventListener('click', () => settingsDialog.open());
+ui.movieTipSettings.addEventListener('click', () => settingsDialog.open());
 ui.importBtn.addEventListener('click', importCSV);
 ui.browse.addEventListener('click', browseFolder);
 ui.start.addEventListener('click', startDownload);
@@ -361,10 +434,12 @@ tabs.forEach(({tab}, i) => {
     });
 });
 
-// Ctrl+Enter starts a download; it does nothing while the print sheet is
-// shown. This capture listener runs before the document listener above.
+// Ctrl+Enter starts a download; it does nothing while the print sheet or
+// the Settings dialog is shown. This capture listener runs before the
+// document listener above.
 window.addEventListener('keydown', (e) => {
-    if (appRoot.dataset.tab === 'print' && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    const blocked = appRoot.dataset.tab === 'print' || settingsDialog.isOpen();
+    if (blocked && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.stopPropagation();
     }
 }, true);
@@ -381,7 +456,7 @@ async function init() {
     } catch (err) {
         showError(errorText(err));
     }
-    updatePlaceholder();
+    updateMediaType();
     updateCount();
     updateProgress();
     ui.items.focus();

@@ -168,6 +168,87 @@ input[readonly] {
     font-weight: 600;
 }
 
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* A button that looks like a link. */
+.link-button {
+    height: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.tip {
+    margin: -6px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+}
+
+/* --- settings dialog --- */
+
+.settings-dialog {
+    width: min(460px, calc(100vw - 32px));
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+}
+
+.settings-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.settings-dialog h2 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.settings-dialog .hint,
+.settings-dialog .notice {
+    margin: 0;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.settings-dialog .notice {
+    margin-top: 12px;
+}
+
+.settings-dialog a {
+    color: var(--accent);
+}
+
+.dialog-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.settings-status {
+    font-size: 13px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+.settings-status.ok {
+    color: var(--ok);
+}
+
+.settings-status.error {
+    color: var(--failed);
+}
+
 /* --- error banner --- */
 
 .banner {
@@ -363,6 +444,13 @@ textarea {
     justify-content: space-between;
     gap: 12px;
     min-height: 32px;
+}
+
+/* Rate-limit wait status in the download panel. */
+.rate-limit {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
 }
 
 /* --- narrow windows --- */

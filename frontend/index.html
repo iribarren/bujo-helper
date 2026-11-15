@@ -9,8 +9,16 @@
 <div id="app">
     <header class="header">
         <h1>Cover Downloader</h1>
-        <select id="media-type" aria-label="Media type"></select>
+        <div class="header-controls">
+            <select id="media-type" aria-label="Media type"></select>
+            <button id="settings-open" type="button">Settings</button>
+        </div>
     </header>
+
+    <p id="movie-tip" class="tip" hidden>
+        Tip: add a TMDB API key in <button id="movie-tip-settings" class="link-button" type="button">Settings</button>
+        for better posters.
+    </p>
 
     <div class="tabs" role="tablist" aria-label="Sections">
         <button id="tab-download" class="tab" type="button" role="tab" aria-selected="true"
@@ -57,6 +65,8 @@
         <span id="progress-text" class="muted">0 / 0</span>
     </section>
 
+    <p id="rate-limit" class="rate-limit" hidden></p>
+
     <ul id="results" class="results" aria-live="polite"></ul>
 
     <footer class="footer">
@@ -95,6 +105,27 @@
     </footer>
     </div>
 </div>
+
+<dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
+    <h2 id="settings-title">Settings</h2>
+    <div class="field">
+        <label for="tmdb-key">TMDB API key</label>
+        <div class="row">
+            <input id="tmdb-key" type="password" autocomplete="off" spellcheck="false"/>
+            <button id="tmdb-key-toggle" type="button" aria-controls="tmdb-key">Show</button>
+        </div>
+        <p class="hint">Optional. Gives the best movie posters. Get a free key at
+            <a id="tmdb-link" href="https://www.themoviedb.org/settings/api">themoviedb.org</a></p>
+    </div>
+    <p class="notice">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <div class="dialog-actions">
+        <span id="settings-status" class="settings-status" aria-live="polite"></span>
+        <div class="row">
+            <button id="settings-close" type="button">Close</button>
+            <button id="settings-save" class="primary" type="button">Save</button>
+        </div>
+    </div>
+</dialog>
 <script src="./src/main.ts" type="module"></script>
 </body>
 </html>

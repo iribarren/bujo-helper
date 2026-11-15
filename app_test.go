@@ -511,3 +511,46 @@ func TestDefaultAppMoviesUseTheSavedTMDBKey(t *testing.T) {
 		t.Errorf("TMDB key after saving = %q, want new-key without a restart", got)
 	}
 }
+
+func TestOnRateLimitWaitEmitsRoundedUpSeconds(t *testing.T) {
+	tests := []struct {
+		d    time.Duration
+		want int
+	}{
+		{time.Second, 1},
+		{1500 * time.Millisecond, 2},
+		{30 * time.Second, 30},
+		{30*time.Second + time.Millisecond, 31},
+		{time.Millisecond, 1},
+	}
+	for _, tt := range tests {
+		a := newApp(media.NewRegistry(), http.DefaultClient)
+		var gotEvent string
+		var gotData any
+		a.emit = func(event string, data any) { gotEvent, gotData = event, data }
+
+		a.onRateLimitWait("api.themoviedb.org", tt.d)
+
+		if gotEvent != EventRateLimitWait {
+			t.Errorf("%v: event = %q, want %q", tt.d, gotEvent, EventRateLimitWait)
+		}
+		want := RateLimitEvent{Host: "api.themoviedb.org", Seconds: tt.want}
+		if gotData != want {
+			t.Errorf("%v: data = %#v, want %#v", tt.d, gotData, want)
+		}
+	}
+}
+
+func TestOnRateLimitWaitIgnoresNonPositiveWaits(t *testing.T) {
+	for _, d := range []time.Duration{0, -time.Second} {
+		a := newApp(media.NewRegistry(), http.DefaultClient)
+		sent := 0
+		a.emit = func(string, any) { sent++ }
+
+		a.onRateLimitWait("api.themoviedb.org", d)
+
+		if sent != 0 {
+			t.Errorf("%v: sent %d events, want none", d, sent)
+		}
+	}
+}
