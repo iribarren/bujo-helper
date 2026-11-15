@@ -1,0 +1,7 @@
+{
+  "resultCount": 2,
+  "results": [
+    {"wrapperType": "track", "kind": "feature-movie", "trackId": 1585877256, "artistName": "Denis Villeneuve", "trackName": "Dune", "releaseDate": "2021-09-15T07:00:00Z", "country": "ESP", "primaryGenreName": "Ciencia ficción y fantasía", "artworkUrl30": "https://is1-ssl.mzstatic.com/image/thumb/Video116/v4/15/53/b9/1553b93b-25b7-cbed-eff5-34d8efe8e09a/pr_source.lsr/30x30bb.jpg", "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Video116/v4/15/53/b9/1553b93b-25b7-cbed-eff5-34d8efe8e09a/pr_source.lsr/60x60bb.jpg", "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Video116/v4/15/53/b9/1553b93b-25b7-cbed-eff5-34d8efe8e09a/pr_source.lsr/100x100bb.jpg"},
+    {"wrapperType": "track", "kind": "feature-movie", "trackId": 826266153, "artistName": "David Lynch", "trackName": "Dune", "releaseDate": "1984-12-14T08:00:00Z", "country": "ESP", "primaryGenreName": "Ciencia ficción y fantasía", "artworkUrl30": "https://is1-ssl.mzstatic.com/image/thumb/Video127/v4/2b/34/01/2b340147-78e4-e8da-9e09-747a8d3a57d0/Dune_ENG_1400x2100.jpg/30x30bb.jpg", "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Video127/v4/2b/34/01/2b340147-78e4-e8da-9e09-747a8d3a57d0/Dune_ENG_1400x2100.jpg/60x60bb.jpg", "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Video127/v4/2b/34/01/2b340147-78e4-e8da-9e09-747a8d3a57d0/Dune_ENG_1400x2100.jpg/100x100bb.jpg"}
+  ]
+}
