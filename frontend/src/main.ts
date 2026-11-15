@@ -175,32 +175,38 @@ function updateMediaType() {
     updateMovieTip();
 }
 
+// rateLimitDeadline is when the currently shown wait ends (ms since epoch).
+let rateLimitDeadline = 0;
+
 function hideRateLimit() {
     window.clearInterval(rateLimitTimer);
     rateLimitTimer = undefined;
+    rateLimitDeadline = 0;
     ui.rateLimit.hidden = true;
     ui.rateLimit.textContent = '';
 }
 
-// showRateLimit counts down a rate-limit wait once per second. A newer wait
-// replaces the countdown.
+// showRateLimit counts down a rate-limit wait once per second. Concurrent
+// downloads can report overlapping waits, so a wait that ends before the one
+// already shown is ignored: the countdown always shows the latest deadline.
 function showRateLimit(ev: RateLimitEvent) {
+    const seconds = Math.ceil(ev.seconds);
+    if (!(seconds > 0)) return;
+    const deadline = Date.now() + seconds * 1000;
+    if (deadline <= rateLimitDeadline) return;
     hideRateLimit();
-    let left = Math.ceil(ev.seconds);
-    if (!(left > 0)) return;
+    rateLimitDeadline = deadline;
     const render = () => {
-        ui.rateLimit.textContent = `Waiting ${left}s — rate limit at ${ev.host}`;
-    };
-    render();
-    ui.rateLimit.hidden = false;
-    rateLimitTimer = window.setInterval(() => {
-        left--;
+        const left = Math.ceil((rateLimitDeadline - Date.now()) / 1000);
         if (left <= 0) {
             hideRateLimit();
             return;
         }
-        render();
-    }, 1000);
+        ui.rateLimit.textContent = `Waiting ${left}s — rate limit at ${ev.host}`;
+    };
+    render();
+    ui.rateLimit.hidden = false;
+    rateLimitTimer = window.setInterval(render, 1000);
 }
 
 function updateProgress() {

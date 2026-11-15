@@ -70,18 +70,29 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         ui.key.focus();
     }
 
+    let saving = false;
+
     async function save() {
+        // Enter in the key field bypasses the disabled button, so guard here.
+        if (saving) return;
+        saving = true;
         ui.save.disabled = true;
         setStatus('Saving…');
         try {
             await SaveSettings(new settings.Settings({tmdbApiKey: ui.key.value}));
+        } catch (err) {
+            setStatus(errorText(err), 'error');
+            return;
+        } finally {
+            saving = false;
+            ui.save.disabled = false;
+        }
+        try {
             await load();
             ui.key.value = current.tmdbApiKey || '';
             setStatus('Saved', 'ok');
         } catch (err) {
-            setStatus(errorText(err), 'error');
-        } finally {
-            ui.save.disabled = false;
+            setStatus(`Saved, but could not reload the settings: ${errorText(err)}`, 'error');
         }
     }
 
