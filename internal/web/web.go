@@ -19,7 +19,7 @@ const (
 	BrowserUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
 		"(KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 
-	// Timeout is the default per-request timeout.
+	// Timeout is the default per-attempt timeout (see Throttle).
 	Timeout = 15 * time.Second
 )
 
@@ -31,9 +31,11 @@ var MaxBodySize int64 = 32 << 20
 // ErrBodyTooLarge is returned by Get when a body exceeds MaxBodySize.
 var ErrBodyTooLarge = errors.New("response body too large")
 
-// NewClient returns an HTTP client with the default timeout.
+// NewClient returns an HTTP client that goes through DefaultThrottle. It
+// has no overall Timeout: the throttle limits each attempt to Timeout, so
+// rate-limit waits are not counted against it.
 func NewClient() *http.Client {
-	return &http.Client{Timeout: Timeout}
+	return &http.Client{Transport: DefaultThrottle}
 }
 
 // SetAPIHeaders marks a request as coming from this app.
