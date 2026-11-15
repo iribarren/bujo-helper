@@ -32,9 +32,10 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 ## Tasks
 - [x] T1 `internal/web` throttle (Retry-After/backoff, shared host block, spacing, OnWait). Route: delegated writer. Check: `go test ./internal/web/`.
 - [x] T2 `internal/settings` + App `GetSettings/SaveSettings` + CLI flag/env. Route: delegated writer. Check: `go test ./internal/settings/ ./cmd/... .`.
-- [ ] T1a S1 review follow-ups (settings fsync; throttle floor delay for a past/zero Retry-After + edge tests). Route: delegated writer. Check: `go test ./internal/web/ ./internal/settings/`.
-- [ ] T3 TMDB provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
-- [ ] T4 IMDb suggestion provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
+- [x] T1a S1 review follow-ups (settings fsync; throttle floor delay for a past/zero Retry-After + edge tests). Route: delegated writer. Check: `go test ./internal/web/ ./internal/settings/`.
+- [x] T3 TMDB provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
+- [x] T4 IMDb suggestion provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
+- [ ] T3a S2 review follow-ups (TMDB: blank-title guard; retry without year when the year-filtered results have no posters). Route: delegated writer. Check: `go test ./internal/providers/`.
 - [ ] T5 Wikidata→iTunes provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
 - [ ] T6 `MediaType.LocalEditions` gate + `movies` catalog registration. Route: delegated writer. Check: `go test ./...`.
 - [ ] T7 Frontend: Settings dialog, TMDB notice, wait status, bindings. Route: delegated writer. Check: `wails build -tags webkit2_41`, manual GUI run.
@@ -48,5 +49,10 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 - Deviations accepted: a request that can't be retried doesn't block its host after a 429; giving up (retries used up or Retry-After > 60s) doesn't block the host; the backoff cap is MaxWait (60s) and never reached with 3 retries.
 - Follow-ups: T1a (S2) adds fsync, a minimum delay for a past/zero Retry-After, and edge tests. T6 makes the CLI `run` tests hermetic: they currently read the real settings file through resolveTMDBKey.
 
+- T1a `c8cfab3` fix(web): wait the backoff step on a past/zero Retry-After; fsync settings. RED: the past-date and `Retry-After: 0` subtests failed (zero-delay retry). The fsync change was checked structurally only (it can't be observed in a unit test).
+- T3+T4 `b9b0603` feat(providers): TMDB + IMDb. These share one commit because the tests share `movies_test.go`. Route: delegated writer. RED: build failure on undefined TMDB/IMDb symbols. Checks: `go test -tags webkit2_41 ./...` ok (15 packages); parent spot check `go test ./internal/providers/ ./internal/web/` 58 passed. Extras: `ErrNoTMDBKey`, `httpStatusError` (errors.As on status).
+- A hook-issued review of the whole range main..HEAD was granted, but START refused it (`invalid_request`, untracked files while the writer was running; not started). That candidate went stale after the commits.
+- S2 review (range 9cecaa4..b9b0603, 820 lines, medium): consent granted; lens review-reliability approved; acknowledged (authority burned). Advisory → T3a.
+
 ## Next step
-S2: T1a follow-up, T3 TMDB, T4 IMDb.
+S3: T3a, T5 Wikidata→iTunes, T6 LocalEditions gate + catalog movies + hermetic CLI tests.
