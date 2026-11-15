@@ -75,7 +75,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` or `503` answer pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly.
 
 ## Local editions
 

@@ -68,5 +68,7 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 - Final checks: `go test -race -tags webkit2_41 .` 24 passed; `go test -tags webkit2_41 ./...` 222 passed. Live CLI E2E (keyless, empty config): movies 5/5 OK via IMDb (Dune, Inception, Matrix, Amélie, El laberinto del fauno); books sample_books.csv 5/5 OK (Apple), unchanged.
 - Pending (needs the user): manual GUI check (Settings save + restart, movie tip, print sheet with posters, PDF export); live TMDB path with a real key; push and PRs for the chain (tracker draft PR + S1..S4).
 
+- Hook-issued review of the whole branch main..eebc583 (3610 lines): granted, approved, acknowledged. Warning R3-001: the throttle retried every 503, including Amazon bot-check 503s, adding ~7 s per blocked book search. Fixed in the next commit: a 503 is retried only with Retry-After; a 429 is always retried. RED: `TestThrottleRetries/503_without_Retry-After_is_returned_at_once` failed. GREEN: `go test -race ./internal/web/` ok; `go test -tags webkit2_41 ./...` 223 passed. Advisory left open: tests for errors on the Wikidata entities and iTunes lookup steps.
+
 ## Next step
 User: manual GUI check with a TMDB key, then decide on push/PRs (feature-branch-chain).

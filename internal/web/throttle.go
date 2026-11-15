@@ -100,7 +100,7 @@ func (t *Throttle) RoundTrip(req *http.Request) (*http.Response, error) {
 		if err != nil {
 			return nil, err
 		}
-		if resp.StatusCode != http.StatusTooManyRequests && resp.StatusCode != http.StatusServiceUnavailable {
+		if !rateLimited(resp) {
 			return resp, nil
 		}
 		now := t.clock()
@@ -117,6 +117,20 @@ func (t *Throttle) RoundTrip(req *http.Request) (*http.Response, error) {
 		resp.Body.Close()
 		t.block(host, now.Add(delay))
 	}
+}
+
+// rateLimited reports whether resp asks the client to slow down: any 429,
+// or a 503 that carries Retry-After. A bare 503 is treated as a plain error
+// (Amazon serves its bot-check pages that way), so it is not retried and
+// does not block the host.
+func rateLimited(resp *http.Response) bool {
+	switch resp.StatusCode {
+	case http.StatusTooManyRequests:
+		return true
+	case http.StatusServiceUnavailable:
+		return resp.Header.Get("Retry-After") != ""
+	}
+	return false
 }
 
 // retryable reports whether req can be sent again: a GET or HEAD with no

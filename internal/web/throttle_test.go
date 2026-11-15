@@ -187,6 +187,13 @@ func TestThrottleRetries(t *testing.T) {
 			wantStatus: 429, wantBody: "come back later", wantHits: 1,
 		},
 		{
+			// Amazon serves bot-check pages as 503 without Retry-After; those
+			// are not rate limits and must reach the provider at once.
+			name:       "503 without Retry-After is returned at once",
+			replies:    []reply{{503, "", "bot check"}},
+			wantStatus: 503, wantBody: "bot check", wantHits: 1,
+		},
+		{
 			name:       "other errors are not retried",
 			replies:    []reply{{500, "1", "boom"}},
 			wantStatus: 500, wantBody: "boom", wantHits: 1,
