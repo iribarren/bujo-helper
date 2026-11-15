@@ -72,5 +72,7 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 
 - User-reported bug: the TMDB tip stayed visible on the Print sheet tab. Fixed in `4db4820` with a CSS rule on `#app[data-tab="print"] #movie-tip`, matching how the media selector is hidden. No frontend test runner; `wails build -tags webkit2_41` ok; manual check by the user pending. Assess: under_budget (33 lines since eebc583, pending).
 
+- Hook-issued full-branch review main..65bf8ce (3641 lines, includes 835fe3a and 4db4820): granted, approved, acknowledged. No blocking findings. Optional follow-ups (suggestions, not scheduled): tests for errors on the Wikidata entities and iTunes lookup steps; escape CirrusSearch syntax in titles (leading `-`, quotes, `intitle:`); a downloader test for the failure reason of a keyless movie that no provider finds (the "no TMDB API key" text may lead it); a test of the startup/shutdown rate-limit hook wiring.
+
 ## Next step
 User: manual GUI check with a TMDB key, then decide on push/PRs (feature-branch-chain).
