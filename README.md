@@ -3,14 +3,15 @@
 A desktop app for Windows and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
 
-Books are supported today. The core is media-agnostic, so movies, music or games can be added later as new providers, with no UI changes.
+Book covers and movie posters are supported. The core is media-agnostic, so music or games can be added later as new providers.
 
 ## Features
 
-- Batch input: one `Title, Author` per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books) or `Title, Year` (movies) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
+- Rate limits are respected: when a source answers "too many requests", the app waits as long as the source asks (or backs off) and retries. All downloads pause for that source, and the wait is shown in the app.
 - Placeholder images, error pages and non-images are rejected, so you never get a blank "no cover" file.
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
@@ -56,6 +57,26 @@ Sources are tried in this order for books:
 2. **Open Library**: a free, open catalog. Its own covers are often smaller, so editions with an ISBN also try the Amazon image CDN (see below).
 3. **Amazon** (store search page): broad coverage, but Amazon may answer with a bot check. When that happens the item falls back to the other sources or fails with `blocked by bot check`.
 
+Sources are tried in this order for movies:
+
+1. **TMDB** (The Movie Database API): the best coverage and full-resolution posters, localized to the store country's language when TMDB has one (for example Spanish posters for `es`). It needs a free API key, see [TMDB API key](#tmdb-api-key). Without a key it is skipped.
+2. **IMDb** (the public title-suggestion endpoint, no key): large posters for most films. It is an unofficial endpoint and may change or stop working.
+3. **Wikidata → Apple TV** (no key): Wikidata links the film to its Apple TV (iTunes) movie ID, and the iTunes lookup returns the poster artwork (usually 2000 × 3000).
+
+Movie posters are about 2:3, like book covers, so the print sheet lays them out the same way.
+
+### TMDB API key
+
+1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
+2. In the app, click **Settings** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/cover-downloader/settings.json` on Linux, `%AppData%\cover-downloader\settings.json` on Windows), readable only by you.
+3. For the command line, use `-tmdb-key`, or the `TMDB_API_KEY` environment variable; otherwise the key saved by the app is used.
+
+This product uses the TMDB API but is not endorsed or certified by TMDB.
+
+### Rate limits
+
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` or `503` answer pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly.
+
 ## Local editions
 
 The default country is `es` (Spain), so you get the covers of Spanish editions when they exist.
@@ -85,7 +106,7 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author`. The author column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
@@ -97,7 +118,7 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 
 ## Using the app
 
-1. Choose the media type (only **Books** for now).
+1. Choose the media type: **Books** or **Movies**. For movies, optionally add a TMDB API key in **Settings** for the best posters.
 2. Type or paste items, one per line, or click **Import CSV…**.
 3. Check the output folder (default: `~/Pictures/Covers`, or `%USERPROFILE%\Pictures\Covers` on Windows), and change it with **Browse…** if needed.
 4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
@@ -137,16 +158,19 @@ The `covers` CLI runs the same downloader without a window:
 ```sh
 go run ./cmd/covers -o covers "Dune, Frank Herbert" "Emma, Jane Austen"
 go run ./cmd/covers -country us -csv sample_books.csv -o covers
+go run ./cmd/covers -type movies -o posters "Dune, 2021" "Inception, 2010"
+TMDB_API_KEY=<key> go run ./cmd/covers -type movies -o posters "The Matrix, 1999"
 ```
 
 Flags must come before the items:
 
 | Flag       | Default  | Meaning                                         |
 |------------|----------|-------------------------------------------------|
-| `-type`    | `books`  | Media type                                      |
+| `-type`    | `books`  | Media type: `books` or `movies`                 |
 | `-o`       | `covers` | Output folder                                   |
 | `-country` | `es`     | Store country code; its editions are preferred  |
 | `-csv`     | (none)   | CSV file, added after the positional items       |
+| `-tmdb-key`| (none)   | TMDB API key; overrides `TMDB_API_KEY` and the saved key |
 
 The exit code is `0` when every item succeeded, `1` when any item failed or was cancelled, and `2` for usage errors.
 
@@ -217,13 +241,14 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           Apple Books, Open Library, Amazon
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming
   locale/              country table: language and ISBN prefixes of local editions
   isbn/                ISBN-10/13 validation, conversion and extraction
-  web/                 shared HTTP client, headers and bounded reads
+  web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
+  settings/            user settings file (TMDB API key)
   gallery/             print sheet: folder listing and thumbnails for the UI
   sheet/               print sheet: A4 layout and PDF export
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
@@ -233,7 +258,7 @@ legacy/                the original Python script
 ## Adding a new media type
 
 1. Implement `media.Provider` (`Name()` and `Search(ctx, item, opts)`) for each source, usually in `internal/providers`. Return candidates best-first with their image URLs ordered best-first. Return an error wrapping `media.ErrNotFound` when there is no match.
-2. Register a `media.MediaType` in `internal/catalog` with an ID, a label, a creator label (for example `Director` or `Artist`) and its providers in fallback order.
+2. Register a `media.MediaType` in `internal/catalog` with an ID, a label, a creator label (for example `Year` or `Artist`) and its providers in fallback order. Set `LocalEditions` only for types whose candidates carry an ISBN (books).
 
 That's all. The UI lists media types from the registry and uses the creator label in its hints, so no frontend changes are needed.
 
