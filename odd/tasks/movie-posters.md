@@ -70,5 +70,7 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 
 - Hook-issued review of the whole branch main..eebc583 (3610 lines): granted, approved, acknowledged. Warning R3-001: the throttle retried every 503, including Amazon bot-check 503s, adding ~7 s per blocked book search. Fixed in the next commit: a 503 is retried only with Retry-After; a 429 is always retried. RED: `TestThrottleRetries/503_without_Retry-After_is_returned_at_once` failed. GREEN: `go test -race ./internal/web/` ok; `go test -tags webkit2_41 ./...` 223 passed. Advisory left open: tests for errors on the Wikidata entities and iTunes lookup steps.
 
+- User-reported bug: the TMDB tip stayed visible on the Print sheet tab. Fixed in `4db4820` with a CSS rule on `#app[data-tab="print"] #movie-tip`, matching how the media selector is hidden. No frontend test runner; `wails build -tags webkit2_41` ok; manual check by the user pending. Assess: under_budget (33 lines since eebc583, pending).
+
 ## Next step
 User: manual GUI check with a TMDB key, then decide on push/PRs (feature-branch-chain).
