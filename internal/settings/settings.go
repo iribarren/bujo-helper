@@ -77,6 +77,11 @@ func Save(path string, s Settings) error {
 	if _, err := tmp.Write(b); err != nil {
 		return fmt.Errorf("save settings: %w", err)
 	}
+	// Flush to disk before the rename, so a crash cannot leave an empty
+	// settings file in place of the old one.
+	if err := tmp.Sync(); err != nil {
+		return fmt.Errorf("save settings: %w", err)
+	}
 	if err := tmp.Close(); err != nil {
 		return fmt.Errorf("save settings: %w", err)
 	}

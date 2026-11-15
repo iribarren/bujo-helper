@@ -29,7 +29,8 @@ const drainLimit = 64 << 10
 // Throttle is an http.RoundTripper that waits when a server rate-limits.
 //
 // On 429 or 503 it waits for Retry-After (seconds or an HTTP-date), or
-// backs off exponentially when the header is missing, and retries. The wait
+// backs off exponentially when the header is missing, invalid, zero or in
+// the past, and retries. The wait
 // blocks the host for every request through the same Throttle, so one
 // worker's 429 pauses all workers. Hosts in MinInterval are also spaced
 // out. Only bodiless GET and HEAD requests are retried.
@@ -103,8 +104,10 @@ func (t *Throttle) RoundTrip(req *http.Request) (*http.Response, error) {
 			return resp, nil
 		}
 		now := t.clock()
+		// A missing, invalid, zero or past Retry-After falls back to the
+		// backoff step, so retries are never sent back-to-back.
 		delay, ok := parseRetryAfter(resp.Header.Get("Retry-After"), now)
-		if !ok {
+		if !ok || delay <= 0 {
 			delay = t.backoff(attempt)
 		}
 		if attempt >= retries || delay > t.maxWait() {
@@ -212,7 +215,8 @@ func (t *Throttle) block(host string, until time.Time) {
 }
 
 // parseRetryAfter reads a Retry-After value: delta seconds or an HTTP-date.
-// A date in the past means no wait.
+// Zero seconds or a date in the past gives zero; a negative or unparseable
+// value is not ok.
 func parseRetryAfter(v string, now time.Time) (time.Duration, bool) {
 	v = strings.TrimSpace(v)
 	if v == "" {

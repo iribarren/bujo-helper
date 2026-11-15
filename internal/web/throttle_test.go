@@ -152,6 +152,30 @@ func TestThrottleRetries(t *testing.T) {
 			wantSleeps: []time.Duration{time.Second, 2 * time.Second},
 		},
 		{
+			name:       "Retry-After date in the past waits the backoff step",
+			replies:    []reply{{503, clockNow.Add(-10 * time.Second).Format(http.TimeFormat), ""}, {503, clockNow.Add(-10 * time.Second).Format(http.TimeFormat), ""}, {200, "", "ok"}},
+			wantStatus: 200, wantBody: "ok", wantHits: 3,
+			wantSleeps: []time.Duration{time.Second, 2 * time.Second},
+		},
+		{
+			name:       "Retry-After 0 waits the backoff step",
+			replies:    []reply{{429, "0", ""}, {200, "", "ok"}},
+			wantStatus: 200, wantBody: "ok", wantHits: 2,
+			wantSleeps: []time.Duration{time.Second},
+		},
+		{
+			name:       "negative Retry-After falls back to backoff",
+			replies:    []reply{{429, "-5", ""}, {200, "", "ok"}},
+			wantStatus: 200, wantBody: "ok", wantHits: 2,
+			wantSleeps: []time.Duration{time.Second},
+		},
+		{
+			name:       "unparseable Retry-After falls back to backoff",
+			replies:    []reply{{429, "garbage", ""}, {429, "garbage", ""}, {200, "", "ok"}},
+			wantStatus: 200, wantBody: "ok", wantHits: 3,
+			wantSleeps: []time.Duration{time.Second, 2 * time.Second},
+		},
+		{
 			name:       "always 429 returns the last 429 after MaxRetries retries",
 			replies:    []reply{{429, "1", "slow down"}},
 			wantStatus: 429, wantBody: "slow down", wantHits: 4,
@@ -211,6 +235,25 @@ func TestThrottleDoesNotRetryRequestsWithBody(t *testing.T) {
 	}
 	if resp.StatusCode != 429 || readAll(t, resp) != "slow" {
 		t.Errorf("status = %d, want the 429 passed through", resp.StatusCode)
+	}
+	if hits.Load() != 1 || len(clock.recorded()) != 0 {
+		t.Errorf("hits=%d sleeps=%v, want one attempt and no sleep", hits.Load(), clock.recorded())
+	}
+}
+
+func TestThrottleNegativeMaxRetriesNeverRetries(t *testing.T) {
+	srv, hits := statusServer(t, reply{429, "1", "slow"}, reply{200, "", "ok"})
+	clock := newFakeClock()
+	th := newTestThrottle(clock, &waitRecorder{})
+	th.MaxRetries = -1
+	client := &http.Client{Transport: th}
+
+	resp, err := Get(context.Background(), client, srv.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Status != 429 || string(resp.Body) != "slow" {
+		t.Errorf("got %d %q, want the 429 passed through", resp.Status, resp.Body)
 	}
 	if hits.Load() != 1 || len(clock.recorded()) != 0 {
 		t.Errorf("hits=%d sleeps=%v, want one attempt and no sleep", hits.Load(), clock.recorded())
