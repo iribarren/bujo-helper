@@ -23,6 +23,8 @@ export function OpenFile(arg1:string):Promise<void>;
 
 export function OpenFolder(arg1:string):Promise<void>;
 
+export function SaveSampleCSV(arg1:string):Promise<string>;
+
 export function SaveSettings(arg1:settings.Settings):Promise<void>;
 
 export function Start(arg1:main.StartRequest):Promise<Array<main.ItemView>>;

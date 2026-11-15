@@ -124,3 +124,25 @@ func TestFormatLinesCreatorWithCommaSurvivesParse(t *testing.T) {
 		}
 	}
 }
+
+func TestWriteCSVRoundTrip(t *testing.T) {
+	items := []media.Item{
+		{Title: "Dune", Creator: "Frank Herbert"},
+		{Title: "Guns, Germs, and Steel", Creator: "Jared Diamond"},
+		{Title: `The "Quoted" One`},
+	}
+	var b strings.Builder
+	if err := WriteCSV(&b, []string{"title", "author"}, items); err != nil {
+		t.Fatalf("WriteCSV: %v", err)
+	}
+	if !strings.HasPrefix(b.String(), "title,author\n") {
+		t.Errorf("WriteCSV output %q does not start with the header", b.String())
+	}
+	got, err := ReadCSV(strings.NewReader(b.String()))
+	if err != nil {
+		t.Fatalf("ReadCSV: %v", err)
+	}
+	if !reflect.DeepEqual(got, items) {
+		t.Errorf("round trip = %+v, want %+v", got, items)
+	}
+}

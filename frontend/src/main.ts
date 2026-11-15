@@ -7,6 +7,7 @@ import {
     ImportCSV,
     MediaTypes,
     OpenFolder,
+    SaveSampleCSV,
     Start,
 } from '../wailsjs/go/main/App';
 import {main} from '../wailsjs/go/models';
@@ -69,6 +70,8 @@ const ui = {
     bannerText: byId<HTMLSpanElement>('banner-text'),
     bannerClose: byId<HTMLButtonElement>('banner-close'),
     importBtn: byId<HTMLButtonElement>('import'),
+    sampleCsv: byId<HTMLButtonElement>('sample-csv'),
+    sampleStatus: byId<HTMLSpanElement>('sample-status'),
     count: byId<HTMLSpanElement>('count'),
     items: byId<HTMLTextAreaElement>('items'),
     outputDir: byId<HTMLInputElement>('output-dir'),
@@ -170,9 +173,20 @@ function updateMovieTip() {
     ui.movieTip.hidden = ui.mediaType.value !== 'movies' || settingsDialog.hasTMDBKey();
 }
 
+// updateSampleButton names the selected media type on the sample CSV
+// button, e.g. "Sample books CSV".
+function updateSampleButton() {
+    const type = mediaTypes.find((t) => t.id === ui.mediaType.value);
+    const label = type ? `${type.label.toLowerCase()} ` : '';
+    ui.sampleCsv.textContent = `Sample ${label}CSV`;
+    ui.sampleCsv.title = `Save an example ${label}CSV (Title, ${creatorLabel()}) to use as a reference for Import CSV`;
+    hideSampleStatus();
+}
+
 function updateMediaType() {
     updatePlaceholder();
     updateMovieTip();
+    updateSampleButton();
 }
 
 // rateLimitDeadline is when the currently shown wait ends (ms since epoch).
@@ -343,6 +357,29 @@ async function importCSV() {
     }
 }
 
+// The timer that clears the "Saved …" note of the sample CSV button.
+let sampleStatusTimer: number | undefined;
+
+function hideSampleStatus() {
+    window.clearTimeout(sampleStatusTimer);
+    ui.sampleStatus.textContent = '';
+    ui.sampleStatus.title = '';
+}
+
+async function saveSampleCSV() {
+    hideError();
+    try {
+        const path = await SaveSampleCSV(ui.mediaType.value);
+        if (path === '') return; // dialog cancelled
+        hideSampleStatus();
+        ui.sampleStatus.textContent = `Saved ${baseName(path)}`;
+        ui.sampleStatus.title = path;
+        sampleStatusTimer = window.setTimeout(hideSampleStatus, 5000);
+    } catch (err) {
+        showError(`Could not save the sample CSV: ${errorText(err)}`);
+    }
+}
+
 async function browseFolder() {
     try {
         const dir = await ChooseFolder(ui.outputDir.value);
@@ -387,6 +424,7 @@ ui.mediaType.addEventListener('change', updateMediaType);
 ui.settingsOpen.addEventListener('click', () => settingsDialog.open());
 ui.movieTipSettings.addEventListener('click', () => settingsDialog.open());
 ui.importBtn.addEventListener('click', importCSV);
+ui.sampleCsv.addEventListener('click', saveSampleCSV);
 ui.browse.addEventListener('click', browseFolder);
 ui.start.addEventListener('click', startDownload);
 ui.cancel.addEventListener('click', cancelDownload);

@@ -58,6 +58,9 @@ type MediaType struct {
 	// LocalEditions makes the downloader search local ISBN editions first
 	// (books only).
 	LocalEditions bool
+	// Samples are example items for the sample CSV the user can download as
+	// a reference.
+	Samples []Item
 }
 
 // Registry is an ordered collection of media types.

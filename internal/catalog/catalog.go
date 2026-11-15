@@ -34,6 +34,13 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			providers.NewAmazon(client),
 		},
 		LocalEditions: true,
+		Samples: []media.Item{
+			{Title: "Dune", Creator: "Frank Herbert"},
+			{Title: "Pride and Prejudice", Creator: "Jane Austen"},
+			{Title: "Guns, Germs, and Steel", Creator: "Jared Diamond"},
+			{Title: "One Hundred Years of Solitude", Creator: "Gabriel García Márquez"},
+			{Title: "The Hobbit", Creator: "J.R.R. Tolkien"},
+		},
 	})
 	mustRegister(reg, media.MediaType{
 		ID:           "movies",
@@ -43,6 +50,13 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			providers.NewTMDB(client, keys.TMDB),
 			providers.NewIMDb(client),
 			providers.NewWikidataITunes(client),
+		},
+		Samples: []media.Item{
+			{Title: "Dune", Creator: "2021"},
+			{Title: "The Godfather", Creator: "1972"},
+			{Title: "Spirited Away", Creator: "2001"},
+			{Title: "Crouching Tiger, Hidden Dragon", Creator: "2000"},
+			{Title: "Amélie", Creator: "2001"},
 		},
 	})
 	return reg

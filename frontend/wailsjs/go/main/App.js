@@ -42,6 +42,10 @@ export function OpenFolder(arg1) {
   return window['go']['main']['App']['OpenFolder'](arg1);
 }
 
+export function SaveSampleCSV(arg1) {
+  return window['go']['main']['App']['SaveSampleCSV'](arg1);
+}
+
 export function SaveSettings(arg1) {
   return window['go']['main']['App']['SaveSettings'](arg1);
 }

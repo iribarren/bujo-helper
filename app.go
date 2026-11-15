@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -279,6 +281,54 @@ func importCSVFile(path string) (string, error) {
 	return batch.FormatLines(items), nil
 }
 
+// SaveSampleCSV asks where to save a sample CSV for the media type with the
+// given ID, which the user can use as a reference for Import CSV. It returns
+// the saved path, or "" with no error when the dialog is cancelled.
+func (a *App) SaveSampleCSV(mediaType string) (string, error) {
+	name, data, err := a.sampleCSV(mediaType)
+	if err != nil {
+		return "", err
+	}
+	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:                "Save sample CSV",
+		DefaultFilename:      name,
+		CanCreateDirectories: true,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "CSV files (*.csv)", Pattern: "*.csv"},
+		},
+	})
+	if err != nil || path == "" {
+		return "", err
+	}
+	if path, err = a.withExtension(path, ".csv"); err != nil || path == "" {
+		return "", err
+	}
+	if err := writeFileAtomic(path, "CSV", func(w io.Writer) error {
+		_, err := w.Write(data)
+		return err
+	}); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// sampleCSV returns the file name and contents of the sample CSV for a
+// media type: a "title,<creator>" header and its sample items. It starts
+// with a UTF-8 BOM so Excel on Windows reads accented names correctly.
+func (a *App) sampleCSV(mediaType string) (string, []byte, error) {
+	t, ok := a.registry.Get(mediaType)
+	if !ok {
+		return "", nil, fmt.Errorf("unknown media type %q", mediaType)
+	}
+	var b bytes.Buffer
+	b.WriteString("\xef\xbb\xbf")
+	header := []string{"title", strings.ToLower(t.CreatorLabel)}
+	if err := batch.WriteCSV(&b, header, t.Samples); err != nil {
+		return "", nil, err
+	}
+	return "sample_" + t.ID + ".csv", b.Bytes(), nil
+}
+
 // ChooseFolder asks for an output folder, starting at current. It returns
 // "" with no error when the dialog is cancelled.
 func (a *App) ChooseFolder(current string) (string, error) {
@@ -450,23 +500,8 @@ func (a *App) ExportPDF(paths []string, defaultDir string) (string, error) {
 	if err != nil || path == "" {
 		return "", err
 	}
-	if !strings.EqualFold(filepath.Ext(path), ".pdf") {
-		// The dialog only confirmed overwriting the name as typed, so ask
-		// again before replacing an existing file with the added extension.
-		path += ".pdf"
-		if _, err := os.Stat(path); err == nil {
-			answer, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-				Type:          runtime.QuestionDialog,
-				Title:         "Replace file?",
-				Message:       filepath.Base(path) + " already exists. Replace it?",
-				Buttons:       []string{"Replace", "Cancel"},
-				DefaultButton: "Cancel",
-				CancelButton:  "Cancel",
-			})
-			if err != nil || !isYes(answer) {
-				return "", err
-			}
-		}
+	if path, err = a.withExtension(path, ".pdf"); err != nil || path == "" {
+		return "", err
 	}
 	if err := exportTo(path, paths); err != nil {
 		return "", err
@@ -474,13 +509,45 @@ func (a *App) ExportPDF(paths []string, defaultDir string) (string, error) {
 	return path, nil
 }
 
-// exportTo writes the print sheet PDF of files to path. It writes a
-// temporary file next to path and renames it, so a failure never leaves a
-// partial PDF behind.
+// withExtension adds ext to a saved path that lacks it. The save dialog
+// only confirmed overwriting the name as typed, so it asks again before
+// replacing an existing file with the added extension. It returns "" with no
+// error when the user declines.
+func (a *App) withExtension(path, ext string) (string, error) {
+	if strings.EqualFold(filepath.Ext(path), ext) {
+		return path, nil
+	}
+	path += ext
+	if _, err := os.Stat(path); err == nil {
+		answer, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:          runtime.QuestionDialog,
+			Title:         "Replace file?",
+			Message:       filepath.Base(path) + " already exists. Replace it?",
+			Buttons:       []string{"Replace", "Cancel"},
+			DefaultButton: "Cancel",
+			CancelButton:  "Cancel",
+		})
+		if err != nil || !isYes(answer) {
+			return "", err
+		}
+	}
+	return path, nil
+}
+
+// exportTo writes the print sheet PDF of files to path, atomically.
 func exportTo(path string, files []string) error {
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".covers-*.pdf.tmp")
+	return writeFileAtomic(path, "PDF", func(w io.Writer) error {
+		return sheet.Build(w, files)
+	})
+}
+
+// writeFileAtomic writes a file with write. It writes a temporary file next
+// to path and renames it, so a failure never leaves a partial file behind or
+// damages an existing one. kind names the file in errors, e.g. "PDF".
+func writeFileAtomic(path, kind string, write func(io.Writer) error) error {
+	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+"-*.tmp")
 	if err != nil {
-		return fmt.Errorf("create PDF: %w", err)
+		return fmt.Errorf("create %s: %w", kind, err)
 	}
 	tmpName := tmp.Name()
 	ok := false
@@ -490,21 +557,21 @@ func exportTo(path string, files []string) error {
 			os.Remove(tmpName)
 		}
 	}()
-	if err := sheet.Build(tmp, files); err != nil {
+	if err := write(tmp); err != nil {
 		return err
 	}
-	// CreateTemp makes the file private (0600); a saved PDF gets the usual
+	// CreateTemp makes the file private (0600); a saved file gets the usual
 	// permissions. Windows has no permission bits to set.
 	if goruntime.GOOS != "windows" {
 		if err := tmp.Chmod(0o644); err != nil {
-			return fmt.Errorf("write PDF: %w", err)
+			return fmt.Errorf("write %s: %w", kind, err)
 		}
 	}
 	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("write PDF: %w", err)
+		return fmt.Errorf("write %s: %w", kind, err)
 	}
 	if err := os.Rename(tmpName, path); err != nil {
-		return fmt.Errorf("save PDF: %w", err)
+		return fmt.Errorf("save %s: %w", kind, err)
 	}
 	ok = true
 	return nil

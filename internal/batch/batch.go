@@ -127,6 +127,25 @@ func ReadCSV(r io.Reader) ([]media.Item, error) {
 	return items, nil
 }
 
+// WriteCSV writes header, then one "title,creator" row per item, quoting
+// fields as needed. The output reads back unchanged with ReadCSV.
+func WriteCSV(w io.Writer, header []string, items []media.Item) error {
+	cw := csv.NewWriter(w)
+	if err := cw.Write(header); err != nil {
+		return fmt.Errorf("write csv: %w", err)
+	}
+	for _, it := range items {
+		if err := cw.Write([]string{it.Title, it.Creator}); err != nil {
+			return fmt.Errorf("write csv: %w", err)
+		}
+	}
+	cw.Flush()
+	if err := cw.Error(); err != nil {
+		return fmt.Errorf("write csv: %w", err)
+	}
+	return nil
+}
+
 // detectDelimiter picks ';' when the first non-empty line has more
 // semicolons than commas, else ','.
 func detectDelimiter(text string) rune {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"cover-downloader/internal/batch"
 	"cover-downloader/internal/media"
 	"cover-downloader/internal/providers"
 	"cover-downloader/internal/settings"
@@ -552,5 +554,81 @@ func TestOnRateLimitWaitIgnoresNonPositiveWaits(t *testing.T) {
 		if sent != 0 {
 			t.Errorf("%v: sent %d events, want none", d, sent)
 		}
+	}
+}
+
+func TestSampleCSVForEachBuiltInType(t *testing.T) {
+	a := NewApp()
+	types := a.registry.List()
+	if len(types) == 0 {
+		t.Fatal("no media types")
+	}
+	for _, mt := range types {
+		t.Run(mt.ID, func(t *testing.T) {
+			if len(mt.Samples) < 3 {
+				t.Fatalf("%d samples, want at least 3", len(mt.Samples))
+			}
+			name, data, err := a.sampleCSV(mt.ID)
+			if err != nil {
+				t.Fatalf("sampleCSV: %v", err)
+			}
+			if want := "sample_" + mt.ID + ".csv"; name != want {
+				t.Errorf("name = %q, want %q", name, want)
+			}
+			// A UTF-8 BOM makes Excel read the accented names correctly.
+			header := "\xef\xbb\xbftitle," + strings.ToLower(mt.CreatorLabel) + "\n"
+			if !strings.HasPrefix(string(data), header) {
+				t.Errorf("sample %q does not start with %q", data, header)
+			}
+			path := filepath.Join(t.TempDir(), name)
+			if err := os.WriteFile(path, data, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			got, err := importCSVFile(path)
+			if err != nil {
+				t.Fatalf("importCSVFile(sample): %v", err)
+			}
+			// The header is skipped and every sample comes back unchanged.
+			if want := batch.FormatLines(mt.Samples); got != want {
+				t.Errorf("sample imports as\n%s\nwant\n%s", got, want)
+			}
+		})
+	}
+}
+
+func TestSampleCSVUnknownType(t *testing.T) {
+	if _, _, err := NewApp().sampleCSV("comics"); err == nil {
+		t.Error("sampleCSV(comics) err = nil, want an error")
+	}
+}
+
+func TestWriteFileAtomicFailureKeepsExistingFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sample.csv")
+	if err := os.WriteFile(path, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := writeFileAtomic(path, "CSV", func(w io.Writer) error {
+		io.WriteString(w, "partial")
+		return fmt.Errorf("boom")
+	})
+	if err == nil || !strings.Contains(err.Error(), "boom") {
+		t.Fatalf("err = %v, want boom", err)
+	}
+	if got, _ := os.ReadFile(path); string(got) != "old" {
+		t.Errorf("file = %q after a failure, want it unchanged", got)
+	}
+	if entries, _ := os.ReadDir(dir); len(entries) != 1 {
+		t.Errorf("folder has %d entries after a failure, want only the original", len(entries))
+	}
+
+	if err := writeFileAtomic(path, "CSV", func(w io.Writer) error {
+		_, err := io.WriteString(w, "new")
+		return err
+	}); err != nil {
+		t.Fatalf("writeFileAtomic: %v", err)
+	}
+	if got, _ := os.ReadFile(path); string(got) != "new" {
+		t.Errorf("file = %q, want new", got)
 	}
 }
