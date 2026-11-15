@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"cover-downloader/internal/media"
+	"cover-downloader/internal/settings"
 )
 
 type fakeProvider struct{ imageURL string }
@@ -150,5 +152,46 @@ func TestUsageShowsDefaultCountry(t *testing.T) {
 	run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, testRegistry(t))
 	if !strings.Contains(stderr.String(), "[-country es]") {
 		t.Errorf("usage does not show the es default:\n%s", &stderr)
+	}
+}
+
+func TestResolveTMDBKey(t *testing.T) {
+	fromFile := func(key string, err error) func() (settings.Settings, error) {
+		return func() (settings.Settings, error) { return settings.Settings{TMDBAPIKey: key}, err }
+	}
+	env := func(vals map[string]string) func(string) string {
+		return func(k string) string { return vals[k] }
+	}
+	tests := []struct {
+		name string
+		flag string
+		env  map[string]string
+		load func() (settings.Settings, error)
+		want string
+	}{
+		{"flag wins", "flag-key", map[string]string{"TMDB_API_KEY": "env-key"}, fromFile("file-key", nil), "flag-key"},
+		{"env beats file", "", map[string]string{"TMDB_API_KEY": "env-key"}, fromFile("file-key", nil), "env-key"},
+		{"file when no flag or env", "", nil, fromFile("file-key", nil), "file-key"},
+		{"blank flag and env fall through", "  ", map[string]string{"TMDB_API_KEY": " "}, fromFile("file-key", nil), "file-key"},
+		{"values are trimmed", " flag-key\n", nil, fromFile("", nil), "flag-key"},
+		{"settings error gives no key", "", nil, fromFile("", errors.New("unreadable")), ""},
+		{"nothing set", "", nil, fromFile("", nil), ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := resolveTMDBKey(tt.flag, env(tt.env), tt.load); got != tt.want {
+				t.Errorf("resolveTMDBKey = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestResolveTMDBKeySkipsTheFileWhenNotNeeded(t *testing.T) {
+	load := func() (settings.Settings, error) {
+		t.Error("settings file read although the flag gave a key")
+		return settings.Settings{}, nil
+	}
+	if got := resolveTMDBKey("flag-key", func(string) string { return "" }, load); got != "flag-key" {
+		t.Errorf("resolveTMDBKey = %q, want flag-key", got)
 	}
 }

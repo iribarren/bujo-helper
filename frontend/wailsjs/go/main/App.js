@@ -18,6 +18,10 @@ export function ExportPDF(arg1, arg2) {
   return window['go']['main']['App']['ExportPDF'](arg1, arg2);
 }
 
+export function GetSettings() {
+  return window['go']['main']['App']['GetSettings']();
+}
+
 export function ImportCSV() {
   return window['go']['main']['App']['ImportCSV']();
 }
@@ -36,6 +40,10 @@ export function OpenFile(arg1) {
 
 export function OpenFolder(arg1) {
   return window['go']['main']['App']['OpenFolder'](arg1);
+}
+
+export function SaveSettings(arg1) {
+  return window['go']['main']['App']['SaveSettings'](arg1);
 }
 
 export function Start(arg1) {

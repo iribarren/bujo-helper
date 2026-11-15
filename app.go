@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -19,6 +20,7 @@ import (
 	"cover-downloader/internal/downloader"
 	"cover-downloader/internal/gallery"
 	"cover-downloader/internal/media"
+	"cover-downloader/internal/settings"
 	"cover-downloader/internal/sheet"
 	"cover-downloader/internal/web"
 )
@@ -94,12 +96,25 @@ type App struct {
 	// thumbs serves the thumbnails of the covers listed by ListCovers. It
 	// is the Wails asset server's fallback handler (see main.go).
 	thumbs *gallery.Thumbs
+
+	// settingsPath is the settings file; "" means it is unknown and
+	// SaveSettings fails. settings is the current copy, read live by
+	// tmdbKey so a saved key is used without a restart.
+	settingsMu   sync.Mutex
+	settingsPath string
+	settings     settings.Settings
 }
 
 // NewApp returns an App with the built-in media types.
 func NewApp() *App {
 	client := web.NewClient()
-	return newApp(catalog.Default(client), client)
+	a := newApp(catalog.Default(client), client)
+	path, err := settings.Path()
+	if err != nil {
+		log.Printf("settings: %v", err)
+	}
+	a.loadSettings(path)
+	return a
 }
 
 func newApp(reg *media.Registry, client *http.Client) *App {
@@ -108,6 +123,53 @@ func newApp(reg *media.Registry, client *http.Client) *App {
 		downloader: downloader.Downloader{Registry: reg, Client: client},
 		thumbs:     gallery.NewThumbs(),
 	}
+}
+
+// loadSettings reads the settings file at path and remembers path for
+// SaveSettings. A read error is logged and leaves the settings empty: the
+// app still works, only without the saved keys.
+func (a *App) loadSettings(path string) {
+	var s settings.Settings
+	if path != "" {
+		var err error
+		if s, err = settings.Load(path); err != nil {
+			log.Printf("settings: %v", err)
+		}
+	}
+	a.settingsMu.Lock()
+	defer a.settingsMu.Unlock()
+	a.settingsPath = path
+	a.settings = s
+}
+
+// GetSettings returns the current settings.
+func (a *App) GetSettings() settings.Settings {
+	a.settingsMu.Lock()
+	defer a.settingsMu.Unlock()
+	return a.settings
+}
+
+// SaveSettings saves s to the settings file and uses it at once.
+func (a *App) SaveSettings(s settings.Settings) error {
+	s.TMDBAPIKey = strings.TrimSpace(s.TMDBAPIKey)
+	a.settingsMu.Lock()
+	defer a.settingsMu.Unlock()
+	if a.settingsPath == "" {
+		return errors.New("save settings: the settings file location is unknown")
+	}
+	if err := settings.Save(a.settingsPath, s); err != nil {
+		return err
+	}
+	a.settings = s
+	return nil
+}
+
+// tmdbKey returns the current TMDB API key. It reads the settings live, so
+// a key saved in the UI applies to the next search.
+func (a *App) tmdbKey() string {
+	a.settingsMu.Lock()
+	defer a.settingsMu.Unlock()
+	return a.settings.TMDBAPIKey
 }
 
 // startup is called when the app starts. The context is kept for the

@@ -2,7 +2,10 @@
 //
 // Usage:
 //
-//	covers [-type books] [-o dir] [-country es] [-csv file] ["Title, Author" ...]
+//	covers [-type books] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" ...]
+//
+// The TMDB API key comes from -tmdb-key, else the TMDB_API_KEY environment
+// variable, else the settings file the GUI writes.
 //
 // Each positional argument is one "Title, Creator" item (split on the last
 // comma). Items from -csv are added after them. Flags must come before the
@@ -23,6 +26,7 @@ import (
 	"cover-downloader/internal/catalog"
 	"cover-downloader/internal/downloader"
 	"cover-downloader/internal/media"
+	"cover-downloader/internal/settings"
 )
 
 func main() {
@@ -38,13 +42,17 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, reg *medi
 	outDir := fs.String("o", "covers", "output directory")
 	country := fs.String("country", "es", "store country code (es, us, gb, de, ...); local editions are preferred")
 	csvPath := fs.String("csv", "", "CSV file with title and creator columns")
+	tmdbFlag := fs.String("tmdb-key", "", "TMDB API key (default: $TMDB_API_KEY, then the saved settings)")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, `usage: covers [-type books] [-o dir] [-country es] [-csv file] ["Title, Author" ...]`)
+		fmt.Fprintln(stderr, `usage: covers [-type books] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" ...]`)
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}
+	// The movie sources will read the key; the catalog does not take it yet.
+	tmdbKey := resolveTMDBKey(*tmdbFlag, os.Getenv, loadUserSettings)
+	_ = tmdbKey
 
 	var items []media.Item
 	for _, arg := range fs.Args() {
@@ -90,6 +98,33 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, reg *medi
 		return 1
 	}
 	return 0
+}
+
+// resolveTMDBKey returns the TMDB API key: flagVal, else the TMDB_API_KEY
+// environment variable, else the saved settings. Blank values are skipped,
+// and the settings are read only when needed. An unreadable settings file
+// means no key.
+func resolveTMDBKey(flagVal string, getenv func(string) string, loadSettings func() (settings.Settings, error)) string {
+	if key := strings.TrimSpace(flagVal); key != "" {
+		return key
+	}
+	if key := strings.TrimSpace(getenv("TMDB_API_KEY")); key != "" {
+		return key
+	}
+	s, err := loadSettings()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(s.TMDBAPIKey)
+}
+
+// loadUserSettings reads the settings file the GUI writes.
+func loadUserSettings() (settings.Settings, error) {
+	path, err := settings.Path()
+	if err != nil {
+		return settings.Settings{}, err
+	}
+	return settings.Load(path)
 }
 
 func printResult(w io.Writer, r downloader.ItemResult) {

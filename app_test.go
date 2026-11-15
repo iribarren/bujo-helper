@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"cover-downloader/internal/media"
+	"cover-downloader/internal/settings"
 )
 
 var jpegBody = append([]byte("\xff\xd8\xff\xe0"), bytes.Repeat([]byte{0xAB}, 4096)...)
@@ -416,5 +417,65 @@ func TestIsYes(t *testing.T) {
 		if got := isYes(answer); got != want {
 			t.Errorf("isYes(%q) = %v, want %v", answer, got, want)
 		}
+	}
+}
+
+func TestSaveSettingsRoundTrip(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "cover-downloader", "settings.json")
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+	if got := a.GetSettings(); got != (settings.Settings{}) {
+		t.Fatalf("GetSettings before saving = %+v, want zero", got)
+	}
+
+	if err := a.SaveSettings(settings.Settings{TMDBAPIKey: " key-1 "}); err != nil {
+		t.Fatalf("SaveSettings: %v", err)
+	}
+	if got := a.GetSettings().TMDBAPIKey; got != "key-1" {
+		t.Errorf("GetSettings key = %q, want key-1", got)
+	}
+	if got := a.tmdbKey(); got != "key-1" {
+		t.Errorf("tmdbKey = %q, want key-1 without a restart", got)
+	}
+
+	saved, err := settings.Load(path)
+	if err != nil || saved.TMDBAPIKey != "key-1" {
+		t.Errorf("file holds %+v (err %v), want key-1", saved, err)
+	}
+
+	// A new App (next start) reads the saved key.
+	b := newApp(media.NewRegistry(), http.DefaultClient)
+	b.loadSettings(path)
+	if got := b.GetSettings().TMDBAPIKey; got != "key-1" {
+		t.Errorf("new App key = %q, want key-1", got)
+	}
+}
+
+func TestLoadSettingsErrorIsNotFatal(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := os.WriteFile(path, []byte("{broken"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+	if got := a.GetSettings(); got != (settings.Settings{}) {
+		t.Errorf("GetSettings = %+v, want zero after a bad file", got)
+	}
+	// Saving still works and replaces the broken file.
+	if err := a.SaveSettings(settings.Settings{TMDBAPIKey: "k"}); err != nil {
+		t.Fatalf("SaveSettings: %v", err)
+	}
+	if s, err := settings.Load(path); err != nil || s.TMDBAPIKey != "k" {
+		t.Errorf("file holds %+v (err %v), want key k", s, err)
+	}
+}
+
+func TestSaveSettingsWithoutPathFails(t *testing.T) {
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	if err := a.SaveSettings(settings.Settings{TMDBAPIKey: "k"}); err == nil {
+		t.Fatal("SaveSettings with no settings path returned no error")
+	}
+	if got := a.tmdbKey(); got != "" {
+		t.Errorf("tmdbKey = %q after a failed save, want empty", got)
 	}
 }
