@@ -20,6 +20,34 @@ Books are supported today. The core is media-agnostic, so movies, music or games
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
 
+## Download
+
+Get the latest version from the [Releases page](https://github.com/iribarren/bullet-journal-covers/releases/latest).
+
+### Windows 10/11
+
+1. Download `cover-downloader-<version>-windows-amd64.zip` and extract it.
+2. Run `cover-downloader.exe`.
+
+The executable is not code-signed yet, so Windows SmartScreen may show **"Windows protected your PC"** the first time. Click **More info**, then **Run anyway**. WebView2 is built into Windows 10/11, so nothing else needs to be installed.
+
+### Linux (x86-64)
+
+1. Install the runtime libraries (Ubuntu / Debian):
+
+   ```sh
+   sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0
+   ```
+
+2. Download `cover-downloader-<version>-linux-amd64.tar.gz`, then extract and run it:
+
+   ```sh
+   tar xzf cover-downloader-*-linux-amd64.tar.gz
+   ./cover-downloader
+   ```
+
+The binary is built on Ubuntu 22.04, so it runs on that release and newer distributions.
+
 ## Sources
 
 Sources are tried in this order for books:
@@ -161,6 +189,15 @@ wails build -platform windows/amd64
 
 Each build is a single executable with the frontend embedded.
 
+## Releasing
+
+Pushing a tag that starts with `v` runs the [release workflow](.github/workflows/release.yml). It builds the Linux and Windows binaries on GitHub Actions and publishes them as a GitHub release with generated notes:
+
+```sh
+git tag -a v0.2.0 -m "v0.2.0"
+git push origin v0.2.0
+```
+
 ## Tests
 
 ```sh
@@ -203,3 +240,7 @@ That's all. The UI lists media types from the registry and uses the creator labe
 ## Legacy
 
 `legacy/cover_downloader.py` is the original single-title Python script that this app replaces. It is kept for reference only and is not part of the build.
+
+## License
+
+[MIT](LICENSE)
