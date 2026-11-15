@@ -35,9 +35,9 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 - [x] T1a S1 review follow-ups (settings fsync; throttle floor delay for a past/zero Retry-After + edge tests). Route: delegated writer. Check: `go test ./internal/web/ ./internal/settings/`.
 - [x] T3 TMDB provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
 - [x] T4 IMDb suggestion provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
-- [ ] T3a S2 review follow-ups (TMDB: blank-title guard; retry without year when the year-filtered results have no posters). Route: delegated writer. Check: `go test ./internal/providers/`.
-- [ ] T5 Wikidata→iTunes provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
-- [ ] T6 `MediaType.LocalEditions` gate + `movies` catalog registration. Route: delegated writer. Check: `go test ./...`.
+- [x] T3a S2 review follow-ups (TMDB: blank-title guard; retry without year when the year-filtered results have no posters). Route: delegated writer. Check: `go test ./internal/providers/`.
+- [x] T5 Wikidata→iTunes provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
+- [x] T6 `MediaType.LocalEditions` gate + `movies` catalog registration. Route: delegated writer. Check: `go test ./...`.
 - [ ] T7 Frontend: Settings dialog, TMDB notice, wait status, bindings. Route: delegated writer. Check: `wails build -tags webkit2_41`, manual GUI run.
 - [ ] T8 README + live end-to-end smoke test. Route: inline. Check: CLI live run, GUI print sheet.
 
@@ -54,5 +54,12 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 - A hook-issued review of the whole range main..HEAD was granted, but START refused it (`invalid_request`, untracked files while the writer was running; not started). That candidate went stale after the commits.
 - S2 review (range 9cecaa4..b9b0603, 820 lines, medium): consent granted; lens review-reliability approved; acknowledged (authority burned). Advisory → T3a.
 
+- A hook-issued review of main..57f96c5 (2019 lines, the S1+S2 code already reviewed) was granted, approved and acknowledged. New warning R3-003: a TMDB v3 key could leak into transport error text through *url.Error. It was added to T3a.
+- T3a `6b9ba00` fix(providers): TMDB blank-title guard, retry without year on posterless results, key redaction. RED: 2 server calls on a blank title; "no results with a poster"; the error text contained `api_key=secret123`.
+- T5 `74bfccf` feat(providers): Wikidata→iTunes. Deviation accepted: step 1 uses `list=search&srsearch=<title> haswbstatement:P6398` instead of `wbsearchentities`, which live returns neither Dune film. `languagefallback=1` is needed because film entities often have only `mul` labels. RED: build failure on undefined symbols; 13 tests now pass.
+- T6 `3fa082d` feat(catalog): `MediaType.LocalEditions` gate, movies registered (TMDB → IMDb → Wikidata-iTunes), App `newDefaultApp` wires the live key, CLI `run(..., env{getenv, loadSettings, registry})` is hermetic. RED: "second provider searched 1 times" before the gate.
+- Checks: `go test -tags webkit2_41 ./...` 220 passed (14 packages, parent spot check); vet and gofmt clean. Live keyless CLI smoke: 3/3 OK, all from IMDb (Dune 1728x2552, Inception 700x1037, Matrix 2100x3156). Live Wikidata-iTunes via a temporary test: Dune 2021 → 2000x3000 image.
+- S3 review (b9b0603..3fa082d, 1173 lines, medium): consent granted, reliability lens approved, acknowledged. Advisory, optional follow-ups (not scheduled): `redactKey` handles the cause chain unevenly for non-*url.Error errors (not reachable today: status errors read "HTTP 401", v3 keys are hex); add Wikidata tests for errors on the entities and iTunes lookup steps.
+
 ## Next step
-S3: T3a, T5 Wikidata→iTunes, T6 LocalEditions gate + catalog movies + hermetic CLI tests.
+S4: T7 frontend (Settings dialog, TMDB notice, rate-limit wait status), T8 README + E2E.
