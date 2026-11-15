@@ -55,6 +55,9 @@ type MediaType struct {
 	Label        string
 	CreatorLabel string
 	Providers    []Provider
+	// LocalEditions makes the downloader search local ISBN editions first
+	// (books only).
+	LocalEditions bool
 }
 
 // Registry is an ordered collection of media types.

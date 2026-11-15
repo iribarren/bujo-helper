@@ -10,12 +10,14 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"cover-downloader/internal/media"
+	"cover-downloader/internal/providers"
 	"cover-downloader/internal/settings"
 )
 
@@ -477,5 +479,35 @@ func TestSaveSettingsWithoutPathFails(t *testing.T) {
 	}
 	if got := a.tmdbKey(); got != "" {
 		t.Errorf("tmdbKey = %q after a failed save, want empty", got)
+	}
+}
+
+func TestDefaultAppMoviesUseTheSavedTMDBKey(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := settings.Save(path, settings.Settings{TMDBAPIKey: "saved-key"}); err != nil {
+		t.Fatal(err)
+	}
+	a := newDefaultApp(http.DefaultClient, path)
+
+	var ids []string
+	for _, mt := range a.MediaTypes() {
+		ids = append(ids, mt.ID)
+	}
+	if want := []string{"books", "movies"}; !reflect.DeepEqual(ids, want) {
+		t.Fatalf("media types = %q, want %q", ids, want)
+	}
+	movies, _ := a.registry.Get("movies")
+	tmdb, ok := movies.Providers[0].(*providers.TMDB)
+	if !ok {
+		t.Fatalf("first movie provider is %T, want *providers.TMDB", movies.Providers[0])
+	}
+	if got := tmdb.Key(); got != "saved-key" {
+		t.Errorf("TMDB key = %q, want the saved key", got)
+	}
+	if err := a.SaveSettings(settings.Settings{TMDBAPIKey: "new-key"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := tmdb.Key(); got != "new-key" {
+		t.Errorf("TMDB key after saving = %q, want new-key without a restart", got)
 	}
 }

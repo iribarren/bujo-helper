@@ -105,14 +105,25 @@ type App struct {
 	settings     settings.Settings
 }
 
-// NewApp returns an App with the built-in media types.
+// NewApp returns an App with the built-in media types and the user's
+// settings.
 func NewApp() *App {
-	client := web.NewClient()
-	a := newApp(catalog.Default(client), client)
 	path, err := settings.Path()
 	if err != nil {
 		log.Printf("settings: %v", err)
 	}
+	return newDefaultApp(web.NewClient(), path)
+}
+
+// newDefaultApp returns an App with the built-in media types and the
+// settings file at path. The movie sources read the TMDB key from the
+// App's live settings.
+func newDefaultApp(client *http.Client, path string) *App {
+	var a *App
+	// The catalog is built before the App exists; a is set before any
+	// search can call the key func.
+	reg := catalog.Default(client, catalog.Keys{TMDB: func() string { return a.tmdbKey() }})
+	a = newApp(reg, client)
 	a.loadSettings(path)
 	return a
 }

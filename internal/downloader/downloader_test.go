@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"cover-downloader/internal/media"
@@ -75,7 +76,7 @@ func notFound(name string) *fakeProvider {
 
 func newDownloader(srv *httptest.Server, providers ...media.Provider) *Downloader {
 	reg := media.NewRegistry()
-	if err := reg.Register(media.MediaType{ID: "books", Providers: providers}); err != nil {
+	if err := reg.Register(media.MediaType{ID: "books", Providers: providers, LocalEditions: true}); err != nil {
 		panic(err)
 	}
 	return &Downloader{Registry: reg, Client: srv.Client()}
@@ -408,5 +409,38 @@ func TestProviderErrorIncludesLastReason(t *testing.T) {
 	res, _ := run(t, d, context.Background(), Request{MediaType: "books", Items: []media.Item{{Title: "Emma"}}, OutputDir: t.TempDir()})
 	if want := "amazon: no downloadable cover image (last: HTTP 404)"; res[0].Error != want {
 		t.Errorf("Error = %q, want %q", res[0].Error, want)
+	}
+}
+
+func TestNoLocalEditionPassWithoutLocalEditions(t *testing.T) {
+	srv := imageServer(t)
+	var secondCalls atomic.Int32
+	second := &fakeProvider{name: "second", search: func(context.Context, media.Item) ([]media.Candidate, error) {
+		secondCalls.Add(1)
+		return nil, fmt.Errorf("%w: nothing", media.ErrNotFound)
+	}}
+	reg := media.NewRegistry()
+	if err := reg.Register(media.MediaType{
+		ID:            "movies",
+		LocalEditions: false,
+		Providers:     []media.Provider{returns("first", srv.URL+"/cover.jpg"), second},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	d := &Downloader{Registry: reg, Client: srv.Client()}
+
+	// Spain has ISBN prefixes, so a books-like type would run pass 1 and
+	// search every provider before downloading.
+	res, _ := run(t, d, context.Background(), Request{
+		MediaType: "movies",
+		Items:     []media.Item{{Title: "Dune", Creator: "2021"}},
+		OutputDir: t.TempDir(),
+		Options:   media.Options{Country: "es"},
+	})
+	if res[0].Status != StatusOK || res[0].Source != "first" {
+		t.Fatalf("result = %+v", res[0])
+	}
+	if n := secondCalls.Load(); n != 0 {
+		t.Errorf("second provider searched %d times, want 0", n)
 	}
 }

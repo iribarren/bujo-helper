@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"cover-downloader/internal/catalog"
 	"cover-downloader/internal/media"
 	"cover-downloader/internal/settings"
 )
@@ -38,6 +39,16 @@ func testRegistry(t *testing.T) *media.Registry {
 		t.Fatal(err)
 	}
 	return reg
+}
+
+// testEnv runs with reg, an empty environment and no saved settings, so
+// tests never read the real settings file.
+func testEnv(reg *media.Registry) env {
+	return env{
+		getenv:       func(string) string { return "" },
+		loadSettings: func() (settings.Settings, error) { return settings.Settings{}, nil },
+		registry:     func(catalog.Keys) *media.Registry { return reg },
+	}
 }
 
 func TestRun(t *testing.T) {
@@ -78,7 +89,7 @@ func TestRun(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
-			code := run(context.Background(), tt.args, &stdout, &stderr, testRegistry(t))
+			code := run(context.Background(), tt.args, &stdout, &stderr, testEnv(testRegistry(t)))
 			if code != tt.wantCode {
 				t.Errorf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, tt.wantCode, &stdout, &stderr)
 			}
@@ -103,7 +114,7 @@ func TestRunCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	var stdout, stderr bytes.Buffer
-	code := run(ctx, []string{"-o", t.TempDir(), "Dune"}, &stdout, &stderr, testRegistry(t))
+	code := run(ctx, []string{"-o", t.TempDir(), "Dune"}, &stdout, &stderr, testEnv(testRegistry(t)))
 	if code != 1 {
 		t.Errorf("exit code = %d, want 1", code)
 	}
@@ -140,7 +151,7 @@ func TestRunCountry(t *testing.T) {
 		}
 		var stdout, stderr bytes.Buffer
 		args := append(append([]string{"-o", t.TempDir()}, tt.args...), "Dune")
-		run(context.Background(), args, &stdout, &stderr, reg)
+		run(context.Background(), args, &stdout, &stderr, testEnv(reg))
 		if got := <-p.got; got != tt.want {
 			t.Errorf("args %q: country = %q, want %q", tt.args, got, tt.want)
 		}
@@ -149,7 +160,7 @@ func TestRunCountry(t *testing.T) {
 
 func TestUsageShowsDefaultCountry(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, testRegistry(t))
+	run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, testEnv(testRegistry(t)))
 	if !strings.Contains(stderr.String(), "[-country es]") {
 		t.Errorf("usage does not show the es default:\n%s", &stderr)
 	}
@@ -193,5 +204,89 @@ func TestResolveTMDBKeySkipsTheFileWhenNotNeeded(t *testing.T) {
 	}
 	if got := resolveTMDBKey("flag-key", func(string) string { return "" }, load); got != "flag-key" {
 		t.Errorf("resolveTMDBKey = %q, want flag-key", got)
+	}
+}
+
+// keyProvider records the TMDB key it sees at search time.
+type keyProvider struct {
+	key func() string
+	got chan string
+}
+
+func (p keyProvider) Name() string { return "key" }
+
+func (p keyProvider) Search(context.Context, media.Item, media.Options) ([]media.Candidate, error) {
+	k := ""
+	if p.key != nil {
+		k = p.key()
+	}
+	p.got <- k
+	return nil, media.ErrNotFound
+}
+
+func TestRunPassesTheTMDBKey(t *testing.T) {
+	tests := []struct {
+		name     string
+		flag     string
+		envKey   string
+		fileKey  string
+		want     string
+		readFile bool
+	}{
+		{name: "flag", flag: "flag-key", envKey: "env-key", fileKey: "file-key", want: "flag-key"},
+		{name: "environment", envKey: "env-key", fileKey: "file-key", want: "env-key"},
+		{name: "settings file", fileKey: "file-key", want: "file-key", readFile: true},
+		{name: "none", want: "", readFile: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := make(chan string, 1)
+			fileRead := false
+			e := env{
+				getenv: func(name string) string {
+					if name == "TMDB_API_KEY" {
+						return tt.envKey
+					}
+					return ""
+				},
+				loadSettings: func() (settings.Settings, error) {
+					fileRead = true
+					return settings.Settings{TMDBAPIKey: tt.fileKey}, nil
+				},
+				registry: func(keys catalog.Keys) *media.Registry {
+					reg := media.NewRegistry()
+					if err := reg.Register(media.MediaType{ID: "movies", Providers: []media.Provider{keyProvider{keys.TMDB, got}}}); err != nil {
+						t.Fatal(err)
+					}
+					return reg
+				},
+			}
+			args := []string{"-type", "movies", "-o", t.TempDir()}
+			if tt.flag != "" {
+				args = append(args, "-tmdb-key", tt.flag)
+			}
+			var stdout, stderr bytes.Buffer
+			run(context.Background(), append(args, "Dune, 2021"), &stdout, &stderr, e)
+			if k := <-got; k != tt.want {
+				t.Errorf("key = %q, want %q", k, tt.want)
+			}
+			if fileRead != tt.readFile {
+				t.Errorf("settings file read = %v, want %v", fileRead, tt.readFile)
+			}
+		})
+	}
+}
+
+func TestUsageListsMovies(t *testing.T) {
+	e := testEnv(nil)
+	e.registry = func(keys catalog.Keys) *media.Registry { return catalog.Default(nil, keys) }
+	var stdout, stderr bytes.Buffer
+	if code := run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, e); code != 2 {
+		t.Fatalf("exit code = %d, want 2", code)
+	}
+	for _, want := range []string{"books, movies", `"Title, Year"`} {
+		if !strings.Contains(stderr.String(), want) {
+			t.Errorf("usage missing %q:\n%s", want, &stderr)
+		}
 	}
 }

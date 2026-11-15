@@ -4,25 +4,61 @@ import (
 	"net/http"
 	"reflect"
 	"testing"
+
+	"cover-downloader/internal/media"
+	"cover-downloader/internal/providers"
 )
 
-func TestDefault(t *testing.T) {
-	reg := Default(http.DefaultClient)
-	books, ok := reg.Get("books")
-	if !ok {
-		t.Fatal("books media type not registered")
-	}
-	if books.Label != "Books" || books.CreatorLabel != "Author" {
-		t.Errorf("books = %+v", books)
-	}
+func providerNames(t media.MediaType) []string {
 	var names []string
-	for _, p := range books.Providers {
+	for _, p := range t.Providers {
 		names = append(names, p.Name())
 	}
-	if want := []string{"apple", "openlibrary", "amazon"}; !reflect.DeepEqual(names, want) {
-		t.Errorf("providers = %q, want %q", names, want)
+	return names
+}
+
+func TestDefault(t *testing.T) {
+	reg := Default(http.DefaultClient, Keys{})
+
+	var ids []string
+	for _, mt := range reg.List() {
+		ids = append(ids, mt.ID)
 	}
-	if Default(nil) == nil {
+	if want := []string{"books", "movies"}; !reflect.DeepEqual(ids, want) {
+		t.Fatalf("media types = %q, want %q", ids, want)
+	}
+
+	books, _ := reg.Get("books")
+	if books.Label != "Books" || books.CreatorLabel != "Author" || !books.LocalEditions {
+		t.Errorf("books = %+v", books)
+	}
+	if want := []string{"apple", "openlibrary", "amazon"}; !reflect.DeepEqual(providerNames(books), want) {
+		t.Errorf("books providers = %q, want %q", providerNames(books), want)
+	}
+
+	movies, _ := reg.Get("movies")
+	if movies.Label != "Movies" || movies.CreatorLabel != "Year" || movies.LocalEditions {
+		t.Errorf("movies = %+v", movies)
+	}
+	if want := []string{"tmdb", "imdb", "wikidata-itunes"}; !reflect.DeepEqual(providerNames(movies), want) {
+		t.Errorf("movies providers = %q, want %q", providerNames(movies), want)
+	}
+
+	if Default(nil, Keys{}) == nil {
 		t.Error("Default(nil) should fall back to a default client")
+	}
+}
+
+func TestDefaultPassesTheTMDBKey(t *testing.T) {
+	key := "first"
+	reg := Default(http.DefaultClient, Keys{TMDB: func() string { return key }})
+	movies, _ := reg.Get("movies")
+	tmdb, ok := movies.Providers[0].(*providers.TMDB)
+	if !ok {
+		t.Fatalf("first movie provider is %T, want *providers.TMDB", movies.Providers[0])
+	}
+	key = "second"
+	if got := tmdb.Key(); got != "second" {
+		t.Errorf("TMDB key = %q, want it read live", got)
 	}
 }

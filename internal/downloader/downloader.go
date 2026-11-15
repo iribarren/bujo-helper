@@ -178,11 +178,12 @@ func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResul
 		return res
 	}
 
-	// Pass 1 tries only local editions (by ISBN prefix); pass 2 tries every
+	// Pass 1 tries only local editions (by ISBN prefix), for media types
+	// with LocalEditions; pass 2 tries every
 	// candidate in the providers' own order. Each provider is searched once.
 	s := &itemSearch{job: j, item: item, results: make([]searchResult, len(j.mt.Providers)), failed: map[string]error{}}
 	var passes []func(media.Candidate) bool
-	if len(j.loc.ISBNPrefixes) > 0 {
+	if j.mt.LocalEditions && len(j.loc.ISBNPrefixes) > 0 {
 		passes = append(passes, func(c media.Candidate) bool {
 			// Local editions can sit far down a provider's ranking, so only
 			// accept those that plausibly are the requested book.
