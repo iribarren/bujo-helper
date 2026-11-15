@@ -30,8 +30,9 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 - The GUI saves the TMDB key and keeps it across restarts, shows rate-limit waits, and prints posters on the existing sheet.
 
 ## Tasks
-- [ ] T1 `internal/web` throttle (Retry-After/backoff, shared host block, spacing, OnWait). Route: delegated writer. Check: `go test ./internal/web/`.
-- [ ] T2 `internal/settings` + App `GetSettings/SaveSettings` + CLI flag/env. Route: delegated writer. Check: `go test ./internal/settings/ ./cmd/... .`.
+- [x] T1 `internal/web` throttle (Retry-After/backoff, shared host block, spacing, OnWait). Route: delegated writer. Check: `go test ./internal/web/`.
+- [x] T2 `internal/settings` + App `GetSettings/SaveSettings` + CLI flag/env. Route: delegated writer. Check: `go test ./internal/settings/ ./cmd/... .`.
+- [ ] T1a S1 review follow-ups (settings fsync; throttle floor delay for a past/zero Retry-After + edge tests). Route: delegated writer. Check: `go test ./internal/web/ ./internal/settings/`.
 - [ ] T3 TMDB provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
 - [ ] T4 IMDb suggestion provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
 - [ ] T5 Wikidata→iTunes provider + fixtures. Route: delegated writer. Check: `go test ./internal/providers/`.
@@ -40,7 +41,12 @@ The user asked for movie posters "as smart as books": multiple sources, waiting 
 - [ ] T8 README + live end-to-end smoke test. Route: inline. Check: CLI live run, GUI print sheet.
 
 ## Progress / evidence
-- 2026-11-15: plan approved; branch created.
+- 2026-11-15: plan approved; branch created. Doc commit `d92a32a`: RDD low risk, approved and acknowledged.
+- T1 `697bba0` feat(web): shared throttle. Route: delegated writer (2+ non-trivial files). RED: retry/shared-block/spacing/ctx tests failed against a pass-through stub. Checks: `go test -race -count=3 ./internal/web/` ok; `go test -tags webkit2_41 ./...` ok (14 packages); `go vet` ok; `gofmt -l` clean.
+- T2 `9cecaa4` feat(settings): TMDB key in settings file + App Get/SaveSettings + CLI `-tmdb-key`/`TMDB_API_KEY`. Route: same writer, separate commit. RED: undefined Save/Load/resolveTMDBKey/loadSettings. Parent spot check: `go test ./internal/web/ ./internal/settings/ ./cmd/...` 44 passed.
+- S1 review (range d92a32a..9cecaa4, 1161 lines, medium): consent granted; lens review-reliability approved; acknowledged (authority burned). Advisory, non-blocking: (a) settings Save has no fsync before rename; (b) the throttle lacks tests for a past/zero Retry-After (it retries back-to-back), negative MaxRetries, and an unparseable Retry-After.
+- Deviations accepted: a request that can't be retried doesn't block its host after a 429; giving up (retries used up or Retry-After > 60s) doesn't block the host; the backoff cap is MaxWait (60s) and never reached with 3 retries.
+- Follow-ups: T1a (S2) adds fsync, a minimum delay for a past/zero Retry-After, and edge tests. T6 makes the CLI `run` tests hermetic: they currently read the real settings file through resolveTMDBKey.
 
 ## Next step
-T1.
+S2: T1a follow-up, T3 TMDB, T4 IMDb.
