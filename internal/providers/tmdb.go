@@ -63,10 +63,14 @@ func (p *TMDB) Search(ctx context.Context, item media.Item, opts media.Options) 
 	if key == "" {
 		return nil, ErrNoTMDBKey
 	}
+	title := strings.TrimSpace(item.Title)
+	if title == "" {
+		return nil, fmt.Errorf("%w: empty title", media.ErrNotFound)
+	}
 
 	cc := country(opts)
 	q := url.Values{
-		"query":         {strings.TrimSpace(item.Title)},
+		"query":         {title},
 		"include_adult": {"false"},
 		"language":      {tmdbLanguage(opts)},
 		"region":        {strings.ToUpper(cc)},
@@ -90,19 +94,29 @@ func (p *TMDB) Search(ctx context.Context, item media.Item, opts media.Options) 
 	if itemYear != "" {
 		q.Set("year", itemYear)
 	}
-	body, err := p.search(ctx, q, setHeaders)
+	body, err := p.search(ctx, q, setHeaders, key)
 	if err != nil {
 		return nil, err
 	}
-	if len(body.Results) == 0 && itemYear != "" {
-		// TMDB's year can be a year off (festival releases); the ranking
-		// still prefers the requested year.
+	hits := p.posterCandidates(body)
+	if len(hits) == 0 && itemYear != "" {
+		// TMDB's year can be a year off (festival releases), and a match in
+		// that year may lack a poster; the ranking still prefers the
+		// requested year.
 		q.Del("year")
-		if body, err = p.search(ctx, q, setHeaders); err != nil {
+		if body, err = p.search(ctx, q, setHeaders, key); err != nil {
 			return nil, err
 		}
+		hits = p.posterCandidates(body)
 	}
+	if len(hits) == 0 {
+		return nil, fmt.Errorf("%w: no results with a poster", media.ErrNotFound)
+	}
+	return rankCandidates(hits, item), nil
+}
 
+// posterCandidates converts the results that have a poster.
+func (p *TMDB) posterCandidates(body *tmdbResponse) []media.Candidate {
 	var hits []media.Candidate
 	for _, r := range body.Results {
 		if r.PosterPath == "" {
@@ -120,15 +134,14 @@ func (p *TMDB) Search(ctx context.Context, item media.Item, opts media.Options) 
 			Source: p.Name(),
 		})
 	}
-	if len(hits) == 0 {
-		return nil, fmt.Errorf("%w: no results with a poster", media.ErrNotFound)
-	}
-	return rankCandidates(hits, item), nil
+	return hits
 }
 
-func (p *TMDB) search(ctx context.Context, q url.Values, setHeaders func(*http.Request)) (*tmdbResponse, error) {
+func (p *TMDB) search(ctx context.Context, q url.Values, setHeaders func(*http.Request), key string) (*tmdbResponse, error) {
 	var body tmdbResponse
 	err := getJSONWith(ctx, p.Client, p.BaseURL+"/search/movie?"+q.Encode(), setHeaders, &body)
+	// A v3 key travels in the URL, and transport errors quote the URL.
+	err = redactKey(err, key)
 	var status *httpStatusError
 	if errors.As(err, &status) && status.Status == http.StatusUnauthorized {
 		return nil, errors.New("TMDB rejected the API key (HTTP 401)")
@@ -137,6 +150,39 @@ func (p *TMDB) search(ctx context.Context, q url.Values, setHeaders func(*http.R
 		return nil, err
 	}
 	return &body, nil
+}
+
+// redactedError is an error whose text had the API key replaced.
+type redactedError struct {
+	msg   string
+	cause error
+}
+
+func (e *redactedError) Error() string { return e.msg }
+func (e *redactedError) Unwrap() error { return e.cause }
+
+// redactKey replaces key in err's text with "REDACTED". The result unwraps
+// to the cause behind a *url.Error (which holds the URL), so errors.Is
+// still finds context.Canceled or a timeout without exposing the key.
+func redactKey(err error, key string) error {
+	if err == nil || key == "" {
+		return err
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, key) && !strings.Contains(msg, url.QueryEscape(key)) {
+		return err
+	}
+	cause := err
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		cause = urlErr.Err
+	}
+	if cause != nil && strings.Contains(cause.Error(), key) {
+		cause = nil
+	}
+	msg = strings.ReplaceAll(msg, key, "REDACTED")
+	msg = strings.ReplaceAll(msg, url.QueryEscape(key), "REDACTED")
+	return &redactedError{msg: msg, cause: cause}
 }
 
 // isTMDBToken reports whether key looks like a v4 read access token (a

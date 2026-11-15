@@ -342,3 +342,82 @@ func TestIMDbHTTPError(t *testing.T) {
 		t.Error("an HTTP error must not wrap ErrNotFound")
 	}
 }
+
+func TestTMDBBlankTitleIsNotFoundWithoutHTTP(t *testing.T) {
+	var rec recorder
+	srv := rec.serve(t, 200, "application/json", fixture(t, "tmdb_search.json"))
+	p := newTestTMDB(srv, testV3Key)
+
+	for _, title := range []string{"", "   "} {
+		_, err := p.Search(context.Background(), media.Item{Title: title, Creator: "2021"}, media.Options{})
+		if !errors.Is(err, media.ErrNotFound) {
+			t.Errorf("title %q: err = %v, want ErrNotFound", title, err)
+		}
+	}
+	if n := rec.calls.Load(); n != 0 {
+		t.Errorf("server calls = %d, want 0", n)
+	}
+}
+
+func TestTMDBRetriesWithoutYearWhenNoPosters(t *testing.T) {
+	var mu sync.Mutex
+	var queries []url.Values
+	body := fixture(t, "tmdb_search.json")
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		queries = append(queries, r.URL.Query())
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Has("year") {
+			w.Write([]byte(`{"page":1,"results":[{"title":"Dune","release_date":"2021-09-15","poster_path":null}],"total_pages":1,"total_results":1}`))
+			return
+		}
+		w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+	p := newTestTMDB(srv, testV3Key)
+
+	got, err := p.Search(context.Background(), media.Item{Title: "Dune", Creator: "2021"}, media.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(queries) != 2 || queries[0].Get("year") != "2021" || queries[1].Has("year") {
+		t.Fatalf("queries = %v, want one with year=2021 then one without", queries)
+	}
+	if len(got) == 0 || got[0].Year != "2021" || got[0].ImageURLs[0] != "https://img.example/t/p/original/d5NXSklXo0qyIYkgV94XAgMIckC.jpg" {
+		t.Errorf("first = %+v, want the 2021 poster from the yearless search", got)
+	}
+}
+
+func TestTMDBTransportErrorRedactsKey(t *testing.T) {
+	srv := httptest.NewServer(http.NotFoundHandler())
+	p := newTestTMDB(srv, "secret123")
+	srv.Close()
+
+	_, err := p.Search(context.Background(), media.Item{Title: "Dune", Creator: "2021"}, media.Options{})
+	if err == nil {
+		t.Fatal("want a transport error from a closed server")
+	}
+	if strings.Contains(err.Error(), "secret123") {
+		t.Errorf("error leaks the API key: %v", err)
+	}
+	if !strings.Contains(err.Error(), "REDACTED") {
+		t.Errorf("err = %v, want the key replaced by REDACTED", err)
+	}
+}
+
+func TestTMDBRedactedErrorKeepsContextErrors(t *testing.T) {
+	var rec recorder
+	srv := rec.serve(t, 200, "application/json", fixture(t, "tmdb_search.json"))
+	p := newTestTMDB(srv, "secret123")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := p.Search(ctx, media.Item{Title: "Dune"}, media.Options{})
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("err = %v, want context.Canceled", err)
+	}
+	if err != nil && strings.Contains(err.Error(), "secret123") {
+		t.Errorf("error leaks the API key: %v", err)
+	}
+}
