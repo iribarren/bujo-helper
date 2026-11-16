@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -21,6 +22,8 @@ import (
 	"cover-downloader/internal/media"
 	"cover-downloader/internal/providers"
 	"cover-downloader/internal/settings"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 var jpegBody = append([]byte("\xff\xd8\xff\xe0"), bytes.Repeat([]byte{0xAB}, 4096)...)
@@ -646,4 +649,149 @@ func TestWriteFileAtomicLongName(t *testing.T) {
 	if got, _ := os.ReadFile(path); string(got) != "ok" {
 		t.Errorf("file = %q, want ok", got)
 	}
+}
+
+// stubDialogs replaces the native dialogs for one test. A dialog whose stub
+// is nil fails the test if it opens.
+func stubDialogs(t *testing.T, save func(runtime.SaveDialogOptions) (string, error), message func(runtime.MessageDialogOptions) (string, error)) {
+	t.Helper()
+	oldSave, oldMessage := saveFileDialog, messageDialog
+	t.Cleanup(func() { saveFileDialog, messageDialog = oldSave, oldMessage })
+	saveFileDialog = func(_ context.Context, o runtime.SaveDialogOptions) (string, error) {
+		if save == nil {
+			t.Fatal("unexpected save dialog")
+		}
+		return save(o)
+	}
+	messageDialog = func(_ context.Context, o runtime.MessageDialogOptions) (string, error) {
+		if message == nil {
+			t.Fatalf("unexpected message dialog: %q", o.Message)
+		}
+		return message(o)
+	}
+}
+
+func TestWithExtensionWithoutPrompt(t *testing.T) {
+	stubDialogs(t, nil, nil) // none of these paths may ask anything
+	dir := t.TempDir()
+	tests := []struct {
+		name, path, ext, want string
+	}{
+		{"has the extension", "sample.csv", ".csv", "sample.csv"},
+		{"has the extension in upper case", "SAMPLE.CSV", ".csv", "SAMPLE.CSV"},
+		{"no extension and no file", "sample", ".csv", "sample.csv"},
+		{"another extension", "sample.txt", ".csv", "sample.txt.csv"},
+		{"pdf without extension", "covers", ".pdf", "covers.pdf"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewApp().withExtension(filepath.Join(dir, tt.path), tt.ext)
+			if err != nil {
+				t.Fatalf("withExtension: %v", err)
+			}
+			if want := filepath.Join(dir, tt.want); got != want {
+				t.Errorf("withExtension = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestWithExtensionAsksBeforeReplacing(t *testing.T) {
+	dir := t.TempDir()
+	existing := filepath.Join(dir, "sample.csv")
+	if err := os.WriteFile(existing, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dialogErr := errors.New("dialog failed")
+	tests := []struct {
+		name    string
+		answer  string
+		err     error
+		want    string
+		wantErr error
+	}{
+		{"replace", "Replace", nil, existing, nil},
+		{"cancel", "Cancel", nil, "", nil},
+		{"dialog error", "", dialogErr, "", dialogErr},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			asked := 0
+			stubDialogs(t, nil, func(runtime.MessageDialogOptions) (string, error) {
+				asked++
+				return tt.answer, tt.err
+			})
+			got, err := NewApp().withExtension(filepath.Join(dir, "sample"), ".csv")
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tt.wantErr)
+			}
+			if got != tt.want {
+				t.Errorf("withExtension = %q, want %q", got, tt.want)
+			}
+			if asked != 1 {
+				t.Errorf("asked %d times, want 1", asked)
+			}
+		})
+	}
+}
+
+func TestSaveSampleCSVDialogOutcomes(t *testing.T) {
+	a := NewApp()
+	id := a.registry.List()[0].ID
+	name, data, err := a.sampleCSV(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dialogErr := errors.New("dialog failed")
+
+	t.Run("cancelled", func(t *testing.T) {
+		stubDialogs(t, func(o runtime.SaveDialogOptions) (string, error) {
+			if o.DefaultFilename != name {
+				t.Errorf("DefaultFilename = %q, want %q", o.DefaultFilename, name)
+			}
+			return "", nil
+		}, nil)
+		if got, err := a.SaveSampleCSV(id); got != "" || err != nil {
+			t.Errorf("SaveSampleCSV = %q, %v; want \"\", nil", got, err)
+		}
+	})
+
+	t.Run("dialog error", func(t *testing.T) {
+		stubDialogs(t, func(runtime.SaveDialogOptions) (string, error) { return "", dialogErr }, nil)
+		if got, err := a.SaveSampleCSV(id); got != "" || !errors.Is(err, dialogErr) {
+			t.Errorf("SaveSampleCSV = %q, %v; want \"\", %v", got, err, dialogErr)
+		}
+	})
+
+	t.Run("replace declined", func(t *testing.T) {
+		dir := t.TempDir()
+		existing := filepath.Join(dir, "mine.csv")
+		if err := os.WriteFile(existing, []byte("old"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		stubDialogs(t,
+			func(runtime.SaveDialogOptions) (string, error) { return filepath.Join(dir, "mine"), nil },
+			func(runtime.MessageDialogOptions) (string, error) { return "Cancel", nil })
+		if got, err := a.SaveSampleCSV(id); got != "" || err != nil {
+			t.Errorf("SaveSampleCSV = %q, %v; want \"\", nil", got, err)
+		}
+		if b, _ := os.ReadFile(existing); string(b) != "old" {
+			t.Errorf("existing file = %q, want it unchanged", b)
+		}
+	})
+
+	t.Run("saved with added extension", func(t *testing.T) {
+		dir := t.TempDir()
+		stubDialogs(t, func(runtime.SaveDialogOptions) (string, error) { return filepath.Join(dir, "mine"), nil }, nil)
+		got, err := a.SaveSampleCSV(id)
+		if err != nil {
+			t.Fatalf("SaveSampleCSV: %v", err)
+		}
+		if want := filepath.Join(dir, "mine.csv"); got != want {
+			t.Errorf("SaveSampleCSV = %q, want %q", got, want)
+		}
+		if b, _ := os.ReadFile(got); !bytes.Equal(b, data) {
+			t.Errorf("saved %q, want the sample %q", b, data)
+		}
+	})
 }
