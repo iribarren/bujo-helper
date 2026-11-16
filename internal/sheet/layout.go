@@ -1,7 +1,8 @@
 // Package sheet lays out cover images on pages for printing and writes them
 // to a PDF, in one of several formats: a sheet of covers, review cards, book
-// spines, movie ticket stubs, a full page of covers under a header, or a
-// checklist of rows to tick, each with a thumbnail, title and creator.
+// spines, movie ticket stubs, a full page of covers under a header, a
+// checklist of rows to tick, each with a thumbnail, title and creator, or
+// polaroid frames with the title as a caption.
 //
 // On a cover sheet, covers have a fixed height chosen by a size preset (50 mm by default) and
 // keep their aspect ratio, in a centred grid derived from the cover height
@@ -122,6 +123,7 @@ const (
 	stubsFormat  = "stubs"
 	fullFormat   = "fullpage"
 	checkFormat  = "checklist"
+	polaFormat   = "polaroid"
 )
 
 // Formats lists the print formats, the default first.
@@ -132,6 +134,7 @@ var Formats = []Format{
 	{ID: stubsFormat, Label: "Ticket stubs", FileTag: "stubs", Noun: "stub", UsesSize: false},
 	{ID: fullFormat, Label: "Full page", FileTag: "fullpage", Noun: "cover", UsesHeader: true},
 	{ID: checkFormat, Label: "Checklist", FileTag: "checklist", Noun: "row", UsesHeader: true},
+	{ID: polaFormat, Label: "Polaroid", FileTag: "polaroid", Noun: "polaroid", UsesSize: true},
 }
 
 // FormatByID returns the format with the given ID; "" means DefaultFormat.
@@ -166,7 +169,8 @@ type Options struct {
 // Grid returns the grid the options describe: the cover grid of the size
 // preset for a cover sheet, the card grid for review cards, the stub grid
 // for ticket stubs, the spine grid of the size preset (its cover height)
-// for spines, for a full page the grid of a page of FullPageMax covers,
+// for spines, the polaroid frame grid of the size preset for polaroids,
+// for a full page the grid of a page of FullPageMax covers,
 // below a header band if there is a header, and for a checklist its rows,
 // below the header band if there is a header (so PerPage counts the rows
 // that fit with or without one). The cut mode never changes the grid, but
@@ -209,14 +213,17 @@ func (o Options) Grid() (Grid, error) {
 	if err != nil {
 		return Grid{}, err
 	}
-	if f.ID == spinesFormat {
+	switch f.ID {
+	case spinesFormat:
 		return NewSpineGrid(p.Page, s.CoverHeight)
+	case polaFormat:
+		return NewPolaroidGrid(p.Page, s.CoverHeight)
 	}
 	return NewGrid(p.Page, s.CoverHeight)
 }
 
-// PerPage is the number of covers, cards, spines, stubs or checklist rows on
-// a full page.
+// PerPage is the number of covers, cards, spines, stubs, checklist rows or
+// polaroids on a full page.
 func (o Options) PerPage() (int, error) {
 	g, err := o.Grid()
 	if err != nil {

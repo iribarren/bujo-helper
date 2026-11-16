@@ -36,8 +36,8 @@ const (
 
 // Build writes a PDF of the images at paths, in the format and on the grid
 // of opts, to w: a cover sheet, a review card per image, a book spine per
-// image, a ticket stub per image, full pages of covers under a header, or a
-// checklist row per image under a header.
+// image, a ticket stub per image, full pages of covers under a header, a
+// checklist row per image under a header, or a polaroid frame per image.
 // Images are downscaled to 300 dpi at their printed size and re-encoded as
 // JPEG to keep the file small. If any image cannot be read or opts are
 // invalid, Build returns an error (naming the file, if any) and writes
@@ -93,6 +93,8 @@ func build(paths []string, opts Options) (*fpdf.Fpdf, error) {
 		return buildFullPage(grid.Page, paths, ratios, opts.header())
 	case checkFormat:
 		return buildChecklist(grid, paths, ratios, opts.header())
+	case polaFormat:
+		return buildPolaroids(grid, paths, ratios)
 	default:
 		return buildCovers(grid, paths, ratios, cut)
 	}
