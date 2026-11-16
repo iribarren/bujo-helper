@@ -39,7 +39,7 @@ var (
 type Paper struct {
 	ID      string
 	Label   string
-	FileTag string // short, file-name-safe name, e.g. for "covers_A4.pdf"
+	FileTag string // short, file-name-safe name, e.g. for "covers_A4_Mini.pdf"
 	Page    Page
 }
 
@@ -70,6 +70,7 @@ func PaperByID(id string) (Paper, error) {
 type Size struct {
 	ID          string
 	Label       string
+	FileTag     string  // short, file-name-safe name, e.g. for "covers_A4_Mini.pdf"
 	CoverHeight float64 // mm
 }
 
@@ -78,9 +79,9 @@ const DefaultSize = "standard"
 
 // Sizes lists the cover size presets, smallest first.
 var Sizes = []Size{
-	{ID: "mini", Label: "Mini", CoverHeight: 25},
-	{ID: DefaultSize, Label: "Standard", CoverHeight: 50},
-	{ID: "large", Label: "Large", CoverHeight: 80},
+	{ID: "mini", Label: "Mini", FileTag: "Mini", CoverHeight: 25},
+	{ID: DefaultSize, Label: "Standard", FileTag: "Standard", CoverHeight: 50},
+	{ID: "large", Label: "Large", FileTag: "Large", CoverHeight: 80},
 }
 
 // SizeByID returns the preset with the given ID; "" means DefaultSize.

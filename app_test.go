@@ -881,23 +881,25 @@ func TestSaveSampleCSVDialogOutcomes(t *testing.T) {
 	})
 }
 
-func TestExportPDFSuggestsFileNameWithPaper(t *testing.T) {
+func TestExportPDFSuggestsFileNameWithPaperAndSize(t *testing.T) {
 	tests := []struct {
-		paper, want string
+		paper, size, want string
 	}{
-		{"", "covers_A4.pdf"},
-		{"a4", "covers_A4.pdf"},
-		{"letter", "covers_Letter.pdf"},
-		{"a5", "covers_A5.pdf"},
+		{"", "", "covers_A4_Standard.pdf"},
+		{"a4", "standard", "covers_A4_Standard.pdf"},
+		{"a4", "mini", "covers_A4_Mini.pdf"},
+		{"letter", "large", "covers_Letter_Large.pdf"},
+		{"a5", "mini", "covers_A5_Mini.pdf"},
 	}
 	for _, tt := range tests {
-		t.Run(tt.paper, func(t *testing.T) {
+		t.Run(tt.paper+"/"+tt.size, func(t *testing.T) {
 			var got string
 			stubDialogs(t, func(o runtime.SaveDialogOptions) (string, error) {
 				got = o.DefaultFilename
 				return "", nil // cancelled
 			}, nil)
-			if _, err := NewApp().ExportPDF([]string{"cover.jpg"}, "", sheet.Options{Paper: tt.paper}); err != nil {
+			opts := sheet.Options{Paper: tt.paper, Size: tt.size}
+			if _, err := NewApp().ExportPDF([]string{"cover.jpg"}, "", opts); err != nil {
 				t.Fatal(err)
 			}
 			if got != tt.want {
