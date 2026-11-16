@@ -108,6 +108,22 @@ describe('onLangChange', () => {
         setLang('en');
         expect(cb).toHaveBeenCalledTimes(1);
     });
+
+    it('keeps notifying the other listeners when one throws', () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const offBad = onLangChange(() => {
+            throw new Error('relabel failed');
+        });
+        const cb = vi.fn();
+        const off = onLangChange(cb);
+        expect(() => setLang('es')).not.toThrow();
+        expect(cb).toHaveBeenCalledWith('es');
+        expect(error).toHaveBeenCalled();
+        offBad();
+        off();
+        setLang('en');
+        error.mockRestore();
+    });
 });
 
 describe('applyDom', () => {

@@ -36,11 +36,18 @@ export function getLang(): Lang {
 }
 
 // setLang switches the language and, when it changed, notifies the
-// onLangChange listeners in the order they subscribed.
+// onLangChange listeners in the order they subscribed. A listener that
+// throws is logged and skipped, so the rest of the UI still relabels.
 export function setLang(lang: Lang): void {
     if (lang === current) return;
     current = lang;
-    for (const cb of [...listeners]) cb(lang);
+    for (const cb of [...listeners]) {
+        try {
+            cb(lang);
+        } catch (err) {
+            console.error('language change listener failed:', err);
+        }
+    }
 }
 
 // onLangChange calls cb after every language change; the returned function
