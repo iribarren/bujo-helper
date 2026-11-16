@@ -85,5 +85,7 @@ Album trackers are a natural extension. Album art is square, unlike books and po
   - 5 came from MusicBrainz + CAA at 1200 × 1200 (Kind of Blue 1200 × 1192): Rumours, Kind of Blue, Random Access Memories, El mal querer, Nevermind.
   - Abbey Road came from iTunes at 1500 × 1500. MusicBrainz answered `503 "server is currently busy"`; the throttle retried 3 times, then the item fell back to iTunes, as designed. CAA does have the Abbey Road front (checked by hand).
 
+- Manual GUI check passed (user, 2026-11-16). Merged to main and pushed.
+
 ## Next step
-User GUI check (`build/bin/cover-downloader` rebuilt at `39433c7`). Then the local `--no-ff` merge and push, if the user asks.
+Done.
