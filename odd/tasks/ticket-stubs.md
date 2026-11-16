@@ -50,5 +50,8 @@ Ticket stubs are a classic movie-tracker element.
 - Plan commit 08579b4: low risk, auto-approved, acknowledged.
 - Assess 08579b4..dd16e2d: medium, 835 lines, `review_due` (`slice_budget_reached`). Consent granted; reliability lens approved, acknowledged (authority burned). Advisory, not scheduled: R3-001 (SUGGESTION, `pdf_test.go:725-730`), R3-002 (SUGGESTION, `pdf_test.go:595`).
 
+- Whole-branch review main..0cadff7 (869 lines, medium): consent granted, reliability lens approved, acknowledged. Advisory, not scheduled: R3-001 (SUGGESTION, `stubs.go:120-129`), R3-002 (SUGGESTION, `pdf_test.go:728`).
+- Manual GUI check passed (user, 2026-11-16). Merged to main and pushed.
+
 ## Next step
-User GUI check (Format → Ticket stubs: Cover size disabled, Cut mode hidden, page count, export `stubs_A4.pdf`), native review, then local `--no-ff` merge per `single-pr`.
+Done.
