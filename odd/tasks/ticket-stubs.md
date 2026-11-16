@@ -27,7 +27,7 @@ Ticket stubs are a classic movie-tracker element.
 
 ## Tasks
 - [x] T1 sheet: `stubs` format, `NewStubGrid`, `layoutStub`, stub outline path with notches, perforation, PDF rendering; table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in internal/sheet).
-- [ ] T2 app + UI + docs: per-format per-page counts and `ExportPDF` name for stubs (check what is already generic), Print tab copy, README Print sheet "Ticket stubs" subsection and feature lists. Route: same delegated writer, separate commit.
+- [x] T2 app + UI + docs: per-format per-page counts and `ExportPDF` name for stubs (check what is already generic), Print tab copy, README Print sheet "Ticket stubs" subsection and feature lists. Route: same delegated writer, separate commit.
 
 ## Progress
 - Feature doc created; branch `feat/ticket-stubs` from `0307fdd`. RDD on (global).
@@ -40,5 +40,11 @@ Ticket stubs are a classic movie-tracker element.
   - Design notes: stub 90 × 40 mm, perforation 20 mm from the right edge, notch radius 2.5 mm (inside the 3 mm padding). Reuses the card padding, 2:3 cover area, `cardTextGap`, text sizes and stars. Vertical stack: title (2 lines) + creator at the top, stars on the bottom padding, "Date:" and "Where:" spread with three equal gaps (≈ 3.9 mm) between them; both rules start after the longer label. "ADMIT ONE" bold 8 pt, rotated +90° (reads bottom to top) about the centre of the stub end. Perforation dashes 1.0 / 0.8 mm, dash pattern reset right after. Outline: one closed path (`MoveTo`/`LineTo`/`ArcTo`/`ClosePath`/`DrawPath("D")`).
   - Visual check: A4 sample with 5 mixed-ratio images and long accented titles rendered with `pdftoppm -r 200`: notches, dashed perforation, rotated ADMIT ONE, five stars, all text inside the main part, "…" truncation.
 
+- T2 done in `31bb964` feat(ui): offer ticket stubs in the print sheet. Route: delegated writer. 5 files, +42 / −12.
+  - App and UI were already generic over `sheet.Formats` (`PrintFormats`, per-format per-page counts, `pdfFileName` from `FileTag`/`UsesSize`/`UsesCut`, Print tab size/cut toggles from `usesSize`/`usesCut`): no wiring code needed, no Go binding type changed, so no Wails bindings regenerated.
+  - Changes: `app_test.go` export names (`stubs_A4.pdf`, `stubs_Letter.pdf`, size/cut ignored → `stubs_A5.pdf`); `app.go` `pdfFileName` doc example; `frontend/src/print.ts` header comment; `frontend/index.html` Format tooltip; README feature line, Print sheet intro/format list/size step/file names, Cut mode note, new "Ticket stubs" subsection, `internal/sheet` package line. Per-page counts (12 / 12 / 4) were added to `TestPrintPapers` in T1.
+  - RED exception: the export-name cases pass on first run because `pdfFileName` is already generic; they pin behaviour (characterisation), not drive it.
+  - GREEN: `go test -tags webkit2_41 ./...` all ok; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` no errors; `wails build -tags webkit2_41` built. `wails build` set 0755 on `frontend/wailsjs/go/main/App.{d.ts,js}` and `models.ts` (content unchanged); modes reverted to 0644, `git diff --summary 08579b4..HEAD` shows no mode changes.
+
 ## Next step
-T1 + T2 via one delegated writer.
+User GUI check (Format → Ticket stubs: Cover size disabled, Cut mode hidden, page count, export `stubs_A4.pdf`), native review, then local `--no-ff` merge per `single-pr`.
