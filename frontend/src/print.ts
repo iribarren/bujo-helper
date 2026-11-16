@@ -1,7 +1,8 @@
 // The "Print sheet" tab: preview the covers in a folder, select some, pick
-// a cover size and export them to an A4 PDF (see internal/sheet).
+// a paper and a cover size and export them to a PDF on that paper (see
+// internal/sheet).
 
-import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintSizes} from '../wailsjs/go/main/App';
+import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
 
 export interface PrintDeps {
@@ -53,8 +54,11 @@ export function pageCount(covers: number, perPage: number): number {
     return Math.ceil(covers / perPage);
 }
 
-function sizeLabel(size: main.PrintSizeInfo): string {
-    return `${size.label} · ${size.coverHeight} mm (${size.perPage} per page)`;
+// sizeLabel names a cover size, with how many fit on paper once it is known.
+function sizeLabel(size: main.PrintSizeInfo, paper?: main.PrintPaperInfo): string {
+    const label = `${size.label} · ${size.coverHeight} mm`;
+    const perPage = paper?.perPage[size.id];
+    return perPage ? `${label} (${perPage} per page)` : label;
 }
 
 export function initPrint(deps: PrintDeps): PrintSheet {
@@ -71,6 +75,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         openPdf: byId<HTMLButtonElement>('open-pdf'),
         exportPdf: byId<HTMLButtonElement>('export-pdf'),
         size: byId<HTMLSelectElement>('print-size'),
+        paper: byId<HTMLSelectElement>('print-paper'),
     };
 
     // The folder picked with Browse…; empty means "follow the output folder".
@@ -85,6 +90,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     let lastPdf = '';
     // The cover size presets, from PrintSizes; empty until they load.
     let sizes: main.PrintSizeInfo[] = [];
+    // The paper size presets, from PrintPapers; empty until they load.
+    let papers: main.PrintPaperInfo[] = [];
 
     function currentDir(): string {
         return chosenDir || deps.outputFolder();
@@ -94,13 +101,27 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         return sizes.find((s) => s.id === ui.size.value);
     }
 
+    function currentPaper(): main.PrintPaperInfo | undefined {
+        return papers.find((p) => p.id === ui.paper.value);
+    }
+
+    // currentLayout is the chosen paper and size with how many covers fit on
+    // a page, or undefined until both have loaded.
+    function currentLayout() {
+        const size = currentSize();
+        const paper = currentPaper();
+        const perPage = size && paper ? paper.perPage[size.id] : undefined;
+        if (!size || !paper || !perPage) return undefined;
+        return {size, paper, perPage};
+    }
+
     function updateSelection() {
         const n = selected.size;
-        const size = currentSize();
-        ui.selection.textContent = size
-            ? `${n} selected · ${plural(pageCount(n, size.perPage), 'page')}`
+        const layout = currentLayout();
+        ui.selection.textContent = layout
+            ? `${n} selected · ${plural(pageCount(n, layout.perPage), 'page')}`
             : `${n} selected`;
-        ui.exportPdf.disabled = n === 0 || exporting || !size;
+        ui.exportPdf.disabled = n === 0 || exporting || !layout;
         ui.selectAll.disabled = covers.length === 0 || n === covers.length;
         ui.selectNone.disabled = n === 0;
     }
@@ -214,8 +235,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     async function exportPdf() {
         // Export in grid order, not in the order covers were clicked.
         const paths = covers.filter((c) => selected.has(c.path)).map((c) => c.path);
-        const size = currentSize();
-        if (paths.length === 0 || exporting || !size) return;
+        const layout = currentLayout();
+        if (paths.length === 0 || exporting || !layout) return;
         deps.hideError();
         const previous = {text: ui.status.textContent ?? '', title: ui.status.title, open: !ui.openPdf.hidden};
         exporting = true;
@@ -224,7 +245,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         ui.status.title = '';
         ui.openPdf.hidden = true;
         try {
-            const saved = await ExportPDF(paths, currentDir(), sheet.Options.createFrom({size: size.id}));
+            const saved = await ExportPDF(paths, currentDir(),
+                sheet.Options.createFrom({size: layout.size.id, paper: layout.paper.id}));
             if (saved === '') {
                 // Dialog cancelled: leave the last result as it was.
                 ui.status.textContent = previous.text;
@@ -234,7 +256,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             }
             lastPdf = saved;
             ui.status.textContent =
-                `Saved ${baseName(saved)}: ${plural(paths.length, 'cover')} on ${plural(pageCount(paths.length, size.perPage), 'page')}`;
+                `Saved ${baseName(saved)}: ${plural(paths.length, 'cover')} on ${plural(pageCount(paths.length, layout.perPage), 'page')}`;
             ui.status.title = saved;
             ui.openPdf.hidden = false;
         } catch (err) {
@@ -247,18 +269,41 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         }
     }
 
-    async function loadSizes() {
-        try {
-            sizes = (await PrintSizes()) ?? [];
+    // updateSizeLabels shows how many covers of each size fit on the paper.
+    function updateSizeLabels() {
+        const paper = currentPaper();
+        for (const option of Array.from(ui.size.options)) {
+            const size = sizes.find((s) => s.id === option.value);
+            if (size) option.textContent = sizeLabel(size, paper);
+        }
+    }
+
+    async function loadPresets() {
+        const [sizeList, paperList] = await Promise.allSettled([PrintSizes(), PrintPapers()]);
+        if (sizeList.status === 'fulfilled') {
+            sizes = sizeList.value ?? [];
             ui.size.replaceChildren(...sizes.map((size) => {
                 const option = el('option', '', sizeLabel(size));
                 option.value = size.id;
                 option.selected = size.default;
                 return option;
             }));
-        } catch (err) {
-            deps.showError(`Could not load cover sizes: ${errorText(err)}`);
+        } else {
+            deps.showError(`Could not load cover sizes: ${errorText(sizeList.reason)}`);
         }
+        if (paperList.status === 'fulfilled') {
+            papers = paperList.value ?? [];
+            ui.paper.replaceChildren(...papers.map((paper) => {
+                const option = el('option', '', paper.label);
+                option.value = paper.id;
+                option.title = `${paper.width} × ${paper.height} mm`;
+                option.selected = paper.default;
+                return option;
+            }));
+        } else {
+            deps.showError(`Could not load paper sizes: ${errorText(paperList.reason)}`);
+        }
+        updateSizeLabels();
         updateSelection();
     }
 
@@ -280,8 +325,12 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     ui.exportPdf.addEventListener('click', exportPdf);
     ui.openPdf.addEventListener('click', openPdf);
     ui.size.addEventListener('change', updateSelection);
+    ui.paper.addEventListener('change', () => {
+        updateSizeLabels();
+        updateSelection();
+    });
     updateSelection();
-    loadSizes();
+    loadPresets();
 
     return {
         activate: () => {

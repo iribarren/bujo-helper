@@ -3,7 +3,7 @@
 //
 // Covers have a fixed height chosen by a size preset (50 mm by default) and
 // keep their aspect ratio, in a centred grid derived from the cover height
-// and the page size. A cover too wide for its column is shrunk to the column
+// and the paper size (A4 by default). A cover too wide for its column is shrunk to the column
 // width. All sizes are in millimetres.
 package sheet
 
@@ -28,13 +28,49 @@ type Page struct {
 	Width, Height float64
 }
 
-// A4 is the paper size of every sheet.
-var A4 = Page{Width: 210, Height: 297}
+// Standard paper sizes.
+var (
+	A4     = Page{Width: 210, Height: 297}
+	Letter = Page{Width: 215.9, Height: 279.4} // US Letter, 8.5 × 11 in
+	A5     = Page{Width: 148, Height: 210}
+)
+
+// Paper is a paper size preset.
+type Paper struct {
+	ID      string
+	Label   string
+	FileTag string // short, file-name-safe name, e.g. for "covers_A4_Mini.pdf"
+	Page    Page
+}
+
+// DefaultPaper is the ID of the paper used when none is chosen.
+const DefaultPaper = "a4"
+
+// Papers lists the paper size presets, the default first.
+var Papers = []Paper{
+	{ID: DefaultPaper, Label: "A4", FileTag: "A4", Page: A4},
+	{ID: "letter", Label: "US Letter", FileTag: "Letter", Page: Letter},
+	{ID: "a5", Label: "A5", FileTag: "A5", Page: A5},
+}
+
+// PaperByID returns the paper with the given ID; "" means DefaultPaper.
+func PaperByID(id string) (Paper, error) {
+	if id == "" {
+		id = DefaultPaper
+	}
+	for _, p := range Papers {
+		if p.ID == id {
+			return p, nil
+		}
+	}
+	return Paper{}, fmt.Errorf("unknown paper size %q", id)
+}
 
 // Size is a cover size preset.
 type Size struct {
 	ID          string
 	Label       string
+	FileTag     string  // short, file-name-safe name, e.g. for "covers_A4_Mini.pdf"
 	CoverHeight float64 // mm
 }
 
@@ -43,9 +79,9 @@ const DefaultSize = "standard"
 
 // Sizes lists the cover size presets, smallest first.
 var Sizes = []Size{
-	{ID: "mini", Label: "Mini", CoverHeight: 25},
-	{ID: DefaultSize, Label: "Standard", CoverHeight: 50},
-	{ID: "large", Label: "Large", CoverHeight: 80},
+	{ID: "mini", Label: "Mini", FileTag: "Mini", CoverHeight: 25},
+	{ID: DefaultSize, Label: "Standard", FileTag: "Standard", CoverHeight: 50},
+	{ID: "large", Label: "Large", FileTag: "Large", CoverHeight: 80},
 }
 
 // SizeByID returns the preset with the given ID; "" means DefaultSize.
@@ -64,7 +100,8 @@ func SizeByID(id string) (Size, error) {
 // Options are the print settings of a sheet. The zero value gives the
 // default sheet: standard covers on A4.
 type Options struct {
-	Size string `json:"size"` // a Size ID; "" means DefaultSize
+	Size  string `json:"size"`  // a Size ID; "" means DefaultSize
+	Paper string `json:"paper"` // a Paper ID; "" means DefaultPaper
 }
 
 // Grid returns the grid the options describe.
@@ -73,7 +110,11 @@ func (o Options) Grid() (Grid, error) {
 	if err != nil {
 		return Grid{}, err
 	}
-	return NewGrid(A4, s.CoverHeight)
+	p, err := PaperByID(o.Paper)
+	if err != nil {
+		return Grid{}, err
+	}
+	return NewGrid(p.Page, s.CoverHeight)
 }
 
 // Grid is the cell layout of a page.

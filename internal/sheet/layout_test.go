@@ -2,6 +2,7 @@ package sheet
 
 import (
 	"math"
+	"strings"
 	"testing"
 )
 
@@ -298,5 +299,137 @@ func TestNewGridRejectsHeightsThatDoNotFit(t *testing.T) {
 	// The tallest cover that fits: the page height minus both margins.
 	if g, err := NewGrid(A4, 281); err != nil || g.PerPage() != 1 || g.MarginY < MinMargin-eps {
 		t.Errorf("NewGrid(A4, 281) = %+v, %v; want one cell within the margins", g, err)
+	}
+}
+
+func TestGridPapers(t *testing.T) {
+	tests := []struct {
+		paper, size string
+		page        Page
+		cols, rows  int
+		cellWidth   float64
+		marginY     float64
+	}{
+		// A4 keeps today's grids.
+		{"a4", "mini", A4, 9, 9, 18, 20},
+		{"a4", "standard", A4, 5, 5, 35.6, 15.5},
+		{"a4", "large", A4, 3, 3, 62, 24.5},
+		// Letter: usable 199.9 × 263.4.
+		// (199.9 - 8·4) / 9; (279.4 - 9·25 - 8·4) / 2 = 11.2.
+		{"letter", "mini", Letter, 9, 9, 167.9 / 9, 11.2},
+		// (199.9 - 4·4) / 5 = 36.78; (279.4 - 4·50 - 3·4) / 2 = 33.7.
+		{"letter", "standard", Letter, 5, 4, 36.78, 33.7},
+		// (199.9 - 2·4) / 3; (279.4 - 3·80 - 2·4) / 2 = 15.7.
+		{"letter", "large", Letter, 3, 3, 191.9 / 3, 15.7},
+		// A5: usable 132 × 194.
+		// (132 - 5·4) / 6; (210 - 6·25 - 5·4) / 2 = 20.
+		{"a5", "mini", A5, 6, 6, 112.0 / 6, 20},
+		// (132 - 2·4) / 3; (210 - 3·50 - 2·4) / 2 = 26.
+		{"a5", "standard", A5, 3, 3, 124.0 / 3, 26},
+		// (132 - 4) / 2 = 64; (210 - 2·80 - 4) / 2 = 23.
+		{"a5", "large", A5, 2, 2, 64, 23},
+	}
+	for _, tt := range tests {
+		g, err := Options{Paper: tt.paper, Size: tt.size}.Grid()
+		if err != nil {
+			t.Errorf("%s %s: %v", tt.paper, tt.size, err)
+			continue
+		}
+		if g.Page != tt.page || g.Columns != tt.cols || g.Rows != tt.rows ||
+			!near(g.CellWidth, tt.cellWidth) || !near(g.MarginX, MinMargin) || !near(g.MarginY, tt.marginY) {
+			t.Errorf("%s %s: grid %+v, want %v, %d x %d, cell %v, margins 8 / %v",
+				tt.paper, tt.size, g, tt.page, tt.cols, tt.rows, tt.cellWidth, tt.marginY)
+		}
+		// Full and centred: no room for another row or column, and covers
+		// stay inside the margins.
+		usableW, usableH := g.Page.Width-2*MinMargin, g.Page.Height-2*MinMargin
+		if more := (usableW - float64(g.Columns)*Gap) / float64(g.Columns+1); more >= g.CoverHeight*2/3 {
+			t.Errorf("%s %s: %d columns fit, grid has %d", tt.paper, tt.size, g.Columns+1, g.Columns)
+		}
+		if float64(g.Rows+1)*g.CoverHeight+float64(g.Rows)*Gap <= usableH {
+			t.Errorf("%s %s: %d rows fit, grid has %d", tt.paper, tt.size, g.Rows+1, g.Rows)
+		}
+		if g.MarginY < MinMargin-eps {
+			t.Errorf("%s %s: top margin %v below %v", tt.paper, tt.size, g.MarginY, MinMargin)
+		}
+	}
+}
+
+func TestGridDefaultPaperIsA4(t *testing.T) {
+	def, err := Options{}.Grid()
+	if err != nil {
+		t.Fatal(err)
+	}
+	a4, err := Options{Paper: "a4"}.Grid()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if def != a4 || def.Page != A4 {
+		t.Errorf("default grid %+v, want the A4 grid %+v", def, a4)
+	}
+}
+
+func TestPaperByID(t *testing.T) {
+	tests := []struct {
+		id   string
+		want Page
+	}{
+		{"", A4},
+		{"a4", A4},
+		{"letter", Page{Width: 215.9, Height: 279.4}},
+		{"a5", Page{Width: 148, Height: 210}},
+	}
+	for _, tt := range tests {
+		p, err := PaperByID(tt.id)
+		if err != nil || p.Page != tt.want {
+			t.Errorf("PaperByID(%q) = %+v, %v; want %v", tt.id, p, err, tt.want)
+		}
+	}
+	if _, err := PaperByID("a3"); err == nil {
+		t.Error(`PaperByID("a3"): want an error`)
+	}
+	if _, err := (Options{Paper: "a3"}).Grid(); err == nil || !strings.Contains(err.Error(), "a3") {
+		t.Errorf(`Options{Paper: "a3"}.Grid(): error %v, want one naming the paper`, err)
+	}
+}
+
+// Every paper and size gives a grid whose boxes stay on the page without
+// overlapping, so no cover is clipped.
+func TestLayoutEveryPaperBoxesInsidePage(t *testing.T) {
+	for _, p := range Papers {
+		for _, s := range Sizes {
+			g, err := Options{Paper: p.ID, Size: s.ID}.Grid()
+			if err != nil {
+				t.Fatalf("%s %s: %v", p.ID, s.ID, err)
+			}
+			ratios := make([]float64, g.PerPage())
+			for i := range ratios {
+				ratios[i] = []float64{2.0 / 3, 1, 0.5, 1.5}[i%4]
+			}
+			pages, err := g.Layout(ratios)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i, b := range pages[0] {
+				if b.X < MinMargin-eps || b.Y < MinMargin-eps ||
+					b.X+b.W > g.Page.Width-MinMargin+eps || b.Y+b.H > g.Page.Height-MinMargin+eps {
+					t.Errorf("%s %s: box %d %+v outside the margins", p.ID, s.ID, i, b)
+				}
+			}
+		}
+	}
+}
+
+func TestPresetsHaveFileSafeTags(t *testing.T) {
+	const safe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	for _, p := range Papers {
+		if p.FileTag == "" || strings.Trim(p.FileTag, safe) != "" {
+			t.Errorf("paper %q: file tag %q, want letters and digits only", p.ID, p.FileTag)
+		}
+	}
+	for _, s := range Sizes {
+		if s.FileTag == "" || strings.Trim(s.FileTag, safe) != "" {
+			t.Errorf("size %q: file tag %q, want letters and digits only", s.ID, s.FileTag)
+		}
 	}
 }

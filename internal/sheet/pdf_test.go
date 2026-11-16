@@ -194,3 +194,50 @@ func TestFitImageFlattensAlphaOnWhite(t *testing.T) {
 		t.Errorf("transparent pixel became %v %v %v %v, want opaque white", r, g, b, a)
 	}
 }
+
+func TestBuildPageFollowsThePaper(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "cover.jpg", 66, 100, color.RGBA{40, 200, 40, 255})
+	tests := []struct {
+		paper    string
+		covers   int
+		pages    int
+		mediaBox string
+	}{
+		{"", 25, 1, "/MediaBox [0 0 595.28 841.89]"},
+		{"a4", 26, 2, "/MediaBox [0 0 595.28 841.89]"},
+		{"letter", 20, 1, "/MediaBox [0 0 612.00 792.00]"},
+		{"letter", 21, 2, "/MediaBox [0 0 612.00 792.00]"},
+		{"a5", 9, 1, "/MediaBox [0 0 419.53 595.28]"},
+		{"a5", 10, 2, "/MediaBox [0 0 419.53 595.28]"},
+	}
+	for _, tt := range tests {
+		paths := make([]string, tt.covers)
+		for i := range paths {
+			paths[i] = cover
+		}
+		var out bytes.Buffer
+		if err := Build(&out, paths, Options{Paper: tt.paper}); err != nil {
+			t.Fatalf("%q: %v", tt.paper, err)
+		}
+		if n := len(pageObject.FindAll(out.Bytes(), -1)); n != tt.pages {
+			t.Errorf("%q, %d covers: PDF has %d pages, want %d", tt.paper, tt.covers, n, tt.pages)
+		}
+		if !bytes.Contains(out.Bytes(), []byte(tt.mediaBox)) {
+			t.Errorf("%q: PDF has no %s", tt.paper, tt.mediaBox)
+		}
+	}
+}
+
+func TestBuildRejectsUnknownPaper(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "cover.jpg", 66, 100, color.White)
+	var out bytes.Buffer
+	err := Build(&out, []string{cover}, Options{Paper: "a3"})
+	if err == nil || !strings.Contains(err.Error(), "a3") {
+		t.Errorf("error %v, want one naming the paper", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("wrote %d bytes, want none", out.Len())
+	}
+}
