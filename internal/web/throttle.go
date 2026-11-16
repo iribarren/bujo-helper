@@ -33,7 +33,11 @@ const drainLimit = 64 << 10
 // the past, and retries. The wait
 // blocks the host for every request through the same Throttle, so one
 // worker's 429 pauses all workers. Hosts in MinInterval are also spaced
-// out. Only bodiless GET and HEAD requests are retried.
+// out. Bodiless GET and HEAD requests are retried, and so are requests
+// whose body can be sent again (GetBody is set, as http.NewRequest does
+// for in-memory bodies): a rate-limited request was refused, not
+// processed. IGDB's searches are such POSTs. A request with a one-shot body
+// gets the rate-limit response back at once.
 //
 // Each attempt gets its own AttemptTimeout, which covers reading the body
 // too; use a Client with no Timeout, since that would also count the waits.
@@ -76,6 +80,8 @@ var DefaultThrottle = &Throttle{
 		"www.wikidata.org":   200 * time.Millisecond,
 		// MusicBrainz allows one request per second per client.
 		"musicbrainz.org": time.Second,
+		// IGDB allows four requests per second (and eight open ones).
+		"api.igdb.com": 250 * time.Millisecond,
 	},
 }
 
@@ -98,7 +104,11 @@ func (t *Throttle) RoundTrip(req *http.Request) (*http.Response, error) {
 		if err := t.wait(ctx, host, t.reserve(req.URL)); err != nil {
 			return nil, err
 		}
-		resp, err := t.attempt(req)
+		send, err := rewind(req, attempt)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := t.attempt(send)
 		if err != nil {
 			return nil, err
 		}
@@ -136,12 +146,32 @@ func rateLimited(resp *http.Response) bool {
 }
 
 // retryable reports whether req can be sent again: a GET or HEAD with no
-// body.
+// body, or any request whose body GetBody can recreate.
 func retryable(req *http.Request) bool {
-	if req.Method != http.MethodGet && req.Method != http.MethodHead && req.Method != "" {
-		return false
+	if !hasBody(req) {
+		return req.Method == http.MethodGet || req.Method == http.MethodHead || req.Method == ""
 	}
-	return req.Body == nil || req.Body == http.NoBody
+	return req.GetBody != nil
+}
+
+func hasBody(req *http.Request) bool {
+	return req.Body != nil && req.Body != http.NoBody
+}
+
+// rewind returns the request for the given attempt: req itself the first
+// time, then a copy with a fresh body from GetBody, since the transport
+// has consumed the previous one.
+func rewind(req *http.Request, attempt int) (*http.Request, error) {
+	if attempt == 0 || !hasBody(req) {
+		return req, nil
+	}
+	body, err := req.GetBody()
+	if err != nil {
+		return nil, err
+	}
+	r := req.Clone(req.Context())
+	r.Body = body
+	return r, nil
 }
 
 // reserve takes the next slot for the URL's host and returns how long to

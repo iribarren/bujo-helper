@@ -1,0 +1,42 @@
+{
+  "total": 4,
+  "items": [
+    {
+      "type": "app",
+      "name": "Hollow Knight: Silksong",
+      "id": 1030300,
+      "tiny_image": "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/1030300/capsule_231x87.jpg",
+      "metascore": "",
+      "platforms": {"windows": true, "mac": true, "linux": true},
+      "streamingvideo": false
+    },
+    {
+      "type": "sub",
+      "name": "Hollow Knight + Silksong",
+      "id": 1234567,
+      "tiny_image": "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/subs/1234567/capsule_231x87.jpg",
+      "metascore": "",
+      "platforms": {"windows": true, "mac": true, "linux": true},
+      "streamingvideo": false
+    },
+    {
+      "type": "app",
+      "name": "Hollow Knight",
+      "id": 367520,
+      "tiny_image": "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/367520/capsule_231x87.jpg",
+      "metascore": "87",
+      "platforms": {"windows": true, "mac": true, "linux": true},
+      "streamingvideo": false,
+      "controller_support": "full"
+    },
+    {
+      "type": "app",
+      "name": "Hollow Knight - Official Soundtrack",
+      "id": 663040,
+      "tiny_image": "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/663040/capsule_231x87.jpg",
+      "metascore": "",
+      "platforms": {"windows": true, "mac": true, "linux": true},
+      "streamingvideo": false
+    }
+  ]
+}

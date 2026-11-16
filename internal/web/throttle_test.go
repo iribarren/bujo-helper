@@ -231,12 +231,51 @@ func TestThrottleRetries(t *testing.T) {
 	}
 }
 
-func TestThrottleDoesNotRetryRequestsWithBody(t *testing.T) {
-	srv, hits := statusServer(t, reply{429, "1", "slow"})
+func TestThrottleRetriesReplayableBodies(t *testing.T) {
+	// IGDB searches are POSTs. A rate-limited request was refused, so a
+	// body the client can replay (GetBody) is sent again.
+	srv, hits := statusServer(t, reply{429, "1", "slow"}, reply{200, "", "ok"})
+	var bodies []string
+	var mu sync.Mutex
+	inner := srv.Config.Handler
+	srv.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		bodies = append(bodies, string(b))
+		mu.Unlock()
+		inner.ServeHTTP(w, r)
+	})
 	clock := newFakeClock()
 	client := &http.Client{Transport: newTestThrottle(clock, &waitRecorder{})}
 
 	resp, err := client.Post(srv.URL, "text/plain", strings.NewReader("payload"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 || readAll(t, resp) != "ok" {
+		t.Errorf("status = %d, want the retry's 200", resp.StatusCode)
+	}
+	if hits.Load() != 2 || !slices.Equal(clock.recorded(), []time.Duration{time.Second}) {
+		t.Errorf("hits=%d sleeps=%v, want two attempts and one 1s wait", hits.Load(), clock.recorded())
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if !slices.Equal(bodies, []string{"payload", "payload"}) {
+		t.Errorf("bodies = %q, want the payload sent twice", bodies)
+	}
+}
+
+func TestThrottleDoesNotRetryOneShotBodies(t *testing.T) {
+	srv, hits := statusServer(t, reply{429, "1", "slow"})
+	clock := newFakeClock()
+	client := &http.Client{Transport: newTestThrottle(clock, &waitRecorder{})}
+
+	// A plain io.Reader has no GetBody, so it cannot be sent again.
+	req, err := http.NewRequest(http.MethodPost, srv.URL, io.MultiReader(strings.NewReader("payload")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -466,6 +505,8 @@ func TestNewClientUsesTheSharedThrottle(t *testing.T) {
 		"www.wikidata.org":   200 * time.Millisecond,
 		// MusicBrainz allows at most one request per second.
 		"musicbrainz.org": time.Second,
+		// IGDB allows four requests per second.
+		"api.igdb.com": 250 * time.Millisecond,
 	} {
 		if got := DefaultThrottle.MinInterval[host]; got != want {
 			t.Errorf("DefaultThrottle.MinInterval[%q] = %v, want %v", host, got, want)
