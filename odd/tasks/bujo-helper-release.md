@@ -59,5 +59,9 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
 
 - Parent fix: a new `testmain_test.go` makes `TestMain` point `XDG_CONFIG_HOME`, `HOME` and `AppData` at a temp dir. Many root tests call the real `NewApp()`, which ran the settings migration against the user's real config folder. That earlier run migrated the real `cover-downloader` settings correctly: the TMDB key is present in `bujo-helper/settings.json`. `go test .` passes (127 tests).
 
+- Review of `14ed445..8b5be25` (T2b `9d765e8`, T3 `c35b688`, test isolation `8b5be25`): medium risk, 20 files, 1199 lines, `slice_budget_reached`. The user granted consent and the review-reliability lens ran (lineage `review-255286f4260373c5`). Result: **approved and acknowledged**. Advisory findings:
+  - R3 WARNING "PrintPages doesn't apply labels": not applicable. `PrintPages` only counts pages and draws no labels.
+  - R3 SUGGESTION: test label fit across several poster ratios, plus one long label that triggers truncation. Deferred as an optional follow-up.
+
 ## Next step
 T4 (frontend i18n). It must keep `language` when it saves settings and call `SetLanguage` at startup and whenever the language changes.
