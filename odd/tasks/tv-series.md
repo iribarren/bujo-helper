@@ -39,6 +39,7 @@ TV trackers are as common as movie trackers. TMDB covers TV, so the existing API
 
 - T3 (route: inline). Parent spot check `go test ./internal/providers/ ./internal/catalog/` 69 passed. Live keyless CLI (empty config, no `TMDB_API_KEY`): 5/5 OK via IMDb: Breaking Bad 2000x3000, Dark 1382x2048, The Office 1280x1922, Stranger Things 510x755, La casa de papel 1080x721 (landscape: IMDb's primary image for that title is a still, not a poster). `wails build -tags webkit2_41` ok (generated bindings mode-only change restored).
   - Known limit: the keyless IMDb fallback can return a landscape still or a small image; TMDB (with a key) gives posters. Landscape images print shrink-to-fit in the 2:3 cell until the Non-2:3 images convention lands (items 12/14).
+- Review (843acc7..312d7bb, 14 files, 623 lines, medium): consent granted; lens review-reliability approved; acknowledged (authority burned). Advisory only: no frontend test for the TMDB tip on `tv` (no frontend test runner; covered by the GUI check).
 
 ## Next step
 User: GUI check (TV series in the selector, tip, sample CSV, print sheet), live TMDB path with a key; then merge/push.
