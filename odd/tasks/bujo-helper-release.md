@@ -43,5 +43,13 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
 - T1: ROADMAP.md item 7 is `[-] WONT DO`, and the legend has been updated.
 - T2: module `bujo-helper`, imports, wails.json (`name`, `outputfilename`, `info`), window title and h1, User-Agent strings, release.yml asset names and README are renamed. Settings move to `<config>/bujo-helper/settings.json`. `settings.Migrate(legacy, path)` copies `cover-downloader/settings.json` once when the new file is missing; it never overwrites, keeps the legacy file and skips a missing, unreadable or invalid legacy file. The GUI (`NewApp`) and the CLI (`loadUserSettings`) run it. RED: `TestMigrate/copies_the_legacy_settings` (new file missing) and `TestPathIsUnderTheUserConfigDir` (old dir) failed against stubs; then GREEN. Checks: gofmt clean, `go vet` clean, `go test ./...` passes in all 14 packages, and `wails build -tags webkit2_41` builds `build/bin/bujo-helper` (wailsjs mode-only changes reverted).
 
+- T1 review assessment: passive (docs only, `non_executable_only`), so no review was needed.
+- T2 commit `9f6657d`. Review assessment: high risk (shell in release.yml), 39 files, 394 lines. The user granted consent and we ran a 4-lens review (lineage `review-baebdc535d24a222`). Result: **approved and acknowledged**. Advisory findings, none blocking:
+  - R4 WARNING and R3 SUGGESTION: a legacy settings file that is unreadable or invalid is skipped silently.
+  - R3 WARNING: the GUI migration wiring (`NewApp`) has no test. R3 SUGGESTION: the CLI wiring has no test either.
+  - R2 SUGGESTIONS: the migration wiring is duplicated in the CLI, `productVersion` is hardcoded in wails.json, and a test uses a sentinel directory.
+  - Follow-up T2b handles the two warnings.
+- [ ] T2b (follow-up from review): report a skipped legacy file instead of skipping it silently (`Migrate` returns a non-fatal error that callers log or warn about), and test the GUI and CLI migration wiring.
+
 ## Next step
-T3.
+T3 (with T2b in a separate commit).
