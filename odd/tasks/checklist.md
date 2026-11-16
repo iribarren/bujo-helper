@@ -25,11 +25,19 @@ To-be-read lists and watchlists are standard bujo collections.
 - Frontend: `npx tsc --noEmit` in `frontend/`; `wails build -tags webkit2_41` (revert 0755 modes it sets on `frontend/wailsjs/go/main/*` and `models.ts`).
 
 ## Tasks
-- [ ] T1 sheet: `checklist` format, row geometry, `buildChecklist`, pagination, table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in `internal/sheet`).
+- [x] T1 sheet: `checklist` format, row geometry, `buildChecklist`, pagination, table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in `internal/sheet`).
 - [ ] T2 app + UI + docs: app tests (formats list, export name), any Print tab tweak, README. Route: same delegated writer, separate commit.
 
 ## Progress
 - Feature doc created; branch `feat/checklist` from `2629b90`. RDD on (global).
 
+- T1 done in `132cf23` feat(sheet): add checklist print format. Route: delegated writer (writer trigger: several non-trivial files in `internal/sheet`). 7 files, +677 / −38 (≈ 715 authored lines, ≈ 58 % tests: `checklist_test.go` +388, `format_test.go` +9, `app_test.go` +19/−15). Over the ~400-line heuristic because row geometry, text fitting and PDF pagination each need table-driven coverage; no artificial split.
+  - Files: `internal/sheet/checklist.go` (constants, `NewChecklistGrid`, `checklistRow`, `layoutChecklistRow`, `fitChecklistText`, `buildChecklist`, `drawChecklistRow`), `layout.go` (`checkFormat`, Formats entry, `Grid.Flush`, `gap()` 0 when flush, `Options.Grid` case, docs), `fullpage.go` (header drawing extracted into `pdfMeasure`, `fitHeader`, `drawHeader`, shared with the checklist; full-page output unchanged), `pdf.go` (build switch, `Build` doc), `format_test.go` (checklist uses-header row, per-page counts), `app_test.go` (`TestPrintFormats` / `TestPrintPapers` gain the checklist entry to keep the commit green).
+  - RED: `go test -tags webkit2_41 ./internal/sheet/` → build failed: `undefined: NewChecklistGrid`, `undefined: ChecklistRowHeight`, `undefined: layoutChecklistRow` …
+  - GREEN: `go test -tags webkit2_41 ./...` → 538 passed in 14 packages; `go vet` clean; `gofmt -l .` empty.
+  - Defaults unchanged: page streams of covers, cards, spines, stubs and full page for every format × paper × size × cut × header ("" / "Books of 2026") — 768 option combinations, 33 mixed covers, uncompressed, fixed dates, via a `go test -overlay` scratch file outside the repo — are byte-identical before and after.
+  - Design notes: `ChecklistRowHeight` 16 mm (rule included), `ChecklistBoxSize` 5 mm (0.3 mm #555 outline), 1.5 mm padding → 13 mm tall 2:3 thumbnail box, 3 mm gaps; title bold 10 pt `titleGrey`, creator 8.5 pt `textGrey`, each one line cut with "…" via `fitLines`; empty creator → title centred alone; 0.2 mm `writingGrey` rule along each row's bottom edge; no cut borders. Rows start at the top margin, or right below the 12 mm `FullPageHeaderHeight` band (same band box and drawing as full page). Rows per page = floor((page height − 2 × `MinMargin` − band) / 16): A4 17 / 16 with header, Letter 16 / 15, A5 12 / 11. `Options.Grid()` returns the real row grid for the header presence in `Options.Header` (unlike full page, whose count does not depend on the header), so `Options.PerPage()` is exact; `Grid.Flush` makes rows touch so `Grid.Cells` paginates them. Image centred in its thumbnail box (shrink-to-fit rule as in `Grid.place`). Fonts always embedded (titles).
+  - Visual check (`pdftoppm -r 100`): A4 20 mixed covers + "TBR 2026" → 16 rows then 4, header repeated; A5 long accented header shrunk, long titles cut with "…" inside the right margin; square, wide and narrow images inside their thumbnail boxes.
+
 ## Next step
-T1.
+T2.
