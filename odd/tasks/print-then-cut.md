@@ -26,12 +26,18 @@ Users print onto sticker paper and cut with a Cricut or Silhouette, or cut by ha
 - Frontend: `npx tsc --noEmit` in `frontend/`; `wails build -tags webkit2_41`.
 
 ## Tasks
-- [ ] T1 sheet: cut modes, bleed geometry, crop marks, edge-extended bleed images, PDF rendering per mode; tests. Route: delegated writer (writer trigger: several non-trivial files in internal/sheet).
-- [ ] T2 app + UI + docs: cut modes binding, Cut mode select (shown only for formats with `UsesCut`), PDF name tag, README Print sheet "Cut mode" subsection with the print-then-cut note. Route: same delegated writer, separate commit.
+- [x] T1 sheet: cut modes, bleed geometry, crop marks, edge-extended bleed images, PDF rendering per mode; tests. Route: delegated writer (writer trigger: several non-trivial files in internal/sheet). Commit `a740646` — 7 files, +691/−47 (cut.go 118, cut_test.go 287, pdf_test.go +187).
+- [x] T2 app + UI + docs: cut modes binding, Cut mode select (shown only for formats with `UsesCut`), PDF name tag, README Print sheet "Cut mode" subsection with the print-then-cut note. Route: same delegated writer, separate commit. Commit `b569f0f` — 8 files, +140/−16.
 
 ## Progress
 - Feature doc created; branch `feat/print-then-cut`.
 - Research (2026-11-16): Silhouette Type 1 default inset ≈ 0.625 in (≈ 16 mm) per third-party blogs, wider than the 8 mm margin; Cricut adds its own corner marks on "Make It". Registration marks dropped.
 
+- T1 (2026-11-16): RED = `go test ./internal/sheet` build failure (undefined `DefaultCut`, `CutModes`, `CutModeByID`, `Line`). GREEN = all sheet tests pass. Baseline: SHA-256 of the uncompressed default cover-page stream (A4 Standard, Letter Mini, A5 Large; 3 mixed-ratio covers) taken before the change and identical after it; `TestBuildBorderCutKeepsTodaysCoverSheet` pins today's stream for "" and "border".
+- T1 design note: in Bleed mode each image is also clipped to its bleed box (`ClipRect`), so a low-resolution image whose whole-pixel padding exceeds 1 mm still stops exactly at the bleed. Unknown cut IDs are rejected by `Options.Grid()` for every format (and so by `Build` and `ExportPDF` before the dialog).
+- T2 (2026-11-16): RED = `go test .` build failure (unknown field `UsesCut`, undefined `PrintCutModes`/`PrintCutModeInfo`). GREEN = all app tests pass. Bindings regenerated with `wails generate module -tags webkit2_41`; it and `wails build` set 0755 on frontend/wailsjs files, reverted to 0644 (runtime/ files restored). The Cut mode field is hidden (not disabled) when the format does not use it.
+- Checks after T2: `go test -tags webkit2_41 ./...` ok; `go vet -tags webkit2_41 ./...` no issues; `gofmt -l .` empty; `npx tsc --noEmit` no errors; `wails build -tags webkit2_41` built; `git diff --summary HEAD~2` no mode changes.
+- Pending: GUI check by the user (single-pr strategy), native review per RDD.
+
 ## Next step
-T1.
+User GUI check of the Cut mode select and a Bleed PDF (print at 100 %), then review and local `--no-ff` merge.
