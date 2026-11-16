@@ -277,14 +277,14 @@ func TestRunPassesTheTMDBKey(t *testing.T) {
 	}
 }
 
-func TestUsageListsMovies(t *testing.T) {
+func TestUsageListsMediaTypes(t *testing.T) {
 	e := testEnv(nil)
 	e.registry = func(keys catalog.Keys) *media.Registry { return catalog.Default(nil, keys) }
 	var stdout, stderr bytes.Buffer
 	if code := run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, e); code != 2 {
 		t.Fatalf("exit code = %d, want 2", code)
 	}
-	for _, want := range []string{"books, movies", `"Title, Year"`} {
+	for _, want := range []string{"books, movies, tv", "books|movies|tv", `movie and TV items are "Title, Year"`} {
 		if !strings.Contains(stderr.String(), want) {
 			t.Errorf("usage missing %q:\n%s", want, &stderr)
 		}
