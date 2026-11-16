@@ -16,6 +16,7 @@ func TestFormatByID(t *testing.T) {
 		{"", "covers", true},
 		{"covers", "covers", true},
 		{"cards", "cards", false},
+		{"spines", "spines", true},
 	}
 	for _, tt := range tests {
 		f, err := FormatByID(tt.id)
@@ -38,8 +39,8 @@ func TestFormatsHaveLabelsAndFileSafeTags(t *testing.T) {
 	const safe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	seen := map[string]bool{}
 	for _, f := range Formats {
-		if f.ID == "" || f.Label == "" || seen[f.ID] {
-			t.Errorf("format %+v: want a unique ID and a label", f)
+		if f.ID == "" || f.Label == "" || f.Noun == "" || seen[f.ID] {
+			t.Errorf("format %+v: want a unique ID, a label and a noun", f)
 		}
 		seen[f.ID] = true
 		if f.FileTag == "" || strings.Trim(f.FileTag, safe) != "" {
@@ -84,6 +85,10 @@ func TestOptionsPerPage(t *testing.T) {
 		// The cover size does not apply to cards.
 		{Options{Format: "cards", Size: "mini"}, 8},
 		{Options{Format: "cards", Size: "large", Paper: "a5"}, 3},
+		// Spines follow the cover size.
+		{Options{Format: "spines"}, 80},
+		{Options{Format: "spines", Size: "mini"}, 144},
+		{Options{Format: "spines", Size: "large", Paper: "a5"}, 22},
 	}
 	for _, tt := range tests {
 		got, err := tt.opts.PerPage()

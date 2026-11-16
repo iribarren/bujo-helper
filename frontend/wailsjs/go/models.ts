@@ -57,6 +57,7 @@ export namespace main {
 	export class PrintFormatInfo {
 	    id: string;
 	    label: string;
+	    noun: string;
 	    usesSize: boolean;
 	    default: boolean;
 	
@@ -68,6 +69,7 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.label = source["label"];
+	        this.noun = source["noun"];
 	        this.usesSize = source["usesSize"];
 	        this.default = source["default"];
 	    }
@@ -78,8 +80,7 @@ export namespace main {
 	    width: number;
 	    height: number;
 	    default: boolean;
-	    perPage: Record<string, number>;
-	    formatPerPage: Record<string, number>;
+	    perPage: Record<string, any>;
 	
 	    static createFrom(source: any = {}) {
 	        return new PrintPaperInfo(source);
@@ -93,7 +94,6 @@ export namespace main {
 	        this.height = source["height"];
 	        this.default = source["default"];
 	        this.perPage = source["perPage"];
-	        this.formatPerPage = source["formatPerPage"];
 	    }
 	}
 	export class PrintSizeInfo {

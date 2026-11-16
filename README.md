@@ -16,7 +16,7 @@ Book covers and movie posters are supported. The core is media-agnostic, so musi
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
-- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), or as review cards with a date, stars and lines to fill in. See [Print sheet](#print-sheet).
+- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), as review cards with a date, stars and lines to fill in, or as book spines for a bookshelf tracker. See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
@@ -127,14 +127,14 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 
 ## Print sheet
 
-The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, or [review cards](#review-cards).
+The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, [review cards](#review-cards) or [spines](#spines).
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
-2. Pick a **Format**: **Cover sheet** (the default) or **Review cards**. For review cards, pick what they are **Cards for** (Books or Movies); it follows the Download tab's media type until you change it here.
-3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers fit on that paper.
-4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet only, so it is disabled for review cards.
+2. Pick a **Format**: **Cover sheet** (the default), **Review cards** or **Spines**. For review cards, pick what they are **Cards for** (Books or Movies); it follows the Download tab's media type until you change it here.
+3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines) fit on that paper.
+4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet and spines, so it is disabled for review cards.
 5. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size.
-6. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper and cover size, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf` or, for review cards, `cards_A4.pdf`), then **Open PDF** to view it.
+6. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper and cover size, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `spines_A4_Standard.pdf` or, for review cards, `cards_A4.pdf`), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 
@@ -188,6 +188,33 @@ Cards are centred on the page with 4 mm gaps and a grey cut border, at a fixed s
 
 - **File names:** the title and creator are split at the last ` - `; a name without one is a title only. A duplicate's suffix is dropped (`Dune - Frank Herbert-2.jpg` reads as "Dune" by "Frank Herbert").
 - **Caveat:** a title without a creator that ends in `-2`, `-3`… is read as a duplicate suffix, so `Catch-22.jpg` prints as "Catch". Add the creator (`Catch-22 - Joseph Heller.jpg`) to keep it.
+
+### Spines
+
+The **Spines** format prints one book spine per selected cover, to cut out and stick on a drawn bookshelf:
+
+| Part     | Content                                                                                          |
+|----------|--------------------------------------------------------------------------------------------------|
+| Strip    | filled with the cover's dominant colour, with a grey cut border                                  |
+| Title    | bold, from the file name `Title - Creator.jpg`, read top to bottom                               |
+| Creator  | smaller, on a second line beside the title                                                       |
+| Text     | black or white, whichever contrasts more with the strip (WCAG contrast ratio)                    |
+
+- **Height:** the **Cover size** (Mini 25, Standard 50, Large 80 mm).
+- **Width:** 8 to 12 mm, in a fixed repeating pattern (10, 12, 9, 11, 8, 12, 10, 9, 11, 10 mm) for a natural shelf look, so every full row holds the same number of spines.
+- **Spacing:** 2 mm between spines, 4 mm between rows, at least 8 mm margins; rows are centred on the page.
+- **Long titles** shrink (down to 5 pt), then end with "…"; text never leaves its strip.
+- **Dominant colour:** the colour of the largest area of similar pixels; transparent areas count as white.
+
+Spines per page (spines per row × rows):
+
+| Paper     | Mini (25 mm)   | **Standard** (50 mm) | Large (80 mm) |
+|-----------|----------------|----------------------|---------------|
+| **A4**    | 16 × 9 = 144   | 16 × 5 = 80          | 16 × 3 = 48   |
+| US Letter | 16 × 9 = 144   | 16 × 4 = 64          | 16 × 3 = 48   |
+| A5        | 11 × 6 = 66    | 11 × 3 = 33          | 11 × 2 = 22   |
+
+The suggested file name is `spines_<paper>_<size>.pdf`, for example `spines_A4_Standard.pdf`.
 
 ## Using the command line
 
@@ -288,7 +315,7 @@ internal/
   web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
   settings/            user settings file (TMDB API key)
   gallery/             print sheet: folder listing and thumbnails for the UI
-  sheet/               print sheet: A4 layout and PDF export
+  sheet/               print sheet: layouts (covers, review cards, spines) and PDF export
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
 legacy/                the original Python script
 ```

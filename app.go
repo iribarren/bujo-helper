@@ -494,6 +494,7 @@ func (a *App) ListCovers(dir string) ([]CoverView, error) {
 type PrintFormatInfo struct {
 	ID       string `json:"id"`
 	Label    string `json:"label"`
+	Noun     string `json:"noun"`     // what one printed item is called, e.g. "card"
 	UsesSize bool   `json:"usesSize"` // whether the cover size preset applies
 	Default  bool   `json:"default"`
 }
@@ -505,6 +506,7 @@ func (a *App) PrintFormats() []PrintFormatInfo {
 		out = append(out, PrintFormatInfo{
 			ID:       f.ID,
 			Label:    f.Label,
+			Noun:     f.Noun,
 			UsesSize: f.UsesSize,
 			Default:  f.ID == sheet.DefaultFormat,
 		})
@@ -520,7 +522,7 @@ type PrintSizeInfo struct {
 	Default     bool    `json:"default"`
 }
 
-// PrintSizes lists the cover size presets, smallest first. How many covers
+// PrintSizes lists the cover size presets, smallest first. How many items
 // fit on a page depends on the paper too; PrintPapers has those counts.
 func (a *App) PrintSizes() []PrintSizeInfo {
 	out := make([]PrintSizeInfo, 0, len(sheet.Sizes))
@@ -537,54 +539,52 @@ func (a *App) PrintSizes() []PrintSizeInfo {
 
 // PrintPaperInfo describes a paper size preset for the Print sheet tab.
 type PrintPaperInfo struct {
-	ID      string         `json:"id"`
-	Label   string         `json:"label"`
-	Width   float64        `json:"width"`  // mm
-	Height  float64        `json:"height"` // mm
-	Default bool           `json:"default"`
-	PerPage map[string]int `json:"perPage"` // covers on a full page, by size ID
-	// FormatPerPage is what fits on a full page for each format that does
-	// not use a cover size, by format ID, e.g. 8 review cards on A4.
-	FormatPerPage map[string]int `json:"formatPerPage"`
+	ID      string  `json:"id"`
+	Label   string  `json:"label"`
+	Width   float64 `json:"width"`  // mm
+	Height  float64 `json:"height"` // mm
+	Default bool    `json:"default"`
+	// PerPage is what fits on a full page, by format ID, then size ID; a
+	// format that does not use a cover size has one count, under "". For
+	// example 25 standard covers, or 8 review cards, on A4.
+	PerPage map[string]map[string]int `json:"perPage"`
 }
 
 // PrintPapers lists the paper size presets, the default first, with how many
-// covers of each size, or items of each sizeless format, fit on a page, so
-// the UI can count pages without its own copy of the layout rules.
+// items of each format (and size, if it uses one) fit on a page, so the UI
+// can count pages without its own copy of the layout rules.
 func (a *App) PrintPapers() []PrintPaperInfo {
 	out := make([]PrintPaperInfo, 0, len(sheet.Papers))
 	for _, p := range sheet.Papers {
-		perPage := make(map[string]int, len(sheet.Sizes))
-		for _, s := range sheet.Sizes {
-			g, err := sheet.Options{Size: s.ID, Paper: p.ID}.Grid()
-			if err != nil {
-				// Every preset fits every paper; sheet tests guard this.
-				log.Printf("print size %s on %s: %v", s.ID, p.ID, err)
-				continue
-			}
-			perPage[s.ID] = g.PerPage()
-		}
-		formatPerPage := map[string]int{}
+		perPage := make(map[string]map[string]int, len(sheet.Formats))
 		for _, f := range sheet.Formats {
+			sizes := []string{""}
 			if f.UsesSize {
-				continue
+				sizes = make([]string, 0, len(sheet.Sizes))
+				for _, s := range sheet.Sizes {
+					sizes = append(sizes, s.ID)
+				}
 			}
-			n, err := sheet.Options{Format: f.ID, Paper: p.ID}.PerPage()
-			if err != nil {
-				// Every format fits every paper; sheet tests guard this.
-				log.Printf("print format %s on %s: %v", f.ID, p.ID, err)
-				continue
+			counts := make(map[string]int, len(sizes))
+			for _, size := range sizes {
+				n, err := sheet.Options{Format: f.ID, Size: size, Paper: p.ID}.PerPage()
+				if err != nil {
+					// Every format and size fits every paper; sheet tests
+					// guard this.
+					log.Printf("print format %s, size %q on %s: %v", f.ID, size, p.ID, err)
+					continue
+				}
+				counts[size] = n
 			}
-			formatPerPage[f.ID] = n
+			perPage[f.ID] = counts
 		}
 		out = append(out, PrintPaperInfo{
-			ID:            p.ID,
-			Label:         p.Label,
-			Width:         p.Page.Width,
-			Height:        p.Page.Height,
-			Default:       p.ID == sheet.DefaultPaper,
-			PerPage:       perPage,
-			FormatPerPage: formatPerPage,
+			ID:      p.ID,
+			Label:   p.Label,
+			Width:   p.Page.Width,
+			Height:  p.Page.Height,
+			Default: p.ID == sheet.DefaultPaper,
+			PerPage: perPage,
 		})
 	}
 	return out
@@ -630,7 +630,7 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 }
 
 // pdfFileName is the default name of the PDF opts describe, e.g.
-// "covers_A4_Standard.pdf" or "cards_A4.pdf". The format, paper and, when the
+// "covers_A4_Standard.pdf", "cards_A4.pdf" or "spines_A4_Mini.pdf". The format, paper and, when the
 // format uses it, size tell sheets with other settings apart.
 func pdfFileName(opts sheet.Options) (string, error) {
 	format, err := sheet.FormatByID(opts.Format)
