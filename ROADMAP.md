@@ -47,7 +47,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 
 **Out of scope:** a free-form size input.
 
-## 2. [ ] Paper sizes: A4, US Letter, A5
+## 2. [x] Paper sizes: A4, US Letter, A5 (313c0cf)
 
 **Why:** US users print on Letter, and many bullet journals are A5, so people want sheets that match the journal page.
 

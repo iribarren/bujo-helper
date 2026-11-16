@@ -46,6 +46,7 @@ US users print on Letter, and many bullet journals are A5, so people want sheets
 - Review of main..8b16ae6 (docs-only delta, started by the stop hook): consent granted, approved, acknowledged.
 - User reported the file name did not change: `build/bin/cover-downloader` was built 09:33, before e79e5c3 (10:03), so the app tried was stale. User also asked to add the cover size.
 - T3a `72b2162` feat(ui): `sheet.Size.FileTag`; name is `covers_<paper>_<size>.pdf`. RED: `DefaultFilename = "covers_A5.pdf"`, want `covers_A5_Mini.pdf` (+ build failure on `FileTag`). GREEN: `go test -tags webkit2_41 ./...` 276 passed; vet, gofmt clean. Rebuilt `wails build -tags webkit2_41` (binary 10:19); no binding mode changes.
+- Manual GUI check of the file name passed (user, rebuilt binary). Merged in `313c0cf`; ROADMAP item 2 marked done.
 
 ## Next step
-User: GUI check of the file name with the rebuilt binary, then merge/push and mark ROADMAP item 2 done.
+Done: merged to main in 313c0cf and pushed.
