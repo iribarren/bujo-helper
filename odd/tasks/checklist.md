@@ -26,7 +26,7 @@ To-be-read lists and watchlists are standard bujo collections.
 
 ## Tasks
 - [x] T1 sheet: `checklist` format, row geometry, `buildChecklist`, pagination, table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in `internal/sheet`).
-- [ ] T2 app + UI + docs: app tests (formats list, export name), any Print tab tweak, README. Route: same delegated writer, separate commit.
+- [x] T2 app + UI + docs: app tests (formats list, export name), any Print tab tweak, README. Route: same delegated writer, separate commit.
 
 ## Progress
 - Feature doc created; branch `feat/checklist` from `2629b90`. RDD on (global).
@@ -39,5 +39,12 @@ To-be-read lists and watchlists are standard bujo collections.
   - Design notes: `ChecklistRowHeight` 16 mm (rule included), `ChecklistBoxSize` 5 mm (0.3 mm #555 outline), 1.5 mm padding → 13 mm tall 2:3 thumbnail box, 3 mm gaps; title bold 10 pt `titleGrey`, creator 8.5 pt `textGrey`, each one line cut with "…" via `fitLines`; empty creator → title centred alone; 0.2 mm `writingGrey` rule along each row's bottom edge; no cut borders. Rows start at the top margin, or right below the 12 mm `FullPageHeaderHeight` band (same band box and drawing as full page). Rows per page = floor((page height − 2 × `MinMargin` − band) / 16): A4 17 / 16 with header, Letter 16 / 15, A5 12 / 11. `Options.Grid()` returns the real row grid for the header presence in `Options.Header` (unlike full page, whose count does not depend on the header), so `Options.PerPage()` is exact; `Grid.Flush` makes rows touch so `Grid.Cells` paginates them. Image centred in its thumbnail box (shrink-to-fit rule as in `Grid.place`). Fonts always embedded (titles).
   - Visual check (`pdftoppm -r 100`): A4 20 mixed covers + "TBR 2026" → 16 rows then 4, header repeated; A5 long accented header shrunk, long titles cut with "…" inside the right margin; square, wide and narrow images inside their thumbnail boxes.
 
+- T2 done in `5e9c515` feat(ui): offer checklist format in the print sheet. Route: delegated writer. 6 files, +108 / −29.
+  - Files: `app.go` (`PrintPaperInfo.HeaderPerPage` `json:"headerPerPage"`: per-page count with a header, by format ID, for formats that print one; `pdfFileName` doc), `app_test.go` (export names `checklist_A4.pdf`, `checklist_Letter.pdf` with a header, `checklist_A5.pdf` with size/cut ignored; `TestPrintPapers` header counts; `TestPrintPapersMatchTheSheet` checks them against `Options{Header}.PerPage()`), `frontend/src/print.ts` (page count uses `headerPerPage` when the format prints a header and one is typed; header `input` refreshes the count; placeholder "TBR 2026" for the checklist, "Books of 2026" otherwise; file comment), `frontend/index.html` (Format tooltip, Header tooltip generic), `frontend/wailsjs/go/models.ts` (regenerated: `headerPerPage`), README (feature line, Print sheet intro, Format step, Cover size note, page-count step, file names, Cut mode note, new "Checklist" subsection, `internal/sheet` line).
+  - Why `HeaderPerPage`: checklist rows per page depend on the header (A4 17 / 16), so the toolbar page count would be one page off without it; full page reports 60 both ways.
+  - RED: `go test -tags webkit2_41 .` → build failed: `unknown field HeaderPerPage in struct literal of type PrintPaperInfo`, `p.HeaderPerPage undefined`. Export-name cases are characterisation (`pdfFileName` is already generic).
+  - GREEN: `go test -tags webkit2_41 ./...` → 541 passed in 14 packages; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` no errors; `wails build -tags webkit2_41` built. It set 0755 on `frontend/wailsjs/go/main/App.{d.ts,js}` and `models.ts`; reverted to 0644, `git diff --summary main..HEAD` shows no mode changes.
+  - Pending: manual GUI check (Checklist in the Format list, Header placeholder per format, page count changing as a header is typed, export with and without a header).
+
 ## Next step
-T2.
+Parent: native review / manual GUI check.
