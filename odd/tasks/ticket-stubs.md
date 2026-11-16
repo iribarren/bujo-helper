@@ -46,5 +46,9 @@ Ticket stubs are a classic movie-tracker element.
   - RED exception: the export-name cases pass on first run because `pdfFileName` is already generic; they pin behaviour (characterisation), not drive it.
   - GREEN: `go test -tags webkit2_41 ./...` all ok; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` no errors; `wails build -tags webkit2_41` built. `wails build` set 0755 on `frontend/wailsjs/go/main/App.{d.ts,js}` and `models.ts` (content unchanged); modes reverted to 0644, `git diff --summary 08579b4..HEAD` shows no mode changes.
 
+- Parent spot check: `go test -tags webkit2_41 ./internal/sheet/ .` 274 passed; rendered A4 page reviewed (notches, perforation, ADMIT ONE, truncation all as designed).
+- Plan commit 08579b4: low risk, auto-approved, acknowledged.
+- Assess 08579b4..dd16e2d: medium, 835 lines, `review_due` (`slice_budget_reached`). Consent granted; reliability lens approved, acknowledged (authority burned). Advisory, not scheduled: R3-001 (SUGGESTION, `pdf_test.go:725-730`), R3-002 (SUGGESTION, `pdf_test.go:595`).
+
 ## Next step
 User GUI check (Format → Ticket stubs: Cover size disabled, Cut mode hidden, page count, export `stubs_A4.pdf`), native review, then local `--no-ff` merge per `single-pr`.
