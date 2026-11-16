@@ -101,6 +101,7 @@ export namespace main {
 	    height: number;
 	    default: boolean;
 	    perPage: Record<string, any>;
+	    headerPerPage: Record<string, number>;
 	
 	    static createFrom(source: any = {}) {
 	        return new PrintPaperInfo(source);
@@ -114,6 +115,7 @@ export namespace main {
 	        this.height = source["height"];
 	        this.default = source["default"];
 	        this.perPage = source["perPage"];
+	        this.headerPerPage = source["headerPerPage"];
 	    }
 	}
 	export class PrintSizeInfo {

@@ -1,8 +1,8 @@
 // The "Print sheet" tab: preview the covers in a folder, select some, pick
-// a format (a cover sheet, review cards, book spines, ticket stubs or a full
-// page), a paper, for a cover sheet or spines a cover size, for a cover
-// sheet a cut mode and, for a full page, a header, and export them to a PDF
-// on that paper (see internal/sheet).
+// a format (a cover sheet, review cards, book spines, ticket stubs, a full
+// page or a checklist), a paper, for a cover sheet or spines a cover size,
+// for a cover sheet a cut mode and, for a full page or a checklist, a
+// header, and export them to a PDF on that paper (see internal/sheet).
 
 import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCutModes, PrintFormats, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
@@ -55,6 +55,11 @@ function baseName(path: string): string {
 // cards are for to label their date field.
 const REVIEW_CARDS = 'cards';
 
+// HEADER_EXAMPLES are the header placeholders of the formats that print a
+// header, by format ID; others use DEFAULT_HEADER_EXAMPLE.
+const HEADER_EXAMPLES: Record<string, string> = {checklist: 'TBR 2026'};
+const DEFAULT_HEADER_EXAMPLE = 'Books of 2026';
+
 function plural(n: number, word: string): string {
     return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
@@ -65,13 +70,16 @@ export function pageCount(covers: number, perPage: number): number {
 }
 
 // perPageOf is how many items of format fit on a page of paper, in the size
-// sizeId when the format uses one, or undefined until they are known.
+// sizeId when the format uses one, and below a header when withHeader and
+// the format prints one, or undefined until they are known.
 function perPageOf(
     paper: main.PrintPaperInfo | undefined,
     format: main.PrintFormatInfo | undefined,
     sizeId = '',
+    withHeader = false,
 ): number | undefined {
     if (!paper || !format) return undefined;
+    if (withHeader && format.usesHeader) return paper.headerPerPage?.[format.id];
     // Counts by size ID; a format without sizes has one, under ''.
     const counts: Record<string, number> | undefined = paper.perPage?.[format.id];
     return counts?.[format.usesSize ? sizeId : ''];
@@ -157,7 +165,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         if (!format || !paper) return undefined;
         const size = format.usesSize ? currentSize() : undefined;
         if (format.usesSize && !size) return undefined;
-        const perPage = perPageOf(paper, format, size?.id);
+        // A header may leave room for fewer items (checklist rows).
+        const withHeader = format.usesHeader && ui.header.value.trim() !== '';
+        const perPage = perPageOf(paper, format, size?.id, withHeader);
         if (!perPage) return undefined;
         return {format, paper, size, perPage};
     }
@@ -339,7 +349,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
 
     // updateFormat shows the controls that apply to the chosen format: the
     // cover size for a cover sheet or spines, the cut mode for a cover sheet,
-    // what the cards are for for review cards, the header for a full page.
+    // what the cards are for for review cards, the header for a full page or
+    // a checklist.
     function updateFormat() {
         const format = currentFormat();
         const usesSize = format?.usesSize ?? true;
@@ -350,6 +361,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         const usesHeader = format?.usesHeader ?? false;
         ui.header.disabled = !usesHeader;
         ui.headerField.hidden = !usesHeader;
+        ui.header.placeholder = HEADER_EXAMPLES[ui.format.value] ?? DEFAULT_HEADER_EXAMPLE;
         updateSizeLabels();
         updateSelection();
     }
@@ -446,6 +458,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         mediaChosen = true;
     });
     ui.size.addEventListener('change', updateSelection);
+    // A header may change the page count.
+    ui.header.addEventListener('input', updateSelection);
     ui.paper.addEventListener('change', () => {
         updateSizeLabels();
         updateSelection();

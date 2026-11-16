@@ -1,6 +1,7 @@
 // Package sheet lays out cover images on pages for printing and writes them
 // to a PDF, in one of several formats: a sheet of covers, review cards, book
-// spines, movie ticket stubs, or a full page of covers under a header.
+// spines, movie ticket stubs, a full page of covers under a header, or a
+// checklist of rows to tick, each with a thumbnail, title and creator.
 //
 // On a cover sheet, covers have a fixed height chosen by a size preset (50 mm by default) and
 // keep their aspect ratio, in a centred grid derived from the cover height
@@ -120,6 +121,7 @@ const (
 	spinesFormat = "spines"
 	stubsFormat  = "stubs"
 	fullFormat   = "fullpage"
+	checkFormat  = "checklist"
 )
 
 // Formats lists the print formats, the default first.
@@ -129,6 +131,7 @@ var Formats = []Format{
 	{ID: spinesFormat, Label: "Spines", FileTag: "spines", Noun: "spine", UsesSize: true},
 	{ID: stubsFormat, Label: "Ticket stubs", FileTag: "stubs", Noun: "stub", UsesSize: false},
 	{ID: fullFormat, Label: "Full page", FileTag: "fullpage", Noun: "cover", UsesHeader: true},
+	{ID: checkFormat, Label: "Checklist", FileTag: "checklist", Noun: "row", UsesHeader: true},
 }
 
 // FormatByID returns the format with the given ID; "" means DefaultFormat.
@@ -154,17 +157,20 @@ type Options struct {
 	// DateLabel labels the date field of review cards, e.g. "Read on";
 	// "" means "Date".
 	DateLabel string `json:"dateLabel"`
-	// Header is printed above the covers of a full page, e.g. "Books of
-	// 2026"; "" (or only spaces) means no header. Ignored by other formats.
+	// Header is printed above the covers of a full page or the rows of a
+	// checklist, e.g. "Books of 2026" or "TBR 2026"; "" (or only spaces)
+	// means no header. Ignored by other formats.
 	Header string `json:"header"`
 }
 
 // Grid returns the grid the options describe: the cover grid of the size
 // preset for a cover sheet, the card grid for review cards, the stub grid
 // for ticket stubs, the spine grid of the size preset (its cover height)
-// for spines, and for a full page the grid of a page of FullPageMax covers,
-// below a header band if there is a header. The cut mode never changes the
-// grid, but an unknown one is an error.
+// for spines, for a full page the grid of a page of FullPageMax covers,
+// below a header band if there is a header, and for a checklist its rows,
+// below the header band if there is a header (so PerPage counts the rows
+// that fit with or without one). The cut mode never changes the grid, but
+// an unknown one is an error.
 func (o Options) Grid() (Grid, error) {
 	f, err := FormatByID(o.Format)
 	if err != nil {
@@ -190,6 +196,10 @@ func (o Options) Grid() (Grid, error) {
 		return fixed(func(page Page) (Grid, error) {
 			return NewFullPageGrid(page, FullPageMax, o.header() != "")
 		})
+	case checkFormat:
+		return fixed(func(page Page) (Grid, error) {
+			return NewChecklistGrid(page, o.header() != "")
+		})
 	}
 	s, err := SizeByID(o.Size)
 	if err != nil {
@@ -205,7 +215,8 @@ func (o Options) Grid() (Grid, error) {
 	return NewGrid(p.Page, s.CoverHeight)
 }
 
-// PerPage is the number of covers, cards, spines or stubs on a full page.
+// PerPage is the number of covers, cards, spines, stubs or checklist rows on
+// a full page.
 func (o Options) PerPage() (int, error) {
 	g, err := o.Grid()
 	if err != nil {
@@ -214,8 +225,8 @@ func (o Options) PerPage() (int, error) {
 	return g.PerPage(), nil
 }
 
-// header is the header of a full page, its runs of spaces collapsed; "" if
-// there is none.
+// header is the header of a full page or checklist, its runs of spaces
+// collapsed; "" if there is none.
 func (o Options) header() string {
 	return strings.Join(strings.Fields(o.Header), " ")
 }
@@ -243,6 +254,9 @@ type Grid struct {
 	Spines bool
 	// Spacing is the space between cells, both ways; 0 means Gap.
 	Spacing float64
+	// Flush makes the cells touch, with no space between them; Spacing is
+	// then unused.
+	Flush bool
 	// Limit caps the items on a page below Columns × Rows; 0 means no cap.
 	Limit int
 }
@@ -285,6 +299,9 @@ func (g Grid) PerPage() int {
 
 // gap is the space between cells.
 func (g Grid) gap() float64 {
+	if g.Flush {
+		return 0
+	}
 	if g.Spacing > 0 {
 		return g.Spacing
 	}
