@@ -28,11 +28,19 @@ Some users want a finished page to glue or bind into the journal, with no cuttin
 - Frontend: `npx tsc --noEmit` in `frontend/`; `wails build -tags webkit2_41` (revert 0755 modes it sets on `frontend/wailsjs/go/main/*`).
 
 ## Tasks
-- [ ] T1 sheet: `fullpage` format, `UsesHeader`, `Options.Header`, `Grid.Limit`, `NewFullPageGrid`, header drawing, `buildFullPage`; table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in internal/sheet).
+- [x] T1 sheet: `fullpage` format, `UsesHeader`, `Options.Header`, `Grid.Limit`, `NewFullPageGrid`, header drawing, `buildFullPage`; table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in internal/sheet).
 - [ ] T2 app + UI + docs: `PrintFormatInfo.UsesHeader`, export name test, Header input in Print tab, Wails models, README Print sheet "Full page" subsection and feature lists. Route: same delegated writer, separate commit.
 
 ## Progress
 - Feature doc created; branch `feat/full-page` from `b7fd51b`. RDD on (global).
 
+- T1 done in `68d75e7` feat(sheet): add full page print format. Route: delegated writer (writer trigger: several non-trivial files in `internal/sheet`). 6 files, +730 / −31 (≈ 761 authored lines, ≈ 68 % tests: `fullpage_test.go` +470, `format_test.go` +15/−9, `app_test.go` +16/−12). Over the ~400-line heuristic because the auto-size rule, header fitting and PDF pagination each need table-driven coverage; no artificial split.
+  - Files: `internal/sheet/fullpage.go` (constants, `NewFullPageGrid`, `fullPageHeaderBox`, `headerLine`, `layoutFullPageHeader`, `buildFullPage`), `layout.go` (`fullFormat`, `Format.UsesHeader`, Formats entry, `Options.Header` + `header()`, `Grid.Spacing`, `Grid.Limit`, `PerPage` cap, `cell` uses `gap()`, `Options.Grid` case, package doc), `pdf.go` (build switch, `Build` doc), `format_test.go` (uses-header column, per-page 60), `app_test.go` (`TestPrintFormats` / `TestPrintPapers` gain the fullpage entry, 60 on every paper, to keep the commit green).
+  - RED: `go test -tags webkit2_41 ./internal/sheet/` → build failed: `f.UsesHeader undefined`, `unknown field Header in struct literal of type Options`, `undefined: FullPageHeaderHeight`, `undefined: FullPageGap`, `undefined: NewFullPageGrid` …
+  - GREEN: `go test -tags webkit2_41 ./...` → 511 passed in 14 packages; `go vet` clean; `gofmt -l .` empty.
+  - Defaults unchanged: page streams of covers, cards, spines and stubs for every paper × size × cut (135 option combinations, 33 mixed covers, uncompressed, fixed dates, via a `go test -overlay` scratch file outside the repo) are byte-identical before and after; also identical with `Header` set on those formats.
+  - Design notes: `FullPageGap` 3 mm, header band `FullPageHeaderHeight` 12 mm, header bold 20 pt shrinking (0.1 pt steps, proportional) to 12 pt, then cut with "…" via `fitLines`; text `titleGrey`, centred in the band across the usable width. Tie-break: tallest cells; on a tie (1e-9), fewer empty cells, then more columns (A4: 2 → 2 × 1, 3 → 3 × 1, 4 → 2 × 2, 60 → 8 × 8 at 32.4 mm, 31 mm with header). `Grid.Spacing` (0 = `Gap`) carries the 3 mm gap; `Grid.Limit` = covers on the page (≤ 60). `Options.Grid` returns the 60-cover grid; `build` uses the grid for the actual count, same grid on every page. Fonts embedded only with a header. Header whitespace runs collapse.
+  - Visual check (`pdftoppm -r 100`): A4 7 mixed covers + "Books of 2026" → 3 × 3 at 80 mm, header right above, block centred, no borders; A4 65 covers → page 1 8 × 8 (60), page 2 five covers in the same cells, header repeated; A5 long accented header → shrunk to 12 pt and cut with "…" inside the margins.
+
 ## Next step
-T1.
+T2.
