@@ -1,11 +1,8 @@
-// The "Print sheet" tab: preview the covers in a folder, select some and
-// export them to an A4 PDF (see internal/sheet).
+// The "Print sheet" tab: preview the covers in a folder, select some, pick
+// a cover size and export them to an A4 PDF (see internal/sheet).
 
-import {ChooseFolder, ExportPDF, ListCovers, OpenFile} from '../wailsjs/go/main/App';
-import {main} from '../wailsjs/go/models';
-
-// Covers per PDF page. Keep in sync with sheet.PerPage.
-const PER_PAGE = 25;
+import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintSizes} from '../wailsjs/go/main/App';
+import {main, sheet} from '../wailsjs/go/models';
 
 export interface PrintDeps {
     // The download output folder; the print sheet shows it until the user
@@ -51,8 +48,13 @@ function plural(n: number, word: string): string {
     return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
 
-export function pageCount(covers: number): number {
-    return Math.ceil(covers / PER_PAGE);
+// pageCount is the number of pages covers need at perPage covers a page.
+export function pageCount(covers: number, perPage: number): number {
+    return Math.ceil(covers / perPage);
+}
+
+function sizeLabel(size: main.PrintSizeInfo): string {
+    return `${size.label} · ${size.coverHeight} mm (${size.perPage} per page)`;
 }
 
 export function initPrint(deps: PrintDeps): PrintSheet {
@@ -68,6 +70,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         status: byId<HTMLSpanElement>('export-status'),
         openPdf: byId<HTMLButtonElement>('open-pdf'),
         exportPdf: byId<HTMLButtonElement>('export-pdf'),
+        size: byId<HTMLSelectElement>('print-size'),
     };
 
     // The folder picked with Browse…; empty means "follow the output folder".
@@ -80,15 +83,24 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     let loadSeq = 0;
     let exporting = false;
     let lastPdf = '';
+    // The cover size presets, from PrintSizes; empty until they load.
+    let sizes: main.PrintSizeInfo[] = [];
 
     function currentDir(): string {
         return chosenDir || deps.outputFolder();
     }
 
+    function currentSize(): main.PrintSizeInfo | undefined {
+        return sizes.find((s) => s.id === ui.size.value);
+    }
+
     function updateSelection() {
         const n = selected.size;
-        ui.selection.textContent = `${n} selected · ${plural(pageCount(n), 'page')}`;
-        ui.exportPdf.disabled = n === 0 || exporting;
+        const size = currentSize();
+        ui.selection.textContent = size
+            ? `${n} selected · ${plural(pageCount(n, size.perPage), 'page')}`
+            : `${n} selected`;
+        ui.exportPdf.disabled = n === 0 || exporting || !size;
         ui.selectAll.disabled = covers.length === 0 || n === covers.length;
         ui.selectNone.disabled = n === 0;
     }
@@ -202,7 +214,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     async function exportPdf() {
         // Export in grid order, not in the order covers were clicked.
         const paths = covers.filter((c) => selected.has(c.path)).map((c) => c.path);
-        if (paths.length === 0 || exporting) return;
+        const size = currentSize();
+        if (paths.length === 0 || exporting || !size) return;
         deps.hideError();
         const previous = {text: ui.status.textContent ?? '', title: ui.status.title, open: !ui.openPdf.hidden};
         exporting = true;
@@ -211,7 +224,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         ui.status.title = '';
         ui.openPdf.hidden = true;
         try {
-            const saved = await ExportPDF(paths, currentDir());
+            const saved = await ExportPDF(paths, currentDir(), sheet.Options.createFrom({size: size.id}));
             if (saved === '') {
                 // Dialog cancelled: leave the last result as it was.
                 ui.status.textContent = previous.text;
@@ -221,7 +234,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             }
             lastPdf = saved;
             ui.status.textContent =
-                `Saved ${baseName(saved)}: ${plural(paths.length, 'cover')} on ${plural(pageCount(paths.length), 'page')}`;
+                `Saved ${baseName(saved)}: ${plural(paths.length, 'cover')} on ${plural(pageCount(paths.length, size.perPage), 'page')}`;
             ui.status.title = saved;
             ui.openPdf.hidden = false;
         } catch (err) {
@@ -232,6 +245,21 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             exporting = false;
             updateSelection();
         }
+    }
+
+    async function loadSizes() {
+        try {
+            sizes = (await PrintSizes()) ?? [];
+            ui.size.replaceChildren(...sizes.map((size) => {
+                const option = el('option', '', sizeLabel(size));
+                option.value = size.id;
+                option.selected = size.default;
+                return option;
+            }));
+        } catch (err) {
+            deps.showError(`Could not load cover sizes: ${errorText(err)}`);
+        }
+        updateSelection();
     }
 
     async function openPdf() {
@@ -251,7 +279,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     ui.selectNone.addEventListener('click', () => selectAll(false));
     ui.exportPdf.addEventListener('click', exportPdf);
     ui.openPdf.addEventListener('click', openPdf);
+    ui.size.addEventListener('change', updateSelection);
     updateSelection();
+    loadSizes();
 
     return {
         activate: () => {

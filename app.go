@@ -484,14 +484,50 @@ func (a *App) ListCovers(dir string) ([]CoverView, error) {
 	return views, nil
 }
 
+// PrintSizeInfo describes a cover size preset for the Print sheet tab.
+type PrintSizeInfo struct {
+	ID          string  `json:"id"`
+	Label       string  `json:"label"`
+	CoverHeight float64 `json:"coverHeight"` // mm
+	PerPage     int     `json:"perPage"`     // covers on a full page
+	Default     bool    `json:"default"`
+}
+
+// PrintSizes lists the cover size presets, smallest first, with how many
+// covers fit on a page, so the UI can count pages without its own copy of
+// the layout rules.
+func (a *App) PrintSizes() []PrintSizeInfo {
+	out := make([]PrintSizeInfo, 0, len(sheet.Sizes))
+	for _, s := range sheet.Sizes {
+		g, err := sheet.Options{Size: s.ID}.Grid()
+		if err != nil {
+			// Every preset fits the page; sheet tests guard this.
+			log.Printf("print size %s: %v", s.ID, err)
+			continue
+		}
+		out = append(out, PrintSizeInfo{
+			ID:          s.ID,
+			Label:       s.Label,
+			CoverHeight: s.CoverHeight,
+			PerPage:     g.PerPage(),
+			Default:     s.ID == sheet.DefaultSize,
+		})
+	}
+	return out
+}
+
 // ExportPDF asks where to save, then writes the print sheet PDF of the
-// images at paths, in that order. It returns the saved path, or "" with no
-// error when the dialog is cancelled.
-func (a *App) ExportPDF(paths []string, defaultDir string) (string, error) {
+// images at paths, in that order, with the print settings opts. It returns
+// the saved path, or "" with no error when the dialog is cancelled.
+func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (string, error) {
 	if len(paths) == 0 {
 		return "", errors.New("select at least one cover")
 	}
-	opts := runtime.SaveDialogOptions{
+	// Reject bad settings before asking where to save.
+	if _, err := opts.Grid(); err != nil {
+		return "", err
+	}
+	dialog := runtime.SaveDialogOptions{
 		Title:                "Export PDF",
 		DefaultFilename:      "covers.pdf",
 		CanCreateDirectories: true,
@@ -500,16 +536,16 @@ func (a *App) ExportPDF(paths []string, defaultDir string) (string, error) {
 		},
 	}
 	if info, err := os.Stat(defaultDir); err == nil && info.IsDir() {
-		opts.DefaultDirectory = defaultDir
+		dialog.DefaultDirectory = defaultDir
 	}
-	path, err := saveFileDialog(a.ctx, opts)
+	path, err := saveFileDialog(a.ctx, dialog)
 	if err != nil || path == "" {
 		return "", err
 	}
 	if path, err = a.withExtension(path, ".pdf"); err != nil || path == "" {
 		return "", err
 	}
-	if err := exportTo(path, paths); err != nil {
+	if err := exportTo(path, paths, opts); err != nil {
 		return "", err
 	}
 	return path, nil
@@ -541,9 +577,9 @@ func (a *App) withExtension(path, ext string) (string, error) {
 }
 
 // exportTo writes the print sheet PDF of files to path, atomically.
-func exportTo(path string, files []string) error {
+func exportTo(path string, files []string, opts sheet.Options) error {
 	return writeFileAtomic(path, "PDF", func(w io.Writer) error {
-		return sheet.Build(w, files, sheet.Options{})
+		return sheet.Build(w, files, opts)
 	})
 }
 
