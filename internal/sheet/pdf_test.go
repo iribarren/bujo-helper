@@ -2,6 +2,7 @@ package sheet
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -11,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 )
 
 // writeImage saves a w x h image filled with c to dir/name, as PNG or JPEG
@@ -453,5 +455,190 @@ func TestBuildSpinesNamesTheBadFileAndWritesNothing(t *testing.T) {
 	}
 	if out.Len() != 0 {
 		t.Errorf("wrote %d bytes, want none", out.Len())
+	}
+}
+
+// render builds the PDF of paths with opts, uncompressed and with fixed
+// dates, so its content can be inspected and compared.
+func render(t *testing.T, paths []string, opts Options) []byte {
+	t.Helper()
+	pdf, err := build(paths, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pdf.SetCompression(false)
+	pdf.SetCatalogSort(true)
+	when := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	pdf.SetCreationDate(when)
+	pdf.SetModificationDate(when)
+	var buf bytes.Buffer
+	if err := pdf.Output(&buf); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
+}
+
+// pageContent matches an uncompressed page content stream: its dictionary
+// has only a length, unlike images and fonts.
+var pageContent = regexp.MustCompile(`(?s)obj\n<</Length \d+>>\nstream\n(.*?)endstream`)
+
+// imageName matches an image reference, named after a hash of its data.
+var imageName = regexp.MustCompile(`/I[0-9a-f]+ Do`)
+
+// pageStreams returns the page content streams of an uncompressed PDF,
+// joined, with image names replaced by "/I".
+func pageStreams(pdf []byte) string {
+	var b strings.Builder
+	for _, m := range pageContent.FindAllSubmatch(pdf, -1) {
+		b.Write(m[1])
+	}
+	return imageName.ReplaceAllString(b.String(), "/I Do")
+}
+
+// cutFixtures writes a typical, a square and a wide cover.
+func cutFixtures(t *testing.T) []string {
+	t.Helper()
+	dir := t.TempDir()
+	return []string{
+		writeImage(t, dir, "Dune - Frank Herbert.jpg", 66, 100, color.RGBA{200, 40, 40, 255}),
+		writeImage(t, dir, "Square.png", 100, 100, color.RGBA{40, 200, 40, 255}),
+		writeImage(t, dir, "Wide.jpg", 150, 100, color.RGBA{40, 40, 200, 255}),
+	}
+}
+
+// The default cover sheet, and the Border cut mode, draw exactly what they
+// drew before cut modes existed: each image, then its grey 0.2 mm border.
+func TestBuildBorderCutKeepsTodaysCoverSheet(t *testing.T) {
+	const today = "0 J\n0 j\n0.57 w\n0.600 G\n0.000 g\n" +
+		"q 93.54331 0 0 141.73228 26.36220 656.22047 cm /I Do Q\n" +
+		"26.36 797.95 93.54 -141.73 re S\n" +
+		"q 100.91339 0 0 100.91339 134.92913 676.62992 cm /I Do Q\n" +
+		"134.93 777.54 100.91 -100.91 re S\n" +
+		"q 100.91339 0 0 67.27559 247.18110 693.44882 cm /I Do Q\n" +
+		"247.18 760.72 100.91 -67.28 re S\n\n"
+	paths := cutFixtures(t)
+	for _, cut := range []string{"", "border"} {
+		if got := pageStreams(render(t, paths, Options{Cut: cut})); got != today {
+			t.Errorf("cut %q: page content\n%s\nwant\n%s", cut, got, today)
+		}
+	}
+}
+
+func TestBuildNoneCutDrawsImagesOnly(t *testing.T) {
+	got := pageStreams(render(t, cutFixtures(t), Options{Cut: "none"}))
+	if n := strings.Count(got, " Do Q"); n != 3 {
+		t.Errorf("%d images drawn, want 3", n)
+	}
+	if strings.Contains(got, " re S") || strings.Contains(got, " l S") {
+		t.Errorf("cut none draws lines:\n%s", got)
+	}
+}
+
+func TestBuildBleedCutDrawsBleedAndCropMarks(t *testing.T) {
+	paths := cutFixtures(t)
+	got := pageStreams(render(t, paths, Options{Cut: "bleed"}))
+	if strings.Contains(got, " re S") {
+		t.Errorf("cut bleed draws a border:\n%s", got)
+	}
+	if n := strings.Count(got, " Do Q"); n != 3 {
+		t.Errorf("%d images drawn, want 3", n)
+	}
+	if n := strings.Count(got, " l S"); n != 3*8 {
+		t.Errorf("%d crop mark lines, want %d", n, 3*8)
+	}
+	// Thin black marks: 0.1 mm is 0.28 pt.
+	if !strings.Contains(got, "0.000 G\n") || !strings.Contains(got, "0.28 w\n") {
+		t.Errorf("crop marks are not thin black lines:\n%s", got)
+	}
+	// Each image is clipped to its bleed box, 1 mm past its cut line.
+	g := standard(t)
+	pages, err := g.Layout([]float64{0.66, 1, 1.5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const k = 72 / 25.4
+	for _, b := range pages[0] {
+		bl := bleedBox(b)
+		clip := fmt.Sprintf("q %.2f %.2f %.2f %.2f re W n", bl.X*k, (g.Page.Height-bl.Y)*k, bl.W*k, -bl.H*k)
+		if !strings.Contains(got, clip) {
+			t.Errorf("no clip %q for box %+v in\n%s", clip, b, got)
+		}
+	}
+}
+
+func TestBuildBleedCutKeepsPageCount(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "cover.jpg", 66, 100, color.RGBA{200, 40, 40, 255})
+	paths := make([]string, 26)
+	for i := range paths {
+		paths[i] = cover
+	}
+	for _, c := range CutModes {
+		var out bytes.Buffer
+		if err := Build(&out, paths, Options{Cut: c.ID}); err != nil {
+			t.Fatal(err)
+		}
+		if n := len(pageObject.FindAll(out.Bytes(), -1)); n != 2 {
+			t.Errorf("cut %s: PDF has %d pages, want 2", c.ID, n)
+		}
+	}
+}
+
+// Review cards and spines keep their borders whatever the cut mode.
+func TestBuildCardsAndSpinesIgnoreTheCutMode(t *testing.T) {
+	paths := cutFixtures(t)
+	for _, format := range []string{"cards", "spines"} {
+		want := pageStreams(render(t, paths, Options{Format: format}))
+		// Cards stroke their border (S); spines fill and stroke it (B).
+		if !strings.Contains(want, " re S") && !strings.Contains(want, " re B") {
+			t.Fatalf("%s: no border drawn", format)
+		}
+		for _, c := range CutModes {
+			if got := pageStreams(render(t, paths, Options{Format: format, Cut: c.ID})); got != want {
+				t.Errorf("%s, cut %s: page content differs from the default", format, c.ID)
+			}
+		}
+	}
+}
+
+func TestBuildRejectsUnknownCutMode(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "cover.jpg", 66, 100, color.White)
+	for _, format := range []string{"covers", "cards", "spines"} {
+		var out bytes.Buffer
+		err := Build(&out, []string{cover}, Options{Format: format, Cut: "kiss"})
+		if err == nil || !strings.Contains(err.Error(), "kiss") {
+			t.Errorf("%s: error %v, want one naming the cut mode", format, err)
+		}
+		if out.Len() != 0 {
+			t.Errorf("%s: wrote %d bytes, want none", format, out.Len())
+		}
+	}
+}
+
+// In bleed mode the prepared image is padded by its edge pixels; otherwise
+// it is the fitted image as before.
+func TestPrintImageBleedPadding(t *testing.T) {
+	dir := t.TempDir()
+	path := writeImage(t, dir, "cover.png", 66, 100, color.RGBA{200, 40, 40, 255})
+	for _, bleed := range []bool{false, true} {
+		p, err := printImage(path, 50, bleed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantPad := 0
+		if bleed {
+			wantPad = bleedPad(100, 50)
+		}
+		if p.w != 66 || p.h != 100 || p.pad != wantPad {
+			t.Errorf("bleed %v: printed %dx%d pad %d, want 66x100 pad %d", bleed, p.w, p.h, p.pad, wantPad)
+		}
+		cfg, err := jpeg.DecodeConfig(bytes.NewReader(p.jpeg))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.Width != 66+2*wantPad || cfg.Height != 100+2*wantPad {
+			t.Errorf("bleed %v: JPEG %dx%d, want %dx%d", bleed, cfg.Width, cfg.Height, 66+2*wantPad, 100+2*wantPad)
+		}
 	}
 }

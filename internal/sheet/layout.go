@@ -105,6 +105,7 @@ type Format struct {
 	FileTag  string // short, file-name-safe name, e.g. for "cards_A4.pdf"
 	Noun     string // what one printed item is called, e.g. "card"
 	UsesSize bool   // whether the cover size preset applies
+	UsesCut  bool   // whether the cut mode applies; other formats keep their borders
 }
 
 // DefaultFormat is the ID of the format used when none is chosen.
@@ -118,7 +119,7 @@ const (
 
 // Formats lists the print formats, the default first.
 var Formats = []Format{
-	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true},
+	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true, UsesCut: true},
 	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", Noun: "card", UsesSize: false},
 	{ID: spinesFormat, Label: "Spines", FileTag: "spines", Noun: "spine", UsesSize: true},
 }
@@ -142,6 +143,7 @@ type Options struct {
 	Format string `json:"format"` // a Format ID; "" means DefaultFormat
 	Size   string `json:"size"`   // a Size ID; "" means DefaultSize. Ignored by formats that do not use it.
 	Paper  string `json:"paper"`  // a Paper ID; "" means DefaultPaper
+	Cut    string `json:"cut"`    // a CutMode ID; "" means DefaultCut. Ignored by formats that do not use it.
 	// DateLabel labels the date field of review cards, e.g. "Read on";
 	// "" means "Date".
 	DateLabel string `json:"dateLabel"`
@@ -149,10 +151,14 @@ type Options struct {
 
 // Grid returns the grid the options describe: the cover grid of the size
 // preset for a cover sheet, the card grid for review cards, the spine grid
-// of the size preset (its cover height) for spines.
+// of the size preset (its cover height) for spines. The cut mode never
+// changes the grid, but an unknown one is an error.
 func (o Options) Grid() (Grid, error) {
 	f, err := FormatByID(o.Format)
 	if err != nil {
+		return Grid{}, err
+	}
+	if _, err := CutModeByID(o.Cut); err != nil {
 		return Grid{}, err
 	}
 	if f.ID == cardsFormat {
