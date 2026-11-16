@@ -57,5 +57,7 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
   - RED: i18n, settings, sheet labels and app tests first failed to compile (undefined `EN`/`Parse`/`T`, `Settings.Language`, `Labels`, `SetLanguage`/`importCSVFile` arity). `TestItemResultCodes` failed behaviourally against a stub `Code` (`Code = "", want "not_found"`, `Err = <nil>`). The parity test was mutation-checked: a `%d` swap and a missing key both fail. All GREEN after.
   - Checks: `gofmt -l .` empty, `go vet ./...` clean, `go test ./...` 786 passed in 15 packages. `wails build -tags webkit2_41` built `build/bin/bujo-helper` and regenerated bindings (`SetLanguage`, `settings.Settings.language`, plus an unused `sheet.Labels` class); wailsjs modes were reset to 644. `npx tsc --noEmit` is clean. `ItemEvent` is an event payload, so `code` is not in `models.ts`; T4 types it by hand.
 
+- Parent fix: a new `testmain_test.go` makes `TestMain` point `XDG_CONFIG_HOME`, `HOME` and `AppData` at a temp dir. Many root tests call the real `NewApp()`, which ran the settings migration against the user's real config folder. That earlier run migrated the real `cover-downloader` settings correctly: the TMDB key is present in `bujo-helper/settings.json`. `go test .` passes (127 tests).
+
 ## Next step
 T4 (frontend i18n). It must keep `language` when it saves settings and call `SetLanguage` at startup and whenever the language changes.
