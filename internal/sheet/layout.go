@@ -37,9 +37,10 @@ var (
 
 // Paper is a paper size preset.
 type Paper struct {
-	ID    string
-	Label string
-	Page  Page
+	ID      string
+	Label   string
+	FileTag string // short, file-name-safe name, e.g. for "covers_A4.pdf"
+	Page    Page
 }
 
 // DefaultPaper is the ID of the paper used when none is chosen.
@@ -47,9 +48,9 @@ const DefaultPaper = "a4"
 
 // Papers lists the paper size presets, the default first.
 var Papers = []Paper{
-	{ID: DefaultPaper, Label: "A4", Page: A4},
-	{ID: "letter", Label: "US Letter", Page: Letter},
-	{ID: "a5", Label: "A5", Page: A5},
+	{ID: DefaultPaper, Label: "A4", FileTag: "A4", Page: A4},
+	{ID: "letter", Label: "US Letter", FileTag: "Letter", Page: Letter},
+	{ID: "a5", Label: "A5", FileTag: "A5", Page: A5},
 }
 
 // PaperByID returns the paper with the given ID; "" means DefaultPaper.

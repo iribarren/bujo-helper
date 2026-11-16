@@ -419,3 +419,11 @@ func TestLayoutEveryPaperBoxesInsidePage(t *testing.T) {
 		}
 	}
 }
+
+func TestPapersHaveFileSafeTags(t *testing.T) {
+	for _, p := range Papers {
+		if p.FileTag == "" || strings.Trim(p.FileTag, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") != "" {
+			t.Errorf("paper %q: file tag %q, want letters and digits only", p.ID, p.FileTag)
+		}
+	}
+}

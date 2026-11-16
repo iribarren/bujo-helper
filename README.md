@@ -133,7 +133,7 @@ The **Print sheet** tab turns downloaded covers into a PDF of small covers to cu
 2. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers fit on that paper.
 3. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**.
 4. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need on the chosen paper and size.
-5. Click **Export PDF…**, choose where to save (default `covers.pdf`), then **Open PDF** to view it.
+5. Click **Export PDF…**, choose where to save (default `covers_A4.pdf`, `covers_Letter.pdf` or `covers_A5.pdf`, after the paper), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 

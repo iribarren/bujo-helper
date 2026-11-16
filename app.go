@@ -556,9 +556,14 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 	if _, err := opts.Grid(); err != nil {
 		return "", err
 	}
+	paper, err := sheet.PaperByID(opts.Paper)
+	if err != nil {
+		return "", err
+	}
 	dialog := runtime.SaveDialogOptions{
-		Title:                "Export PDF",
-		DefaultFilename:      "covers.pdf",
+		Title: "Export PDF",
+		// The paper in the name tells sheets for different paper apart.
+		DefaultFilename:      "covers_" + paper.FileTag + ".pdf",
 		CanCreateDirectories: true,
 		Filters: []runtime.FileFilter{
 			{DisplayName: "PDF files (*.pdf)", Pattern: "*.pdf"},
