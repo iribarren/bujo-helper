@@ -146,7 +146,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 - 1 to about 60 covers fit on one page; beyond that, it paginates with the header repeated.
 - Tests for the auto-size calculation.
 
-## 10. [ ] TBR / watchlist checklist
+## 10. [x] TBR / watchlist checklist (2bfb272)
 
 **Why:** to-be-read lists and watchlists are standard bujo collections.
 
