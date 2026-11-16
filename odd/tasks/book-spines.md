@@ -26,11 +26,17 @@ Bookshelf trackers (a drawn shelf filled with spines) are a very popular spread,
 - Frontend: `npx tsc --noEmit` in `frontend/`; `wails build -tags webkit2_41`.
 
 ## Tasks
-- [ ] T1 sheet: spines format, dominant colour, contrast choice, spine layout, rotated-text PDF rendering; tests. Route: delegated writer (writer trigger: several non-trivial files in internal/sheet).
-- [ ] T2 app + UI + docs: unified per-page counts (format × size), page count for spines, README Print sheet section. Route: same delegated writer, separate commit (writer trigger: app.go, print.ts, README).
+- [x] T1 sheet: spines format, dominant colour, contrast choice, spine layout, rotated-text PDF rendering; tests. Route: delegated writer (writer trigger: several non-trivial files in internal/sheet).
+- [x] T2 app + UI + docs: unified per-page counts (format × size), page count for spines, README Print sheet section. Route: same delegated writer, separate commit (writer trigger: app.go, print.ts, README).
 
 ## Progress
-- Feature doc created; branch `feat/book-spines`.
+- Feature doc created; branch `feat/book-spines` (`b18fe19`). Its review: low risk, closed approved, acknowledged.
+- T1 `2d83a68` feat(sheet): `spines` format (`UsesSize`, `Noun` on `Format`), `dominantColor` (flatten on white, ≤ 64 px, 4-bit buckets, majority bucket mean), `textColorFor` (WCAG; tie → black), spine layout via `Grid.Spines` (width pattern 10, 12, 9, 11, 8, 12, 10, 9, 11, 10 mm; 2 mm `spineGap`), rotated text (`TransformRotate(-90)`, reads top-to-bottom), shared `forEachImage`/`decodeImage`/`addTextFonts`. 11 files, +960/−25. RED: compile failures (`dominantColor`, `textColorFor`, `spineLine` undefined), then "PDF embeds no TrueType font" while spines still drew as a cover sheet. GREEN: `go test` all ok; vet, gofmt clean.
+- T2 `52c01a4` feat(ui): `PrintPaperInfo.PerPage` unified as format → size → count (`""` size for cards; `formatPerPage` removed), `PrintFormatInfo.noun`, size labels show spines per page, `spines_<paper>_<size>.pdf`, README Spines subsection. 8 files, +162/−77. RED: unknown field `Noun`, `PerPage` not nested. GREEN (writer): `go test` ok; vet, gofmt clean; `tsc --noEmit` ok; `wails build -tags webkit2_41` ok (binary 12:42:45); no mode changes. Parent spot check: `go test -tags webkit2_41 ./...` 383 passed.
+- Spines per page: A4 144 / 80 / 48 (Mini / Standard / Large, 16 per row); Letter 144 / 64 / 48; A5 66 / 33 / 22 (11 per row).
+- Visual check (12 colour fixtures, 3 sizes): black/white text chosen correctly, two-tone takes the majority colour, long titles end in "…", no overflow. Parent viewed the Standard close-up.
+- Route: one delegated writer for T1 and T2 (writer trigger), two commits.
+- Review of b18fe19..52c01a4 (1220 lines, medium, `slice_budget_reached`): consent granted, reliability lens approved, acknowledged. Advisory, not scheduled: R3-spine-render-unasserted (no test asserts fill/text colour or rotation in the PDF stream), R3-bucket-boundary-split (fixed buckets can split a majority hue across bucket edges; README wording "largest area of similar pixels" slightly overstates).
 
 ## Next step
-T1 and T2 (one writer, two commits).
+Whole-branch review, then the user's GUI check of the rebuilt binary, then merge.
