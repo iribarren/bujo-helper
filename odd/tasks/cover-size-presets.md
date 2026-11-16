@@ -30,10 +30,14 @@ Let the print sheet use three cover sizes: **Mini** (25 mm tall), **Standard** (
 
 ## Tasks
 - [x] T1 sheet: `Grid` derived from page + cover height, size presets, `Options`, `Build(w, paths, opts)`; table-driven tests per preset. Route: inline (context already loaded, one package).
-- [ ] T2 app + UI + docs: `PrintSizes()` binding, `ExportPDF(paths, dir, opts)`, Cover size select, live page count, README Print sheet section. Route: inline.
+- [x] T2 app + UI + docs: `PrintSizes()` binding, `ExportPDF(paths, dir, opts)`, Cover size select, live page count, README Print sheet section. Route: inline.
 
 ## Progress
 - T1 `07e1259` feat(sheet): Grid derived from page + cover height, presets, Options, `Build(w, paths, opts)`; fpdf page size follows the grid. Route: inline. RED: build failure on undefined Grid/Options/Sizes/A4. GREEN: `go test -tags webkit2_41 ./...` 252 passed (14 packages); vet and gofmt clean. Existing Standard numbers (35.6 mm columns, 15.5 mm margin, A4 MediaBox) unchanged.
+- Review of main..T1 (502 lines, medium): consent granted, reliability lens approved, acknowledged (authority burned). Advisory: R3 WARNING `NewGrid` did not validate the height (oversize heights gave a negative margin, zero/NaN gave nonsense grids) → fixed in T1a. R3 SUGGESTION assert the A4 MediaBox → already asserted by the unchanged `TestBuildWritesOnePagePerTwentyFiveCovers`; no change.
+- T1a `ad0b3df` fix(sheet): `NewGrid` returns an error when no cell fits. RED: build failure (2 return values). GREEN: sheet tests pass.
+- T2 `7aa0cb5` feat(ui): `PrintSizes()` binding (ID, label, height, per page, default), `ExportPDF(paths, dir, sheet.Options)` rejects an unknown size before the save dialog, Cover size select, live page count from `perPage`, README Print sheet section (size table + derivation rules). Bindings regenerated (`wails generate module`). Route: inline. RED: undefined `PrintSizes`/`PrintSizeInfo`. GREEN: `go test -tags webkit2_41 ./...` 256 passed; vet, gofmt clean; `tsc --noEmit` ok; `wails build -tags webkit2_41` ok.
+- Pending: manual GUI check (select changes page count, export at each size, print at 100 %). ROADMAP item 1 gets `[x]` + merge hash at merge time.
 
 ## Next step
-T2.
+User: manual GUI check, then decide on push/merge.
