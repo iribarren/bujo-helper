@@ -50,5 +50,8 @@ To-be-read lists and watchlists are standard bujo collections.
 - Plan commit 9f92ab5: low risk, auto-approved, acknowledged.
 - Assess 9f92ab5..8a27f44: medium, 873 lines, `review_due` (`slice_budget_reached`). Consent granted; reliability lens approved, acknowledged (authority burned). Advisory R3 SUGGESTION (`frontend/src/print.ts:169-170`, header-dependent page count has no automated test): the frontend has no test runner, so it is covered by the manual GUI check; Go side is covered by `TestPrintPapersMatchTheSheet`.
 
+- Whole-branch review main..6f5811e (906 lines, medium): consent granted, reliability lens approved (same advisory frontend page-count suggestion), acknowledged.
+- Manual GUI check passed (user, 2026-11-16). Merged to main and pushed.
+
 ## Next step
-Manual GUI check by the user, then `--no-ff` merge.
+Done.
