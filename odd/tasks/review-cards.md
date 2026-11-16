@@ -37,5 +37,8 @@ A cover with a rating, a date and a few notes is the most common reading-log ele
 - T2 `5bea644` feat(ui): `MediaType.DateLabel` ("Read on", "Watched on") and `MediaTypeInfo.dateLabel`; `PrintFormats()` binding; `PrintPaperInfo.formatPerPage` (cards: A4 8, Letter 8, A5 3); `ExportPDF` names `cards_<paper>.pdf` (size only when the format uses it; unknown size ignored for cards); Format select, Cards for select (only for Review cards, follows the Download tab's media type until changed by hand), Cover size disabled for cards, live page count per format; date rule colour set explicitly (R3-date-rule-colour); README Print sheet + Review cards subsection. 14 files, +320/−45. Route: delegated writer. RED: compile failures (`unknown field DateLabel`, `PrintFormats undefined`), then `covers_A5_Standard.pdf` instead of `cards_A5.pdf`. Unknown-format cases had no real RED (`opts.Grid()` already rejected them). GREEN (writer): `go test -tags webkit2_41 ./...` 346 passed; vet, gofmt clean; `tsc --noEmit` ok; `wails build -tags webkit2_41` ok (binary 12:02:55); no mode changes. Parent spot check: `go test` 346 passed.
 - Assess 29a8e3d..5bea644: medium, 365 lines, `review_due` false (`under_budget`).
 
+- Whole-branch review main..378265b (1581 lines, medium): consent granted, reliability lens approved, acknowledged (authority burned). Advisory, not scheduled: R3-cards-text-unasserted (again), R3-format-load-gates-cover-sheet (SUGGESTION: if the `PrintFormats` binding fails, cover sheet export is disabled too).
+- Manual GUI check passed (user, 2026-11-16). Merged to main and pushed.
+
 ## Next step
-User's GUI check of the rebuilt binary (`build/bin/cover-downloader`), then merge.
+Done.
