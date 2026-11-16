@@ -48,5 +48,9 @@ Some users want a finished page to glue or bind into the journal, with no cuttin
   - GREEN: `go test -tags webkit2_41 ./...` → 514 passed in 14 packages; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` no errors; `wails build -tags webkit2_41` built. It set 0755 on `frontend/wailsjs/go/main/App.{d.ts,js}` and `models.ts`; reverted to 0644, `git diff --summary main..HEAD` shows no mode changes.
   - Pending: manual GUI check (Header field visibility per format, export with a header).
 
+- Parent spot check: `go test -tags webkit2_41 ./internal/sheet/ .` 313 passed; A4 7-cover render reviewed (header above grid, block centred, no borders).
+- Plan commit 1251881: low risk, auto-approved, acknowledged.
+- Assess 1251881..3a040a3: medium, 878 lines, `review_due` (`slice_budget_reached`). Consent granted; reliability lens approved, acknowledged (authority burned). Advisory R3 SUGGESTION (`fullpage_test.go:212-220`, `TestGridLimit` could panic instead of reporting a wrong page count) applied in `36fece7` (`t.Fatalf` on the page counts); `TestGridLimit` passes.
+
 ## Next step
-Native review of the feature range; user GUI check, then local `--no-ff` merge.
+User GUI check (Header field visibility per format, export with a header), then local `--no-ff` merge.
