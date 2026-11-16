@@ -20,6 +20,7 @@ func TestFormatByID(t *testing.T) {
 		{"stubs", "stubs", false, false, false},
 		{"fullpage", "fullpage", false, false, true},
 		{"checklist", "checklist", false, false, true},
+		{"polaroid", "polaroid", true, false, false},
 	}
 	for _, tt := range tests {
 		f, err := FormatByID(tt.id)
@@ -111,6 +112,14 @@ func TestOptionsPerPage(t *testing.T) {
 		{Options{Format: "checklist", Paper: "letter", Header: "TBR 2026"}, 15},
 		{Options{Format: "checklist", Paper: "a5", Size: "large"}, 12},
 		{Options{Format: "checklist", Paper: "a5", Header: "TBR 2026"}, 11},
+		// Polaroids follow the cover size; the header does not apply.
+		{Options{Format: "polaroid"}, 12},
+		{Options{Format: "polaroid", Size: "mini"}, 56},
+		{Options{Format: "polaroid", Size: "large"}, 4},
+		{Options{Format: "polaroid", Paper: "letter", Header: "TBR 2026"}, 12},
+		{Options{Format: "polaroid", Paper: "a5", Size: "mini"}, 25},
+		{Options{Format: "polaroid", Paper: "a5"}, 6},
+		{Options{Format: "polaroid", Paper: "a5", Size: "large"}, 1},
 	}
 	for _, tt := range tests {
 		got, err := tt.opts.PerPage()
