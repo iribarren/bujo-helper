@@ -3,11 +3,11 @@
 A desktop app for Windows and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
 
-Book covers, movie posters, TV series posters and album covers are supported. The core is media-agnostic, so games or other media can be added later as new providers.
+Book covers, movie posters, TV series posters, album covers and game box art are supported. The core is media-agnostic, so other media can be added later as new providers.
 
 ## Features
 
-- Batch input: one `Title, Author` (books), `Title, Year` (movies and TV series) or `Album, Artist` (albums) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series and games) or `Album, Artist` (albums) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
@@ -85,6 +85,15 @@ MusicBrainz data is CC0, but the Cover Art Archive images carry no licence of th
 
 MusicBrainz allows at most one request per second and asks every client for a User-Agent with contact information. The app sends `cover-downloader/1.0 ( https://github.com/iribarren/bullet-journal-covers )` and spaces its MusicBrainz requests one second apart, so a long album list takes at least a second per album.
 
+Sources are tried in this order for games (the year is the first release year, and it is optional):
+
+1. **IGDB** (the Internet Game Database API, owned by Twitch): box art for games on every platform, at 1080p, then 720p, then the 528 × 748 cover. It needs your own free Twitch app credentials, see [IGDB credentials](#igdb-credentials). Without them it is skipped.
+2. **Steam** (the store search, no key): the portrait library art (600 × 900, about 300 dpi at the Standard 50 mm size; 300 × 450 when the larger one is missing). It only knows PC games sold on Steam. Its search has no release dates, so when several results share the best title and a year is given, the app looks up the release dates of up to three of them to pick that year.
+
+Game covers are about 3:4 (IGDB) or 2:3 (Steam). The print sheet fits them into the same 2:3 cells as book covers.
+
+The IGDB API is free for non-commercial use under the [Twitch Developer Services Agreement](https://www.twitch.tv/p/legal/developer-agreement/); commercial use needs a partnership with IGDB. The Steam store search is undocumented, like the IMDb endpoint, and may change or stop working; Valve's terms grant no rights to its images. This app is not endorsed by Twitch, IGDB or Valve. Downloaded covers are for personal use.
+
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
@@ -93,9 +102,17 @@ MusicBrainz allows at most one request per second and asks every client for a Us
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
 
+### IGDB credentials
+
+1. Sign in at [dev.twitch.tv](https://dev.twitch.tv/) with a Twitch account. Twitch requires two-factor authentication to register apps.
+2. In the [Developer Console](https://dev.twitch.tv/console/apps), click **Register Your Application**: any name, OAuth Redirect URL `http://localhost`, a category such as *Application Integration*, and Client Type **Confidential**.
+3. Open the app with **Manage**, copy its **Client ID**, and click **New Secret** to get a **Client Secret**.
+4. In the app, click **Settings** and paste both into **IGDB Client ID** and **IGDB Client Secret**. They are saved next to the TMDB key, readable only by you. The app exchanges them for an access token (valid for about two months), which it keeps in memory only.
+5. For the command line, use `-igdb-id` and `-igdb-secret`, or the `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` environment variables; otherwise the credentials saved by the app are used.
+
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly, and requests to MusicBrainz one second apart.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), and requests to MusicBrainz one second apart. IGDB searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
 
 ## Local editions
 
@@ -126,19 +143,19 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies and TV series, `album,artist` for albums. The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies, TV series and games, `album,artist` for albums. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series or albums).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums or games).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
 ## Using the app
 
-1. Choose the media type: **Books**, **Movies**, **TV series** or **Albums**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters.
+1. Choose the media type: **Books**, **Movies**, **TV series**, **Albums** or **Games**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters; for games, add IGDB credentials for box art beyond PC games.
 2. Type or paste items, one per line, or click **Import CSV…**.
 3. Check the output folder (default: `~/Pictures/Covers`, or `%USERPROFILE%\Pictures\Covers` on Windows), and change it with **Browse…** if needed.
 4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
@@ -370,17 +387,21 @@ go run ./cmd/covers -type movies -o posters "Dune, 2021" "Inception, 2010"
 TMDB_API_KEY=<key> go run ./cmd/covers -type movies -o posters "The Matrix, 1999"
 go run ./cmd/covers -type tv -o posters "Breaking Bad, 2008" "Dark, 2017"
 go run ./cmd/covers -type albums -o albums "Abbey Road, The Beatles" "Rumours, Fleetwood Mac"
+go run ./cmd/covers -type games -o games "Hollow Knight, 2017" "Celeste, 2018"
+IGDB_CLIENT_ID=<id> IGDB_CLIENT_SECRET=<secret> go run ./cmd/covers -type games -o games "The Legend of Zelda: Breath of the Wild, 2017"
 ```
 
 Flags must come before the items:
 
-| Flag       | Default  | Meaning                                         |
-|------------|----------|-------------------------------------------------|
-| `-type`    | `books`  | Media type: `books`, `movies`, `tv` or `albums` |
-| `-o`       | `covers` | Output folder                                   |
-| `-country` | `es`     | Store country code; its editions are preferred  |
-| `-csv`     | (none)   | CSV file, added after the positional items       |
-| `-tmdb-key`| (none)   | TMDB API key; overrides `TMDB_API_KEY` and the saved key |
+| Flag           | Default  | Meaning                                                    |
+|----------------|----------|------------------------------------------------------------|
+| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums` or `games`   |
+| `-o`           | `covers` | Output folder                                              |
+| `-country`     | `es`     | Store country code; its editions are preferred             |
+| `-csv`         | (none)   | CSV file, added after the positional items                 |
+| `-tmdb-key`    | (none)   | TMDB API key; overrides `TMDB_API_KEY` and the saved key   |
+| `-igdb-id`     | (none)   | IGDB (Twitch) Client ID; overrides `IGDB_CLIENT_ID` and the saved one |
+| `-igdb-secret` | (none)   | IGDB (Twitch) Client Secret; overrides `IGDB_CLIENT_SECRET` and the saved one |
 
 The exit code is `0` when every item succeeded, `1` when any item failed or was cancelled, and `2` for usage errors.
 
@@ -451,7 +472,7 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming

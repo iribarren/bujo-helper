@@ -17,6 +17,18 @@ type Settings struct {
 	// TMDBAPIKey is the user's The Movie Database API key (v3 key or v4
 	// read access token).
 	TMDBAPIKey string `json:"tmdbApiKey"`
+	// IGDBClientID and IGDBClientSecret are the user's Twitch app
+	// credentials, used for the IGDB games API.
+	IGDBClientID     string `json:"igdbClientId"`
+	IGDBClientSecret string `json:"igdbClientSecret"`
+}
+
+// Trimmed returns s with surrounding whitespace removed from every value.
+func (s Settings) Trimmed() Settings {
+	s.TMDBAPIKey = strings.TrimSpace(s.TMDBAPIKey)
+	s.IGDBClientID = strings.TrimSpace(s.IGDBClientID)
+	s.IGDBClientSecret = strings.TrimSpace(s.IGDBClientSecret)
+	return s
 }
 
 // Path returns the settings file location:
@@ -48,9 +60,9 @@ func Load(path string) (Settings, error) {
 
 // Save writes s to path, readable only by the user. It writes a temporary
 // file in the same directory and renames it, so a failure never leaves a
-// partial file behind. Surrounding whitespace is trimmed from the key.
+// partial file behind. Surrounding whitespace is trimmed from every value.
 func Save(path string, s Settings) error {
-	s.TMDBAPIKey = strings.TrimSpace(s.TMDBAPIKey)
+	s = s.Trimmed()
 	b, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return fmt.Errorf("save settings: %w", err)

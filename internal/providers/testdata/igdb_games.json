@@ -1,0 +1,23 @@
+[
+  {
+    "id": 136369,
+    "cover": {"id": 336393, "image_id": "co79ix"},
+    "first_release_date": 1756944000,
+    "name": "Hollow Knight: Silksong"
+  },
+  {
+    "id": 14593,
+    "cover": {"id": 74196, "image_id": "co1rgi"},
+    "first_release_date": 1487894400,
+    "name": "Hollow Knight"
+  },
+  {
+    "id": 115289,
+    "cover": {"id": 89381, "image_id": "co1x0t"},
+    "name": "Hollow Knight: Voidheart Edition"
+  },
+  {
+    "id": 26286,
+    "name": "Hollow Knight Demo"
+  }
+]

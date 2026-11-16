@@ -15,9 +15,9 @@
         </div>
     </header>
 
-    <p id="movie-tip" class="tip" hidden>
-        Tip: add a TMDB API key in <button id="movie-tip-settings" class="link-button" type="button">Settings</button>
-        for better movie and TV posters.
+    <p id="key-tip" class="tip" hidden>
+        Tip: add <span id="key-tip-what">a TMDB API key</span> in <button id="key-tip-settings" class="link-button" type="button">Settings</button>
+        <span id="key-tip-why">for better movie and TV posters.</span>
     </p>
 
     <div class="tabs" role="tablist" aria-label="Sections">
@@ -145,6 +145,22 @@
             <a id="tmdb-link" href="https://www.themoviedb.org/settings/api">themoviedb.org</a></p>
     </div>
     <p class="notice">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <div class="field settings-section">
+        <label for="igdb-id">IGDB Client ID</label>
+        <input id="igdb-id" type="text" autocomplete="off" spellcheck="false"/>
+    </div>
+    <div class="field">
+        <label for="igdb-secret">IGDB Client Secret</label>
+        <div class="row">
+            <input id="igdb-secret" type="password" autocomplete="off" spellcheck="false"/>
+            <button id="igdb-secret-toggle" type="button" aria-controls="igdb-secret">Show</button>
+        </div>
+        <p class="hint">Optional. Gives box art for all games; without it, Steam covers PC games only.
+            With a Twitch account with two-factor authentication, register an app at
+            <a id="twitch-link" href="https://dev.twitch.tv/console/apps">dev.twitch.tv/console/apps</a>
+            (Client Type <em>Confidential</em>, OAuth Redirect URL <code>http://localhost</code>), then copy its
+            Client ID and a new Client Secret.</p>
+    </div>
     <div class="dialog-actions">
         <span id="settings-status" class="settings-status" aria-live="polite"></span>
         <div class="row">

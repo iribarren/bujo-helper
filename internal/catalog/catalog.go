@@ -15,6 +15,8 @@ import (
 // means no key; providers that need one are skipped.
 type Keys struct {
 	TMDB func() string
+	// IGDB returns the Twitch Client ID and Client Secret.
+	IGDB func() (clientID, clientSecret string)
 }
 
 // Default returns the registry of built-in media types. A nil client gets
@@ -97,6 +99,25 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "Kind of Blue", Creator: "Miles Davis"},
 			{Title: "Buena Vista Social Club", Creator: "Buena Vista Social Club"},
 			{Title: "Random Access Memories", Creator: "Daft Punk"},
+		},
+	})
+	// Game box art: IGDB when the user has Twitch credentials (the user's
+	// choice), then the keyless Steam store, which only knows PC games.
+	mustRegister(reg, media.MediaType{
+		ID:           "games",
+		Label:        "Games",
+		CreatorLabel: "Year",
+		DateLabel:    "Played on",
+		Providers: []media.Provider{
+			providers.NewIGDB(client, keys.IGDB),
+			providers.NewSteam(client),
+		},
+		Samples: []media.Item{
+			{Title: "Hollow Knight", Creator: "2017"},
+			{Title: "Stardew Valley", Creator: "2016"},
+			{Title: "The Witcher 3: Wild Hunt", Creator: "2015"},
+			{Title: "Celeste", Creator: "2018"},
+			{Title: "The Legend of Zelda: Breath of the Wild", Creator: "2017"},
 		},
 	})
 	return reg

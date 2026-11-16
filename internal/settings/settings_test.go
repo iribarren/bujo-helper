@@ -114,3 +114,41 @@ func TestPathIsUnderTheUserConfigDir(t *testing.T) {
 		t.Errorf("Path = %q, want %q", got, want)
 	}
 }
+
+func TestSaveTrimsAndKeepsTheIGDBCredentials(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	in := Settings{TMDBAPIKey: "tmdb", IGDBClientID: " client-id\n", IGDBClientSecret: "\tsecret "}
+	if err := Save(path, in); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (Settings{TMDBAPIKey: "tmdb", IGDBClientID: "client-id", IGDBClientSecret: "secret"}); got != want {
+		t.Errorf("Load = %+v, want %+v", got, want)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"igdbClientId": "client-id"`, `"igdbClientSecret": "secret"`} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("file = %s, want it to contain %s", b, want)
+		}
+	}
+}
+
+func TestLoadKeepsOlderFilesWithoutIGDBCredentials(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := os.WriteFile(path, []byte(`{"tmdbApiKey": "k"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != (Settings{TMDBAPIKey: "k"}) {
+		t.Errorf("Load = %+v, want only the TMDB key", got)
+	}
+}
