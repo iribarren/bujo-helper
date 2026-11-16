@@ -51,7 +51,7 @@ func TestBuildWritesOnePagePerTwentyFiveCovers(t *testing.T) {
 	}
 
 	var out bytes.Buffer
-	if err := Build(&out, paths); err != nil {
+	if err := Build(&out, paths, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.HasPrefix(out.Bytes(), []byte("%PDF")) {
@@ -65,6 +65,48 @@ func TestBuildWritesOnePagePerTwentyFiveCovers(t *testing.T) {
 	}
 }
 
+func TestBuildPagesFollowTheSize(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "cover.jpg", 66, 100, color.RGBA{40, 40, 200, 255})
+	tests := []struct {
+		size   string
+		covers int
+		pages  int
+	}{
+		{"mini", 81, 1},
+		{"mini", 82, 2},
+		{"standard", 26, 2},
+		{"large", 9, 1},
+		{"large", 10, 2},
+	}
+	for _, tt := range tests {
+		paths := make([]string, tt.covers)
+		for i := range paths {
+			paths[i] = cover
+		}
+		var out bytes.Buffer
+		if err := Build(&out, paths, Options{Size: tt.size}); err != nil {
+			t.Fatalf("%s: %v", tt.size, err)
+		}
+		if n := len(pageObject.FindAll(out.Bytes(), -1)); n != tt.pages {
+			t.Errorf("%s, %d covers: PDF has %d pages, want %d", tt.size, tt.covers, n, tt.pages)
+		}
+	}
+}
+
+func TestBuildRejectsUnknownSize(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "cover.jpg", 66, 100, color.White)
+	var out bytes.Buffer
+	err := Build(&out, []string{cover}, Options{Size: "huge"})
+	if err == nil || !strings.Contains(err.Error(), "huge") {
+		t.Errorf("error %v, want one naming the size", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("wrote %d bytes, want none", out.Len())
+	}
+}
+
 func TestBuildAcceptsPNGWithAlpha(t *testing.T) {
 	dir := t.TempDir()
 	paths := []string{
@@ -72,7 +114,7 @@ func TestBuildAcceptsPNGWithAlpha(t *testing.T) {
 		writeImage(t, dir, "square.png", 50, 50, color.NRGBA{0, 255, 0, 255}),
 	}
 	var out bytes.Buffer
-	if err := Build(&out, paths); err != nil {
+	if err := Build(&out, paths, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if n := len(pageObject.FindAll(out.Bytes(), -1)); n != 1 {
@@ -100,7 +142,7 @@ func TestBuildNamesTheBadFileAndWritesNothing(t *testing.T) {
 
 	for _, bad := range []string{corrupt, truncated, filepath.Join(dir, "missing.jpg")} {
 		var out bytes.Buffer
-		err := Build(&out, []string{good, bad})
+		err := Build(&out, []string{good, bad}, Options{})
 		if err == nil {
 			t.Errorf("%s: want an error", filepath.Base(bad))
 			continue
@@ -116,7 +158,7 @@ func TestBuildNamesTheBadFileAndWritesNothing(t *testing.T) {
 
 func TestBuildRejectsNoCovers(t *testing.T) {
 	var out bytes.Buffer
-	if err := Build(&out, nil); err == nil {
+	if err := Build(&out, nil, Options{}); err == nil {
 		t.Fatal("want an error")
 	}
 	if out.Len() != 0 {
@@ -126,7 +168,7 @@ func TestBuildRejectsNoCovers(t *testing.T) {
 
 func TestFitImageDownscalesTo300DPI(t *testing.T) {
 	src := image.NewRGBA(image.Rect(0, 0, 3000, 4574))
-	got := fitImage(src, CoverHeight)
+	got := fitImage(src, 50)
 	b := got.Bounds()
 	// 50 mm at 300 dpi is 591 px.
 	if b.Dy() != 591 || b.Dy() > 600 {
@@ -139,14 +181,14 @@ func TestFitImageDownscalesTo300DPI(t *testing.T) {
 
 func TestFitImageNeverUpscales(t *testing.T) {
 	src := image.NewRGBA(image.Rect(0, 0, 100, 150))
-	if b := fitImage(src, CoverHeight).Bounds(); b.Dx() != 100 || b.Dy() != 150 {
+	if b := fitImage(src, 50).Bounds(); b.Dx() != 100 || b.Dy() != 150 {
 		t.Errorf("size = %dx%d, want 100x150", b.Dx(), b.Dy())
 	}
 }
 
 func TestFitImageFlattensAlphaOnWhite(t *testing.T) {
 	src := image.NewNRGBA(image.Rect(0, 0, 10, 10)) // fully transparent
-	got := fitImage(src, CoverHeight)
+	got := fitImage(src, 50)
 	r, g, b, a := got.At(5, 5).RGBA()
 	if r != 0xffff || g != 0xffff || b != 0xffff || a != 0xffff {
 		t.Errorf("transparent pixel became %v %v %v %v, want opaque white", r, g, b, a)

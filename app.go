@@ -543,7 +543,7 @@ func (a *App) withExtension(path, ext string) (string, error) {
 // exportTo writes the print sheet PDF of files to path, atomically.
 func exportTo(path string, files []string) error {
 	return writeFileAtomic(path, "PDF", func(w io.Writer) error {
-		return sheet.Build(w, files)
+		return sheet.Build(w, files, sheet.Options{})
 	})
 }
 
