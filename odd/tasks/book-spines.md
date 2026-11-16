@@ -38,5 +38,8 @@ Bookshelf trackers (a drawn shelf filled with spines) are a very popular spread,
 - Route: one delegated writer for T1 and T2 (writer trigger), two commits.
 - Review of b18fe19..52c01a4 (1220 lines, medium, `slice_budget_reached`): consent granted, reliability lens approved, acknowledged. Advisory, not scheduled: R3-spine-render-unasserted (no test asserts fill/text colour or rotation in the PDF stream), R3-bucket-boundary-split (fixed buckets can split a majority hue across bucket edges; README wording "largest area of similar pixels" slightly overstates).
 
+- Whole-branch review main..ea973de (1262 lines, medium): consent granted, reliability lens approved, acknowledged. WARNING R3-creator-index-without-title: when the title cannot fit, the creator read `lines[0]` of an empty slice (panic in `Build`). Advisory, not scheduled: R3-spine-render-unasserted (again), R3-frontend-perpage-unasserted (no frontend test runner).
+- Fix `1804ce2` fix(sheet): skip the creator when the title does not fit. Route: inline (one function, understood). RED: `TestLayoutSpineTextTitleThatCannotFit` panicked `index out of range [0] with length 0`. GREEN: `go test -tags webkit2_41 ./...` 384 passed; vet, gofmt clean. Rebuilt `wails build -tags webkit2_41` (binary 12:48:01), no mode changes.
+
 ## Next step
-Whole-branch review, then the user's GUI check of the rebuilt binary, then merge.
+The user's GUI check of the rebuilt binary, then merge.
