@@ -16,7 +16,7 @@ Book covers and movie posters are supported. The core is media-agnostic, so musi
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
-- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page). See [Print sheet](#print-sheet).
+- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), or as review cards with a date, stars and lines to fill in. See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
@@ -127,13 +127,14 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 
 ## Print sheet
 
-The **Print sheet** tab turns downloaded covers into a PDF of small covers to cut out, for example for a bullet journal, on A4, US Letter or A5 paper.
+The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, or [review cards](#review-cards).
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
-2. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers fit on that paper.
-3. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**.
-4. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need on the chosen paper and size.
-5. Click **Export PDF…**, choose where to save (the suggested name gives the paper and cover size, for example `covers_A4_Standard.pdf` or `covers_Letter_Mini.pdf`), then **Open PDF** to view it.
+2. Pick a **Format**: **Cover sheet** (the default) or **Review cards**. For review cards, pick what they are **Cards for** (Books or Movies); it follows the Download tab's media type until you change it here.
+3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers fit on that paper.
+4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet only, so it is disabled for review cards.
+5. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size.
+6. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper and cover size, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf` or, for review cards, `cards_A4.pdf`), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 
@@ -163,6 +164,30 @@ How the grid is derived from the cover height *h* and the page width *W* and hei
 - **Pagination:** covers fill each page left to right, top to bottom. More covers than fit on a page add pages; the last page may be partly filled.
 - **Print at 100 % / actual size** (not "fit to page") on every paper, so covers come out at the chosen height. Pick the paper loaded in the printer: on Letter paper choose **US Letter**, not A4, so the printer does not scale or clip the page.
 - Images are downscaled to 300 dpi at their printed size (never upscaled) to keep the PDF small. If any image cannot be read, the export fails naming that file and no PDF is written. Mini covers need only about 300 px of height, and Large covers about 950 px, to print sharp.
+
+### Review cards
+
+The **Review cards** format prints one 90 × 55 mm card per selected cover, to fill in after reading or watching:
+
+| Part       | Content                                                                                       |
+|------------|-----------------------------------------------------------------------------------------------|
+| Left side  | the cover                                                                                     |
+| Title      | from the file name `Title - Creator.jpg`, up to 2 lines; longer text ends with "…"            |
+| Creator    | the author, or the year for movies (`Title - Year.jpg`), on 1 line                            |
+| Date field | **Read on** or **Watched on**, from the **Cards for** choice                                  |
+| Rating     | 5 empty stars                                                                                 |
+| Notes      | 3 writing lines                                                                               |
+
+Cards are centred on the page with 4 mm gaps and a grey cut border, at a fixed size (the cover size does not apply):
+
+| Paper     | Columns × rows | Cards per page |
+|-----------|----------------|----------------|
+| **A4**    | 2 × 4          | 8              |
+| US Letter | 2 × 4          | 8              |
+| A5        | 1 × 3          | 3              |
+
+- **File names:** the title and creator are split at the last ` - `; a name without one is a title only. A duplicate's suffix is dropped (`Dune - Frank Herbert-2.jpg` reads as "Dune" by "Frank Herbert").
+- **Caveat:** a title without a creator that ends in `-2`, `-3`… is read as a duplicate suffix, so `Catch-22.jpg` prints as "Catch". Add the creator (`Catch-22 - Joseph Heller.jpg`) to keep it.
 
 ## Using the command line
 

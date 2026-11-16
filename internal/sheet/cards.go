@@ -101,6 +101,7 @@ func drawCard(pdf *fpdf.Fpdf, c cardParts, image string, imgOpts fpdf.ImageOptio
 		pdf.Text(c.Date.X, base, line)
 		ruleX += pdf.GetStringWidth(line) + labelRuleGap
 	}
+	pdf.SetDrawColor(writingGrey, writingGrey, writingGrey)
 	pdf.SetLineWidth(ruleWidth)
 	pdf.Line(ruleX, base, c.Date.X+c.Date.W, base)
 

@@ -28,6 +28,7 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 		ID:           "books",
 		Label:        "Books",
 		CreatorLabel: "Author",
+		DateLabel:    "Read on",
 		Providers: []media.Provider{
 			providers.NewApple(client),
 			providers.NewOpenLibrary(client),
@@ -46,6 +47,7 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 		ID:           "movies",
 		Label:        "Movies",
 		CreatorLabel: "Year",
+		DateLabel:    "Watched on",
 		Providers: []media.Provider{
 			providers.NewTMDB(client, keys.TMDB),
 			providers.NewIMDb(client),

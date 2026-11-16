@@ -54,7 +54,9 @@ type MediaType struct {
 	ID           string
 	Label        string
 	CreatorLabel string
-	Providers    []Provider
+	// DateLabel labels the date field on review cards, e.g. "Read on".
+	DateLabel string
+	Providers []Provider
 	// LocalEditions makes the downloader search local ISBN editions first
 	// (books only).
 	LocalEditions bool

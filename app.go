@@ -50,6 +50,7 @@ type MediaTypeInfo struct {
 	ID           string `json:"id"`
 	Label        string `json:"label"`
 	CreatorLabel string `json:"creatorLabel"`
+	DateLabel    string `json:"dateLabel"` // date field label on review cards
 }
 
 // defaultCountry is used when the UI sends no country: Spain, so covers of
@@ -233,7 +234,12 @@ func (a *App) send(event string, data any) {
 func (a *App) MediaTypes() []MediaTypeInfo {
 	var out []MediaTypeInfo
 	for _, t := range a.registry.List() {
-		out = append(out, MediaTypeInfo{ID: t.ID, Label: t.Label, CreatorLabel: t.CreatorLabel})
+		out = append(out, MediaTypeInfo{
+			ID:           t.ID,
+			Label:        t.Label,
+			CreatorLabel: t.CreatorLabel,
+			DateLabel:    t.DateLabel,
+		})
 	}
 	return out
 }
@@ -484,6 +490,28 @@ func (a *App) ListCovers(dir string) ([]CoverView, error) {
 	return views, nil
 }
 
+// PrintFormatInfo describes a print format for the Print sheet tab.
+type PrintFormatInfo struct {
+	ID       string `json:"id"`
+	Label    string `json:"label"`
+	UsesSize bool   `json:"usesSize"` // whether the cover size preset applies
+	Default  bool   `json:"default"`
+}
+
+// PrintFormats lists the print formats, the default first.
+func (a *App) PrintFormats() []PrintFormatInfo {
+	out := make([]PrintFormatInfo, 0, len(sheet.Formats))
+	for _, f := range sheet.Formats {
+		out = append(out, PrintFormatInfo{
+			ID:       f.ID,
+			Label:    f.Label,
+			UsesSize: f.UsesSize,
+			Default:  f.ID == sheet.DefaultFormat,
+		})
+	}
+	return out
+}
+
 // PrintSizeInfo describes a cover size preset for the Print sheet tab.
 type PrintSizeInfo struct {
 	ID          string  `json:"id"`
@@ -515,11 +543,14 @@ type PrintPaperInfo struct {
 	Height  float64        `json:"height"` // mm
 	Default bool           `json:"default"`
 	PerPage map[string]int `json:"perPage"` // covers on a full page, by size ID
+	// FormatPerPage is what fits on a full page for each format that does
+	// not use a cover size, by format ID, e.g. 8 review cards on A4.
+	FormatPerPage map[string]int `json:"formatPerPage"`
 }
 
 // PrintPapers lists the paper size presets, the default first, with how many
-// covers of each size fit on a page, so the UI can count pages without its
-// own copy of the layout rules.
+// covers of each size, or items of each sizeless format, fit on a page, so
+// the UI can count pages without its own copy of the layout rules.
 func (a *App) PrintPapers() []PrintPaperInfo {
 	out := make([]PrintPaperInfo, 0, len(sheet.Papers))
 	for _, p := range sheet.Papers {
@@ -533,13 +564,27 @@ func (a *App) PrintPapers() []PrintPaperInfo {
 			}
 			perPage[s.ID] = g.PerPage()
 		}
+		formatPerPage := map[string]int{}
+		for _, f := range sheet.Formats {
+			if f.UsesSize {
+				continue
+			}
+			n, err := sheet.Options{Format: f.ID, Paper: p.ID}.PerPage()
+			if err != nil {
+				// Every format fits every paper; sheet tests guard this.
+				log.Printf("print format %s on %s: %v", f.ID, p.ID, err)
+				continue
+			}
+			formatPerPage[f.ID] = n
+		}
 		out = append(out, PrintPaperInfo{
-			ID:      p.ID,
-			Label:   p.Label,
-			Width:   p.Page.Width,
-			Height:  p.Page.Height,
-			Default: p.ID == sheet.DefaultPaper,
-			PerPage: perPage,
+			ID:            p.ID,
+			Label:         p.Label,
+			Width:         p.Page.Width,
+			Height:        p.Page.Height,
+			Default:       p.ID == sheet.DefaultPaper,
+			PerPage:       perPage,
+			FormatPerPage: formatPerPage,
 		})
 	}
 	return out
@@ -556,18 +601,13 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 	if _, err := opts.Grid(); err != nil {
 		return "", err
 	}
-	paper, err := sheet.PaperByID(opts.Paper)
-	if err != nil {
-		return "", err
-	}
-	size, err := sheet.SizeByID(opts.Size)
+	name, err := pdfFileName(opts)
 	if err != nil {
 		return "", err
 	}
 	dialog := runtime.SaveDialogOptions{
-		Title: "Export PDF",
-		// The paper and size in the name tell sheets with other settings apart.
-		DefaultFilename:      "covers_" + paper.FileTag + "_" + size.FileTag + ".pdf",
+		Title:                "Export PDF",
+		DefaultFilename:      name,
 		CanCreateDirectories: true,
 		Filters: []runtime.FileFilter{
 			{DisplayName: "PDF files (*.pdf)", Pattern: "*.pdf"},
@@ -587,6 +627,29 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 		return "", err
 	}
 	return path, nil
+}
+
+// pdfFileName is the default name of the PDF opts describe, e.g.
+// "covers_A4_Standard.pdf" or "cards_A4.pdf". The format, paper and, when the
+// format uses it, size tell sheets with other settings apart.
+func pdfFileName(opts sheet.Options) (string, error) {
+	format, err := sheet.FormatByID(opts.Format)
+	if err != nil {
+		return "", err
+	}
+	paper, err := sheet.PaperByID(opts.Paper)
+	if err != nil {
+		return "", err
+	}
+	name := format.FileTag + "_" + paper.FileTag
+	if format.UsesSize {
+		size, err := sheet.SizeByID(opts.Size)
+		if err != nil {
+			return "", err
+		}
+		name += "_" + size.FileTag
+	}
+	return name + ".pdf", nil
 }
 
 // withExtension adds ext to a saved path that lacks it. The save dialog

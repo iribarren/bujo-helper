@@ -44,6 +44,10 @@ func TestDefault(t *testing.T) {
 		t.Errorf("movies providers = %q, want %q", providerNames(movies), want)
 	}
 
+	if books.DateLabel != "Read on" || movies.DateLabel != "Watched on" {
+		t.Errorf("date labels = %q, %q, want \"Read on\", \"Watched on\"", books.DateLabel, movies.DateLabel)
+	}
+
 	if Default(nil, Keys{}) == nil {
 		t.Error("Default(nil) should fall back to a default client")
 	}

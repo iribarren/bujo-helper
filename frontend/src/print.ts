@@ -1,8 +1,8 @@
 // The "Print sheet" tab: preview the covers in a folder, select some, pick
-// a paper and a cover size and export them to a PDF on that paper (see
-// internal/sheet).
+// a format (a cover sheet or review cards), a paper and, for a cover sheet, a
+// cover size, and export them to a PDF on that paper (see internal/sheet).
 
-import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
+import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintFormats, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
 
 export interface PrintDeps {
@@ -11,6 +11,10 @@ export interface PrintDeps {
     outputFolder: () => string;
     showError: (message: string) => void;
     hideError: () => void;
+    // The media types, empty until they load, and the Download tab's media
+    // type ID; review cards follow it until the user picks another here.
+    mediaTypes: () => main.MediaTypeInfo[];
+    mediaType: () => string;
 }
 
 export interface PrintSheet {
@@ -45,6 +49,10 @@ function baseName(path: string): string {
     return path.split(/[\\/]/).pop() || path;
 }
 
+// REVIEW_CARDS is the ID of the review cards format, which asks what the
+// cards are for to label their date field.
+const REVIEW_CARDS = 'cards';
+
 function plural(n: number, word: string): string {
     return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
@@ -74,7 +82,11 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         status: byId<HTMLSpanElement>('export-status'),
         openPdf: byId<HTMLButtonElement>('open-pdf'),
         exportPdf: byId<HTMLButtonElement>('export-pdf'),
+        format: byId<HTMLSelectElement>('print-format'),
+        media: byId<HTMLSelectElement>('print-media'),
+        mediaField: byId<HTMLLabelElement>('print-media-field'),
         size: byId<HTMLSelectElement>('print-size'),
+        sizeField: byId<HTMLLabelElement>('print-size-field'),
         paper: byId<HTMLSelectElement>('print-paper'),
     };
 
@@ -92,9 +104,22 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     let sizes: main.PrintSizeInfo[] = [];
     // The paper size presets, from PrintPapers; empty until they load.
     let papers: main.PrintPaperInfo[] = [];
+    // The print formats, from PrintFormats; empty until they load.
+    let formats: main.PrintFormatInfo[] = [];
+    // Whether the user picked what review cards are for in this tab; until
+    // then it follows the Download tab's media type.
+    let mediaChosen = false;
 
     function currentDir(): string {
         return chosenDir || deps.outputFolder();
+    }
+
+    function currentFormat(): main.PrintFormatInfo | undefined {
+        return formats.find((f) => f.id === ui.format.value);
+    }
+
+    function currentMedia(): main.MediaTypeInfo | undefined {
+        return deps.mediaTypes().find((t) => t.id === ui.media.value);
     }
 
     function currentSize(): main.PrintSizeInfo | undefined {
@@ -105,14 +130,18 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         return papers.find((p) => p.id === ui.paper.value);
     }
 
-    // currentLayout is the chosen paper and size with how many covers fit on
-    // a page, or undefined until both have loaded.
+    // currentLayout is the chosen format, paper and, when the format uses
+    // one, size, with how many covers or cards fit on a page, or undefined
+    // until they have loaded.
     function currentLayout() {
-        const size = currentSize();
+        const format = currentFormat();
         const paper = currentPaper();
-        const perPage = size && paper ? paper.perPage[size.id] : undefined;
-        if (!size || !paper || !perPage) return undefined;
-        return {size, paper, perPage};
+        if (!format || !paper) return undefined;
+        const size = format.usesSize ? currentSize() : undefined;
+        if (format.usesSize && !size) return undefined;
+        const perPage = size ? paper.perPage[size.id] : paper.formatPerPage[format.id];
+        if (!perPage) return undefined;
+        return {format, paper, size, perPage};
     }
 
     function updateSelection() {
@@ -245,8 +274,13 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         ui.status.title = '';
         ui.openPdf.hidden = true;
         try {
-            const saved = await ExportPDF(paths, currentDir(),
-                sheet.Options.createFrom({size: layout.size.id, paper: layout.paper.id}));
+            const cards = layout.format.id === REVIEW_CARDS;
+            const saved = await ExportPDF(paths, currentDir(), sheet.Options.createFrom({
+                format: layout.format.id,
+                size: layout.size?.id ?? '',
+                paper: layout.paper.id,
+                dateLabel: cards ? currentMedia()?.dateLabel ?? '' : '',
+            }));
             if (saved === '') {
                 // Dialog cancelled: leave the last result as it was.
                 ui.status.textContent = previous.text;
@@ -256,7 +290,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             }
             lastPdf = saved;
             ui.status.textContent =
-                `Saved ${baseName(saved)}: ${plural(paths.length, 'cover')} on ${plural(pageCount(paths.length, layout.perPage), 'page')}`;
+                `Saved ${baseName(saved)}: ${plural(paths.length, cards ? 'card' : 'cover')} on ${plural(pageCount(paths.length, layout.perPage), 'page')}`;
             ui.status.title = saved;
             ui.openPdf.hidden = false;
         } catch (err) {
@@ -278,8 +312,47 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         }
     }
 
+    // updateFormat shows the controls that apply to the chosen format: the
+    // cover size for a cover sheet, what the cards are for for review cards.
+    function updateFormat() {
+        const usesSize = currentFormat()?.usesSize ?? true;
+        ui.size.disabled = !usesSize;
+        ui.sizeField.classList.toggle('disabled', !usesSize);
+        ui.mediaField.hidden = ui.format.value !== REVIEW_CARDS;
+        updateSelection();
+    }
+
+    // syncMedia fills the Cards for choices from the media types and, until
+    // the user picks one here, selects the Download tab's media type.
+    function syncMedia() {
+        const types = deps.mediaTypes();
+        if (ui.media.options.length !== types.length) {
+            const kept = ui.media.value;
+            ui.media.replaceChildren(...types.map((t) => {
+                const option = el('option', '', t.label);
+                option.value = t.id;
+                option.title = `Date field: ${t.dateLabel}`;
+                return option;
+            }));
+            if (mediaChosen) ui.media.value = kept;
+        }
+        if (!mediaChosen) ui.media.value = deps.mediaType();
+    }
+
     async function loadPresets() {
-        const [sizeList, paperList] = await Promise.allSettled([PrintSizes(), PrintPapers()]);
+        const [formatList, sizeList, paperList] =
+            await Promise.allSettled([PrintFormats(), PrintSizes(), PrintPapers()]);
+        if (formatList.status === 'fulfilled') {
+            formats = formatList.value ?? [];
+            ui.format.replaceChildren(...formats.map((format) => {
+                const option = el('option', '', format.label);
+                option.value = format.id;
+                option.selected = format.default;
+                return option;
+            }));
+        } else {
+            deps.showError(`Could not load print formats: ${errorText(formatList.reason)}`);
+        }
         if (sizeList.status === 'fulfilled') {
             sizes = sizeList.value ?? [];
             ui.size.replaceChildren(...sizes.map((size) => {
@@ -304,7 +377,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             deps.showError(`Could not load paper sizes: ${errorText(paperList.reason)}`);
         }
         updateSizeLabels();
-        updateSelection();
+        updateFormat();
     }
 
     async function openPdf() {
@@ -324,6 +397,13 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     ui.selectNone.addEventListener('click', () => selectAll(false));
     ui.exportPdf.addEventListener('click', exportPdf);
     ui.openPdf.addEventListener('click', openPdf);
+    ui.format.addEventListener('change', () => {
+        syncMedia();
+        updateFormat();
+    });
+    ui.media.addEventListener('change', () => {
+        mediaChosen = true;
+    });
     ui.size.addEventListener('change', updateSelection);
     ui.paper.addEventListener('change', () => {
         updateSizeLabels();
@@ -334,6 +414,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
 
     return {
         activate: () => {
+            syncMedia();
             load();
         },
     };
