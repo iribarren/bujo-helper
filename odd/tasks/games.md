@@ -71,5 +71,7 @@ Game trackers exist in gaming bullet journals. The roadmap asks for a source com
   - Assess `51c9418..7517b31`: medium, 38 lines, `under_budget`, so no review is due.
   - `wails build` was rerun with modes restored, and `build/bin/cover-downloader` was rebuilt.
 
+- Manual GUI check passed (user, 2026-11-16). Merged to main (`be6c483`) and pushed.
+
 ## Next step
-The user's GUI check: the Settings IGDB fields, Show/Hide on the secret, the Twitch link, the Games tip, the placeholder and the sample CSV. Then merge, mark roadmap item 13 done, and push (the user's decision).
+Done.

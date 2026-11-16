@@ -181,7 +181,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 - Provider tests with fixtures. A sheet of only square covers fills the page with square cells, and the 2:3 output doesn't change.
 - README Sources and Print sheet sections updated.
 
-## 13. [ ] Video games media type
+## 13. [x] Video games media type (be6c483)
 
 **Why:** game trackers exist in gaming bullet journals, but demand is less proven than for books, movies or TV.
 
