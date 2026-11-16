@@ -31,11 +31,21 @@ Instant-photo-style frames are a popular decoration style for media spreads.
 - Frontend: `npx tsc --noEmit` in `frontend/`; `wails build -tags webkit2_41` (revert 0755 modes it sets on `frontend/wailsjs/go/main/*` and `models.ts`).
 
 ## Tasks
-- [ ] T1 sheet: `polaroid` format, frame geometry, `NewPolaroidGrid`, `layoutPolaroid`, `buildPolaroids`, table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in `internal/sheet`).
-- [ ] T2 app + UI + docs: app tests (formats list, per-page, export name), any Print tab tweak, README. Route: same delegated writer, separate commit.
+- [x] T1 sheet: `polaroid` format, frame geometry, `NewPolaroidGrid`, `layoutPolaroid`, `buildPolaroids`, table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in `internal/sheet`).
+- [x] T2 app + UI + docs: app tests (formats list, per-page, export name), any Print tab tweak, README. Route: same delegated writer, separate commit.
 
 ## Progress
-- Feature doc created; branch `feat/polaroid` from `56b3551`. RDD on (global).
+- Feature doc created; branch `feat/polaroid` from `56b3551`. RDD on (global). Plan commit 6f28aa8: low risk, auto-approved, acknowledged.
+
+- T1 done in `9d2a6fb` feat(sheet): add polaroid print format. Route: delegated writer. 7 files, +672 / −8 (≈ 460 test lines). Over the ~400-line heuristic because geometry, grid, caption fitting and PDF output each need table-driven coverage; no artificial split.
+  - Files: `internal/sheet/polaroid.go` (geometry, `NewPolaroidGrid`, `layoutPolaroid`, `polaroidFontSize`, `layoutPolaroidCaption`), `polaroids.go` (`buildPolaroids`, drawing), `polaroid_test.go`, `layout.go` (Formats entry after Checklist, `Options.Grid()` case), `pdf.go` (build switch), `format_test.go`, `app_test.go` (expected lists).
+  - RED: `go test -tags webkit2_41 ./internal/sheet/` → build failed: `undefined: polaroidFrame`, `layoutPolaroid`, `NewPolaroidGrid`, `polaroidFontSize`.
+  - GREEN: `go test ./...`, `go vet` clean, `gofmt -l .` empty.
+  - Defaults unchanged: page-stream hashes of 896 renders (every existing format × paper × size × cut × header, fixed dates, mixed fixtures) identical before (6f28aa8) and after, via `go test -overlay` scratch test outside the repo.
+  - Design as built: window ⅔H × H, border 0.08H, bottom band 0.28H; frames Mini 20.67 × 34, Standard 41.33 × 68, Large 66.13 × 108.8 mm. Per page A4 / Letter 56 / 12 / 4, A5 25 / 6 / 1. Caption clamp(0.18H, 6, 12) pt → 6 / 9 / 12 pt, ≤ 2 lines (capped to what fits the band), centred; empty title → none. 0.2 mm grey border around the frame only. Cut mode and header ignored (tested).
+- T2 done in `83c3303` feat(ui): offer polaroid format in the print sheet. 5 files, +54 / −20: `app_test.go` export names, `app.go` doc, `frontend/index.html` tooltips, `frontend/src/print.ts` comments, README (feature line, steps, Cut mode note, "Polaroid" subsection). No Go struct change → no `wails build`. RED: none meaningful (export-name cases are characterisation). GREEN: tests, vet, gofmt, `npx tsc --noEmit` clean.
+  - Deviation: PDF name is `polaroid_<paper>_<size>.pdf` (existing `pdfFileName` rule for `UsesSize` formats, like spines), not `polaroid_<paper>.pdf`.
+- Parent spot check: `go test -tags webkit2_41 ./internal/sheet/ .` 398 passed; A4 Standard render reviewed (4 × 3 frames, thick bottom band, centred captions, long title cut with "…", square/wide/narrow images inside the window).
 
 ## Next step
-T1.
+Native review of the T1..T2 range, then manual GUI check (Polaroid in the Format list, Cover size applies, Cut mode hidden, page count per size, export).
