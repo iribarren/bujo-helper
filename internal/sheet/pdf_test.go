@@ -508,14 +508,16 @@ func cutFixtures(t *testing.T) []string {
 
 // The default cover sheet, and the Border cut mode, draw exactly what they
 // drew before cut modes existed: each image, then its grey 0.2 mm border.
+// The square cover has a 50 mm square cell, so the row of a 2:3, a square
+// and a 2:3 cell is centred as if padded with another 2:3 cell: 20.6 mm in.
 func TestBuildBorderCutKeepsTodaysCoverSheet(t *testing.T) {
 	const today = "0 J\n0 j\n0.57 w\n0.600 G\n0.000 g\n" +
-		"q 93.54331 0 0 141.73228 26.36220 656.22047 cm /I Do Q\n" +
-		"26.36 797.95 93.54 -141.73 re S\n" +
-		"q 100.91339 0 0 100.91339 134.92913 676.62992 cm /I Do Q\n" +
-		"134.93 777.54 100.91 -100.91 re S\n" +
-		"q 100.91339 0 0 67.27559 247.18110 693.44882 cm /I Do Q\n" +
-		"247.18 760.72 100.91 -67.28 re S\n\n"
+		"q 93.54331 0 0 141.73228 62.07874 656.22047 cm /I Do Q\n" +
+		"62.08 797.95 93.54 -141.73 re S\n" +
+		"q 141.73228 0 0 141.73228 170.64567 656.22047 cm /I Do Q\n" +
+		"170.65 797.95 141.73 -141.73 re S\n" +
+		"q 100.91339 0 0 67.27559 323.71654 693.44882 cm /I Do Q\n" +
+		"323.72 760.72 100.91 -67.28 re S\n\n"
 	paths := cutFixtures(t)
 	for _, cut := range []string{"", "border"} {
 		if got := pageStreams(render(t, paths, Options{Cut: cut})); got != today {
@@ -552,7 +554,7 @@ func TestBuildBleedCutDrawsBleedAndCropMarks(t *testing.T) {
 	}
 	// Each image is clipped to its bleed box, 1 mm past its cut line.
 	g := standard(t)
-	pages, err := g.Layout([]float64{0.66, 1, 1.5})
+	pages, err := g.Flow([]float64{0.66, 1, 1.5})
 	if err != nil {
 		t.Fatal(err)
 	}

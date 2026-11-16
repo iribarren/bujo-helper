@@ -79,7 +79,7 @@ Sources are tried in this order for albums (the artist is optional, but it helps
 1. **MusicBrainz + Cover Art Archive** (no key): the MusicBrainz API finds the release group (the album across all its editions) by title and artist, preferring albums over singles and other releases with the same title. The [Cover Art Archive](https://coverartarchive.org/) serves its front cover at 1200 px, falling back to 500 px and then the original image.
 2. **Apple Music** (iTunes Search API, album search): large, high-quality artwork. It uses the store country.
 
-Album covers are square, unlike the 2:3 book covers and posters.
+Album covers are square, unlike the 2:3 book covers and posters, so a cover sheet gives them square cells (see [Print sheet](#print-sheet)).
 
 MusicBrainz data is CC0, but the Cover Art Archive images carry no licence of their own: its documentation says to use them at your own risk. Apple's terms allow iTunes artwork only to promote the store's content, the same terms as the Apple Books and Apple TV sources above. Downloaded covers are for personal use.
 
@@ -150,7 +150,7 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, [review cards](#review-cards), [spines](#spines), [ticket stubs](#ticket-stubs), a [full page](#full-page) of covers under a header, with nothing to cut, a [checklist](#checklist) to tick off as you read or watch, or [polaroids](#polaroid) with the title as a caption.
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
-2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page**, **Checklist** or **Polaroid**. For review cards, pick what they are **Cards for** (Books, Movies or TV series); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** (for example "Books of 2026" or "TBR 2026"), or leave it empty.
+2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page**, **Checklist** or **Polaroid**. For review cards, pick what they are **Cards for** (Books, Movies, TV series or Albums); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** (for example "Books of 2026" or "TBR 2026"), or leave it empty.
 3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines, or polaroids) fit on that paper.
 4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet, spines and polaroids, so it is disabled for review cards, ticket stubs, full pages and checklists.
 5. For a cover sheet, pick a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). It never changes how many covers fit on a page.
@@ -181,7 +181,9 @@ How the grid is derived from the cover height *h* and the page width *W* and hei
 | Top/bottom margin | whatever height is left, split equally, so the grid is centred                             |
 | Cut border        | 0.2 mm grey (#999) line exactly around each cover, in the default [cut mode](#cut-mode)    |
 
-- **Shrink to fit:** a cover wider than its column (for example a square one) is shrunk to the column width and keeps its aspect ratio, so it ends up shorter than the chosen height. Each cover is centred in its cell. Typical book covers (about 2:3) keep the full height: at Standard size they are 50 mm tall and about 33 mm wide.
+- **Square cells:** a square cover (width / height within about 10 % of 1, such as album art) gets a square cell, *h* × *h*, instead of a column. Cells flow left to right, 4 mm apart, and a row wraps when the next cell does not fit, so a folder of books and albums mixes both kinds of cell. The rows per page stay the same. Each row is centred, and a short row is centred as if it were filled with more cells like its last one, so the last row lines up with the full rows above it. A sheet without square covers keeps the grid in the table above.
+- **Square covers per page:** A4 6 × 9 = 54 (Mini), 3 × 5 = 15 (Standard), 2 × 3 = 6 (Large); US Letter 7 × 9 = 63, 3 × 4 = 12, 2 × 3 = 6; A5 4 × 6 = 24, 2 × 3 = 6, 1 × 2 = 2.
+- **Shrink to fit:** a cover wider than its cell (for example a wide one) is shrunk to the cell width and keeps its aspect ratio, so it ends up shorter than the chosen height. Each cover is centred in its cell. Typical book covers (about 2:3) keep the full height: at Standard size they are 50 mm tall and about 33 mm wide. The other formats have no square cells: square images shrink to fit there.
 - **Pagination:** covers fill each page left to right, top to bottom. More covers than fit on a page add pages; the last page may be partly filled.
 - **Print at 100 % / actual size** (not "fit to page") on every paper, so covers come out at the chosen height. Pick the paper loaded in the printer: on Letter paper choose **US Letter**, not A4, so the printer does not scale or clip the page.
 - Images are downscaled to 300 dpi at their printed size (never upscaled) to keep the PDF small. If any image cannot be read, the export fails naming that file and no PDF is written. Mini covers need only about 300 px of height, and Large covers about 950 px, to print sharp.
@@ -210,8 +212,8 @@ The **Review cards** format prints one 90 × 55 mm card per selected cover, to f
 |------------|-----------------------------------------------------------------------------------------------|
 | Left side  | the cover                                                                                     |
 | Title      | from the file name `Title - Creator.jpg`, up to 2 lines; longer text ends with "…"            |
-| Creator    | the author, or the year for movies and TV series (`Title - Year.jpg`), on 1 line              |
-| Date field | **Read on** or **Watched on**, from the **Cards for** choice                                  |
+| Creator    | the author, the year for movies and TV series (`Title - Year.jpg`), or the artist for albums, on 1 line |
+| Date field | **Read on**, **Watched on** or **Listened on**, from the **Cards for** choice                 |
 | Rating     | 5 empty stars                                                                                 |
 | Notes      | 3 writing lines                                                                               |
 
@@ -263,7 +265,7 @@ The **Ticket stubs** format prints one 90 × 40 mm movie ticket stub per selecte
 | Perforation | a dashed line between the notches, 20 mm from the right edge                               |
 | Left side   | the poster                                                                                 |
 | Title       | bold, from the file name `Title - Creator.jpg`, up to 2 lines; longer text ends with "…"   |
-| Creator     | the year for movies and TV series (`Title - Year.jpg`), or the author for books, on 1 line |
+| Creator     | the year for movies and TV series (`Title - Year.jpg`), the author for books, or the artist for albums, on 1 line |
 | Fields      | **Date:** and **Where:**, each with a line to write on                                     |
 | Rating      | 5 empty stars                                                                              |
 | Stub end    | **ADMIT ONE**, turned to read bottom to top                                                |
@@ -311,7 +313,7 @@ The **Checklist** format prints a to-be-read list or watchlist to glue into a jo
 | Checkbox  | a 5 mm square on the left                                                                     |
 | Thumbnail | the cover in a 2:3 box 13 mm tall, keeping its aspect ratio (square and wide images are shrunk to fit and centred) |
 | Title     | bold, from the file name `Title - Creator.jpg`, on 1 line; longer text ends with "…"          |
-| Creator   | the year for movies and TV series (`Title - Year.jpg`), or the author for books, on 1 line under the title; without one, the title is centred alone |
+| Creator   | the year for movies and TV series (`Title - Year.jpg`), the author for books, or the artist for albums, on 1 line under the title; without one, the title is centred alone |
 | Rule      | a thin light-grey line under each row                                                         |
 
 Rows are 16 mm tall and span the page within 8 mm margins, from the top margin down, or right below the header:

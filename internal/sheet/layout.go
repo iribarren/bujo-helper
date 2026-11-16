@@ -6,8 +6,9 @@
 //
 // On a cover sheet, covers have a fixed height chosen by a size preset (50 mm by default) and
 // keep their aspect ratio, in a centred grid derived from the cover height
-// and the paper size (A4 by default). A cover too wide for its column is shrunk to the column
-// width. All sizes are in millimetres.
+// and the paper size (A4 by default). A square cover gets a square cell and
+// the cells flow in rows (see Grid.Flow); a cover too wide for its cell is
+// shrunk to the cell width. All sizes are in millimetres.
 package sheet
 
 import (
@@ -111,6 +112,9 @@ type Format struct {
 	UsesCut  bool   // whether the cut mode applies; other formats keep their borders
 	// UsesHeader is whether the format prints the header the user types.
 	UsesHeader bool
+	// SquareCells is whether square images get square cells (see
+	// Grid.Flow); in other formats they shrink to fit like any image.
+	SquareCells bool
 }
 
 // DefaultFormat is the ID of the format used when none is chosen.
@@ -128,7 +132,7 @@ const (
 
 // Formats lists the print formats, the default first.
 var Formats = []Format{
-	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true, UsesCut: true},
+	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true, UsesCut: true, SquareCells: true},
 	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", Noun: "card", UsesSize: false},
 	{ID: spinesFormat, Label: "Spines", FileTag: "spines", Noun: "spine", UsesSize: true},
 	{ID: stubsFormat, Label: "Ticket stubs", FileTag: "stubs", Noun: "stub", UsesSize: false},
@@ -325,15 +329,12 @@ type Box struct {
 // pages. Covers fill the grid left to right, top to bottom, PerPage per
 // page; the last page may be partial. Each cover is centred in its cell.
 func (g Grid) Layout(ratios []float64) ([][]Box, error) {
-	if len(ratios) == 0 {
-		return nil, errors.New("no covers to lay out")
+	if err := checkRatios(ratios); err != nil {
+		return nil, err
 	}
 	perPage := g.PerPage()
 	var pages [][]Box
 	for i, r := range ratios {
-		if r <= 0 || math.IsNaN(r) || math.IsInf(r, 0) {
-			return nil, fmt.Errorf("cover %d has an invalid aspect ratio %v", i+1, r)
-		}
 		if i%perPage == 0 {
 			pages = append(pages, make([]Box, 0, min(perPage, len(ratios)-i)))
 		}
@@ -378,11 +379,16 @@ func (g Grid) cell(n int) Box {
 
 // place returns the box of a cover with aspect ratio r in cell n of a page.
 func (g Grid) place(n int, r float64) Box {
-	w, h := g.CoverHeight*r, g.CoverHeight
-	if w > g.CellWidth {
-		w, h = g.CellWidth, g.CellWidth/r
+	return fit(g.cell(n), r)
+}
+
+// fit returns the box of a cover with aspect ratio r in cell c: as tall as
+// the cell, or shrunk to its width if that is too wide, and centred.
+func fit(c Box, r float64) Box {
+	w, h := c.H*r, c.H
+	if w > c.W {
+		w, h = c.W, c.W/r
 	}
-	c := g.cell(n)
 	return Box{
 		X: c.X + (c.W-w)/2,
 		Y: c.Y + (c.H-h)/2,
