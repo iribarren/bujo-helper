@@ -194,7 +194,9 @@ func (p *IGDB) accessToken(ctx context.Context, id, secret string) (string, erro
 	// The credentials travel in the form body, never in the URL.
 	err := postJSON(ctx, p.Client, p.TokenURL, "application/x-www-form-urlencoded", form.Encode(), web.SetAPIHeaders, &body)
 	var status *httpStatusError
-	if errors.As(err, &status) && status.Status >= 400 && status.Status < 500 {
+	// Only these mean bad credentials; a 429 or 5xx is reported as is.
+	if errors.As(err, &status) && (status.Status == http.StatusBadRequest ||
+		status.Status == http.StatusUnauthorized || status.Status == http.StatusForbidden) {
 		return "", fmt.Errorf("Twitch rejected the IGDB credentials (HTTP %d)", status.Status)
 	}
 	if err != nil {

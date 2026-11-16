@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -362,6 +363,18 @@ func TestIGDBRejectedCredentials(t *testing.T) {
 			t.Errorf("calls = %d token + %d games, want one retry (2 + 2)", tokens, games)
 		}
 	})
+	for _, status := range []int{http.StatusTooManyRequests, http.StatusInternalServerError} {
+		t.Run(fmt.Sprintf("token endpoint answers %d", status), func(t *testing.T) {
+			f := newFakeIGDB(t, "igdb_games.json")
+			f.tokenStatus = status
+			p := newTestIGDB(f.serve(), igdbCreds("id", "secret"))
+
+			_, err := p.Search(context.Background(), media.Item{Title: "Hollow Knight"}, media.Options{})
+			if err == nil || strings.Contains(err.Error(), "rejected") {
+				t.Errorf("err = %v, want a token error that doesn't blame the credentials", err)
+			}
+		})
+	}
 	t.Run("token endpoint refuses", func(t *testing.T) {
 		f := newFakeIGDB(t, "igdb_games.json")
 		f.tokenStatus = http.StatusForbidden

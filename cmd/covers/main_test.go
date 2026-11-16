@@ -267,7 +267,7 @@ func TestRunPassesTheTMDBKey(t *testing.T) {
 			}
 			var stdout, stderr bytes.Buffer
 			run(context.Background(), append(args, "Dune, 2021"), &stdout, &stderr, e)
-			if k := <-got; k != tt.want {
+			if k := received(t, got); k != tt.want {
 				t.Errorf("key = %q, want %q", k, tt.want)
 			}
 			if fileRead != tt.readFile {
@@ -342,6 +342,21 @@ func TestResolveIGDBCredentialsSkipsTheFileWhenNotNeeded(t *testing.T) {
 	}
 }
 
+// received returns the value a provider sent on ch during run. run is
+// synchronous, so an empty channel means the provider was never searched;
+// the test fails at once instead of blocking.
+func received[T any](t *testing.T, ch <-chan T) T {
+	t.Helper()
+	select {
+	case v := <-ch:
+		return v
+	default:
+		t.Fatal("the provider was never searched")
+		var zero T
+		return zero
+	}
+}
+
 // credsProvider records the IGDB credentials it sees at search time.
 type credsProvider struct {
 	creds func() (string, string)
@@ -403,7 +418,7 @@ func TestRunPassesTheIGDBCredentials(t *testing.T) {
 			args := append([]string{"-type", "games", "-o", t.TempDir()}, tt.args...)
 			var stdout, stderr bytes.Buffer
 			run(context.Background(), append(args, "Hollow Knight, 2017"), &stdout, &stderr, e)
-			if c := <-got; c != tt.want {
+			if c := received(t, got); c != tt.want {
 				t.Errorf("credentials = %q, want %q", c, tt.want)
 			}
 		})
@@ -444,7 +459,7 @@ func TestRunReadsTheSettingsFileOnlyWhenNeeded(t *testing.T) {
 			if reads != tt.wantReads {
 				t.Errorf("settings file reads = %d, want %d", reads, tt.wantReads)
 			}
-			if tt.withKeys && (<-tmdb != "tmdb" || <-igdb != [2]string{"id", "secret"}) {
+			if tt.withKeys && (received(t, tmdb) != "tmdb" || received(t, igdb) != [2]string{"id", "secret"}) {
 				t.Error("keys not read from the settings file")
 			}
 		})
