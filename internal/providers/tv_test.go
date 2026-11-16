@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"cover-downloader/internal/media"
+	"bujo-helper/internal/media"
 )
 
 func newTestTMDBTV(srv *httptest.Server, key string) *TMDB {

@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/text/unicode/norm"
 
-	"cover-downloader/internal/media"
+	"bujo-helper/internal/media"
 )
 
 // Normalize folds text for comparison: accents are stripped, letters are

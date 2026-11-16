@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"cover-downloader/internal/media"
+	"bujo-helper/internal/media"
 )
 
 func TestNormalize(t *testing.T) {

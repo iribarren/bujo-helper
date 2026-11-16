@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strings"
 
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // MusicBrainz searches MusicBrainz release groups (an album across all its

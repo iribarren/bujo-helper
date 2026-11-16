@@ -38,4 +38,6 @@ export function SaveSampleCSV(arg1:string):Promise<string>;
 
 export function SaveSettings(arg1:settings.Settings):Promise<void>;
 
+export function SetLanguage(arg1:string):Promise<void>;
+
 export function Start(arg1:main.StartRequest):Promise<Array<main.ItemView>>;

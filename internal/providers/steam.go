@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"cover-downloader/internal/match"
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/match"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // steamMaxTieLookups caps the release-date lookups made to break a title

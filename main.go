@@ -15,7 +15,7 @@ func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title:     "Cover Downloader",
+		Title:     "BuJo Helper",
 		Width:     900,
 		Height:    720,
 		MinWidth:  640,

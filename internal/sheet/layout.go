@@ -162,12 +162,42 @@ type Options struct {
 	Paper  string `json:"paper"`  // a Paper ID; "" means DefaultPaper
 	Cut    string `json:"cut"`    // a CutMode ID; "" means DefaultCut. Ignored by formats that do not use it.
 	// DateLabel labels the date field of review cards, e.g. "Read on";
-	// "" means "Date".
+	// "" means Labels.CardDate ("Date" by default).
 	DateLabel string `json:"dateLabel"`
 	// Header is printed above the covers of a full page or the rows of a
 	// checklist, e.g. "Books of 2026" or "TBR 2026"; "" (or only spaces)
 	// means no header. Ignored by other formats.
 	Header string `json:"header"`
+	// Labels are the fixed words printed on stubs and cards, in the UI
+	// language. The app fills them in; the zero value prints English.
+	Labels Labels `json:"-"`
+}
+
+// Labels are the fixed words printed on ticket stubs and review cards. An
+// empty (or blank) field keeps its English default.
+type Labels struct {
+	Admit    string // on the stub end; "ADMIT ONE"
+	Date     string // the stub's date field, with its colon; "Date:"
+	Where    string // the stub's where field, with its colon; "Where:"
+	CardDate string // a card's date field when DateLabel is "", without the colon; "Date"
+}
+
+// labels returns o.Labels, trimmed, with every empty field set to its
+// English default.
+func (o Options) labels() Labels {
+	or := func(s, def string) string {
+		if s = strings.TrimSpace(s); s == "" {
+			return def
+		}
+		return s
+	}
+	l := o.Labels
+	return Labels{
+		Admit:    or(l.Admit, admitText),
+		Date:     or(l.Date, dateText),
+		Where:    or(l.Where, whereText),
+		CardDate: or(l.CardDate, cardDateText),
+	}
 }
 
 // Grid returns the grid the options describe: the cover grid of the size
@@ -242,11 +272,12 @@ func (o Options) header() string {
 	return strings.Join(strings.Fields(o.Header), " ")
 }
 
-// dateLabel is the text of the date field of a review card, with its colon.
+// dateLabel is the text of the date field of a review card, with its colon:
+// DateLabel, or the card date label when it is empty.
 func (o Options) dateLabel() string {
 	label := strings.TrimSpace(o.DateLabel)
 	if label == "" {
-		label = "Date"
+		label = o.labels().CardDate
 	}
 	return label + ":"
 }

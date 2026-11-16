@@ -13,9 +13,9 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 
-	"cover-downloader/internal/isbn"
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/isbn"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // ErrBotCheck reports that Amazon served a bot check (captcha or the Akamai

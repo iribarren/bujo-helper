@@ -12,7 +12,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"cover-downloader/internal/media"
+	"bujo-helper/internal/media"
 )
 
 // maxNameRunes caps each part (title, creator) of a file name.

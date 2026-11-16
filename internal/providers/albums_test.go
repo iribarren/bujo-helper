@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 const testCoverBase = "https://caa.example/release-group"
@@ -54,7 +54,7 @@ func TestMusicBrainzSearch(t *testing.T) {
 		}
 	}
 	// MusicBrainz requires a User-Agent with contact information.
-	const wantUA = "cover-downloader/1.0 ( https://github.com/iribarren/bullet-journal-covers )"
+	const wantUA = "bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )"
 	if ua := rec.last.Header.Get("User-Agent"); ua != wantUA || web.MusicBrainzUserAgent != wantUA {
 		t.Errorf("User-Agent = %q (constant %q), want %q", ua, web.MusicBrainzUserAgent, wantUA)
 	}

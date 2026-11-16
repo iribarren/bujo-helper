@@ -1,4 +1,4 @@
-module cover-downloader
+module bujo-helper
 
 go 1.26.0
 

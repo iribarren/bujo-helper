@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // WikidataITunes finds films on Wikidata by title, reads their iTunes movie

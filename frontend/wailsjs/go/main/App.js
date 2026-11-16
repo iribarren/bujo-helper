@@ -70,6 +70,10 @@ export function SaveSettings(arg1) {
   return window['go']['main']['App']['SaveSettings'](arg1);
 }
 
+export function SetLanguage(arg1) {
+  return window['go']['main']['App']['SetLanguage'](arg1);
+}
+
 export function Start(arg1) {
   return window['go']['main']['App']['Start'](arg1);
 }

@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/providers"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/providers"
 )
 
 func providerNames(t media.MediaType) []string {

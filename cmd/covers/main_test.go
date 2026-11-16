@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"cover-downloader/internal/catalog"
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/settings"
+	"bujo-helper/internal/catalog"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/settings"
 )
 
 type fakeProvider struct{ imageURL string }
@@ -463,5 +463,65 @@ func TestRunReadsTheSettingsFileOnlyWhenNeeded(t *testing.T) {
 				t.Error("keys not read from the settings file")
 			}
 		})
+	}
+}
+
+// withConfigDir points the user config directory at a temporary folder on
+// every OS and returns it.
+func withConfigDir(t *testing.T) string {
+	t.Helper()
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("AppData", t.TempDir())
+	base, err := os.UserConfigDir()
+	if err != nil {
+		t.Skipf("no user config dir: %v", err)
+	}
+	return base
+}
+
+func TestLoadUserSettingsMigratesTheLegacySettings(t *testing.T) {
+	base := withConfigDir(t)
+	legacy := filepath.Join(base, "cover-downloader", "settings.json")
+	if err := settings.Save(legacy, settings.Settings{TMDBAPIKey: "old-key", IGDBClientSecret: "old-secret"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var warn bytes.Buffer
+	got, err := loadUserSettingsWarning(&warn)
+	if err != nil {
+		t.Fatalf("loadUserSettings: %v", err)
+	}
+	if want := (settings.Settings{TMDBAPIKey: "old-key", IGDBClientSecret: "old-secret"}); got != want {
+		t.Errorf("settings = %+v, want the legacy settings %+v", got, want)
+	}
+	if _, err := os.Stat(filepath.Join(base, "bujo-helper", "settings.json")); err != nil {
+		t.Errorf("new settings file not written: %v", err)
+	}
+	if warn.Len() != 0 {
+		t.Errorf("warnings = %q, want none", warn.String())
+	}
+}
+
+func TestLoadUserSettingsWarnsAboutASkippedLegacyFile(t *testing.T) {
+	base := withConfigDir(t)
+	legacy := filepath.Join(base, "cover-downloader", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(legacy), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacy, []byte("{broken"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var warn bytes.Buffer
+	got, err := loadUserSettingsWarning(&warn)
+	if err != nil {
+		t.Fatalf("loadUserSettings: %v, want the CLI to carry on", err)
+	}
+	if got != (settings.Settings{}) {
+		t.Errorf("settings = %+v, want zero settings", got)
+	}
+	if out := warn.String(); !strings.HasPrefix(out, "warning: ") || !strings.Contains(out, legacy) {
+		t.Errorf("warnings = %q, want one naming the skipped legacy file", out)
 	}
 }

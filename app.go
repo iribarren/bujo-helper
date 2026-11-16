@@ -18,14 +18,15 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"cover-downloader/internal/batch"
-	"cover-downloader/internal/catalog"
-	"cover-downloader/internal/downloader"
-	"cover-downloader/internal/gallery"
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/settings"
-	"cover-downloader/internal/sheet"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/batch"
+	"bujo-helper/internal/catalog"
+	"bujo-helper/internal/downloader"
+	"bujo-helper/internal/gallery"
+	"bujo-helper/internal/i18n"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/settings"
+	"bujo-helper/internal/sheet"
+	"bujo-helper/internal/web"
 )
 
 // Events emitted to the frontend while a job runs.
@@ -82,7 +83,12 @@ type ItemEvent struct {
 	Path    string `json:"path"`
 	Source  string `json:"source"`
 	Matched string `json:"matched"`
-	Error   string `json:"error"`
+	// Error is the English detail of a failure. Code is a stable failure
+	// code the UI can show its own message for: "" (success or a failure
+	// with no specific code), "not_found", "cancelled", "empty_title" or
+	// "no_providers".
+	Error string `json:"error"`
+	Code  string `json:"code"`
 }
 
 // DoneEvent is the payload of EventDone. Error is set when the job could
@@ -92,6 +98,8 @@ type DoneEvent struct {
 	Failed    int    `json:"failed"`
 	Cancelled int    `json:"cancelled"`
 	Error     string `json:"error,omitempty"`
+	// Code is the stable code of Error, like ItemEvent.Code.
+	Code string `json:"code,omitempty"`
 }
 
 // App is the Go side of the UI. Its exported methods are bound to the
@@ -118,6 +126,35 @@ type App struct {
 	settingsMu   sync.Mutex
 	settingsPath string
 	settings     settings.Settings
+
+	// lang is the UI language of dialogs, errors and PDF labels; the
+	// frontend sets it with SetLanguage. The zero value means English.
+	langMu sync.Mutex
+	lang   i18n.Lang
+}
+
+// SetLanguage sets the UI language of native dialogs, errors and PDF
+// labels, from a language tag such as "es" or "es-ES". An unsupported one
+// gives English.
+func (a *App) SetLanguage(lang string) {
+	a.langMu.Lock()
+	defer a.langMu.Unlock()
+	a.lang = i18n.Parse(lang)
+}
+
+// language returns the current UI language.
+func (a *App) language() i18n.Lang {
+	a.langMu.Lock()
+	defer a.langMu.Unlock()
+	if a.lang == "" {
+		return i18n.EN
+	}
+	return a.lang
+}
+
+// t translates key into the current UI language.
+func (a *App) t(key string, args ...any) string {
+	return i18n.T(a.language(), key, args...)
 }
 
 // NewApp returns an App with the built-in media types and the user's
@@ -126,8 +163,29 @@ func NewApp() *App {
 	path, err := settings.Path()
 	if err != nil {
 		log.Printf("settings: %v", err)
+	} else {
+		migrateSettings(path)
 	}
 	return newDefaultApp(web.NewClient(), path)
+}
+
+// migrateSettings copies the settings saved before the rename from Cover
+// Downloader to BuJo Helper, when path does not exist yet. A skipped
+// legacy file or a failed copy is logged: the app still starts, only
+// without the old keys.
+func migrateSettings(path string) {
+	legacy, err := settings.LegacyPath()
+	if err != nil {
+		log.Printf("settings: %v", err)
+		return
+	}
+	err = settings.Migrate(legacy, path)
+	switch {
+	case errors.Is(err, settings.ErrLegacySkipped):
+		log.Printf("settings: %v; starting without the old settings", err)
+	case err != nil:
+		log.Printf("settings: %v", err)
+	}
 }
 
 // newDefaultApp returns an App with the built-in media types and the
@@ -184,7 +242,7 @@ func (a *App) SaveSettings(s settings.Settings) error {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
 	if a.settingsPath == "" {
-		return errors.New("save settings: the settings file location is unknown")
+		return errors.New(a.t("err.settingsLocation"))
 	}
 	if err := settings.Save(a.settingsPath, s); err != nil {
 		return err
@@ -269,19 +327,21 @@ func (a *App) DefaultOutputDir() string {
 // lines. It returns "" with no error when the dialog is cancelled.
 func (a *App) ImportCSV() (string, error) {
 	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Import CSV",
+		Title: a.t("dialog.importCSV"),
 		Filters: []runtime.FileFilter{
-			{DisplayName: "CSV files (*.csv)", Pattern: "*.csv"},
-			{DisplayName: "All files (*.*)", Pattern: "*.*"},
+			{DisplayName: a.t("filter.csv"), Pattern: "*.csv"},
+			{DisplayName: a.t("filter.all"), Pattern: "*.*"},
 		},
 	})
 	if err != nil || path == "" {
 		return "", err
 	}
-	return importCSVFile(path)
+	return importCSVFile(path, a.language())
 }
 
-func importCSVFile(path string) (string, error) {
+// importCSVFile reads the items of the CSV file at path as "Title, Creator"
+// lines. A file with no items is an error, in lang.
+func importCSVFile(path string, lang i18n.Lang) (string, error) {
 	name := filepath.Base(path)
 	f, err := os.Open(path)
 	if err != nil {
@@ -293,7 +353,7 @@ func importCSVFile(path string) (string, error) {
 		return "", fmt.Errorf("%s: %w", name, err)
 	}
 	if len(items) == 0 {
-		return "", fmt.Errorf("%s: no items found", name)
+		return "", errors.New(i18n.T(lang, "err.noItemsInFile", name))
 	}
 	return batch.FormatLines(items), nil
 }
@@ -313,11 +373,11 @@ func (a *App) SaveSampleCSV(mediaType string) (string, error) {
 		return "", err
 	}
 	path, err := saveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		Title:                "Save sample CSV",
+		Title:                a.t("dialog.saveSampleCSV"),
 		DefaultFilename:      name,
 		CanCreateDirectories: true,
 		Filters: []runtime.FileFilter{
-			{DisplayName: "CSV files (*.csv)", Pattern: "*.csv"},
+			{DisplayName: a.t("filter.csv"), Pattern: "*.csv"},
 		},
 	})
 	if err != nil || path == "" {
@@ -341,7 +401,7 @@ func (a *App) SaveSampleCSV(mediaType string) (string, error) {
 func (a *App) sampleCSV(mediaType string) (string, []byte, error) {
 	t, ok := a.registry.Get(mediaType)
 	if !ok {
-		return "", nil, fmt.Errorf("unknown media type %q", mediaType)
+		return "", nil, errors.New(a.t("err.unknownMediaType", mediaType))
 	}
 	var b bytes.Buffer
 	b.WriteString("\xef\xbb\xbf")
@@ -355,7 +415,7 @@ func (a *App) sampleCSV(mediaType string) (string, []byte, error) {
 // ChooseFolder asks for an output folder, starting at current. It returns
 // "" with no error when the dialog is cancelled.
 func (a *App) ChooseFolder(current string) (string, error) {
-	opts := runtime.OpenDialogOptions{Title: "Choose output folder", CanCreateDirectories: true}
+	opts := runtime.OpenDialogOptions{Title: a.t("dialog.chooseOutputFolder"), CanCreateDirectories: true}
 	if info, err := os.Stat(current); err == nil && info.IsDir() {
 		opts.DefaultDirectory = current
 	}
@@ -368,17 +428,17 @@ func (a *App) ChooseFolder(current string) (string, error) {
 func (a *App) Start(req StartRequest) ([]ItemView, error) {
 	items := batch.ParseLines(req.Text)
 	if len(items) == 0 {
-		return nil, errors.New("no items: enter one \"Title, Creator\" per line")
+		return nil, errors.New(a.t("err.noItems"))
 	}
 	if _, ok := a.registry.Get(req.MediaType); !ok {
-		return nil, fmt.Errorf("unknown media type %q", req.MediaType)
+		return nil, errors.New(a.t("err.unknownMediaType", req.MediaType))
 	}
 	outDir := strings.TrimSpace(req.OutputDir)
 	if outDir == "" {
-		return nil, errors.New("choose an output folder")
+		return nil, errors.New(a.t("err.chooseOutputFolder"))
 	}
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
-		return nil, fmt.Errorf("create output folder: %w", err)
+		return nil, fmt.Errorf("%s: %w", a.t("err.createOutputFolder"), err)
 	}
 	country := strings.ToLower(strings.TrimSpace(req.Country))
 	if country == "" {
@@ -388,7 +448,7 @@ func (a *App) Start(req StartRequest) ([]ItemView, error) {
 	a.mu.Lock()
 	if a.cancel != nil {
 		a.mu.Unlock()
-		return nil, errors.New("a download is already running")
+		return nil, errors.New(a.t("err.downloadRunning"))
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	a.cancel = cancel
@@ -418,11 +478,12 @@ func (a *App) run(ctx context.Context, req downloader.Request) {
 			Source:  r.Source,
 			Matched: r.Matched,
 			Error:   r.Error,
+			Code:    downloader.Code(r.Err),
 		})
 	})
 	done := DoneEvent{OK: sum.OK, Failed: sum.Failed, Cancelled: sum.Cancelled}
 	if err != nil {
-		done.Error = err.Error()
+		done.Error, done.Code = err.Error(), downloader.Code(err)
 	}
 
 	// Clear the running state before announcing the end, so the UI can
@@ -448,7 +509,7 @@ func (a *App) Cancel() {
 func (a *App) OpenFolder(path string) error {
 	path = strings.TrimSpace(path)
 	if path == "" {
-		return errors.New("no folder to open")
+		return errors.New(a.t("err.noFolderToOpen"))
 	}
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		return fmt.Errorf("create folder: %w", err)
@@ -483,6 +544,9 @@ type CoverView struct {
 // ListCovers returns the images in dir, sorted by name, and makes their
 // thumbnails available to the UI.
 func (a *App) ListCovers(dir string) ([]CoverView, error) {
+	if strings.TrimSpace(dir) == "" {
+		return nil, errors.New(a.t("err.chooseFolder"))
+	}
 	covers, err := gallery.List(dir)
 	if err != nil {
 		return nil, err
@@ -710,7 +774,7 @@ func (a *App) PrintPages(paths []string, opts sheet.Options) (PrintPagesInfo, er
 // the saved path, or "" with no error when the dialog is cancelled.
 func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (string, error) {
 	if len(paths) == 0 {
-		return "", errors.New("select at least one cover")
+		return "", errors.New(a.t("err.selectCover"))
 	}
 	// Reject bad settings before asking where to save.
 	if _, err := opts.Grid(); err != nil {
@@ -721,11 +785,11 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 		return "", err
 	}
 	dialog := runtime.SaveDialogOptions{
-		Title:                "Export PDF",
+		Title:                a.t("dialog.exportPDF"),
 		DefaultFilename:      name,
 		CanCreateDirectories: true,
 		Filters: []runtime.FileFilter{
-			{DisplayName: "PDF files (*.pdf)", Pattern: "*.pdf"},
+			{DisplayName: a.t("filter.pdf"), Pattern: "*.pdf"},
 		},
 	}
 	if info, err := os.Stat(defaultDir); err == nil && info.IsDir() {
@@ -738,10 +802,21 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 	if path, err = a.withExtension(path, ".pdf"); err != nil || path == "" {
 		return "", err
 	}
-	if err := exportTo(path, paths, opts); err != nil {
+	if err := exportTo(path, paths, a.withLabels(opts)); err != nil {
 		return "", err
 	}
 	return path, nil
+}
+
+// withLabels returns opts with the stub and card labels in the UI language.
+func (a *App) withLabels(opts sheet.Options) sheet.Options {
+	opts.Labels = sheet.Labels{
+		Admit:    a.t("pdf.stubAdmit"),
+		Date:     a.t("pdf.stubDate"),
+		Where:    a.t("pdf.stubWhere"),
+		CardDate: a.t("pdf.cardDate"),
+	}
+	return opts
 }
 
 // pdfFileName is the default name of the PDF opts describe, e.g.
@@ -789,13 +864,14 @@ func (a *App) withExtension(path, ext string) (string, error) {
 	}
 	path += ext
 	if _, err := os.Stat(path); err == nil {
+		cancel := a.t("replace.cancel")
 		answer, err := messageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:          runtime.QuestionDialog,
-			Title:         "Replace file?",
-			Message:       filepath.Base(path) + " already exists. Replace it?",
-			Buttons:       []string{"Replace", "Cancel"},
-			DefaultButton: "Cancel",
-			CancelButton:  "Cancel",
+			Title:         a.t("replace.title"),
+			Message:       a.t("replace.message", filepath.Base(path)),
+			Buttons:       []string{a.t("replace.confirm"), cancel},
+			DefaultButton: cancel,
+			CancelButton:  cancel,
 		})
 		if err != nil || !isYes(answer) {
 			return "", err
@@ -817,7 +893,7 @@ func exportTo(path string, files []string, opts sheet.Options) error {
 func writeFileAtomic(path, kind string, write func(io.Writer) error) error {
 	// A short fixed pattern keeps the temporary name within the file name
 	// limit even when the target's name is close to it.
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".cover-downloader-*.tmp")
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".bujo-helper-*.tmp")
 	if err != nil {
 		return fmt.Errorf("create %s: %w", kind, err)
 	}
@@ -853,7 +929,7 @@ func writeFileAtomic(path, kind string, write func(io.Writer) error) error {
 func (a *App) OpenFile(path string) error {
 	path = strings.TrimSpace(path)
 	if path == "" {
-		return errors.New("no file to open")
+		return errors.New(a.t("err.noFileToOpen"))
 	}
 	info, err := os.Stat(path)
 	if err != nil {
@@ -888,13 +964,14 @@ func openWithSystem(path string) error {
 	return nil
 }
 
-// isYes reports whether a question dialog answer confirms the action. GTK
-// returns the button label; Windows returns "Yes"/"Ok" for its default
-// buttons.
+// isYes reports whether a question dialog answer confirms the action,
+// ignoring case. GTK returns the button label, in any UI language; Windows
+// returns "Yes"/"Ok" for its default buttons.
 func isYes(answer string) bool {
-	switch strings.ToLower(answer) {
-	case "replace", "yes", "ok":
-		return true
+	for _, yes := range append([]string{"yes", "ok"}, i18n.All("replace.confirm")...) {
+		if strings.EqualFold(answer, yes) {
+			return true
+		}
 	}
 	return false
 }

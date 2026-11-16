@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"cover-downloader/internal/media"
+	"bujo-helper/internal/media"
 )
 
 func TestParseLines(t *testing.T) {

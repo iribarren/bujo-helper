@@ -8,20 +8,22 @@ import (
 	"github.com/go-pdf/fpdf"
 )
 
-// Ticket stub text and drawing settings.
+// Ticket stub and review card default (English) labels, and stub drawing
+// settings. Options.Labels can replace the labels.
 const (
-	admitText = "ADMIT ONE"
-	dateText  = "Date:"
-	whereText = "Where:"
-	perfDash  = 1.0 // length of a perforation dash, mm
-	perfSpace = 0.8 // space between perforation dashes, mm
+	admitText    = "ADMIT ONE"
+	dateText     = "Date:"
+	whereText    = "Where:"
+	cardDateText = "Date"
+	perfDash     = 1.0 // length of a perforation dash, mm
+	perfSpace    = 0.8 // space between perforation dashes, mm
 )
 
 // buildStubs draws a ticket stub per image on grid: the notched cut
 // outline, the dashed perforation, the poster, its title and creator (from
 // the file name), the date and where fields, empty stars and "ADMIT ONE" on
-// the stub end.
-func buildStubs(grid Grid, paths []string, ratios []float64) (*fpdf.Fpdf, error) {
+// the stub end, with labels.
+func buildStubs(grid Grid, paths []string, ratios []float64, labels Labels) (*fpdf.Fpdf, error) {
 	pages, err := grid.Cells(len(paths))
 	if err != nil {
 		return nil, err
@@ -53,7 +55,7 @@ func buildStubs(grid Grid, paths []string, ratios []float64) (*fpdf.Fpdf, error)
 			name := fmt.Sprintf("cover-%d", i)
 			pdf.RegisterImageOptionsReader(name, imgOpts, bytes.NewReader(images[i].jpeg))
 			title, creator := ParseName(paths[i])
-			drawStub(pdf, stubs[i], name, imgOpts, title, creator)
+			drawStub(pdf, stubs[i], name, imgOpts, title, creator, labels)
 			if err := pdf.Error(); err != nil {
 				return nil, fmt.Errorf("%s: %w", filepath.Base(paths[i]), err)
 			}
@@ -63,8 +65,10 @@ func buildStubs(grid Grid, paths []string, ratios []float64) (*fpdf.Fpdf, error)
 	return pdf, nil
 }
 
-// drawStub draws one ticket stub with the registered poster image.
-func drawStub(pdf *fpdf.Fpdf, s stubParts, image string, imgOpts fpdf.ImageOptions, title, creator string) {
+// drawStub draws one ticket stub with the registered poster image. The
+// labels are cut short with "…" if they do not fit; the default ones and
+// the app's translations always fit.
+func drawStub(pdf *fpdf.Fpdf, s stubParts, image string, imgOpts fpdf.ImageOptions, title, creator string, labels Labels) {
 	pdf.SetDrawColor(borderGrey, borderGrey, borderGrey)
 	pdf.SetLineWidth(borderWidth)
 	drawStubOutline(pdf, s)
@@ -77,13 +81,22 @@ func drawStub(pdf *fpdf.Fpdf, s stubParts, image string, imgOpts fpdf.ImageOptio
 	drawTitleAndCreator(pdf, s.Title, s.Creator, title, creator)
 
 	// Field labels, each with a rule to the right edge to write on; the
-	// rules start together, after the longer label.
+	// rules start together, after the longer label, which leaves at least
+	// minDateRule for them.
 	pdf.SetFont(textFont, "", labelFontSize)
-	ruleX := s.Date.X + max(pdf.GetStringWidth(dateText), pdf.GetStringWidth(whereText)) + labelRuleGap
+	fit := func(label string) string {
+		lines := fitLines(label, s.Date.W-labelRuleGap-minDateRule, 1, pdf.GetStringWidth)
+		if len(lines) == 0 {
+			return ""
+		}
+		return lines[0]
+	}
+	date, where := fit(labels.Date), fit(labels.Where)
+	ruleX := s.Date.X + max(pdf.GetStringWidth(date), pdf.GetStringWidth(where)) + labelRuleGap
 	for _, f := range []struct {
 		box   Box
 		label string
-	}{{s.Date, dateText}, {s.Where, whereText}} {
+	}{{s.Date, date}, {s.Where, where}} {
 		base := baseline(f.box.Y, labelFontSize)
 		pdf.Text(f.box.X, base, f.label)
 		pdf.SetDrawColor(writingGrey, writingGrey, writingGrey)
@@ -97,7 +110,7 @@ func drawStub(pdf *fpdf.Fpdf, s stubParts, image string, imgOpts fpdf.ImageOptio
 		pdf.Polygon(starPoints(st), "D")
 	}
 
-	// "ADMIT ONE", turned a quarter turn anticlockwise about the centre of
+	// "ADMIT ONE" (labels.Admit), turned a quarter turn anticlockwise about the centre of
 	// its box to read bottom to top, centred along the stub end.
 	a := s.Admit
 	cx, cy := a.X+a.W/2, a.Y+a.H/2
@@ -105,7 +118,7 @@ func drawStub(pdf *fpdf.Fpdf, s stubParts, image string, imgOpts fpdf.ImageOptio
 	pdf.SetFont(textFont, "B", admitFontSize)
 	pdf.TransformBegin()
 	pdf.TransformRotate(90, cx, cy)
-	for _, line := range fitLines(admitText, a.H, 1, pdf.GetStringWidth) {
+	for _, line := range fitLines(labels.Admit, a.H, 1, pdf.GetStringWidth) {
 		pdf.Text(cx-pdf.GetStringWidth(line)/2, baseline(cy-a.W/2, admitFontSize), line)
 	}
 	pdf.TransformEnd()

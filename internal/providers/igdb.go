@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // ErrNoIGDBCredentials reports that no Twitch Client ID and Secret are

@@ -1,6 +1,8 @@
-# Cover Downloader
+# BuJo Helper
 
-A desktop app for Windows and Linux that downloads cover images in batches.
+Formerly "Cover Downloader".
+
+A desktop app for Windows, macOS and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
 
 Book covers, movie posters, TV series posters, album covers and game box art are supported. The core is media-agnostic, so other media can be added later as new providers.
@@ -18,19 +20,30 @@ Book covers, movie posters, TV series posters, album covers and game box art are
 - **Open folder** shows the results in the system file manager.
 - **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
+- English and Spanish interface. It follows the system language and can be changed in **Settings**, see [Language](#language).
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
 
 ## Download
 
-Get the latest version from the [Releases page](https://github.com/iribarren/bullet-journal-covers/releases/latest).
+Get the latest version from the [Releases page](https://github.com/iribarren/bujo-helper/releases/latest).
 
 ### Windows 10/11
 
-1. Download `cover-downloader-<version>-windows-amd64.zip` and extract it.
-2. Run `cover-downloader.exe`.
+1. Download `bujo-helper-<version>-windows-amd64.zip` and extract it.
+2. Run `bujo-helper.exe`.
 
 The executable is not code-signed yet, so Windows SmartScreen may show **"Windows protected your PC"** the first time. Click **More info**, then **Run anyway**. WebView2 is built into Windows 10/11, so nothing else needs to be installed.
+
+### macOS 11 or later (Intel and Apple Silicon)
+
+1. Download `bujo-helper-<version>-macos-universal.zip` and open it to extract `bujo-helper.app`.
+2. Move `bujo-helper.app` to **Applications**.
+
+The app is not signed or notarized yet, so macOS blocks it the first time ("cannot be opened" or "is damaged"). To allow it, either:
+
+- open **System Settings → Privacy & Security**, scroll to the message about `bujo-helper`, click **Open Anyway** and confirm; or
+- run once in Terminal: `xattr -dr com.apple.quarantine /Applications/bujo-helper.app`.
 
 ### Linux (x86-64)
 
@@ -40,11 +53,11 @@ The executable is not code-signed yet, so Windows SmartScreen may show **"Window
    sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0
    ```
 
-2. Download `cover-downloader-<version>-linux-amd64.tar.gz`, then extract and run it:
+2. Download `bujo-helper-<version>-linux-amd64.tar.gz`, then extract and run it:
 
    ```sh
-   tar xzf cover-downloader-*-linux-amd64.tar.gz
-   ./cover-downloader
+   tar xzf bujo-helper-*-linux-amd64.tar.gz
+   ./bujo-helper
    ```
 
 The binary is built on Ubuntu 22.04, so it runs on that release and newer distributions.
@@ -83,7 +96,7 @@ Album covers are square, unlike the 2:3 book covers and posters, so a cover shee
 
 MusicBrainz data is CC0, but the Cover Art Archive images carry no licence of their own: its documentation says to use them at your own risk. Apple's terms allow iTunes artwork only to promote the store's content, the same terms as the Apple Books and Apple TV sources above. Downloaded covers are for personal use.
 
-MusicBrainz allows at most one request per second and asks every client for a User-Agent with contact information. The app sends `cover-downloader/1.0 ( https://github.com/iribarren/bullet-journal-covers )` and spaces its MusicBrainz requests one second apart, so a long album list takes at least a second per album.
+MusicBrainz allows at most one request per second and asks every client for a User-Agent with contact information. The app sends `bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )` and spaces its MusicBrainz requests one second apart, so a long album list takes at least a second per album.
 
 Sources are tried in this order for games (the year is the first release year, and it is optional):
 
@@ -97,7 +110,7 @@ The IGDB API is free for non-commercial use under the [Twitch Developer Services
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
-2. In the app, click **Settings** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/cover-downloader/settings.json` on Linux, `%AppData%\cover-downloader\settings.json` on Windows), readable only by you.
+2. In the app, click **Settings** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/bujo-helper/settings.json` on Linux, `%AppData%\bujo-helper\settings.json` on Windows, `~/Library/Application Support/bujo-helper/settings.json` on macOS), readable only by you. Settings saved by older versions in the `cover-downloader` folder are copied over automatically on first launch.
 3. For the command line, use `-tmdb-key`, or the `TMDB_API_KEY` environment variable; otherwise the key saved by the app is used.
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
@@ -423,21 +436,34 @@ Recent Ubuntu releases only ship WebKitGTK 4.1, so every `wails` command on Linu
 - The Wails CLI: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`.
 - WebView2 is built into Windows 10/11, so users need nothing else to run the `.exe`.
 
+## Language
+
+The app is available in English and Spanish.
+
+- By default it follows the system language: Spanish when the system language is Spanish (any region), English otherwise.
+- To choose a language, open **Settings** and set **Language** to **System**, **English** or **Español**. The change applies at once and is saved in the settings file (`"language"`: `""` for System, `"en"` or `"es"`).
+- Translated: the interface, native dialogs, error messages, item statuses, and the labels printed in PDFs (review card date label, ticket stub labels).
+- Not translated: technical details from the sources (for example `HTTP 503`), and the `covers` command-line tool, which stays in English.
+
+To add a language, add a dictionary next to `frontend/src/i18n/en.ts` (the compiler rejects missing or extra keys) and a catalog in `internal/i18n/catalog.go` (a test checks that every key exists).
+
 ## Development
 
 ```sh
 wails dev -tags webkit2_41        # Linux; on Windows just: wails dev
 ```
 
+Run the frontend unit tests with `npm test` in `frontend/` (vitest), and the Go tests with `go test ./...`.
+
 This runs the app with hot reload of the frontend. Wails regenerates the TypeScript bindings in `frontend/wailsjs/` when Go method signatures change (or run `wails generate module -tags webkit2_41`).
 
 ## Building
 
 ```sh
-# Linux binary: build/bin/cover-downloader
+# Linux binary: build/bin/bujo-helper
 wails build -tags webkit2_41
 
-# Windows binary: build/bin/cover-downloader.exe
+# Windows binary: build/bin/bujo-helper.exe
 # Works from Windows or cross-compiled from Linux (no cgo needed).
 wails build -platform windows/amd64
 ```

@@ -21,24 +21,85 @@ type Settings struct {
 	// credentials, used for the IGDB games API.
 	IGDBClientID     string `json:"igdbClientId"`
 	IGDBClientSecret string `json:"igdbClientSecret"`
+	// Language is the UI language: "" follows the system, "en" or "es".
+	Language string `json:"language"`
 }
 
 // Trimmed returns s with surrounding whitespace removed from every value.
+// Language is also lower-cased, and an unsupported one becomes "" (follow
+// the system).
 func (s Settings) Trimmed() Settings {
 	s.TMDBAPIKey = strings.TrimSpace(s.TMDBAPIKey)
 	s.IGDBClientID = strings.TrimSpace(s.IGDBClientID)
 	s.IGDBClientSecret = strings.TrimSpace(s.IGDBClientSecret)
+	switch lang := strings.ToLower(strings.TrimSpace(s.Language)); lang {
+	case "en", "es":
+		s.Language = lang
+	default:
+		s.Language = ""
+	}
 	return s
 }
 
+const (
+	// dirName is the settings folder under the user config directory.
+	dirName = "bujo-helper"
+	// legacyDirName is the folder used before the app was renamed from
+	// Cover Downloader to BuJo Helper.
+	legacyDirName = "cover-downloader"
+)
+
 // Path returns the settings file location:
-// <user config dir>/cover-downloader/settings.json.
+// <user config dir>/bujo-helper/settings.json.
 func Path() (string, error) {
+	return pathIn(dirName)
+}
+
+// LegacyPath returns where the app kept its settings before the rename:
+// <user config dir>/cover-downloader/settings.json.
+func LegacyPath() (string, error) {
+	return pathIn(legacyDirName)
+}
+
+func pathIn(name string) (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("settings: %w", err)
 	}
-	return filepath.Join(dir, "cover-downloader", "settings.json"), nil
+	return filepath.Join(dir, name, "settings.json"), nil
+}
+
+// ErrLegacySkipped reports that Migrate found a legacy settings file it
+// could not read or parse, and skipped it. It is not fatal: callers log it
+// and carry on without the old settings.
+var ErrLegacySkipped = errors.New("migrate settings: skipped legacy file")
+
+// Migrate copies the settings at legacy to path, once. It does nothing
+// when path already exists, so saved settings are never overwritten. A
+// missing legacy file is not an error. A legacy file that is unreadable or
+// not valid settings JSON is skipped, and Migrate returns an error wrapping
+// ErrLegacySkipped and the cause, so callers can warn about it. The legacy
+// file is always left in place. Any other error is a failure to write path.
+func Migrate(legacy, path string) error {
+	if _, err := os.Lstat(path); !errors.Is(err, fs.ErrNotExist) {
+		// The new file exists, or its state is unknown: leave it alone.
+		return nil
+	}
+	b, err := os.ReadFile(legacy)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("%w %s: %w", ErrLegacySkipped, legacy, err)
+	}
+	var s Settings
+	if err := json.Unmarshal(b, &s); err != nil {
+		return fmt.Errorf("%w %s: %w", ErrLegacySkipped, legacy, err)
+	}
+	if err := Save(path, s); err != nil {
+		return fmt.Errorf("migrate settings: %w", err)
+	}
+	return nil
 }
 
 // Load reads the settings at path. A missing file gives zero Settings and

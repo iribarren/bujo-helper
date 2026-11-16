@@ -9,10 +9,10 @@ import (
 	"net/url"
 	"strings"
 
-	"cover-downloader/internal/isbn"
-	"cover-downloader/internal/match"
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/isbn"
+	"bujo-helper/internal/match"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // Apple searches the public iTunes Search API: Apple Books by default, or

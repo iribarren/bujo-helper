@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"cover-downloader/internal/media"
+	"bujo-helper/internal/media"
 )
 
 const (

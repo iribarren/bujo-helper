@@ -4,6 +4,7 @@ import {
     Cancel,
     ChooseFolder,
     DefaultOutputDir,
+    GetSettings,
     ImportCSV,
     MediaTypes,
     OpenFolder,
@@ -12,8 +13,10 @@ import {
 } from '../wailsjs/go/main/App';
 import {main} from '../wailsjs/go/models';
 import {EventsOn} from '../wailsjs/runtime/runtime';
-import {initPrint} from './print';
-import {initSettings} from './settings';
+import {applyDom, has, label, onLangChange, t, tn, type MessageKey} from './i18n';
+import {useLanguage} from './language';
+import {initPrint, type PrintSheet} from './print';
+import {initSettings, type SettingsDialog} from './settings';
 
 // Payload of the "job:item" event (Go: ItemEvent).
 interface ItemEvent {
@@ -24,6 +27,10 @@ interface ItemEvent {
     path: string;
     source: string;
     matched: string;
+    // Why the item failed or was cancelled, for the UI to translate:
+    // "not_found", "cancelled", "empty_title", "no_providers", or "" when
+    // only the English error says.
+    code: '' | 'not_found' | 'cancelled' | 'empty_title' | 'no_providers';
     error: string;
 }
 
@@ -51,26 +58,27 @@ const EXAMPLES: Record<string, string> = {
 };
 
 // The tip shown above the list for media types whose best source needs a
-// key, while none is saved: what to add, why, and whether it is saved.
+// key, while none is saved: what to add, why (message keys), and whether it
+// is saved.
 interface KeyTip {
-    what: string;
-    why: string;
+    what: MessageKey;
+    why: MessageKey;
     saved(): boolean;
 }
 
 const TMDB_TIP: KeyTip = {
-    what: 'a TMDB API key',
-    why: 'for better movie and TV posters.',
-    saved: () => settingsDialog.hasTMDBKey(),
+    what: 'tip.tmdbWhat',
+    why: 'tip.tmdbWhy',
+    saved: () => settingsDialog?.hasTMDBKey() ?? false,
 };
 
 const KEY_TIPS: Record<string, KeyTip> = {
     movies: TMDB_TIP,
     tv: TMDB_TIP,
     games: {
-        what: 'IGDB credentials',
-        why: 'for box art of all games; without them, Steam covers PC games only.',
-        saved: () => settingsDialog.hasIGDBCredentials(),
+        what: 'tip.igdbWhat',
+        why: 'tip.igdbWhy',
+        saved: () => settingsDialog?.hasIGDBCredentials() ?? false,
     },
 };
 
@@ -116,12 +124,19 @@ const ui = {
 };
 
 let mediaTypes: main.MediaTypeInfo[] = [];
+// The Settings dialog and the print sheet, set up once the language is known.
+let settingsDialog: SettingsDialog | undefined;
+let printSheet: PrintSheet | undefined;
 let running = false;
 let total = 0;
 let finished = 0;
 // The folder of the current or last job, for "Open folder".
 let jobFolder = '';
 let rows = new Map<number, HTMLLIElement>();
+// The result of each finished row, to show it again in another language.
+let results = new Map<number, ItemEvent>();
+// The summary of the last job, to show it again in another language.
+let lastDone: DoneEvent | null = null;
 
 // Events can arrive before Start's promise resolves and the rows exist;
 // they are held here and applied once the rows are rendered.
@@ -173,27 +188,29 @@ function countItems(text: string): number {
     return n;
 }
 
-function plural(n: number, word: string): string {
-    return `${n} ${word}${n === 1 ? '' : 's'}`;
-}
-
 // --- rendering -------------------------------------------------------------
 
 function updateCount() {
-    ui.count.textContent = plural(countItems(ui.items.value), 'item');
+    ui.count.textContent = tn('download.items', countItems(ui.items.value));
+}
+
+function currentMediaType(): main.MediaTypeInfo | undefined {
+    return mediaTypes.find((type) => type.id === ui.mediaType.value);
 }
 
 // creatorLabel is the creator column of the selected media type, e.g.
 // "Author" or "Year".
 function creatorLabel(): string {
-    const type = mediaTypes.find((t) => t.id === ui.mediaType.value);
-    return type?.creatorLabel || 'Creator';
+    const type = currentMediaType();
+    return type ? label('creator', type.id, type.creatorLabel || t('download.creator')) : t('download.creator');
 }
 
 function updatePlaceholder() {
     const example = EXAMPLES[ui.mediaType.value];
-    const first = `Title, ${creatorLabel()}`;
-    ui.items.placeholder = example ? `${first}\nOne per line, e.g.\n${example}` : `${first}\nOne per line`;
+    const creator = creatorLabel();
+    ui.items.placeholder = example
+        ? t('download.placeholderExample', {creator, example})
+        : t('download.placeholder', {creator});
 }
 
 // updateKeyTip suggests a key while a media type whose best source needs
@@ -203,25 +220,44 @@ function updateKeyTip() {
     const tip = KEY_TIPS[ui.mediaType.value];
     ui.keyTip.hidden = !tip || tip.saved();
     if (tip) {
-        ui.keyTipWhat.textContent = tip.what;
-        ui.keyTipWhy.textContent = tip.why;
+        ui.keyTipWhat.textContent = t(tip.what);
+        ui.keyTipWhy.textContent = t(tip.why);
     }
 }
 
 // updateSampleButton names the selected media type on the sample CSV
 // button, e.g. "Sample books CSV".
 function updateSampleButton() {
-    const type = mediaTypes.find((t) => t.id === ui.mediaType.value);
-    const label = type ? `${type.label.toLowerCase()} ` : '';
-    ui.sampleCsv.textContent = `Sample ${label}CSV`;
-    ui.sampleCsv.title = `Save an example ${label}CSV (Title, ${creatorLabel()}) to use as a reference for Import CSV`;
-    hideSampleStatus();
+    const type = currentMediaType();
+    const button = `sample.button.${type?.id}`;
+    const title = `sample.title.${type?.id}`;
+    if (type && has(button) && has(title)) {
+        ui.sampleCsv.textContent = t(button);
+        ui.sampleCsv.title = t(title);
+    } else {
+        ui.sampleCsv.textContent = type
+            ? t('sample.buttonFor', {media: type.label.toLowerCase()})
+            : t('sample.button');
+        ui.sampleCsv.title = t('sample.title', {creator: creatorLabel()});
+    }
 }
 
 function updateMediaType() {
     updatePlaceholder();
     updateKeyTip();
     updateSampleButton();
+    hideSampleStatus();
+}
+
+// fillMediaTypes lists the media types in the select, keeping the selection.
+function fillMediaTypes() {
+    const kept = ui.mediaType.value;
+    ui.mediaType.replaceChildren(...mediaTypes.map((type) => {
+        const option = el('option', '', label('media', type.id, type.label));
+        option.value = type.id;
+        return option;
+    }));
+    if (kept) ui.mediaType.value = kept;
 }
 
 // rateLimitDeadline is when the currently shown wait ends (ms since epoch).
@@ -251,7 +287,7 @@ function showRateLimit(ev: RateLimitEvent) {
             hideRateLimit();
             return;
         }
-        ui.rateLimit.textContent = `Waiting ${left}s — rate limit at ${ev.host}`;
+        ui.rateLimit.textContent = t('download.rateLimit', {seconds: left, host: ev.host});
     };
     render();
     ui.rateLimit.hidden = false;
@@ -274,17 +310,32 @@ function setRunning(on: boolean) {
     ui.cancel.disabled = false;
 }
 
+// statusText is the translated name of an item status, for its icon.
+function statusText(status: string): string {
+    const key = `status.${status}`;
+    return has(key) ? t(key) : status;
+}
+
+// failureText is why an item failed or was cancelled: the translated reason
+// for its code, or Go's English error when there is no code.
+function failureText(ev: ItemEvent): string {
+    const key = `status.code.${ev.code}`;
+    if (ev.code && has(key)) return t(key);
+    return ev.error || statusText(ev.status);
+}
+
 function renderRows(views: main.ItemView[]) {
     ui.results.replaceChildren();
     rows = new Map();
+    results = new Map();
     for (const v of views) {
         const row = el('li', 'result pending');
         const icon = el('span', 'status', STATUS_ICONS.pending);
-        icon.setAttribute('aria-label', 'pending');
+        icon.setAttribute('aria-label', statusText('pending'));
         const body = el('div', 'result-body');
         body.append(
             el('div', 'result-title', v.creator ? `${v.title} — ${v.creator}` : v.title),
-            el('div', 'result-detail', 'Waiting…'),
+            el('div', 'result-detail', t('download.waiting')),
         );
         row.append(icon, body);
         ui.results.append(row);
@@ -292,32 +343,45 @@ function renderRows(views: main.ItemView[]) {
     }
 }
 
-function applyResult(ev: ItemEvent) {
-    const row = rows.get(ev.index);
-    if (!row) return;
+// renderResult shows a finished item in its row.
+function renderResult(row: HTMLLIElement, ev: ItemEvent) {
     row.className = `result ${ev.status}`;
     const icon = row.querySelector('.status')!;
     icon.textContent = STATUS_ICONS[ev.status] ?? '?';
-    icon.setAttribute('aria-label', ev.status);
+    icon.setAttribute('aria-label', statusText(ev.status));
     const detail = row.querySelector<HTMLElement>('.result-detail')!;
     if (ev.status === 'ok') {
         detail.textContent = `${baseName(ev.path)} · ${ev.source}`;
-        detail.title = ev.matched ? `Matched: ${ev.matched}\n${ev.path}` : ev.path;
+        detail.title = ev.matched ? `${t('download.matched', {matched: ev.matched})}\n${ev.path}` : ev.path;
     } else {
-        detail.textContent = ev.error || ev.status;
+        detail.textContent = failureText(ev);
         detail.title = '';
     }
+}
+
+function applyResult(ev: ItemEvent) {
+    const row = rows.get(ev.index);
+    if (!row) return;
+    results.set(ev.index, ev);
+    renderResult(row, ev);
     finished++;
     updateProgress();
     ui.openFolder.hidden = false;
 }
 
+function renderSummary(done: DoneEvent) {
+    const downloaded = tn('download.downloaded', done.ok);
+    const failed = tn('download.failed', done.failed);
+    ui.summary.textContent = done.cancelled > 0
+        ? t('download.summaryCancelled', {downloaded, failed, cancelled: tn('download.cancelled', done.cancelled)})
+        : t('download.summary', {downloaded, failed});
+}
+
 function finishJob(done: DoneEvent) {
     setRunning(false);
     hideRateLimit();
-    const parts = [`${done.ok} downloaded`, `${done.failed} failed`];
-    if (done.cancelled > 0) parts.push(`${done.cancelled} cancelled`);
-    ui.summary.textContent = parts.join(', ');
+    lastDone = done;
+    renderSummary(done);
     ui.openFolder.hidden = false;
     if (done.error) showError(done.error);
 }
@@ -329,12 +393,12 @@ async function startDownload() {
     hideError();
     const country = ui.country.value.trim().toLowerCase();
     if (!/^[a-z]{2}$/.test(country)) {
-        showError('Country must be a two-letter code, e.g. es, us, gb.');
+        showError(t('download.errCountry'));
         ui.country.focus();
         return;
     }
     if (countItems(ui.items.value) === 0) {
-        showError(`Add at least one "Title, ${creatorLabel()}" line or import a CSV file.`);
+        showError(t('download.errNoItems', {creator: creatorLabel()}));
         ui.items.focus();
         return;
     }
@@ -344,6 +408,7 @@ async function startDownload() {
     earlyItems = [];
     earlyDone = null;
     ui.summary.textContent = '';
+    lastDone = null;
     ui.openFolder.hidden = true;
     jobFolder = ui.outputDir.value;
     try {
@@ -388,17 +453,26 @@ async function importCSV() {
         ui.items.value = text;
         updateCount();
     } catch (err) {
-        showError(`Could not import CSV: ${errorText(err)}`);
+        showError(t('download.errImport', {error: errorText(err)}));
     }
 }
 
-// The timer that clears the "Saved …" note of the sample CSV button.
+// The timer that clears the "Saved …" note of the sample CSV button, and
+// the path it names while it is shown.
 let sampleStatusTimer: number | undefined;
+let sampleSaved = '';
 
 function hideSampleStatus() {
     window.clearTimeout(sampleStatusTimer);
+    sampleSaved = '';
     ui.sampleStatus.textContent = '';
     ui.sampleStatus.title = '';
+}
+
+function renderSampleStatus() {
+    if (!sampleSaved) return;
+    ui.sampleStatus.textContent = t('download.saved', {file: baseName(sampleSaved)});
+    ui.sampleStatus.title = sampleSaved;
 }
 
 async function saveSampleCSV() {
@@ -411,11 +485,11 @@ async function saveSampleCSV() {
         const path = await SaveSampleCSV(ui.mediaType.value);
         if (path === '') return; // dialog cancelled
         hideSampleStatus();
-        ui.sampleStatus.textContent = `Saved ${baseName(path)}`;
-        ui.sampleStatus.title = path;
+        sampleSaved = path;
+        renderSampleStatus();
         sampleStatusTimer = window.setTimeout(hideSampleStatus, 5000);
     } catch (err) {
-        showError(`Could not save the sample CSV: ${errorText(err)}`);
+        showError(t('download.errSample', {error: errorText(err)}));
     } finally {
         ui.sampleCsv.disabled = false;
     }
@@ -438,9 +512,28 @@ async function openFolder() {
     }
 }
 
-// --- wiring ----------------------------------------------------------------
+// relabel shows the Download tab's dynamic text in the current language,
+// keeping the selections, the typed list and the results.
+function relabel() {
+    fillMediaTypes();
+    updatePlaceholder();
+    updateKeyTip();
+    updateSampleButton();
+    renderSampleStatus();
+    updateCount();
+    for (const [index, row] of rows) {
+        const ev = results.get(index);
+        if (ev) {
+            renderResult(row, ev);
+        } else {
+            row.querySelector('.status')!.setAttribute('aria-label', statusText('pending'));
+            row.querySelector('.result-detail')!.textContent = t('download.waiting');
+        }
+    }
+    if (lastDone) renderSummary(lastDone);
+}
 
-const settingsDialog = initSettings({onChange: updateKeyTip});
+// --- wiring ----------------------------------------------------------------
 
 EventsOn('job:item', (ev: ItemEvent) => {
     if (awaitingStart) {
@@ -462,8 +555,8 @@ EventsOn('job:done', (done: DoneEvent) => {
 
 ui.items.addEventListener('input', updateCount);
 ui.mediaType.addEventListener('change', updateMediaType);
-ui.settingsOpen.addEventListener('click', () => settingsDialog.open());
-ui.keyTipSettings.addEventListener('click', () => settingsDialog.open());
+ui.settingsOpen.addEventListener('click', () => settingsDialog?.open());
+ui.keyTipSettings.addEventListener('click', () => settingsDialog?.open());
 ui.importBtn.addEventListener('click', importCSV);
 ui.sampleCsv.addEventListener('click', saveSampleCSV);
 ui.browse.addEventListener('click', browseFolder);
@@ -485,13 +578,6 @@ export function outputFolder(): string {
     return ui.outputDir.value;
 }
 
-const printSheet = initPrint({
-    outputFolder,
-    showError,
-    hideError,
-    mediaTypes: () => mediaTypes,
-    mediaType: () => ui.mediaType.value,
-});
 const appRoot = byId<HTMLDivElement>('app');
 const tabs = [
     {name: 'download', tab: byId<HTMLButtonElement>('tab-download'), panel: byId<HTMLDivElement>('panel-download')},
@@ -507,7 +593,7 @@ function selectTab(index: number, focus = false) {
     });
     if (focus) tabs[index].tab.focus();
     appRoot.dataset.tab = tabs[index].name;
-    if (tabs[index].name === 'print') printSheet.activate();
+    if (tabs[index].name === 'print') printSheet?.activate();
 }
 
 tabs.forEach(({tab}, i) => {
@@ -529,20 +615,41 @@ tabs.forEach(({tab}, i) => {
 // the Settings dialog is shown. This capture listener runs before the
 // document listener above.
 window.addEventListener('keydown', (e) => {
-    const blocked = appRoot.dataset.tab === 'print' || settingsDialog.isOpen();
+    const blocked = appRoot.dataset.tab === 'print' || (settingsDialog?.isOpen() ?? false);
     if (blocked && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.stopPropagation();
     }
 }, true);
 
+// startLanguage applies the saved language setting, or the system language
+// when there is none or it cannot be read, before any text is shown.
+async function startLanguage() {
+    let setting = '';
+    try {
+        setting = (await GetSettings()).language || '';
+    } catch (err) {
+        console.warn(`Could not read the language setting: ${errorText(err)}`);
+    }
+    await useLanguage(setting);
+    applyDom(document);
+}
+
 async function init() {
+    await startLanguage();
+    // On a language change: static markup first, then each module's text.
+    onLangChange(() => applyDom(document));
+    onLangChange(relabel);
+    settingsDialog = initSettings({onChange: updateKeyTip});
+    printSheet = initPrint({
+        outputFolder,
+        showError,
+        hideError,
+        mediaTypes: () => mediaTypes,
+        mediaType: () => ui.mediaType.value,
+    });
     try {
         mediaTypes = await MediaTypes();
-        ui.mediaType.replaceChildren(...mediaTypes.map((t) => {
-            const option = el('option', '', t.label);
-            option.value = t.id;
-            return option;
-        }));
+        fillMediaTypes();
         ui.outputDir.value = await DefaultOutputDir();
     } catch (err) {
         showError(errorText(err));

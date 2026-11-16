@@ -181,6 +181,7 @@ export namespace settings {
 	    tmdbApiKey: string;
 	    igdbClientId: string;
 	    igdbClientSecret: string;
+	    language: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -191,6 +192,7 @@ export namespace settings {
 	        this.tmdbApiKey = source["tmdbApiKey"];
 	        this.igdbClientId = source["igdbClientId"];
 	        this.igdbClientSecret = source["igdbClientSecret"];
+	        this.language = source["language"];
 	    }
 	}
 
@@ -198,6 +200,24 @@ export namespace settings {
 
 export namespace sheet {
 	
+	export class Labels {
+	    Admit: string;
+	    Date: string;
+	    Where: string;
+	    CardDate: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Labels(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Admit = source["Admit"];
+	        this.Date = source["Date"];
+	        this.Where = source["Where"];
+	        this.CardDate = source["CardDate"];
+	    }
+	}
 	export class Options {
 	    format: string;
 	    size: string;
