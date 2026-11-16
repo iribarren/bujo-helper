@@ -584,13 +584,15 @@ func TestBuildBleedCutKeepsPageCount(t *testing.T) {
 	}
 }
 
-// Review cards and spines keep their borders whatever the cut mode.
-func TestBuildCardsAndSpinesIgnoreTheCutMode(t *testing.T) {
+// Review cards, spines and ticket stubs keep their borders whatever the
+// cut mode.
+func TestBuildCardsSpinesAndStubsIgnoreTheCutMode(t *testing.T) {
 	paths := cutFixtures(t)
-	for _, format := range []string{"cards", "spines"} {
+	for _, format := range []string{"cards", "spines", "stubs"} {
 		want := pageStreams(render(t, paths, Options{Format: format}))
-		// Cards stroke their border (S); spines fill and stroke it (B).
-		if !strings.Contains(want, " re S") && !strings.Contains(want, " re B") {
+		// Cards stroke their border (S); spines fill and stroke it (B);
+		// stubs close and stroke their notched outline (h S).
+		if !strings.Contains(want, " re S") && !strings.Contains(want, " re B") && !strings.Contains(want, "h\nS\n") {
 			t.Fatalf("%s: no border drawn", format)
 		}
 		for _, c := range CutModes {
@@ -604,7 +606,7 @@ func TestBuildCardsAndSpinesIgnoreTheCutMode(t *testing.T) {
 func TestBuildRejectsUnknownCutMode(t *testing.T) {
 	dir := t.TempDir()
 	cover := writeImage(t, dir, "cover.jpg", 66, 100, color.White)
-	for _, format := range []string{"covers", "cards", "spines"} {
+	for _, format := range []string{"covers", "cards", "spines", "stubs"} {
 		var out bytes.Buffer
 		err := Build(&out, []string{cover}, Options{Format: format, Cut: "kiss"})
 		if err == nil || !strings.Contains(err.Error(), "kiss") {
@@ -640,5 +642,115 @@ func TestPrintImageBleedPadding(t *testing.T) {
 		if cfg.Width != 66+2*wantPad || cfg.Height != 100+2*wantPad {
 			t.Errorf("bleed %v: JPEG %dx%d, want %dx%d", bleed, cfg.Width, cfg.Height, 66+2*wantPad, 100+2*wantPad)
 		}
+	}
+}
+
+func TestBuildStubsPages(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "Dune - 2021.jpg", 66, 100, color.RGBA{200, 120, 40, 255})
+	tests := []struct {
+		paper    string
+		stubs    int
+		pages    int
+		mediaBox string
+	}{
+		{"", 12, 1, "/MediaBox [0 0 595.28 841.89]"},
+		{"a4", 13, 2, "/MediaBox [0 0 595.28 841.89]"},
+		{"letter", 12, 1, "/MediaBox [0 0 612.00 792.00]"},
+		{"letter", 25, 3, "/MediaBox [0 0 612.00 792.00]"},
+		{"a5", 4, 1, "/MediaBox [0 0 419.53 595.28]"},
+		{"a5", 5, 2, "/MediaBox [0 0 419.53 595.28]"},
+	}
+	for _, tt := range tests {
+		paths := make([]string, tt.stubs)
+		for i := range paths {
+			paths[i] = cover
+		}
+		var out bytes.Buffer
+		// The cover size does not apply to stubs.
+		if err := Build(&out, paths, Options{Format: "stubs", Paper: tt.paper, Size: "large"}); err != nil {
+			t.Fatalf("%q: %v", tt.paper, err)
+		}
+		if !bytes.HasPrefix(out.Bytes(), []byte("%PDF")) {
+			t.Fatalf("%q: output is not a PDF", tt.paper)
+		}
+		if n := len(pageObject.FindAll(out.Bytes(), -1)); n != tt.pages {
+			t.Errorf("%q, %d stubs: PDF has %d pages, want %d", tt.paper, tt.stubs, n, tt.pages)
+		}
+		if !bytes.Contains(out.Bytes(), []byte(tt.mediaBox)) {
+			t.Errorf("%q: PDF has no %s", tt.paper, tt.mediaBox)
+		}
+	}
+}
+
+func TestBuildStubsWithAccentsLongTitlesAndOddShapes(t *testing.T) {
+	dir := t.TempDir()
+	paths := []string{
+		writeImage(t, dir, "Cien años de soledad edición conmemorativa de la Real Academia Española - Gabriel García Márquez.jpg", 66, 100, color.RGBA{40, 120, 200, 255}),
+		writeImage(t, dir, "Dune - 2021.jpg", 66, 100, color.RGBA{200, 160, 40, 255}),
+		writeImage(t, dir, "Amélie-2.png", 80, 80, color.NRGBA{0, 200, 0, 120}),
+		writeImage(t, dir, "Panorama - Ünïcödé Çréâtör Wïth À Vêry Löng Nämé Indeed.jpg", 300, 100, color.RGBA{90, 90, 90, 255}),
+		writeImage(t, dir, "Supercalifragilisticexpialidociousandevenlongerthanthat.jpg", 30, 100, color.RGBA{10, 10, 10, 255}),
+		writeImage(t, dir, ".jpg", 66, 100, color.White),
+	}
+	var out bytes.Buffer
+	if err := Build(&out, paths, Options{Format: "stubs"}); err != nil {
+		t.Fatal(err)
+	}
+	if n := len(pageObject.FindAll(out.Bytes(), -1)); n != 1 {
+		t.Errorf("PDF has %d pages, want 1", n)
+	}
+	// The text font is embedded, so accents print anywhere.
+	if !bytes.Contains(out.Bytes(), []byte("/FontFile2")) {
+		t.Error("PDF embeds no TrueType font")
+	}
+}
+
+// Each stub draws its poster, its notched outline, a dashed perforation and
+// the rotated "ADMIT ONE"; the dash pattern is reset after each perforation.
+func TestBuildStubsDrawOutlinePerforationAndStubEnd(t *testing.T) {
+	paths := cutFixtures(t)
+	got := pageStreams(render(t, paths, Options{Format: "stubs"}))
+	n := len(paths)
+	if c := strings.Count(got, " Do Q"); c != n {
+		t.Errorf("%d images drawn, want %d", c, n)
+	}
+	if c := strings.Count(got, "h\nS\n"); c != n {
+		t.Errorf("%d closed outlines, want %d", c, n)
+	}
+	// Each notch is a semicircle of Bézier curves.
+	if c := strings.Count(got, " c\n"); c < 2*n*2 {
+		t.Errorf("%d curve segments, want at least %d for the notches", c, 2*n*2)
+	}
+	if on, off := strings.Count(got, "] 0.00 d\n")-strings.Count(got, "[] 0.00 d\n"), strings.Count(got, "[] 0.00 d\n"); on != n || off != n {
+		t.Errorf("%d dash patterns set and %d reset, want %d each", on, off, n)
+	}
+	if !strings.HasSuffix(strings.TrimSpace(got[:strings.LastIndex(got, "[] 0.00 d")]), "l S") {
+		t.Errorf("the last dash pattern is not reset right after the perforation line:\n%s", got)
+	}
+	// The stub end text is turned a quarter turn: a rotation matrix with
+	// cos 90° = 0 and sin 90° = 1.
+	if c := strings.Count(got, "0.00000 1.00000 -1.00000 0.00000 "); c != n {
+		t.Errorf("%d quarter-turn rotations, want %d", c, n)
+	}
+	if strings.Count(got, " Tj") < 3*n {
+		t.Errorf("want title, creator, labels and admit text on each stub:\n%s", got)
+	}
+}
+
+func TestBuildStubsNamesTheBadFileAndWritesNothing(t *testing.T) {
+	dir := t.TempDir()
+	good := writeImage(t, dir, "Dune.jpg", 66, 100, color.White)
+	bad := filepath.Join(dir, "Broken - Nobody.jpg")
+	if err := os.WriteFile(bad, []byte("not an image"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	err := Build(&out, []string{good, bad}, Options{Format: "stubs"})
+	if err == nil || !strings.Contains(err.Error(), "Broken - Nobody.jpg") {
+		t.Errorf("error %v, want one naming the bad file", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("wrote %d bytes, want none", out.Len())
 	}
 }

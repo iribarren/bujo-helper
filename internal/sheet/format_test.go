@@ -17,6 +17,7 @@ func TestFormatByID(t *testing.T) {
 		{"covers", "covers", true, true},
 		{"cards", "cards", false, false},
 		{"spines", "spines", true, false},
+		{"stubs", "stubs", false, false},
 	}
 	for _, tt := range tests {
 		f, err := FormatByID(tt.id)
@@ -89,6 +90,12 @@ func TestOptionsPerPage(t *testing.T) {
 		{Options{Format: "spines"}, 80},
 		{Options{Format: "spines", Size: "mini"}, 144},
 		{Options{Format: "spines", Size: "large", Paper: "a5"}, 22},
+		{Options{Format: "stubs"}, 12},
+		{Options{Format: "stubs", Paper: "letter"}, 12},
+		{Options{Format: "stubs", Paper: "a5"}, 4},
+		// The cover size does not apply to stubs.
+		{Options{Format: "stubs", Size: "mini"}, 12},
+		{Options{Format: "stubs", Size: "large", Paper: "a5"}, 4},
 	}
 	for _, tt := range tests {
 		got, err := tt.opts.PerPage()

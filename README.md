@@ -16,7 +16,7 @@ Book covers, movie posters and TV series posters are supported. The core is medi
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
-- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, or as book spines for a bookshelf tracker. See [Print sheet](#print-sheet).
+- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, or as movie ticket stubs. See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
@@ -136,15 +136,15 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 
 ## Print sheet
 
-The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, [review cards](#review-cards) or [spines](#spines).
+The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, [review cards](#review-cards), [spines](#spines) or [ticket stubs](#ticket-stubs).
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
-2. Pick a **Format**: **Cover sheet** (the default), **Review cards** or **Spines**. For review cards, pick what they are **Cards for** (Books, Movies or TV series); it follows the Download tab's media type until you change it here.
+2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines** or **Ticket stubs**. For review cards, pick what they are **Cards for** (Books, Movies or TV series); it follows the Download tab's media type until you change it here.
 3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines) fit on that paper.
-4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet and spines, so it is disabled for review cards.
+4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet and spines, so it is disabled for review cards and ticket stubs.
 5. For a cover sheet, pick a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). It never changes how many covers fit on a page.
 6. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size.
-7. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `spines_A4_Standard.pdf` or, for review cards, `cards_A4.pdf`), then **Open PDF** to view it.
+7. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `spines_A4_Standard.pdf` or, for review cards and ticket stubs, `cards_A4.pdf` and `stubs_A4.pdf`), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 
@@ -177,7 +177,7 @@ How the grid is derived from the cover height *h* and the page width *W* and hei
 
 ### Cut mode
 
-The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards and spines always keep their grey cut border.
+The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, spines and ticket stubs always keep their grey cut border.
 
 | Cut mode               | What is printed                                                                                                   |
 |------------------------|-------------------------------------------------------------------------------------------------------------------|
@@ -241,6 +241,32 @@ Spines per page (spines per row × rows):
 | A5        | 11 × 6 = 66    | 11 × 3 = 33          | 11 × 2 = 22   |
 
 The suggested file name is `spines_<paper>_<size>.pdf`, for example `spines_A4_Standard.pdf`.
+
+### Ticket stubs
+
+The **Ticket stubs** format prints one 90 × 40 mm movie ticket stub per selected cover, to keep a log of films (or books) in a journal:
+
+| Part        | Content                                                                                    |
+|-------------|--------------------------------------------------------------------------------------------|
+| Outline     | grey cut border with a semicircular notch in the top and bottom edges                      |
+| Perforation | a dashed line between the notches, 20 mm from the right edge                               |
+| Left side   | the poster                                                                                 |
+| Title       | bold, from the file name `Title - Creator.jpg`, up to 2 lines; longer text ends with "…"   |
+| Creator     | the year for movies and TV series (`Title - Year.jpg`), or the author for books, on 1 line |
+| Fields      | **Date:** and **Where:**, each with a line to write on                                     |
+| Rating      | 5 empty stars                                                                              |
+| Stub end    | **ADMIT ONE**, turned to read bottom to top                                                |
+
+Stubs are centred on the page with 4 mm gaps, at a fixed size (the cover size and cut mode do not apply):
+
+| Paper     | Columns × rows | Stubs per page |
+|-----------|----------------|----------------|
+| **A4**    | 2 × 6          | 12             |
+| US Letter | 2 × 6          | 12             |
+| A5        | 1 × 4          | 4              |
+
+- The title and creator are read from the file name as for [review cards](#review-cards), with the same caveats.
+- The suggested file name is `stubs_<paper>.pdf`, for example `stubs_A4.pdf`.
 
 ## Using the command line
 
@@ -342,7 +368,7 @@ internal/
   web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
   settings/            user settings file (TMDB API key)
   gallery/             print sheet: folder listing and thumbnails for the UI
-  sheet/               print sheet: layouts (covers, review cards, spines) and PDF export
+  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs) and PDF export
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
 legacy/                the original Python script
 ```
