@@ -35,9 +35,9 @@ const (
 )
 
 // Build writes a PDF of the images at paths, in the format and on the grid
-// of opts, to w: a cover sheet, or a review card per image. Images are
-// downscaled to 300 dpi at their printed size and re-encoded as JPEG to keep
-// the file small. If any image cannot be read or opts are invalid, Build
+// of opts, to w: a cover sheet, a review card per image, or a book spine
+// per image. Images are downscaled to 300 dpi at their printed size and
+// re-encoded as JPEG to keep the file small. If any image cannot be read or opts are invalid, Build
 // returns an error (naming the file, if any) and writes nothing.
 func Build(w io.Writer, paths []string, opts Options) error {
 	if len(paths) == 0 {
@@ -61,9 +61,12 @@ func Build(w io.Writer, paths []string, opts Options) error {
 	}
 
 	var pdf *fpdf.Fpdf
-	if format.ID == cardsFormat {
+	switch format.ID {
+	case cardsFormat:
 		pdf, err = buildCards(grid, paths, ratios, opts)
-	} else {
+	case spinesFormat:
+		pdf, err = buildSpines(grid, paths)
+	default:
 		pdf, err = buildCovers(grid, paths, ratios)
 	}
 	if err != nil {
@@ -153,34 +156,46 @@ func aspectRatio(path string) (float64, error) {
 // returns the error of the first failing cover in order.
 func printImages(paths []string, boxes []Box) ([][]byte, error) {
 	images := make([][]byte, len(paths))
-	errs := make([]error, len(paths))
+	err := forEachImage(len(paths), func(i int) (err error) {
+		images[i], err = printImage(paths[i], boxes[i].H)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return images, nil
+}
+
+// forEachImage runs work for 0 … n-1 on at most maxWorkers goroutines (one
+// image each), and returns the error of the lowest failing index, if any.
+func forEachImage(n int, work func(i int) error) error {
+	errs := make([]error, n)
 	next := make(chan int)
 	var wg sync.WaitGroup
-	for range min(maxWorkers, runtime.NumCPU(), len(paths)) {
+	for range min(maxWorkers, runtime.NumCPU(), n) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for i := range next {
-				images[i], errs[i] = printImage(paths[i], boxes[i].H)
+				errs[i] = work(i)
 			}
 		}()
 	}
-	for i := range paths {
+	for i := range n {
 		next <- i
 	}
 	close(next)
 	wg.Wait()
 	for _, err := range errs {
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return images, nil
+	return nil
 }
 
-// printImage decodes the image at path and returns it as a JPEG sized for a
-// printed height of heightMM.
-func printImage(path string, heightMM float64) ([]byte, error) {
+// decodeImage decodes the image at path, naming the file in any error.
+func decodeImage(path string) (image.Image, error) {
 	name := filepath.Base(path)
 	f, err := os.Open(path)
 	if err != nil {
@@ -191,9 +206,19 @@ func printImage(path string, heightMM float64) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: not a readable image: %w", name, err)
 	}
+	return src, nil
+}
+
+// printImage decodes the image at path and returns it as a JPEG sized for a
+// printed height of heightMM.
+func printImage(path string, heightMM float64) ([]byte, error) {
+	src, err := decodeImage(path)
+	if err != nil {
+		return nil, err
+	}
 	var buf bytes.Buffer
 	if err := jpeg.Encode(&buf, fitImage(src, heightMM), &jpeg.Options{Quality: jpegQuality}); err != nil {
-		return nil, fmt.Errorf("%s: encode: %w", name, err)
+		return nil, fmt.Errorf("%s: encode: %w", filepath.Base(path), err)
 	}
 	return buf.Bytes(), nil
 }

@@ -47,10 +47,8 @@ func buildCards(grid Grid, paths []string, ratios []float64, opts Options) (*fpd
 	}
 
 	pdf := newPDF(grid.Page)
-	pdf.AddUTF8FontFromBytes(textFont, "", goregular.TTF)
-	pdf.AddUTF8FontFromBytes(textFont, "B", gobold.TTF)
-	if err := pdf.Error(); err != nil {
-		return nil, fmt.Errorf("load fonts: %w", err)
+	if err := addTextFonts(pdf); err != nil {
+		return nil, err
 	}
 	imgOpts := fpdf.ImageOptions{ImageType: "JPG"}
 	label := opts.dateLabel()
@@ -70,6 +68,16 @@ func buildCards(grid Grid, paths []string, ratios []float64, opts Options) (*fpd
 		}
 	}
 	return pdf, nil
+}
+
+// addTextFonts embeds the regular and bold text fonts in pdf.
+func addTextFonts(pdf *fpdf.Fpdf) error {
+	pdf.AddUTF8FontFromBytes(textFont, "", goregular.TTF)
+	pdf.AddUTF8FontFromBytes(textFont, "B", gobold.TTF)
+	if err := pdf.Error(); err != nil {
+		return fmt.Errorf("load fonts: %w", err)
+	}
+	return nil
 }
 
 // drawCard draws one review card with the registered cover image.

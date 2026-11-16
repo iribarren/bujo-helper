@@ -357,3 +357,101 @@ func TestDateLabel(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildSpinesPages(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "Dune - Frank Herbert.jpg", 66, 100, color.RGBA{200, 120, 40, 255})
+	tests := []struct {
+		paper, size string
+		spines      int
+		pages       int
+		mediaBox    string
+	}{
+		{"", "", 80, 1, "/MediaBox [0 0 595.28 841.89]"},
+		{"a4", "standard", 81, 2, "/MediaBox [0 0 595.28 841.89]"},
+		{"a4", "mini", 145, 2, "/MediaBox [0 0 595.28 841.89]"},
+		{"a4", "large", 48, 1, "/MediaBox [0 0 595.28 841.89]"},
+		{"letter", "standard", 65, 2, "/MediaBox [0 0 612.00 792.00]"},
+		{"a5", "standard", 33, 1, "/MediaBox [0 0 419.53 595.28]"},
+		{"a5", "large", 45, 3, "/MediaBox [0 0 419.53 595.28]"},
+	}
+	for _, tt := range tests {
+		paths := make([]string, tt.spines)
+		for i := range paths {
+			paths[i] = cover
+		}
+		var out bytes.Buffer
+		if err := Build(&out, paths, Options{Format: "spines", Paper: tt.paper, Size: tt.size}); err != nil {
+			t.Fatalf("%q %q: %v", tt.paper, tt.size, err)
+		}
+		if !bytes.HasPrefix(out.Bytes(), []byte("%PDF")) {
+			t.Fatalf("%q %q: output is not a PDF", tt.paper, tt.size)
+		}
+		if n := len(pageObject.FindAll(out.Bytes(), -1)); n != tt.pages {
+			t.Errorf("%q %q, %d spines: PDF has %d pages, want %d", tt.paper, tt.size, tt.spines, n, tt.pages)
+		}
+		if !bytes.Contains(out.Bytes(), []byte(tt.mediaBox)) {
+			t.Errorf("%q %q: PDF has no %s", tt.paper, tt.size, tt.mediaBox)
+		}
+	}
+}
+
+func TestBuildSpinesWithAccentsLongTitlesAndOddImages(t *testing.T) {
+	dir := t.TempDir()
+	paths := []string{
+		writeImage(t, dir, "Cien años de soledad edición conmemorativa de la Real Academia Española - Gabriel García Márquez.jpg", 66, 100, color.RGBA{40, 120, 200, 255}),
+		writeImage(t, dir, "Dune - 2021.jpg", 66, 100, color.RGBA{200, 160, 40, 255}),
+		writeImage(t, dir, "Amélie-2.png", 80, 80, color.NRGBA{0, 200, 0, 120}),
+		writeImage(t, dir, "Panorama - Ünïcödé Çréâtör Wïth À Vêry Löng Nämé Indeed.jpg", 300, 100, color.RGBA{90, 90, 90, 255}),
+		writeImage(t, dir, "Supercalifragilisticexpialidociousandevenlongerthanthat.jpg", 30, 100, color.RGBA{10, 10, 10, 255}),
+		writeImage(t, dir, ".jpg", 66, 100, color.White),
+	}
+	for _, size := range []string{"mini", "standard", "large"} {
+		var out bytes.Buffer
+		if err := Build(&out, paths, Options{Format: "spines", Size: size}); err != nil {
+			t.Fatalf("%s: %v", size, err)
+		}
+		if n := len(pageObject.FindAll(out.Bytes(), -1)); n != 1 {
+			t.Errorf("%s: PDF has %d pages, want 1", size, n)
+		}
+		if !bytes.Contains(out.Bytes(), []byte("/FontFile2")) {
+			t.Errorf("%s: PDF embeds no TrueType font", size)
+		}
+	}
+}
+
+// A spine is a coloured strip with text: it embeds no cover image.
+func TestBuildSpinesHaveNoImages(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "Dune - Frank Herbert.jpg", 66, 100, color.RGBA{10, 25, 90, 255})
+	var out bytes.Buffer
+	if err := Build(&out, []string{cover}, Options{Format: "spines"}); err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(out.Bytes(), []byte("/Subtype /Image")) {
+		t.Error("spines PDF embeds an image")
+	}
+}
+
+func TestBuildSpinesNamesTheBadFileAndWritesNothing(t *testing.T) {
+	dir := t.TempDir()
+	good := writeImage(t, dir, "Dune.jpg", 66, 100, color.White)
+	// A PNG whose header reads but whose pixels do not.
+	full := writeImage(t, dir, "full.png", 66, 100, color.White)
+	data, err := os.ReadFile(full)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad := filepath.Join(dir, "Truncated - Nobody.png")
+	if err := os.WriteFile(bad, data[:len(data)/2], 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	err = Build(&out, []string{good, bad}, Options{Format: "spines"})
+	if err == nil || !strings.Contains(err.Error(), "Truncated - Nobody.png") {
+		t.Errorf("error %v, want one naming the bad file", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("wrote %d bytes, want none", out.Len())
+	}
+}

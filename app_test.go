@@ -510,6 +510,7 @@ func TestPrintFormats(t *testing.T) {
 	want := []PrintFormatInfo{
 		{ID: "covers", Label: "Cover sheet", UsesSize: true, Default: true},
 		{ID: "cards", Label: "Review cards"},
+		{ID: "spines", Label: "Spines", UsesSize: true},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("PrintFormats() = %+v, want %+v", got, want)

@@ -1,5 +1,5 @@
 // Package sheet lays out cover images on pages for printing and writes them
-// to a PDF, in one of several formats: a sheet of covers, or review cards.
+// to a PDF, in one of several formats: a sheet of covers, review cards, or book spines.
 //
 // On a cover sheet, covers have a fixed height chosen by a size preset (50 mm by default) and
 // keep their aspect ratio, in a centred grid derived from the cover height
@@ -109,13 +109,17 @@ type Format struct {
 // DefaultFormat is the ID of the format used when none is chosen.
 const DefaultFormat = "covers"
 
-// cardsFormat is the ID of the review cards format.
-const cardsFormat = "cards"
+// IDs of the formats other than the cover sheet.
+const (
+	cardsFormat  = "cards"
+	spinesFormat = "spines"
+)
 
 // Formats lists the print formats, the default first.
 var Formats = []Format{
 	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", UsesSize: true},
 	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", UsesSize: false},
+	{ID: spinesFormat, Label: "Spines", FileTag: "spines", UsesSize: true},
 }
 
 // FormatByID returns the format with the given ID; "" means DefaultFormat.
@@ -143,7 +147,8 @@ type Options struct {
 }
 
 // Grid returns the grid the options describe: the cover grid of the size
-// preset for a cover sheet, the card grid for review cards.
+// preset for a cover sheet, the card grid for review cards, the spine grid
+// of the size preset (its cover height) for spines.
 func (o Options) Grid() (Grid, error) {
 	f, err := FormatByID(o.Format)
 	if err != nil {
@@ -164,10 +169,13 @@ func (o Options) Grid() (Grid, error) {
 	if err != nil {
 		return Grid{}, err
 	}
+	if f.ID == spinesFormat {
+		return NewSpineGrid(p.Page, s.CoverHeight)
+	}
 	return NewGrid(p.Page, s.CoverHeight)
 }
 
-// PerPage is the number of covers, or cards, on a full page.
+// PerPage is the number of covers, cards or spines on a full page.
 func (o Options) PerPage() (int, error) {
 	g, err := o.Grid()
 	if err != nil {
@@ -194,6 +202,9 @@ type Grid struct {
 	Rows        int
 	MarginX     float64 // left and right margin
 	MarginY     float64 // top and bottom margin
+	// Spines makes the columns book spines: their widths follow the
+	// spineWidths pattern, spineGap apart, and CellWidth is unused.
+	Spines bool
 }
 
 // NewGrid derives the grid of covers coverHeight tall on page. As many
@@ -276,9 +287,13 @@ func (g Grid) Cells(count int) ([][]Box, error) {
 // cell returns cell n of a page.
 func (g Grid) cell(n int) Box {
 	col, row := n%g.Columns, n/g.Columns
+	y := g.MarginY + float64(row)*(g.CoverHeight+Gap)
+	if g.Spines {
+		return spineCell(g.MarginX, y, g.CoverHeight, col)
+	}
 	return Box{
 		X: g.MarginX + float64(col)*(g.CellWidth+Gap),
-		Y: g.MarginY + float64(row)*(g.CoverHeight+Gap),
+		Y: y,
 		W: g.CellWidth,
 		H: g.CoverHeight,
 	}
