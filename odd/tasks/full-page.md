@@ -52,5 +52,8 @@ Some users want a finished page to glue or bind into the journal, with no cuttin
 - Plan commit 1251881: low risk, auto-approved, acknowledged.
 - Assess 1251881..3a040a3: medium, 878 lines, `review_due` (`slice_budget_reached`). Consent granted; reliability lens approved, acknowledged (authority burned). Advisory R3 SUGGESTION (`fullpage_test.go:212-220`, `TestGridLimit` could panic instead of reporting a wrong page count) applied in `36fece7` (`t.Fatalf` on the page counts); `TestGridLimit` passes.
 
+- Whole-branch review main..b232703 (918 lines, medium): consent granted, reliability lens approved with no findings, acknowledged.
+- Manual GUI check passed (user, 2026-11-16). Merged to main and pushed.
+
 ## Next step
-User GUI check (Header field visibility per format, export with a header), then local `--no-ff` merge.
+Done.
