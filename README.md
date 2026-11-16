@@ -16,7 +16,7 @@ Book covers and movie posters are supported. The core is media-agnostic, so musi
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
-- **Print sheet**: select downloaded covers and export them as an A4 PDF of 5 cm tall covers, 25 per page, ready to cut out. See [Print sheet](#print-sheet).
+- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page). See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
@@ -130,26 +130,36 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 The **Print sheet** tab turns downloaded covers into an A4 PDF of small covers to cut out, for example for a bullet journal.
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
-2. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need.
-3. Click **Export PDF…**, choose where to save (default `covers.pdf`), then **Open PDF** to view it.
+2. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**.
+3. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need at the chosen size.
+4. Click **Export PDF…**, choose where to save (default `covers.pdf`), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 
-Layout of each A4 page (210 × 297 mm):
+Cover sizes on an A4 page (210 × 297 mm):
 
-| Setting           | Value                                                        |
-|-------------------|--------------------------------------------------------------|
-| Cover height      | 50 mm; the width follows the cover's aspect ratio            |
-| Grid              | 5 columns × 5 rows = 25 covers per page                      |
-| Gap               | 4 mm between covers, both ways                               |
-| Column width      | 35.6 mm (8 mm side margins)                                  |
-| Top/bottom margin | 15.5 mm (the grid is centred)                                |
-| Cut border        | 0.2 mm grey (#999) line exactly around each cover            |
+| Size         | Cover height | Grid (columns × rows) | Covers per page | Column width | Top/bottom margin |
+|--------------|--------------|-----------------------|-----------------|--------------|-------------------|
+| Mini         | 25 mm        | 9 × 9                 | 81              | 18 mm        | 20 mm             |
+| **Standard** | 50 mm        | 5 × 5                 | 25              | 35.6 mm      | 15.5 mm           |
+| Large        | 80 mm        | 3 × 3                 | 9               | 62 mm        | 24.5 mm           |
 
-- **Shrink to fit:** a cover wider than its column (wider than about 0.71:1, for example a square one) is shrunk to the 35.6 mm column width and keeps its aspect ratio, so it ends up shorter than 50 mm. Each cover is centred in its 35.6 × 50 mm cell. Typical book covers (about 2:3) are 50 mm tall and about 33 mm wide.
-- **Pagination:** covers fill each page left to right, top to bottom. More than 25 covers add pages; the last page may be partly filled.
-- **Print at 100 % / actual size** (not "fit to page") so covers come out 50 mm tall.
-- Images are downscaled to 300 dpi at their printed size (never upscaled) to keep the PDF small. If any image cannot be read, the export fails naming that file and no PDF is written.
+How the grid is derived from the cover height *h*:
+
+| Setting           | Rule                                                                                       |
+|-------------------|--------------------------------------------------------------------------------------------|
+| Gap               | 4 mm between covers, both ways, at every size                                              |
+| Side margins      | 8 mm                                                                                       |
+| Columns           | as many as fit with every column at least ⅔·*h* wide (the 2:3 shape of a typical cover): ⌊(210 − 2·8 + 4) / (⅔·*h* + 4)⌋ |
+| Column width      | the columns then widen to fill the width between the side margins                          |
+| Rows              | as many as fit with at least 8 mm top and bottom: ⌊(297 − 2·8 + 4) / (*h* + 4)⌋             |
+| Top/bottom margin | whatever height is left, split equally, so the grid is centred                             |
+| Cut border        | 0.2 mm grey (#999) line exactly around each cover                                          |
+
+- **Shrink to fit:** a cover wider than its column (for example a square one) is shrunk to the column width and keeps its aspect ratio, so it ends up shorter than the chosen height. Each cover is centred in its cell. Typical book covers (about 2:3) keep the full height: at Standard size they are 50 mm tall and about 33 mm wide.
+- **Pagination:** covers fill each page left to right, top to bottom. More covers than fit on a page add pages; the last page may be partly filled.
+- **Print at 100 % / actual size** (not "fit to page") so covers come out at the chosen height.
+- Images are downscaled to 300 dpi at their printed size (never upscaled) to keep the PDF small. If any image cannot be read, the export fails naming that file and no PDF is written. Mini covers need only about 300 px of height, and Large covers about 950 px, to print sharp.
 
 ## Using the command line
 

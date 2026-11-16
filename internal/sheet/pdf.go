@@ -34,13 +34,18 @@ const (
 	maxWorkers = 4
 )
 
-// Build writes a PDF of the images at paths, laid out by Layout, to w.
-// Images are downscaled to 300 dpi at their printed size and re-encoded as
-// JPEG to keep the file small. If any image cannot be read, Build returns an
-// error naming the file and writes nothing.
-func Build(w io.Writer, paths []string) error {
+// Build writes a PDF of the images at paths, laid out on the grid of opts,
+// to w. Images are downscaled to 300 dpi at their printed size and
+// re-encoded as JPEG to keep the file small. If any image cannot be read or
+// opts are invalid, Build returns an error (naming the file, if any) and
+// writes nothing.
+func Build(w io.Writer, paths []string, opts Options) error {
 	if len(paths) == 0 {
 		return errors.New("no covers selected")
+	}
+	grid, err := opts.Grid()
+	if err != nil {
+		return err
 	}
 	ratios := make([]float64, len(paths))
 	for i, p := range paths {
@@ -50,17 +55,21 @@ func Build(w io.Writer, paths []string) error {
 		}
 		ratios[i] = r
 	}
-	pages, err := Layout(ratios)
+	pages, err := grid.Layout(ratios)
 	if err != nil {
 		return err
 	}
 
-	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf := fpdf.NewCustom(&fpdf.InitType{
+		OrientationStr: "P",
+		UnitStr:        "mm",
+		Size:           fpdf.SizeType{Wd: grid.Page.Width, Ht: grid.Page.Height},
+	})
 	pdf.SetMargins(0, 0, 0)
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.SetDrawColor(borderGrey, borderGrey, borderGrey)
 	pdf.SetLineWidth(borderWidth)
-	opts := fpdf.ImageOptions{ImageType: "JPG"}
+	imgOpts := fpdf.ImageOptions{ImageType: "JPG"}
 
 	var boxes []Box
 	for _, page := range pages {
@@ -76,8 +85,8 @@ func Build(w io.Writer, paths []string) error {
 		pdf.AddPage()
 		for _, box := range page {
 			name := fmt.Sprintf("cover-%d", i)
-			pdf.RegisterImageOptionsReader(name, opts, bytes.NewReader(images[i]))
-			pdf.ImageOptions(name, box.X, box.Y, box.W, box.H, false, opts, 0, "")
+			pdf.RegisterImageOptionsReader(name, imgOpts, bytes.NewReader(images[i]))
+			pdf.ImageOptions(name, box.X, box.Y, box.W, box.H, false, imgOpts, 0, "")
 			pdf.Rect(box.X, box.Y, box.W, box.H, "D")
 			if err := pdf.Error(); err != nil {
 				return fmt.Errorf("%s: %w", filepath.Base(paths[i]), err)

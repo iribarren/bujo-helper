@@ -17,47 +17,154 @@ func ratios(n int, r float64) []float64 {
 	return out
 }
 
+// standard is today's grid: 50 mm covers on A4.
+func standard(t *testing.T) Grid {
+	t.Helper()
+	g, err := Options{}.Grid()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return g
+}
+
+// presetGrids returns the grid of every size preset, by ID.
+func presetGrids(t *testing.T) map[string]Grid {
+	t.Helper()
+	grids := map[string]Grid{}
+	for _, s := range Sizes {
+		g, err := Options{Size: s.ID}.Grid()
+		if err != nil {
+			t.Fatalf("%s: %v", s.ID, err)
+		}
+		grids[s.ID] = g
+	}
+	return grids
+}
+
+func TestGridPresets(t *testing.T) {
+	tests := []struct {
+		size       string
+		height     float64
+		cols, rows int
+		cellWidth  float64
+		marginY    float64
+		perPage    int
+	}{
+		// (194 - 8·4) / 9 = 18; (297 - 9·25 - 8·4) / 2 = 20.
+		{"mini", 25, 9, 9, 18, 20, 81},
+		// Today's layout: (194 - 4·4) / 5 = 35.6; (297 - 5·50 - 4·4) / 2 = 15.5.
+		{"standard", 50, 5, 5, 35.6, 15.5, 25},
+		// (194 - 2·4) / 3 = 62; (297 - 3·80 - 2·4) / 2 = 24.5.
+		{"large", 80, 3, 3, 62, 24.5, 9},
+	}
+	grids := presetGrids(t)
+	if len(grids) != len(tests) {
+		t.Fatalf("%d presets, want %d", len(grids), len(tests))
+	}
+	for _, tt := range tests {
+		g, ok := grids[tt.size]
+		if !ok {
+			t.Errorf("no %q preset", tt.size)
+			continue
+		}
+		if g.Page != A4 || !near(g.CoverHeight, tt.height) || g.Columns != tt.cols || g.Rows != tt.rows ||
+			!near(g.CellWidth, tt.cellWidth) || !near(g.MarginX, 8) || !near(g.MarginY, tt.marginY) ||
+			g.PerPage() != tt.perPage {
+			t.Errorf("%s: grid %+v (%d per page), want %v mm, %d x %d, cell %v, margins 8 / %v, %d per page",
+				tt.size, g, g.PerPage(), tt.height, tt.cols, tt.rows, tt.cellWidth, tt.marginY, tt.perPage)
+		}
+	}
+}
+
+func TestGridCellsAreAtLeastTwoByThree(t *testing.T) {
+	for id, g := range presetGrids(t) {
+		if g.CellWidth < g.CoverHeight*2/3-eps {
+			t.Errorf("%s: cell %v x %v is narrower than 2:3", id, g.CellWidth, g.CoverHeight)
+		}
+		// One more column would make the cells narrower than 2:3.
+		more := (g.Page.Width - 2*MinMargin - float64(g.Columns)*Gap) / float64(g.Columns+1)
+		if more >= g.CoverHeight*2/3 {
+			t.Errorf("%s: %d columns fit, grid has %d", id, g.Columns+1, g.Columns)
+		}
+	}
+}
+
+func TestGridMiniFitsMoreLargeFewer(t *testing.T) {
+	grids := presetGrids(t)
+	mini, std, large := grids["mini"].PerPage(), grids["standard"].PerPage(), grids["large"].PerPage()
+	if !(mini > std && std > large) {
+		t.Errorf("per page: mini %d, standard %d, large %d; want mini > standard > large", mini, std, large)
+	}
+}
+
+func TestSizeByID(t *testing.T) {
+	if DefaultSize != "standard" {
+		t.Errorf("DefaultSize = %q, want standard", DefaultSize)
+	}
+	if s, err := SizeByID(""); err != nil || s.ID != "standard" {
+		t.Errorf(`SizeByID("") = %+v, %v; want standard`, s, err)
+	}
+	for _, id := range []string{"mini", "standard", "large"} {
+		if s, err := SizeByID(id); err != nil || s.ID != id {
+			t.Errorf("SizeByID(%q) = %+v, %v", id, s, err)
+		}
+	}
+	if _, err := SizeByID("huge"); err == nil {
+		t.Error(`SizeByID("huge"): want an error`)
+	}
+	if _, err := (Options{Size: "huge"}).Grid(); err == nil {
+		t.Error(`Options{Size: "huge"}.Grid(): want an error`)
+	}
+}
+
 func TestLayoutPageCount(t *testing.T) {
 	tests := []struct {
+		size    string
 		covers  int
 		pages   int
 		lastLen int
 	}{
-		{1, 1, 1},
-		{7, 1, 7},
-		{25, 1, 25},
-		{26, 2, 1},
-		{60, 3, 10},
+		{"standard", 1, 1, 1},
+		{"standard", 7, 1, 7},
+		{"standard", 25, 1, 25},
+		{"standard", 26, 2, 1},
+		{"standard", 60, 3, 10},
+		{"mini", 81, 1, 81},
+		{"mini", 82, 2, 1},
+		{"large", 9, 1, 9},
+		{"large", 20, 3, 2},
 	}
+	grids := presetGrids(t)
 	for _, tt := range tests {
-		pages, err := Layout(ratios(tt.covers, 0.656))
+		g := grids[tt.size]
+		pages, err := g.Layout(ratios(tt.covers, 0.656))
 		if err != nil {
-			t.Fatalf("%d covers: %v", tt.covers, err)
+			t.Fatalf("%s, %d covers: %v", tt.size, tt.covers, err)
 		}
 		if len(pages) != tt.pages {
-			t.Errorf("%d covers: %d pages, want %d", tt.covers, len(pages), tt.pages)
+			t.Errorf("%s, %d covers: %d pages, want %d", tt.size, tt.covers, len(pages), tt.pages)
 			continue
 		}
 		for i, p := range pages[:len(pages)-1] {
-			if len(p) != PerPage {
-				t.Errorf("%d covers: page %d has %d boxes, want %d", tt.covers, i+1, len(p), PerPage)
+			if len(p) != g.PerPage() {
+				t.Errorf("%s, %d covers: page %d has %d boxes, want %d", tt.size, tt.covers, i+1, len(p), g.PerPage())
 			}
 		}
 		if got := len(pages[len(pages)-1]); got != tt.lastLen {
-			t.Errorf("%d covers: last page has %d boxes, want %d", tt.covers, got, tt.lastLen)
+			t.Errorf("%s, %d covers: last page has %d boxes, want %d", tt.size, tt.covers, got, tt.lastLen)
 		}
 	}
 }
 
 func TestLayoutRejectsNoCovers(t *testing.T) {
-	if _, err := Layout(nil); err == nil {
+	if _, err := standard(t).Layout(nil); err == nil {
 		t.Fatal("Layout(nil): want an error")
 	}
 }
 
 func TestLayoutRejectsBadRatio(t *testing.T) {
 	for _, r := range []float64{0, -1, math.NaN(), math.Inf(1)} {
-		if _, err := Layout([]float64{0.7, r}); err == nil {
+		if _, err := standard(t).Layout([]float64{0.7, r}); err == nil {
 			t.Errorf("ratio %v: want an error", r)
 		}
 	}
@@ -67,33 +174,53 @@ func TestLayoutBoxesInsidePageWithoutOverlap(t *testing.T) {
 	// Mix of tall, typical, square and very wide covers.
 	mix := []float64{0.3, 0.656, 0.66, 1, 1.5, 3}
 	var rs []float64
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 200; i++ {
 		rs = append(rs, mix[i%len(mix)])
 	}
-	pages, err := Layout(rs)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for pi, page := range pages {
-		for i, b := range page {
-			if b.X < -eps || b.Y < -eps || b.X+b.W > PageWidth+eps || b.Y+b.H > PageHeight+eps {
-				t.Errorf("page %d box %d %+v is outside the page", pi+1, i, b)
-			}
-			if b.W > CellWidth+eps || b.H > CoverHeight+eps {
-				t.Errorf("page %d box %d %+v is larger than its cell", pi+1, i, b)
-			}
-			for j := i + 1; j < len(page); j++ {
-				c := page[j]
-				if b.X < c.X+c.W && c.X < b.X+b.W && b.Y < c.Y+c.H && c.Y < b.Y+b.H {
-					t.Errorf("page %d boxes %d %+v and %d %+v overlap", pi+1, i, b, j, c)
+	for id, g := range presetGrids(t) {
+		pages, err := g.Layout(rs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for pi, page := range pages {
+			for i, b := range page {
+				if b.X < -eps || b.Y < -eps || b.X+b.W > g.Page.Width+eps || b.Y+b.H > g.Page.Height+eps {
+					t.Errorf("%s: page %d box %d %+v is outside the page", id, pi+1, i, b)
+				}
+				if b.W > g.CellWidth+eps || b.H > g.CoverHeight+eps {
+					t.Errorf("%s: page %d box %d %+v is larger than its cell", id, pi+1, i, b)
+				}
+				for j := i + 1; j < len(page); j++ {
+					c := page[j]
+					if b.X < c.X+c.W && c.X < b.X+b.W && b.Y < c.Y+c.H && c.Y < b.Y+b.H {
+						t.Errorf("%s: page %d boxes %d %+v and %d %+v overlap", id, pi+1, i, b, j, c)
+					}
 				}
 			}
 		}
 	}
 }
 
+func TestLayoutKeepsAspectRatio(t *testing.T) {
+	for id, g := range presetGrids(t) {
+		// A typical cover is full height; a square one is shrunk to the
+		// column width. Both keep their aspect ratio.
+		pages, err := g.Layout([]float64{0.656, 1})
+		if err != nil {
+			t.Fatal(err)
+		}
+		typical, square := pages[0][0], pages[0][1]
+		if !near(typical.H, g.CoverHeight) || !near(typical.W, 0.656*g.CoverHeight) {
+			t.Errorf("%s: typical cover %+v, want %v x %v", id, typical, 0.656*g.CoverHeight, g.CoverHeight)
+		}
+		if !near(square.W, g.CellWidth) || !near(square.H, g.CellWidth) {
+			t.Errorf("%s: square cover %+v, want %v x %v", id, square, g.CellWidth, g.CellWidth)
+		}
+	}
+}
+
 func TestLayoutTypicalCoverKeepsHeight(t *testing.T) {
-	pages, err := Layout([]float64{0.656})
+	pages, err := standard(t).Layout([]float64{0.656})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +231,7 @@ func TestLayoutTypicalCoverKeepsHeight(t *testing.T) {
 }
 
 func TestLayoutSquareCoverShrinksToFit(t *testing.T) {
-	pages, err := Layout([]float64{1})
+	pages, err := standard(t).Layout([]float64{1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +246,8 @@ func TestLayoutSquareCoverShrinksToFit(t *testing.T) {
 }
 
 func TestLayoutGridPositions(t *testing.T) {
-	pages, err := Layout(ratios(25, 0.656))
+	g := standard(t)
+	pages, err := g.Layout(ratios(25, 0.656))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,17 +269,34 @@ func TestLayoutGridPositions(t *testing.T) {
 	if !near(last.X, 166.4+1.4) || !near(last.Y, 231.5) {
 		t.Errorf("cell 24 at (%v, %v), want (167.8, 231.5)", last.X, last.Y)
 	}
-	// The grid is centred: equal margins left/right and top/bottom.
-	if right := PageWidth - (166.4 + CellWidth); !near(right, MarginX) {
-		t.Errorf("right margin %v, want %v", right, MarginX)
-	}
-	if bottom := PageHeight - (last.Y + last.H); !near(bottom, MarginY) {
-		t.Errorf("bottom margin %v, want %v", bottom, MarginY)
+}
+
+func TestLayoutGridIsCentred(t *testing.T) {
+	for id, g := range presetGrids(t) {
+		pages, err := g.Layout(ratios(g.PerPage(), 0.656))
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Cells span from the first box's cell to the last box's cell.
+		last := pages[0][len(pages[0])-1]
+		lastCellX := last.X - (g.CellWidth-last.W)/2
+		right := g.Page.Width - (lastCellX + g.CellWidth)
+		bottom := g.Page.Height - (last.Y + last.H)
+		if !near(right, g.MarginX) || !near(bottom, g.MarginY) {
+			t.Errorf("%s: right margin %v (want %v), bottom margin %v (want %v)",
+				id, right, g.MarginX, bottom, g.MarginY)
+		}
 	}
 }
 
-func TestLayoutConstants(t *testing.T) {
-	if !near(CellWidth, 35.6) || !near(MarginY, 15.5) || PerPage != 25 {
-		t.Errorf("CellWidth=%v MarginY=%v PerPage=%v", CellWidth, MarginY, PerPage)
+func TestNewGridRejectsHeightsThatDoNotFit(t *testing.T) {
+	for _, h := range []float64{0, -1, math.NaN(), math.Inf(1), 282, 500} {
+		if g, err := NewGrid(A4, h); err == nil {
+			t.Errorf("NewGrid(A4, %v) = %+v, want an error", h, g)
+		}
+	}
+	// The tallest cover that fits: the page height minus both margins.
+	if g, err := NewGrid(A4, 281); err != nil || g.PerPage() != 1 || g.MarginY < MinMargin-eps {
+		t.Errorf("NewGrid(A4, 281) = %+v, %v; want one cell within the margins", g, err)
 	}
 }

@@ -22,6 +22,7 @@ import (
 	"cover-downloader/internal/media"
 	"cover-downloader/internal/providers"
 	"cover-downloader/internal/settings"
+	"cover-downloader/internal/sheet"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -365,7 +366,7 @@ func TestExportTo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := exportTo(out, files); err != nil {
+	if err := exportTo(out, files, sheet.Options{}); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(out)
@@ -394,7 +395,7 @@ func TestExportToFailureLeavesNothing(t *testing.T) {
 	outDir := t.TempDir()
 	out := filepath.Join(outDir, "covers.pdf")
 
-	err := exportTo(out, []string{good, bad})
+	err := exportTo(out, []string{good, bad}, sheet.Options{})
 	if err == nil || !strings.Contains(err.Error(), "bad.jpg") {
 		t.Fatalf("err = %v, want an error naming bad.jpg", err)
 	}
@@ -405,8 +406,56 @@ func TestExportToFailureLeavesNothing(t *testing.T) {
 
 func TestExportPDFNeedsCovers(t *testing.T) {
 	a := newApp(media.NewRegistry(), http.DefaultClient)
-	if _, err := a.ExportPDF(nil, ""); err == nil {
+	if _, err := a.ExportPDF(nil, "", sheet.Options{}); err == nil {
 		t.Error("no covers: want an error")
+	}
+}
+
+func TestExportPDFRejectsUnknownSizeBeforeAsking(t *testing.T) {
+	stubDialogs(t, nil, nil) // the save dialog must not open
+	cover := writeCover(t, t.TempDir(), "c.jpg", 66, 100)
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	if _, err := a.ExportPDF([]string{cover}, "", sheet.Options{Size: "huge"}); err == nil {
+		t.Error("unknown size: want an error")
+	}
+}
+
+func TestExportPDFUsesTheChosenSize(t *testing.T) {
+	src := t.TempDir()
+	var files []string
+	for i := 0; i < 10; i++ {
+		files = append(files, writeCover(t, src, fmt.Sprintf("c%02d.jpg", i), 66, 100))
+	}
+	out := filepath.Join(t.TempDir(), "covers.pdf")
+	stubDialogs(t, func(runtime.SaveDialogOptions) (string, error) { return out, nil }, nil)
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	// 10 large covers need 2 pages of 9; standard would fit them on one.
+	if _, err := a.ExportPDF(files, "", sheet.Options{Size: "large"}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := bytes.Count(data, []byte("/Type /Page\n")); n != 2 {
+		t.Errorf("PDF has %d pages, want 2", n)
+	}
+}
+
+func TestPrintSizes(t *testing.T) {
+	sizes := NewApp().PrintSizes()
+	want := []PrintSizeInfo{
+		{ID: "mini", Label: "Mini", CoverHeight: 25, PerPage: 81},
+		{ID: "standard", Label: "Standard", CoverHeight: 50, PerPage: 25, Default: true},
+		{ID: "large", Label: "Large", CoverHeight: 80, PerPage: 9},
+	}
+	if len(sizes) != len(want) {
+		t.Fatalf("PrintSizes() = %+v, want %+v", sizes, want)
+	}
+	for i := range want {
+		if sizes[i] != want[i] {
+			t.Errorf("size %d = %+v, want %+v", i, sizes[i], want[i])
+		}
 	}
 }
 

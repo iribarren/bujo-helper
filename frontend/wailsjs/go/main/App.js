@@ -14,8 +14,8 @@ export function DefaultOutputDir() {
   return window['go']['main']['App']['DefaultOutputDir']();
 }
 
-export function ExportPDF(arg1, arg2) {
-  return window['go']['main']['App']['ExportPDF'](arg1, arg2);
+export function ExportPDF(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ExportPDF'](arg1, arg2, arg3);
 }
 
 export function GetSettings() {
@@ -40,6 +40,10 @@ export function OpenFile(arg1) {
 
 export function OpenFolder(arg1) {
   return window['go']['main']['App']['OpenFolder'](arg1);
+}
+
+export function PrintSizes() {
+  return window['go']['main']['App']['PrintSizes']();
 }
 
 export function SaveSampleCSV(arg1) {

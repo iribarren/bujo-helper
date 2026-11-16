@@ -52,6 +52,26 @@ export namespace main {
 	        this.creatorLabel = source["creatorLabel"];
 	    }
 	}
+	export class PrintSizeInfo {
+	    id: string;
+	    label: string;
+	    coverHeight: number;
+	    perPage: number;
+	    default: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrintSizeInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.coverHeight = source["coverHeight"];
+	        this.perPage = source["perPage"];
+	        this.default = source["default"];
+	    }
+	}
 	export class StartRequest {
 	    mediaType: string;
 	    text: string;
@@ -85,6 +105,23 @@ export namespace settings {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.tmdbApiKey = source["tmdbApiKey"];
+	    }
+	}
+
+}
+
+export namespace sheet {
+	
+	export class Options {
+	    size: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Options(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.size = source["size"];
 	    }
 	}
 

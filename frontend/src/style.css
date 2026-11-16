@@ -308,6 +308,7 @@ textarea {
 }
 
 .field input,
+.field select,
 .field button {
     font-size: 14px;
     color: var(--text);
