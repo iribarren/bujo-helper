@@ -21,13 +21,23 @@ type Settings struct {
 	// credentials, used for the IGDB games API.
 	IGDBClientID     string `json:"igdbClientId"`
 	IGDBClientSecret string `json:"igdbClientSecret"`
+	// Language is the UI language: "" follows the system, "en" or "es".
+	Language string `json:"language"`
 }
 
 // Trimmed returns s with surrounding whitespace removed from every value.
+// Language is also lower-cased, and an unsupported one becomes "" (follow
+// the system).
 func (s Settings) Trimmed() Settings {
 	s.TMDBAPIKey = strings.TrimSpace(s.TMDBAPIKey)
 	s.IGDBClientID = strings.TrimSpace(s.IGDBClientID)
 	s.IGDBClientSecret = strings.TrimSpace(s.IGDBClientSecret)
+	switch lang := strings.ToLower(strings.TrimSpace(s.Language)); lang {
+	case "en", "es":
+		s.Language = lang
+	default:
+		s.Language = ""
+	}
 	return s
 }
 

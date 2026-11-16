@@ -444,3 +444,67 @@ func TestNoLocalEditionPassWithoutLocalEditions(t *testing.T) {
 		t.Errorf("second provider searched %d times, want 0", n)
 	}
 }
+
+func TestItemResultCodes(t *testing.T) {
+	srv := imageServer(t)
+	boom := &fakeProvider{name: "boom", search: func(context.Context, media.Item) ([]media.Candidate, error) {
+		return nil, errors.New("boom")
+	}}
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	tests := []struct {
+		name      string
+		providers []media.Provider
+		ctx       context.Context
+		title     string
+		wantCode  string
+		wantError string
+	}{
+		{name: "ok", providers: []media.Provider{returns("p", srv.URL+"/cover.jpg")}, wantCode: ""},
+		{name: "every provider not found", providers: []media.Provider{notFound("a"), notFound("b")}, wantCode: CodeNotFound, wantError: "a: not found: nothing; b: not found: nothing"},
+		{name: "not found and another failure", providers: []media.Provider{notFound("a"), boom}, wantCode: "", wantError: "a: not found: nothing; boom: boom"},
+		{name: "generic failure", providers: []media.Provider{boom}, wantCode: "", wantError: "boom: boom"},
+		{name: "empty title", providers: []media.Provider{boom}, title: "  ", wantCode: CodeEmptyTitle, wantError: "empty title"},
+		{name: "no providers", wantCode: CodeNoProviders, wantError: "no providers for media type books"},
+		{name: "cancelled", providers: []media.Provider{boom}, ctx: cancelled, wantCode: CodeCancelled, wantError: "cancelled"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := tt.ctx
+			if ctx == nil {
+				ctx = context.Background()
+			}
+			title := tt.title
+			if title == "" {
+				title = "Dune"
+			}
+			d := newDownloader(srv, tt.providers...)
+			res, _ := run(t, d, ctx, Request{MediaType: "books", Items: []media.Item{{Title: title}}, OutputDir: t.TempDir()})
+			r := res[0]
+			if got := Code(r.Err); got != tt.wantCode {
+				t.Errorf("Code = %q, want %q (result %+v)", got, tt.wantCode, r)
+			}
+			if r.Error != tt.wantError {
+				t.Errorf("Error = %q, want %q", r.Error, tt.wantError)
+			}
+			if (r.Err == nil) != (tt.wantError == "") {
+				t.Errorf("Err = %v, want it set only for a failure", r.Err)
+			}
+		})
+	}
+}
+
+func TestCodeOfSentinels(t *testing.T) {
+	for err, want := range map[error]string{
+		nil:                                    "",
+		errors.New("boom"):                     "",
+		ErrCancelled:                           CodeCancelled,
+		ErrEmptyTitle:                          CodeEmptyTitle,
+		fmt.Errorf("x: %w", ErrNoProviders):    CodeNoProviders,
+		fmt.Errorf("x: %w", media.ErrNotFound): CodeNotFound,
+	} {
+		if got := Code(err); got != want {
+			t.Errorf("Code(%v) = %q, want %q", err, got, want)
+		}
+	}
+}

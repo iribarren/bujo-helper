@@ -26,6 +26,59 @@ const (
 	StatusCancelled = "cancelled"
 )
 
+// Item failure codes returned by Code. They are stable, so a UI can show
+// its own message for them; the empty code means success or a failure with
+// no specific code.
+const (
+	CodeNotFound    = "not_found"
+	CodeCancelled   = "cancelled"
+	CodeEmptyTitle  = "empty_title"
+	CodeNoProviders = "no_providers"
+)
+
+// Item failure causes, wrapped by ItemResult.Err. An item that every
+// provider reported as not found wraps media.ErrNotFound.
+var (
+	ErrCancelled   = errors.New("cancelled")
+	ErrEmptyTitle  = errors.New("empty title")
+	ErrNoProviders = errors.New("no providers")
+)
+
+// Code returns the stable failure code of an ItemResult.Err: CodeNotFound,
+// CodeCancelled, CodeEmptyTitle, CodeNoProviders, or "" for success and
+// other failures.
+func Code(err error) string {
+	switch {
+	case err == nil:
+		return ""
+	case errors.Is(err, ErrCancelled):
+		return CodeCancelled
+	case errors.Is(err, ErrEmptyTitle):
+		return CodeEmptyTitle
+	case errors.Is(err, ErrNoProviders):
+		return CodeNoProviders
+	case errors.Is(err, media.ErrNotFound):
+		return CodeNotFound
+	}
+	return ""
+}
+
+// itemError is an item failure whose message is kept as is, while it still
+// wraps a cause for errors.Is.
+type itemError struct {
+	msg   string
+	cause error
+}
+
+func (e *itemError) Error() string { return e.msg }
+func (e *itemError) Unwrap() error { return e.cause }
+
+// fail marks res as failed because of err; Error is err's message.
+func fail(res ItemResult, status string, err error) ItemResult {
+	res.Status, res.Error, res.Err = status, err.Error(), err
+	return res
+}
+
 // DefaultWorkers is the number of items processed concurrently when
 // Request.Workers is not set.
 const DefaultWorkers = 2
@@ -52,6 +105,7 @@ type ItemResult struct {
 	Source  string // provider that supplied the image
 	Matched string // "Title - Creator" of the matched candidate
 	Error   string // why the item failed or was cancelled
+	Err     error  // the cause behind Error, for errors.Is and Code; nil on success
 }
 
 // Summary counts item outcomes.
@@ -167,15 +221,13 @@ type itemJob struct {
 func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResult {
 	res := ItemResult{Index: index, Item: item}
 	cancelled := func() ItemResult {
-		res.Status, res.Error = StatusCancelled, "cancelled"
-		return res
+		return fail(res, StatusCancelled, ErrCancelled)
 	}
 	if ctx.Err() != nil {
 		return cancelled()
 	}
 	if strings.TrimSpace(item.Title) == "" {
-		res.Status, res.Error = StatusFailed, "empty title"
-		return res
+		return fail(res, StatusFailed, ErrEmptyTitle)
 	}
 
 	// Pass 1 tries only local editions (by ISBN prefix), for media types
@@ -192,6 +244,9 @@ func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResul
 	}
 	passes = append(passes, nil) // nil keeps every candidate
 	var reasons []string
+	// allNotFound stays true while every provider of the last pass reported
+	// media.ErrNotFound.
+	allNotFound := true
 	for pass, keep := range passes {
 		last := pass == len(passes)-1
 		for i, p := range j.mt.Providers {
@@ -205,19 +260,21 @@ func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResul
 			}
 			if last {
 				reasons = append(reasons, p.Name()+": "+err.Error())
+				allNotFound = allNotFound && errors.Is(err, media.ErrNotFound)
 			}
 		}
 	}
 	if ctx.Err() != nil {
 		return cancelled()
 	}
-	res.Status = StatusFailed
 	if len(reasons) == 0 {
-		res.Error = "no providers for media type " + j.mt.ID
-	} else {
-		res.Error = strings.Join(reasons, "; ")
+		return fail(res, StatusFailed, &itemError{"no providers for media type " + j.mt.ID, ErrNoProviders})
 	}
-	return res
+	var cause error
+	if allNotFound {
+		cause = media.ErrNotFound
+	}
+	return fail(res, StatusFailed, &itemError{strings.Join(reasons, "; "), cause})
 }
 
 // searchResult caches one provider's answer for an item.

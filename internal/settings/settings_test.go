@@ -281,3 +281,37 @@ func writeFile(t *testing.T, path, content string) {
 		t.Fatal(err)
 	}
 }
+
+func TestTrimmedNormalizesTheLanguage(t *testing.T) {
+	for in, want := range map[string]string{
+		"":       "",
+		"en":     "en",
+		" es\n":  "es",
+		"ES":     "es",
+		"fr":     "",
+		"system": "",
+		"es-ES":  "",
+	} {
+		if got := (Settings{Language: in}).Trimmed().Language; got != want {
+			t.Errorf("Trimmed Language %q = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestSaveAndLoadTheLanguage(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := Save(path, Settings{Language: "es"}); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), `"language": "es"`) {
+		t.Errorf("file = %s, want a language field", b)
+	}
+	got, err := Load(path)
+	if err != nil || got.Language != "es" {
+		t.Errorf("Load = %+v (err %v), want language es", got, err)
+	}
+}

@@ -20,6 +20,8 @@ import (
 	"time"
 
 	"bujo-helper/internal/batch"
+	"bujo-helper/internal/downloader"
+	"bujo-helper/internal/i18n"
 	"bujo-helper/internal/media"
 	"bujo-helper/internal/providers"
 	"bujo-helper/internal/settings"
@@ -243,7 +245,7 @@ func TestImportCSVFile(t *testing.T) {
 	if err := os.WriteFile(good, []byte("title;author\n\"Guns, Germs, and Steel\";Jared Diamond\nDune;Frank Herbert\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := importCSVFile(good)
+	got, err := importCSVFile(good, i18n.EN)
 	if err != nil {
 		t.Fatalf("importCSVFile: %v", err)
 	}
@@ -256,7 +258,7 @@ func TestImportCSVFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, path := range []string{empty, filepath.Join(dir, "missing.csv")} {
-		if _, err := importCSVFile(path); err == nil || !strings.HasPrefix(err.Error(), filepath.Base(path)+": ") {
+		if _, err := importCSVFile(path, i18n.EN); err == nil || !strings.HasPrefix(err.Error(), filepath.Base(path)+": ") {
 			t.Errorf("importCSVFile(%s) err = %v, want it prefixed with the file name", filepath.Base(path), err)
 		}
 	}
@@ -727,7 +729,10 @@ func TestOpenFileRejectsMissingFiles(t *testing.T) {
 }
 
 func TestIsYes(t *testing.T) {
-	for answer, want := range map[string]bool{"Replace": true, "Yes": true, "Ok": true, "Cancel": false, "No": false, "": false} {
+	for answer, want := range map[string]bool{
+		"Replace": true, "Yes": true, "Ok": true, "Cancel": false, "No": false, "": false,
+		"Reemplazar": true, "reemplazar": true, "Cancelar": false,
+	} {
 		if got := isYes(answer); got != want {
 			t.Errorf("isYes(%q) = %v, want %v", answer, got, want)
 		}
@@ -1002,7 +1007,7 @@ func TestSampleCSVForEachBuiltInType(t *testing.T) {
 			if err := os.WriteFile(path, data, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			got, err := importCSVFile(path)
+			got, err := importCSVFile(path, i18n.EN)
 			if err != nil {
 				t.Fatalf("importCSVFile(sample): %v", err)
 			}
@@ -1247,5 +1252,187 @@ func TestExportPDFSuggestsFileNameWithPaperAndSize(t *testing.T) {
 				t.Errorf("DefaultFilename = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestSetLanguage(t *testing.T) {
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	if got := a.language(); got != i18n.EN {
+		t.Errorf("default language = %q, want en", got)
+	}
+	for in, want := range map[string]i18n.Lang{"es-ES": i18n.ES, "es": i18n.ES, "en-GB": i18n.EN, "": i18n.EN, "fr": i18n.EN} {
+		a.SetLanguage(in)
+		if got := a.language(); got != want {
+			t.Errorf("SetLanguage(%q): language = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestBindingErrorsUseTheUILanguage(t *testing.T) {
+	a, _ := testApp(t, &fakeProvider{})
+	a.SetLanguage("es")
+	dir := t.TempDir()
+	file := filepath.Join(dir, "file")
+	if err := os.WriteFile(file, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	empty := filepath.Join(dir, "empty.csv")
+	if err := os.WriteFile(empty, []byte("title,author\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	call := func(f func() error) func() error { return f }
+	tests := []struct {
+		name string
+		call func() error
+		want string
+	}{
+		{"no items", call(func() error {
+			_, err := a.Start(StartRequest{MediaType: "books", OutputDir: dir})
+			return err
+		}), `no hay elementos: escriba uno por línea con el formato "Título, Autor"`},
+		{"unknown media type", call(func() error {
+			_, err := a.Start(StartRequest{MediaType: "games", Text: "Doom", OutputDir: dir})
+			return err
+		}), `tipo de medio desconocido: "games"`},
+		{"no output folder", call(func() error {
+			_, err := a.Start(StartRequest{MediaType: "books", Text: "Dune", OutputDir: " "})
+			return err
+		}), "elija una carpeta de destino"},
+		{"unknown sample media type", call(func() error {
+			_, err := a.SaveSampleCSV("games")
+			return err
+		}), `tipo de medio desconocido: "games"`},
+		{"no covers selected", call(func() error {
+			_, err := a.ExportPDF(nil, dir, sheet.Options{})
+			return err
+		}), "seleccione al menos una portada"},
+		{"no gallery folder", call(func() error {
+			_, err := a.ListCovers("  ")
+			return err
+		}), "elija una carpeta"},
+		{"no folder to open", call(func() error { return a.OpenFolder(" ") }), "no hay ninguna carpeta que abrir"},
+		{"no file to open", call(func() error { return a.OpenFile(" ") }), "no hay ningún archivo que abrir"},
+		{"unknown settings location", call(func() error { return a.SaveSettings(settings.Settings{}) }), "guardar ajustes: se desconoce la ubicación del archivo de ajustes"},
+		{"empty CSV", call(func() error {
+			_, err := importCSVFile(empty, a.language())
+			return err
+		}), "empty.csv: no se han encontrado elementos"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.call(); err == nil || err.Error() != tt.want {
+				t.Errorf("err = %v, want %q", err, tt.want)
+			}
+		})
+	}
+
+	// The output folder error keeps its cause.
+	_, err := a.Start(StartRequest{MediaType: "books", Text: "Dune", OutputDir: filepath.Join(file, "sub")})
+	var pathErr *os.PathError
+	if err == nil || !strings.HasPrefix(err.Error(), "no se ha podido crear la carpeta de destino: ") || !errors.As(err, &pathErr) {
+		t.Errorf("Start under a file: err = %v, want a translated message wrapping the cause", err)
+	}
+}
+
+func TestStartWhileRunningInSpanish(t *testing.T) {
+	p, started := blockingProvider()
+	a, rec := testApp(t, p)
+	a.SetLanguage("es")
+	req := StartRequest{MediaType: "books", Text: "Dune", OutputDir: t.TempDir()}
+	if _, err := a.Start(req); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	<-started
+	if _, err := a.Start(req); err == nil || err.Error() != "ya hay una descarga en curso" {
+		t.Errorf("second Start err = %v, want it in Spanish", err)
+	}
+	a.Cancel()
+	rec.waitDone(t)
+}
+
+func TestReplacePromptUsesTheUILanguage(t *testing.T) {
+	dir := t.TempDir()
+	existing := filepath.Join(dir, "covers.pdf")
+	if err := os.WriteFile(existing, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var asked runtime.MessageDialogOptions
+	stubDialogs(t, nil, func(o runtime.MessageDialogOptions) (string, error) {
+		asked = o
+		return "Reemplazar", nil // GTK returns the label of the clicked button
+	})
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.SetLanguage("es")
+
+	got, err := a.withExtension(filepath.Join(dir, "covers"), ".pdf")
+	if err != nil || got != existing {
+		t.Fatalf("withExtension = %q, %v, want %q (replace confirmed)", got, err, existing)
+	}
+	want := runtime.MessageDialogOptions{
+		Type:          runtime.QuestionDialog,
+		Title:         "¿Reemplazar el archivo?",
+		Message:       "covers.pdf ya existe. ¿Desea reemplazarlo?",
+		Buttons:       []string{"Reemplazar", "Cancelar"},
+		DefaultButton: "Cancelar",
+		CancelButton:  "Cancelar",
+	}
+	if !reflect.DeepEqual(asked, want) {
+		t.Errorf("prompt = %+v, want %+v", asked, want)
+	}
+}
+
+func TestExportPDFDialogUsesTheUILanguage(t *testing.T) {
+	var asked runtime.SaveDialogOptions
+	stubDialogs(t, func(o runtime.SaveDialogOptions) (string, error) {
+		asked = o
+		return "", nil // cancelled
+	}, nil)
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.SetLanguage("es")
+	if _, err := a.ExportPDF([]string{"x.jpg"}, "", sheet.Options{}); err != nil {
+		t.Fatal(err)
+	}
+	if asked.Title != "Exportar PDF" || len(asked.Filters) != 1 || asked.Filters[0].DisplayName != "Archivos PDF (*.pdf)" {
+		t.Errorf("dialog = %+v, want it in Spanish", asked)
+	}
+}
+
+func TestPDFLabelsFollowTheUILanguage(t *testing.T) {
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	opts := sheet.Options{Format: "stubs", DateLabel: "Leído el"}
+	if got := a.withLabels(opts); got.Labels != (sheet.Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date"}) {
+		t.Errorf("English labels = %+v", got.Labels)
+	}
+	a.SetLanguage("es")
+	got := a.withLabels(opts)
+	if got.Labels != (sheet.Labels{Admit: "ENTRADA", Date: "Fecha:", Where: "Lugar:", CardDate: "Fecha"}) {
+		t.Errorf("Spanish labels = %+v", got.Labels)
+	}
+	if got.Format != opts.Format || got.DateLabel != opts.DateLabel {
+		t.Errorf("withLabels changed the other options: %+v", got)
+	}
+}
+
+func TestItemEventCodes(t *testing.T) {
+	a, rec := testApp(t, &fakeProvider{search: func(_ context.Context, item media.Item) ([]media.Candidate, error) {
+		if item.Title == "Boom" {
+			return nil, errors.New("boom")
+		}
+		return nil, fmt.Errorf("%w: nothing", media.ErrNotFound)
+	}})
+	if _, err := a.Start(StartRequest{MediaType: "books", Text: "Missing\nBoom", OutputDir: t.TempDir()}); err != nil {
+		t.Fatal(err)
+	}
+	rec.waitDone(t)
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	want := map[string]string{"Missing": downloader.CodeNotFound, "Boom": ""}
+	if len(rec.items) != len(want) {
+		t.Fatalf("got %d item events", len(rec.items))
+	}
+	for _, ev := range rec.items {
+		if ev.Code != want[ev.Title] || ev.Error == "" {
+			t.Errorf("%s: code %q (error %q), want code %q and the English detail", ev.Title, ev.Code, ev.Error, want[ev.Title])
+		}
 	}
 }

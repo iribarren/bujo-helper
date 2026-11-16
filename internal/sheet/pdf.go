@@ -84,7 +84,7 @@ func build(paths []string, opts Options) (*fpdf.Fpdf, error) {
 	case spinesFormat:
 		return buildSpines(grid, paths)
 	case stubsFormat:
-		return buildStubs(grid, paths, ratios)
+		return buildStubs(grid, paths, ratios, opts.labels())
 	case fullFormat:
 		return buildFullPage(grid.Page, paths, ratios, opts.header())
 	case checkFormat:
