@@ -99,7 +99,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 - Provider tests with recorded fixtures, as for movies. A well-known show downloads a poster with and without a TMDB key, where a fallback exists.
 - README Sources section updated.
 
-## 6. [ ] Print-then-cut support (bleed and registration marks)
+## 6. [x] Print-then-cut support (bleed and registration marks) (bbc4005)
 
 **Why:** many users print onto sticker paper and cut with a Cricut or Silhouette machine, or want a small bleed so hand cutting leaves no white edges.
 
