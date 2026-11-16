@@ -456,6 +456,9 @@ func TestExportPDFDefaultFileName(t *testing.T) {
 		{"default ticket stubs", sheet.Options{Format: "stubs"}, "stubs_A4.pdf"},
 		{"ticket stubs", sheet.Options{Format: "stubs", Paper: "letter"}, "stubs_Letter.pdf"},
 		{"ticket stubs ignore the size and cut", sheet.Options{Format: "stubs", Size: "large", Paper: "a5", Cut: "bleed"}, "stubs_A5.pdf"},
+		{"default full page", sheet.Options{Format: "fullpage"}, "fullpage_A4.pdf"},
+		{"full page with a header", sheet.Options{Format: "fullpage", Paper: "letter", Header: "Books of 2026"}, "fullpage_Letter.pdf"},
+		{"full page ignores the size and cut", sheet.Options{Format: "fullpage", Size: "large", Paper: "a5", Cut: "bleed"}, "fullpage_A5.pdf"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -522,7 +525,7 @@ func TestPrintFormats(t *testing.T) {
 		{ID: "cards", Label: "Review cards", Noun: "card"},
 		{ID: "spines", Label: "Spines", Noun: "spine", UsesSize: true},
 		{ID: "stubs", Label: "Ticket stubs", Noun: "stub"},
-		{ID: "fullpage", Label: "Full page", Noun: "cover"},
+		{ID: "fullpage", Label: "Full page", Noun: "cover", UsesHeader: true},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("PrintFormats() = %+v, want %+v", got, want)

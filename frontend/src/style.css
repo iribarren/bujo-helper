@@ -324,6 +324,10 @@ textarea {
     min-width: 0;
 }
 
+#print-header {
+    width: 12em;
+}
+
 .row {
     display: flex;
     gap: 8px;

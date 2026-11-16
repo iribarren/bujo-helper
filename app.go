@@ -492,12 +492,13 @@ func (a *App) ListCovers(dir string) ([]CoverView, error) {
 
 // PrintFormatInfo describes a print format for the Print sheet tab.
 type PrintFormatInfo struct {
-	ID       string `json:"id"`
-	Label    string `json:"label"`
-	Noun     string `json:"noun"`     // what one printed item is called, e.g. "card"
-	UsesSize bool   `json:"usesSize"` // whether the cover size preset applies
-	UsesCut  bool   `json:"usesCut"`  // whether the cut mode applies
-	Default  bool   `json:"default"`
+	ID         string `json:"id"`
+	Label      string `json:"label"`
+	Noun       string `json:"noun"`       // what one printed item is called, e.g. "card"
+	UsesSize   bool   `json:"usesSize"`   // whether the cover size preset applies
+	UsesCut    bool   `json:"usesCut"`    // whether the cut mode applies
+	UsesHeader bool   `json:"usesHeader"` // whether the format prints the header the user types
+	Default    bool   `json:"default"`
 }
 
 // PrintFormats lists the print formats, the default first.
@@ -505,12 +506,13 @@ func (a *App) PrintFormats() []PrintFormatInfo {
 	out := make([]PrintFormatInfo, 0, len(sheet.Formats))
 	for _, f := range sheet.Formats {
 		out = append(out, PrintFormatInfo{
-			ID:       f.ID,
-			Label:    f.Label,
-			Noun:     f.Noun,
-			UsesSize: f.UsesSize,
-			UsesCut:  f.UsesCut,
-			Default:  f.ID == sheet.DefaultFormat,
+			ID:         f.ID,
+			Label:      f.Label,
+			Noun:       f.Noun,
+			UsesSize:   f.UsesSize,
+			UsesCut:    f.UsesCut,
+			UsesHeader: f.UsesHeader,
+			Default:    f.ID == sheet.DefaultFormat,
 		})
 	}
 	return out
@@ -654,7 +656,7 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 
 // pdfFileName is the default name of the PDF opts describe, e.g.
 // "covers_A4_Standard.pdf", "covers_A4_Standard_bleed.pdf", "cards_A4.pdf",
-// "spines_A4_Mini.pdf" or "stubs_A4.pdf".
+// "spines_A4_Mini.pdf", "stubs_A4.pdf" or "fullpage_A4.pdf".
 // The format, paper and, when the format uses them, size and a cut mode
 // other than the default tell sheets with other settings apart.
 func pdfFileName(opts sheet.Options) (string, error) {
