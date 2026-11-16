@@ -21,6 +21,10 @@ jobs:
           - os: windows-latest
             platform: windows/amd64
             asset: bujo-helper-${{ github.ref_name }}-windows-amd64.zip
+          # Universal binary: runs on Intel and Apple Silicon Macs.
+          - os: macos-latest
+            platform: darwin/universal
+            asset: bujo-helper-${{ github.ref_name }}-macos-universal.zip
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -59,6 +63,10 @@ jobs:
         if: runner.os == 'Windows'
         run: wails build -clean -platform ${{ matrix.platform }}
 
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: wails build -clean -platform ${{ matrix.platform }}
+
       - name: Package (Linux)
         if: runner.os == 'Linux'
         run: tar czf "${{ matrix.asset }}" -C build/bin bujo-helper
@@ -67,6 +75,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: Compress-Archive -Path build/bin/bujo-helper.exe -DestinationPath "${{ matrix.asset }}"
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        # ditto keeps the .app bundle's permissions and symlinks intact.
+        run: ditto -c -k --keepParent build/bin/bujo-helper.app "${{ matrix.asset }}"
 
       - uses: actions/upload-artifact@v4
         with:

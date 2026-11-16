@@ -2,7 +2,7 @@
 
 Formerly "Cover Downloader".
 
-A desktop app for Windows and Linux that downloads cover images in batches.
+A desktop app for Windows, macOS and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
 
 Book covers, movie posters, TV series posters, album covers and game box art are supported. The core is media-agnostic, so other media can be added later as new providers.
@@ -34,6 +34,16 @@ Get the latest version from the [Releases page](https://github.com/iribarren/buj
 2. Run `bujo-helper.exe`.
 
 The executable is not code-signed yet, so Windows SmartScreen may show **"Windows protected your PC"** the first time. Click **More info**, then **Run anyway**. WebView2 is built into Windows 10/11, so nothing else needs to be installed.
+
+### macOS 11 or later (Intel and Apple Silicon)
+
+1. Download `bujo-helper-<version>-macos-universal.zip` and open it to extract `bujo-helper.app`.
+2. Move `bujo-helper.app` to **Applications**.
+
+The app is not signed or notarized yet, so macOS blocks it the first time ("cannot be opened" or "is damaged"). To allow it, either:
+
+- open **System Settings → Privacy & Security**, scroll to the message about `bujo-helper`, click **Open Anyway** and confirm; or
+- run once in Terminal: `xattr -dr com.apple.quarantine /Applications/bujo-helper.app`.
 
 ### Linux (x86-64)
 
@@ -100,7 +110,7 @@ The IGDB API is free for non-commercial use under the [Twitch Developer Services
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
-2. In the app, click **Settings** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/bujo-helper/settings.json` on Linux, `%AppData%\bujo-helper\settings.json` on Windows), readable only by you. Settings saved by older versions in the `cover-downloader` folder are copied over automatically on first launch.
+2. In the app, click **Settings** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/bujo-helper/settings.json` on Linux, `%AppData%\bujo-helper\settings.json` on Windows, `~/Library/Application Support/bujo-helper/settings.json` on macOS), readable only by you. Settings saved by older versions in the `cover-downloader` folder are copied over automatically on first launch.
 3. For the command line, use `-tmdb-key`, or the `TMDB_API_KEY` environment variable; otherwise the key saved by the app is used.
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
