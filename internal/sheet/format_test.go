@@ -10,18 +10,18 @@ func TestFormatByID(t *testing.T) {
 		t.Errorf("DefaultFormat = %q, first format %q; want covers first", DefaultFormat, Formats[0].ID)
 	}
 	tests := []struct {
-		id, want string
-		usesSize bool
+		id, want          string
+		usesSize, usesCut bool
 	}{
-		{"", "covers", true},
-		{"covers", "covers", true},
-		{"cards", "cards", false},
-		{"spines", "spines", true},
+		{"", "covers", true, true},
+		{"covers", "covers", true, true},
+		{"cards", "cards", false, false},
+		{"spines", "spines", true, false},
 	}
 	for _, tt := range tests {
 		f, err := FormatByID(tt.id)
-		if err != nil || f.ID != tt.want || f.UsesSize != tt.usesSize {
-			t.Errorf("FormatByID(%q) = %+v, %v; want %s (uses size: %v)", tt.id, f, err, tt.want, tt.usesSize)
+		if err != nil || f.ID != tt.want || f.UsesSize != tt.usesSize || f.UsesCut != tt.usesCut {
+			t.Errorf("FormatByID(%q) = %+v, %v; want %s (uses size: %v, uses cut: %v)", tt.id, f, err, tt.want, tt.usesSize, tt.usesCut)
 		}
 	}
 	if _, err := FormatByID("poster"); err == nil || !strings.Contains(err.Error(), "poster") {

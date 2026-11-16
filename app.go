@@ -496,6 +496,7 @@ type PrintFormatInfo struct {
 	Label    string `json:"label"`
 	Noun     string `json:"noun"`     // what one printed item is called, e.g. "card"
 	UsesSize bool   `json:"usesSize"` // whether the cover size preset applies
+	UsesCut  bool   `json:"usesCut"`  // whether the cut mode applies
 	Default  bool   `json:"default"`
 }
 
@@ -508,7 +509,29 @@ func (a *App) PrintFormats() []PrintFormatInfo {
 			Label:    f.Label,
 			Noun:     f.Noun,
 			UsesSize: f.UsesSize,
+			UsesCut:  f.UsesCut,
 			Default:  f.ID == sheet.DefaultFormat,
+		})
+	}
+	return out
+}
+
+// PrintCutModeInfo describes a cut mode for the Print sheet tab.
+type PrintCutModeInfo struct {
+	ID      string `json:"id"`
+	Label   string `json:"label"`
+	Default bool   `json:"default"`
+}
+
+// PrintCutModes lists the cut modes of a cover sheet, the default first.
+// They never change how many covers fit on a page.
+func (a *App) PrintCutModes() []PrintCutModeInfo {
+	out := make([]PrintCutModeInfo, 0, len(sheet.CutModes))
+	for _, c := range sheet.CutModes {
+		out = append(out, PrintCutModeInfo{
+			ID:      c.ID,
+			Label:   c.Label,
+			Default: c.ID == sheet.DefaultCut,
 		})
 	}
 	return out
@@ -630,8 +653,9 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 }
 
 // pdfFileName is the default name of the PDF opts describe, e.g.
-// "covers_A4_Standard.pdf", "cards_A4.pdf" or "spines_A4_Mini.pdf". The format, paper and, when the
-// format uses it, size tell sheets with other settings apart.
+// "covers_A4_Standard.pdf", "covers_A4_Standard_bleed.pdf", "cards_A4.pdf" or "spines_A4_Mini.pdf".
+// The format, paper and, when the format uses them, size and a cut mode
+// other than the default tell sheets with other settings apart.
 func pdfFileName(opts sheet.Options) (string, error) {
 	format, err := sheet.FormatByID(opts.Format)
 	if err != nil {
@@ -648,6 +672,15 @@ func pdfFileName(opts sheet.Options) (string, error) {
 			return "", err
 		}
 		name += "_" + size.FileTag
+	}
+	if format.UsesCut {
+		cut, err := sheet.CutModeByID(opts.Cut)
+		if err != nil {
+			return "", err
+		}
+		if cut.ID != sheet.DefaultCut {
+			name += "_" + cut.FileTag
+		}
 	}
 	return name + ".pdf", nil
 }

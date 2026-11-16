@@ -1,9 +1,9 @@
 // The "Print sheet" tab: preview the covers in a folder, select some, pick
-// a format (a cover sheet, review cards or book spines), a paper and, for a
-// cover sheet or spines, a cover size, and export them to a PDF on that paper
-// (see internal/sheet).
+// a format (a cover sheet, review cards or book spines), a paper, for a
+// cover sheet or spines a cover size and, for a cover sheet, a cut mode, and
+// export them to a PDF on that paper (see internal/sheet).
 
-import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintFormats, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
+import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCutModes, PrintFormats, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
 
 export interface PrintDeps {
@@ -101,6 +101,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         size: byId<HTMLSelectElement>('print-size'),
         sizeField: byId<HTMLLabelElement>('print-size-field'),
         paper: byId<HTMLSelectElement>('print-paper'),
+        cut: byId<HTMLSelectElement>('print-cut'),
+        cutField: byId<HTMLLabelElement>('print-cut-field'),
     };
 
     // The folder picked with Browse…; empty means "follow the output folder".
@@ -292,6 +294,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
                 format: layout.format.id,
                 size: layout.size?.id ?? '',
                 paper: layout.paper.id,
+                // The cut mode never changes the page count.
+                cut: layout.format.usesCut ? ui.cut.value : '',
                 dateLabel: cards ? currentMedia()?.dateLabel ?? '' : '',
             }));
             if (saved === '') {
@@ -330,12 +334,14 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     // updateFormat shows the controls that apply to the chosen format: the
-    // cover size for a cover sheet or spines, what the cards are for for
-    // review cards.
+    // cover size for a cover sheet or spines, the cut mode for a cover sheet,
+    // what the cards are for for review cards.
     function updateFormat() {
-        const usesSize = currentFormat()?.usesSize ?? true;
+        const format = currentFormat();
+        const usesSize = format?.usesSize ?? true;
         ui.size.disabled = !usesSize;
         ui.sizeField.classList.toggle('disabled', !usesSize);
+        ui.cutField.hidden = !(format?.usesCut ?? true);
         ui.mediaField.hidden = ui.format.value !== REVIEW_CARDS;
         updateSizeLabels();
         updateSelection();
@@ -359,8 +365,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     async function loadPresets() {
-        const [formatList, sizeList, paperList] =
-            await Promise.allSettled([PrintFormats(), PrintSizes(), PrintPapers()]);
+        const [formatList, sizeList, paperList, cutList] =
+            await Promise.allSettled([PrintFormats(), PrintSizes(), PrintPapers(), PrintCutModes()]);
         if (formatList.status === 'fulfilled') {
             formats = formatList.value ?? [];
             ui.format.replaceChildren(...formats.map((format) => {
@@ -394,6 +400,16 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             }));
         } else {
             deps.showError(`Could not load paper sizes: ${errorText(paperList.reason)}`);
+        }
+        if (cutList.status === 'fulfilled') {
+            ui.cut.replaceChildren(...(cutList.value ?? []).map((cut) => {
+                const option = el('option', '', cut.label);
+                option.value = cut.id;
+                option.selected = cut.default;
+                return option;
+            }));
+        } else {
+            deps.showError(`Could not load cut modes: ${errorText(cutList.reason)}`);
         }
         updateFormat();
     }

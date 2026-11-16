@@ -41,7 +41,7 @@ func buildCards(grid Grid, paths []string, ratios []float64, opts Options) (*fpd
 			covers = append(covers, c.Cover)
 		}
 	}
-	images, err := printImages(paths, covers)
+	images, err := printImages(paths, covers, false)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func buildCards(grid Grid, paths []string, ratios []float64, opts Options) (*fpd
 		pdf.AddPage()
 		for range page {
 			name := fmt.Sprintf("cover-%d", i)
-			pdf.RegisterImageOptionsReader(name, imgOpts, bytes.NewReader(images[i]))
+			pdf.RegisterImageOptionsReader(name, imgOpts, bytes.NewReader(images[i].jpeg))
 			title, creator := ParseName(paths[i])
 			drawCard(pdf, cards[i], name, imgOpts, title, creator, label)
 			if err := pdf.Error(); err != nil {
