@@ -44,7 +44,7 @@ Album trackers are a natural extension. Album art is square, unlike books and po
 - [x] T2 Catalog `albums`, CLI, frontend example and README Sources. Route: same delegated writer, separate commit.
 - [x] T3 Sheet: square cells in the cover-sheet flow layout, page counting, tests and README Print sheet. Route: delegated writer.
 - [x] T4 UI: exact page count binding, size labels, Wails bindings and a build. Route: delegated writer.
-- [ ] T5 Live CLI smoke test and build. Route: inline.
+- [x] T5 Live CLI smoke test and build. Route: inline.
 
 ## Progress
 - Plan commit `42d2c12`. RDD on (global). `.codegraph/` (local CodeGraph index) is excluded in `.git/info/exclude`, not committed.
@@ -74,6 +74,16 @@ Album trackers are a natural extension. Album art is square, unlike books and po
   - The size labels update after the async answer.
   - With no CAA front image, a candidate costs 3 failed image requests.
 - Review of T1–T2: consent granted, but START was refused with `stale_target_identity`, because the T3–T4 commits landed in between. The review is re-derived over the whole slice `42d2c12..HEAD`.
+- Review `42d2c12..30ad7ed` (27 files, 1834 lines, medium): consent granted. The review-reliability lens approved it, and it was acknowledged (authority burned). Three advisory findings:
+  - R3 WARNING: the `PrintPages` fallback under-counted square covers. Fixed.
+  - R3 SUGGESTION: no retry after a failed count. Fixed.
+  - R3 SUGGESTION: no frontend test for the request sequencing. There is no frontend test runner, so the GUI check covers it.
+- Fix `39433c7` fix(ui): an unreadable image now counts as a 2:3 cover, so readable squares keep square cells (`Exact: false`). A failed request clears `pagesKey`, so it can be retried.
+  - RED: `TestPrintPages/unreadable_image` gave 2 pages, want 3. GREEN: `go test ./...` 678 passed. `go vet` clean, `gofmt` empty, `tsc` clean. `wails build` was rerun and the modes restored.
+  - Assess `30ad7ed..39433c7`: medium, 43 lines, `under_budget`, so no review is due.
+- T5 live CLI (keyless, `-type albums`): 6 of 6 OK.
+  - 5 came from MusicBrainz + CAA at 1200 × 1200 (Kind of Blue 1200 × 1192): Rumours, Kind of Blue, Random Access Memories, El mal querer, Nevermind.
+  - Abbey Road came from iTunes at 1500 × 1500. MusicBrainz answered `503 "server is currently busy"`; the throttle retried 3 times, then the item fell back to iTunes, as designed. CAA does have the Abbey Road front (checked by hand).
 
 ## Next step
-Review of the slice 42d2c12..HEAD, then T5 (live CLI smoke test), then the user GUI check.
+User GUI check (`build/bin/cover-downloader` rebuilt at `39433c7`). Then the local `--no-ff` merge and push, if the user asks.
