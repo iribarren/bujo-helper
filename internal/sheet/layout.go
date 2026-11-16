@@ -1,7 +1,7 @@
 // Package sheet lays out cover images on pages for printing and writes them
-// to a PDF.
+// to a PDF, in one of several formats: a sheet of covers, or review cards.
 //
-// Covers have a fixed height chosen by a size preset (50 mm by default) and
+// On a cover sheet, covers have a fixed height chosen by a size preset (50 mm by default) and
 // keep their aspect ratio, in a centred grid derived from the cover height
 // and the paper size (A4 by default). A cover too wide for its column is shrunk to the column
 // width. All sizes are in millimetres.
@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 )
 
 // Grid spacing, in millimetres.
@@ -97,15 +98,64 @@ func SizeByID(id string) (Size, error) {
 	return Size{}, fmt.Errorf("unknown cover size %q", id)
 }
 
+// Format is a print format: what is drawn for each image.
+type Format struct {
+	ID       string
+	Label    string
+	FileTag  string // short, file-name-safe name, e.g. for "cards_A4.pdf"
+	UsesSize bool   // whether the cover size preset applies
+}
+
+// DefaultFormat is the ID of the format used when none is chosen.
+const DefaultFormat = "covers"
+
+// cardsFormat is the ID of the review cards format.
+const cardsFormat = "cards"
+
+// Formats lists the print formats, the default first.
+var Formats = []Format{
+	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", UsesSize: true},
+	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", UsesSize: false},
+}
+
+// FormatByID returns the format with the given ID; "" means DefaultFormat.
+func FormatByID(id string) (Format, error) {
+	if id == "" {
+		id = DefaultFormat
+	}
+	for _, f := range Formats {
+		if f.ID == id {
+			return f, nil
+		}
+	}
+	return Format{}, fmt.Errorf("unknown print format %q", id)
+}
+
 // Options are the print settings of a sheet. The zero value gives the
 // default sheet: standard covers on A4.
 type Options struct {
-	Size  string `json:"size"`  // a Size ID; "" means DefaultSize
-	Paper string `json:"paper"` // a Paper ID; "" means DefaultPaper
+	Format string `json:"format"` // a Format ID; "" means DefaultFormat
+	Size   string `json:"size"`   // a Size ID; "" means DefaultSize. Ignored by formats that do not use it.
+	Paper  string `json:"paper"`  // a Paper ID; "" means DefaultPaper
+	// DateLabel labels the date field of review cards, e.g. "Read on";
+	// "" means "Date".
+	DateLabel string `json:"dateLabel"`
 }
 
-// Grid returns the grid the options describe.
+// Grid returns the grid the options describe: the cover grid of the size
+// preset for a cover sheet, the card grid for review cards.
 func (o Options) Grid() (Grid, error) {
+	f, err := FormatByID(o.Format)
+	if err != nil {
+		return Grid{}, err
+	}
+	if f.ID == cardsFormat {
+		p, err := PaperByID(o.Paper)
+		if err != nil {
+			return Grid{}, err
+		}
+		return NewCardGrid(p.Page)
+	}
 	s, err := SizeByID(o.Size)
 	if err != nil {
 		return Grid{}, err
@@ -115,6 +165,24 @@ func (o Options) Grid() (Grid, error) {
 		return Grid{}, err
 	}
 	return NewGrid(p.Page, s.CoverHeight)
+}
+
+// PerPage is the number of covers, or cards, on a full page.
+func (o Options) PerPage() (int, error) {
+	g, err := o.Grid()
+	if err != nil {
+		return 0, err
+	}
+	return g.PerPage(), nil
+}
+
+// dateLabel is the text of the date field of a review card, with its colon.
+func (o Options) dateLabel() string {
+	label := strings.TrimSpace(o.DateLabel)
+	if label == "" {
+		label = "Date"
+	}
+	return label + ":"
 }
 
 // Grid is the cell layout of a page.
@@ -187,18 +255,45 @@ func (g Grid) Layout(ratios []float64) ([][]Box, error) {
 	return pages, nil
 }
 
+// Cells returns the cells of count items on pages: the grid is filled left
+// to right, top to bottom, PerPage per page; the last page may be partial.
+func (g Grid) Cells(count int) ([][]Box, error) {
+	if count <= 0 {
+		return nil, errors.New("nothing to lay out")
+	}
+	perPage := g.PerPage()
+	var pages [][]Box
+	for i := range count {
+		if i%perPage == 0 {
+			pages = append(pages, make([]Box, 0, min(perPage, count-i)))
+		}
+		page := &pages[len(pages)-1]
+		*page = append(*page, g.cell(i%perPage))
+	}
+	return pages, nil
+}
+
+// cell returns cell n of a page.
+func (g Grid) cell(n int) Box {
+	col, row := n%g.Columns, n/g.Columns
+	return Box{
+		X: g.MarginX + float64(col)*(g.CellWidth+Gap),
+		Y: g.MarginY + float64(row)*(g.CoverHeight+Gap),
+		W: g.CellWidth,
+		H: g.CoverHeight,
+	}
+}
+
 // place returns the box of a cover with aspect ratio r in cell n of a page.
 func (g Grid) place(n int, r float64) Box {
 	w, h := g.CoverHeight*r, g.CoverHeight
 	if w > g.CellWidth {
 		w, h = g.CellWidth, g.CellWidth/r
 	}
-	col, row := n%g.Columns, n/g.Columns
-	cellX := g.MarginX + float64(col)*(g.CellWidth+Gap)
-	cellY := g.MarginY + float64(row)*(g.CoverHeight+Gap)
+	c := g.cell(n)
 	return Box{
-		X: cellX + (g.CellWidth-w)/2,
-		Y: cellY + (g.CoverHeight-h)/2,
+		X: c.X + (c.W-w)/2,
+		Y: c.Y + (c.H-h)/2,
 		W: w,
 		H: h,
 	}

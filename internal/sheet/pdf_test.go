@@ -241,3 +241,119 @@ func TestBuildRejectsUnknownPaper(t *testing.T) {
 		t.Errorf("wrote %d bytes, want none", out.Len())
 	}
 }
+
+func TestBuildCardsPages(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "Dune - Frank Herbert.jpg", 66, 100, color.RGBA{200, 120, 40, 255})
+	tests := []struct {
+		paper    string
+		cards    int
+		pages    int
+		mediaBox string
+	}{
+		{"", 8, 1, "/MediaBox [0 0 595.28 841.89]"},
+		{"a4", 9, 2, "/MediaBox [0 0 595.28 841.89]"},
+		{"letter", 8, 1, "/MediaBox [0 0 612.00 792.00]"},
+		{"letter", 17, 3, "/MediaBox [0 0 612.00 792.00]"},
+		{"a5", 3, 1, "/MediaBox [0 0 419.53 595.28]"},
+		{"a5", 4, 2, "/MediaBox [0 0 419.53 595.28]"},
+	}
+	for _, tt := range tests {
+		paths := make([]string, tt.cards)
+		for i := range paths {
+			paths[i] = cover
+		}
+		var out bytes.Buffer
+		// The cover size does not apply to cards.
+		if err := Build(&out, paths, Options{Format: "cards", Paper: tt.paper, Size: "large", DateLabel: "Read on"}); err != nil {
+			t.Fatalf("%q: %v", tt.paper, err)
+		}
+		if !bytes.HasPrefix(out.Bytes(), []byte("%PDF")) {
+			t.Fatalf("%q: output is not a PDF", tt.paper)
+		}
+		if n := len(pageObject.FindAll(out.Bytes(), -1)); n != tt.pages {
+			t.Errorf("%q, %d cards: PDF has %d pages, want %d", tt.paper, tt.cards, n, tt.pages)
+		}
+		if !bytes.Contains(out.Bytes(), []byte(tt.mediaBox)) {
+			t.Errorf("%q: PDF has no %s", tt.paper, tt.mediaBox)
+		}
+	}
+}
+
+func TestBuildCardsWithAccentsLongTitlesAndOddShapes(t *testing.T) {
+	dir := t.TempDir()
+	paths := []string{
+		writeImage(t, dir, "Cien años de soledad edición conmemorativa de la Real Academia Española - Gabriel García Márquez.jpg", 66, 100, color.RGBA{40, 120, 200, 255}),
+		writeImage(t, dir, "Dune - 2021.jpg", 66, 100, color.RGBA{200, 160, 40, 255}),
+		writeImage(t, dir, "Amélie-2.png", 80, 80, color.NRGBA{0, 200, 0, 120}),
+		writeImage(t, dir, "Panorama - Ünïcödé Çréâtör Wïth À Vêry Löng Nämé Indeed.jpg", 300, 100, color.RGBA{90, 90, 90, 255}),
+		writeImage(t, dir, "Supercalifragilisticexpialidociousandevenlongerthanthat.jpg", 30, 100, color.RGBA{10, 10, 10, 255}),
+		writeImage(t, dir, ".jpg", 66, 100, color.White),
+	}
+	for _, label := range []string{"", "Watched on", "Leído el"} {
+		var out bytes.Buffer
+		if err := Build(&out, paths, Options{Format: "cards", DateLabel: label}); err != nil {
+			t.Fatalf("label %q: %v", label, err)
+		}
+		if n := len(pageObject.FindAll(out.Bytes(), -1)); n != 1 {
+			t.Errorf("label %q: PDF has %d pages, want 1", label, n)
+		}
+		// The text font is embedded, so accents print anywhere.
+		if !bytes.Contains(out.Bytes(), []byte("/FontFile2")) {
+			t.Errorf("label %q: PDF embeds no TrueType font", label)
+		}
+	}
+}
+
+func TestBuildCoverSheetHasNoText(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "Dune - Frank Herbert.jpg", 66, 100, color.White)
+	for _, format := range []string{"", "covers"} {
+		var out bytes.Buffer
+		if err := Build(&out, []string{cover}, Options{Format: format}); err != nil {
+			t.Fatal(err)
+		}
+		if bytes.Contains(out.Bytes(), []byte("/BaseFont")) {
+			t.Errorf("format %q: cover sheet has fonts", format)
+		}
+	}
+}
+
+func TestBuildRejectsUnknownFormat(t *testing.T) {
+	dir := t.TempDir()
+	cover := writeImage(t, dir, "cover.jpg", 66, 100, color.White)
+	var out bytes.Buffer
+	err := Build(&out, []string{cover}, Options{Format: "poster"})
+	if err == nil || !strings.Contains(err.Error(), "poster") {
+		t.Errorf("error %v, want one naming the format", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("wrote %d bytes, want none", out.Len())
+	}
+}
+
+func TestBuildCardsNamesTheBadFileAndWritesNothing(t *testing.T) {
+	dir := t.TempDir()
+	good := writeImage(t, dir, "Dune.jpg", 66, 100, color.White)
+	bad := filepath.Join(dir, "Broken - Nobody.jpg")
+	if err := os.WriteFile(bad, []byte("not an image"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	err := Build(&out, []string{good, bad}, Options{Format: "cards"})
+	if err == nil || !strings.Contains(err.Error(), "Broken - Nobody.jpg") {
+		t.Errorf("error %v, want one naming the bad file", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("wrote %d bytes, want none", out.Len())
+	}
+}
+
+func TestDateLabel(t *testing.T) {
+	tests := map[string]string{"": "Date:", "  ": "Date:", "Read on": "Read on:", " Watched on ": "Watched on:"}
+	for in, want := range tests {
+		if got := (Options{DateLabel: in}).dateLabel(); got != want {
+			t.Errorf("dateLabel(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

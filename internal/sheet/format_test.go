@@ -1,0 +1,97 @@
+package sheet
+
+import (
+	"strings"
+	"testing"
+)
+
+func TestFormatByID(t *testing.T) {
+	if DefaultFormat != "covers" || Formats[0].ID != DefaultFormat {
+		t.Errorf("DefaultFormat = %q, first format %q; want covers first", DefaultFormat, Formats[0].ID)
+	}
+	tests := []struct {
+		id, want string
+		usesSize bool
+	}{
+		{"", "covers", true},
+		{"covers", "covers", true},
+		{"cards", "cards", false},
+	}
+	for _, tt := range tests {
+		f, err := FormatByID(tt.id)
+		if err != nil || f.ID != tt.want || f.UsesSize != tt.usesSize {
+			t.Errorf("FormatByID(%q) = %+v, %v; want %s (uses size: %v)", tt.id, f, err, tt.want, tt.usesSize)
+		}
+	}
+	if _, err := FormatByID("poster"); err == nil || !strings.Contains(err.Error(), "poster") {
+		t.Errorf(`FormatByID("poster"): error %v, want one naming the format`, err)
+	}
+	if _, err := (Options{Format: "poster"}).Grid(); err == nil || !strings.Contains(err.Error(), "poster") {
+		t.Errorf(`Options{Format: "poster"}.Grid(): error %v, want one naming the format`, err)
+	}
+	if _, err := (Options{Format: "poster"}).PerPage(); err == nil {
+		t.Error(`Options{Format: "poster"}.PerPage(): want an error`)
+	}
+}
+
+func TestFormatsHaveLabelsAndFileSafeTags(t *testing.T) {
+	const safe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	seen := map[string]bool{}
+	for _, f := range Formats {
+		if f.ID == "" || f.Label == "" || seen[f.ID] {
+			t.Errorf("format %+v: want a unique ID and a label", f)
+		}
+		seen[f.ID] = true
+		if f.FileTag == "" || strings.Trim(f.FileTag, safe) != "" {
+			t.Errorf("format %q: file tag %q, want letters and digits only", f.ID, f.FileTag)
+		}
+	}
+}
+
+// The covers format, named or not, keeps today's grids.
+func TestCoversFormatKeepsTheCoverGrid(t *testing.T) {
+	for _, p := range Papers {
+		for _, s := range Sizes {
+			def, err := Options{Paper: p.ID, Size: s.ID}.Grid()
+			if err != nil {
+				t.Fatal(err)
+			}
+			covers, err := Options{Format: "covers", Paper: p.ID, Size: s.ID}.Grid()
+			if err != nil {
+				t.Fatal(err)
+			}
+			want, _ := NewGrid(p.Page, s.CoverHeight)
+			if def != want || covers != want {
+				t.Errorf("%s %s: grids %+v / %+v, want %+v", p.ID, s.ID, def, covers, want)
+			}
+		}
+	}
+}
+
+func TestOptionsPerPage(t *testing.T) {
+	tests := []struct {
+		opts Options
+		want int
+	}{
+		{Options{}, 25},
+		{Options{Size: "mini"}, 81},
+		{Options{Paper: "letter"}, 20},
+		{Options{Paper: "a5", Size: "large"}, 4},
+		{Options{Format: "cards"}, 8},
+		{Options{Format: "cards", Paper: "a4"}, 8},
+		{Options{Format: "cards", Paper: "letter"}, 8},
+		{Options{Format: "cards", Paper: "a5"}, 3},
+		// The cover size does not apply to cards.
+		{Options{Format: "cards", Size: "mini"}, 8},
+		{Options{Format: "cards", Size: "large", Paper: "a5"}, 3},
+	}
+	for _, tt := range tests {
+		got, err := tt.opts.PerPage()
+		if err != nil || got != tt.want {
+			t.Errorf("%+v.PerPage() = %d, %v; want %d", tt.opts, got, err, tt.want)
+		}
+	}
+	if _, err := (Options{Paper: "a3"}).PerPage(); err == nil {
+		t.Error(`Options{Paper: "a3"}.PerPage(): want an error`)
+	}
+}
