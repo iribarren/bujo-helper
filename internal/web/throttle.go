@@ -82,6 +82,9 @@ var DefaultThrottle = &Throttle{
 		"musicbrainz.org": time.Second,
 		// IGDB allows four requests per second (and eight open ones).
 		"api.igdb.com": 250 * time.Millisecond,
+		// The Met asks for at most 80 requests per second; a search makes
+		// up to 12, so this keeps well under it.
+		"collectionapi.metmuseum.org": 25 * time.Millisecond,
 	},
 }
 

@@ -1,0 +1,23 @@
+{
+  "info": {"total": 2},
+  "data": [
+    {
+      "id": 910001,
+      "title": "Composition in Blue",
+      "share_license_status": "Copyrighted",
+      "creation_date": "1950",
+      "url": "https://clevelandart.org/art/1990.1",
+      "images": {"web": {"url": "https://openaccess-cdn.clevelandart.org/1990.1/1990.1_web.jpg", "width": "900", "height": "900"}},
+      "creators": [{"id": 1, "description": "Jane Painter (American, 1900–1990)", "role": "artist"}]
+    },
+    {
+      "id": 910002,
+      "title": "Composition in Blue II",
+      "share_license_status": "Copyrighted",
+      "creation_date": "1952",
+      "url": "https://clevelandart.org/art/1990.2",
+      "images": {"web": {"url": "https://openaccess-cdn.clevelandart.org/1990.2/1990.2_web.jpg", "width": "900", "height": "900"}},
+      "creators": [{"id": 1, "description": "Jane Painter (American, 1900–1990)", "role": "artist"}]
+    }
+  ]
+}

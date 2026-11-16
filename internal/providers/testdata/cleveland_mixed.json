@@ -1,0 +1,49 @@
+{
+  "info": {"total": 4},
+  "data": [
+    {
+      "id": 900001,
+      "title": "Twilight in the Wilderness (study)",
+      "share_license_status": "Copyrighted",
+      "creation_date": "1859",
+      "url": "https://clevelandart.org/art/1900.1",
+      "images": {
+        "web": {"url": "https://openaccess-cdn.clevelandart.org/1900.1/1900.1_web.jpg", "width": "900", "height": "600"}
+      },
+      "creators": [{"id": 2697, "description": "Frederic Edwin Church (American, 1826–1900)", "role": "artist"}]
+    },
+    {
+      "id": 900002,
+      "title": "Twilight in the Wilderness",
+      "share_license_status": "CC0",
+      "creation_date": "1860",
+      "url": "https://clevelandart.org/art/1900.2",
+      "images": null,
+      "creators": [{"id": 2697, "description": "Frederic Edwin Church (American, 1826–1900)", "role": "artist"}]
+    },
+    {
+      "id": 900003,
+      "title": "Twilight in the Wilderness, sketch",
+      "share_license_status": "CC0",
+      "creation_date": "c. 1858",
+      "url": "https://clevelandart.org/art/1900.3",
+      "images": {
+        "web": {"url": "https://openaccess-cdn.clevelandart.org/1900.3/1900.3_web.jpg", "width": "900", "height": "540"},
+        "print": null,
+        "full": {"url": "https://openaccess-cdn.clevelandart.org/1900.3/1900.3_full.tif", "width": "7000", "height": "4200"}
+      },
+      "creators": [{"id": 2697, "description": "Frederic Edwin Church (American, 1826–1900)", "role": "artist"}]
+    },
+    {
+      "id": 900004,
+      "title": "Evening Landscape",
+      "share_license_status": "CC0",
+      "creation_date": "1865",
+      "url": "https://clevelandart.org/art/1900.4",
+      "images": {
+        "web": {"url": "https://openaccess-cdn.clevelandart.org/1900.4/1900.4_web.jpg", "width": "900", "height": "600"}
+      },
+      "creators": []
+    }
+  ]
+}
