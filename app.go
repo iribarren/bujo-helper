@@ -281,6 +281,12 @@ func importCSVFile(path string) (string, error) {
 	return batch.FormatLines(items), nil
 }
 
+// The native dialogs, as variables so tests can replace them.
+var (
+	saveFileDialog = runtime.SaveFileDialog
+	messageDialog  = runtime.MessageDialog
+)
+
 // SaveSampleCSV asks where to save a sample CSV for the media type with the
 // given ID, which the user can use as a reference for Import CSV. It returns
 // the saved path, or "" with no error when the dialog is cancelled.
@@ -289,7 +295,7 @@ func (a *App) SaveSampleCSV(mediaType string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+	path, err := saveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		Title:                "Save sample CSV",
 		DefaultFilename:      name,
 		CanCreateDirectories: true,
@@ -496,7 +502,7 @@ func (a *App) ExportPDF(paths []string, defaultDir string) (string, error) {
 	if info, err := os.Stat(defaultDir); err == nil && info.IsDir() {
 		opts.DefaultDirectory = defaultDir
 	}
-	path, err := runtime.SaveFileDialog(a.ctx, opts)
+	path, err := saveFileDialog(a.ctx, opts)
 	if err != nil || path == "" {
 		return "", err
 	}
@@ -519,7 +525,7 @@ func (a *App) withExtension(path, ext string) (string, error) {
 	}
 	path += ext
 	if _, err := os.Stat(path); err == nil {
-		answer, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		answer, err := messageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:          runtime.QuestionDialog,
 			Title:         "Replace file?",
 			Message:       filepath.Base(path) + " already exists. Replace it?",
