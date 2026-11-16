@@ -73,7 +73,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 - PDF export works for books and movies. Long titles wrap or are truncated with an ellipsis and never overflow the card.
 - Tests for card layout and text fitting.
 
-## 4. [ ] Book spines for bookshelf trackers
+## 4. [x] Book spines for bookshelf trackers (430f671)
 
 **Why:** bookshelf trackers (a drawn shelf filled with spines) are a very popular spread, and drawing the spines by hand is tedious.
 
