@@ -489,28 +489,57 @@ type PrintSizeInfo struct {
 	ID          string  `json:"id"`
 	Label       string  `json:"label"`
 	CoverHeight float64 `json:"coverHeight"` // mm
-	PerPage     int     `json:"perPage"`     // covers on a full page
 	Default     bool    `json:"default"`
 }
 
-// PrintSizes lists the cover size presets, smallest first, with how many
-// covers fit on a page, so the UI can count pages without its own copy of
-// the layout rules.
+// PrintSizes lists the cover size presets, smallest first. How many covers
+// fit on a page depends on the paper too; PrintPapers has those counts.
 func (a *App) PrintSizes() []PrintSizeInfo {
 	out := make([]PrintSizeInfo, 0, len(sheet.Sizes))
 	for _, s := range sheet.Sizes {
-		g, err := sheet.Options{Size: s.ID}.Grid()
-		if err != nil {
-			// Every preset fits the page; sheet tests guard this.
-			log.Printf("print size %s: %v", s.ID, err)
-			continue
-		}
 		out = append(out, PrintSizeInfo{
 			ID:          s.ID,
 			Label:       s.Label,
 			CoverHeight: s.CoverHeight,
-			PerPage:     g.PerPage(),
 			Default:     s.ID == sheet.DefaultSize,
+		})
+	}
+	return out
+}
+
+// PrintPaperInfo describes a paper size preset for the Print sheet tab.
+type PrintPaperInfo struct {
+	ID      string         `json:"id"`
+	Label   string         `json:"label"`
+	Width   float64        `json:"width"`  // mm
+	Height  float64        `json:"height"` // mm
+	Default bool           `json:"default"`
+	PerPage map[string]int `json:"perPage"` // covers on a full page, by size ID
+}
+
+// PrintPapers lists the paper size presets, the default first, with how many
+// covers of each size fit on a page, so the UI can count pages without its
+// own copy of the layout rules.
+func (a *App) PrintPapers() []PrintPaperInfo {
+	out := make([]PrintPaperInfo, 0, len(sheet.Papers))
+	for _, p := range sheet.Papers {
+		perPage := make(map[string]int, len(sheet.Sizes))
+		for _, s := range sheet.Sizes {
+			g, err := sheet.Options{Size: s.ID, Paper: p.ID}.Grid()
+			if err != nil {
+				// Every preset fits every paper; sheet tests guard this.
+				log.Printf("print size %s on %s: %v", s.ID, p.ID, err)
+				continue
+			}
+			perPage[s.ID] = g.PerPage()
+		}
+		out = append(out, PrintPaperInfo{
+			ID:      p.ID,
+			Label:   p.Label,
+			Width:   p.Page.Width,
+			Height:  p.Page.Height,
+			Default: p.ID == sheet.DefaultPaper,
+			PerPage: perPage,
 		})
 	}
 	return out

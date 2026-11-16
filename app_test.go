@@ -411,12 +411,26 @@ func TestExportPDFNeedsCovers(t *testing.T) {
 	}
 }
 
-func TestExportPDFRejectsUnknownSizeBeforeAsking(t *testing.T) {
-	stubDialogs(t, nil, nil) // the save dialog must not open
-	cover := writeCover(t, t.TempDir(), "c.jpg", 66, 100)
-	a := newApp(media.NewRegistry(), http.DefaultClient)
-	if _, err := a.ExportPDF([]string{cover}, "", sheet.Options{Size: "huge"}); err == nil {
-		t.Error("unknown size: want an error")
+func TestExportPDFRejectsUnknownSettingsBeforeAsking(t *testing.T) {
+	tests := []struct {
+		name string
+		opts sheet.Options
+		want string // the error must name the bad value
+	}{
+		{"unknown size", sheet.Options{Size: "huge"}, `"huge"`},
+		{"unknown paper", sheet.Options{Paper: "a3"}, `"a3"`},
+		{"unknown paper with a known size", sheet.Options{Size: "mini", Paper: "legal"}, `"legal"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stubDialogs(t, nil, nil) // the save dialog must not open
+			cover := writeCover(t, t.TempDir(), "c.jpg", 66, 100)
+			a := newApp(media.NewRegistry(), http.DefaultClient)
+			_, err := a.ExportPDF([]string{cover}, "", tt.opts)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("err = %v, want an error naming %s", err, tt.want)
+			}
+		})
 	}
 }
 
@@ -445,9 +459,9 @@ func TestExportPDFUsesTheChosenSize(t *testing.T) {
 func TestPrintSizes(t *testing.T) {
 	sizes := NewApp().PrintSizes()
 	want := []PrintSizeInfo{
-		{ID: "mini", Label: "Mini", CoverHeight: 25, PerPage: 81},
-		{ID: "standard", Label: "Standard", CoverHeight: 50, PerPage: 25, Default: true},
-		{ID: "large", Label: "Large", CoverHeight: 80, PerPage: 9},
+		{ID: "mini", Label: "Mini", CoverHeight: 25},
+		{ID: "standard", Label: "Standard", CoverHeight: 50, Default: true},
+		{ID: "large", Label: "Large", CoverHeight: 80},
 	}
 	if len(sizes) != len(want) {
 		t.Fatalf("PrintSizes() = %+v, want %+v", sizes, want)
@@ -456,6 +470,28 @@ func TestPrintSizes(t *testing.T) {
 		if sizes[i] != want[i] {
 			t.Errorf("size %d = %+v, want %+v", i, sizes[i], want[i])
 		}
+	}
+}
+
+func TestPrintPapers(t *testing.T) {
+	papers := NewApp().PrintPapers()
+	want := []PrintPaperInfo{
+		{ID: "a4", Label: "A4", Width: 210, Height: 297, Default: true,
+			PerPage: map[string]int{"mini": 81, "standard": 25, "large": 9}},
+		{ID: "letter", Label: "US Letter", Width: 215.9, Height: 279.4,
+			PerPage: map[string]int{"mini": 81, "standard": 20, "large": 9}},
+		{ID: "a5", Label: "A5", Width: 148, Height: 210,
+			PerPage: map[string]int{"mini": 36, "standard": 9, "large": 4}},
+	}
+	if len(papers) != len(want) {
+		t.Fatalf("PrintPapers() = %+v, want %+v", papers, want)
+	}
+	for i, w := range want {
+		t.Run(w.ID, func(t *testing.T) {
+			if !reflect.DeepEqual(papers[i], w) {
+				t.Errorf("paper %d = %+v, want %+v", i, papers[i], w)
+			}
+		})
 	}
 }
 

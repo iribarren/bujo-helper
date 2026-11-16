@@ -42,6 +42,10 @@ export function OpenFolder(arg1) {
   return window['go']['main']['App']['OpenFolder'](arg1);
 }
 
+export function PrintPapers() {
+  return window['go']['main']['App']['PrintPapers']();
+}
+
 export function PrintSizes() {
   return window['go']['main']['App']['PrintSizes']();
 }
