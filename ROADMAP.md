@@ -167,7 +167,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 **Acceptance**
 - PDF export with the caption fitted to the frame. Layout tests.
 
-## 12. [ ] Music albums media type (with square covers)
+## 12. [x] Music albums media type (with square covers) (43141c5)
 
 **Why:** album trackers are a natural extension, and album art is square, unlike books and posters.
 
