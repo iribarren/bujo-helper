@@ -462,6 +462,9 @@ func TestExportPDFDefaultFileName(t *testing.T) {
 		{"default checklist", sheet.Options{Format: "checklist"}, "checklist_A4.pdf"},
 		{"checklist with a header", sheet.Options{Format: "checklist", Paper: "letter", Header: "TBR 2026"}, "checklist_Letter.pdf"},
 		{"checklist ignores the size and cut", sheet.Options{Format: "checklist", Size: "large", Paper: "a5", Cut: "bleed"}, "checklist_A5.pdf"},
+		{"default polaroids", sheet.Options{Format: "polaroid"}, "polaroid_A4_Standard.pdf"},
+		{"polaroids", sheet.Options{Format: "polaroid", Size: "mini", Paper: "letter"}, "polaroid_Letter_Mini.pdf"},
+		{"polaroids ignore the cut and header", sheet.Options{Format: "polaroid", Size: "large", Paper: "a5", Cut: "bleed", Header: "Books of 2026"}, "polaroid_A5_Large.pdf"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

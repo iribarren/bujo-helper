@@ -1,8 +1,9 @@
 // The "Print sheet" tab: preview the covers in a folder, select some, pick
 // a format (a cover sheet, review cards, book spines, ticket stubs, a full
-// page or a checklist), a paper, for a cover sheet or spines a cover size,
-// for a cover sheet a cut mode and, for a full page or a checklist, a
-// header, and export them to a PDF on that paper (see internal/sheet).
+// page, a checklist or polaroids), a paper, for a cover sheet, spines or
+// polaroids a cover size, for a cover sheet a cut mode and, for a full page
+// or a checklist, a header, and export them to a PDF on that paper (see
+// internal/sheet).
 
 import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCutModes, PrintFormats, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
@@ -334,8 +335,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         }
     }
 
-    // updateSizeLabels shows how many covers or spines of each size fit on
-    // the paper, in the chosen format.
+    // updateSizeLabels shows how many covers, spines or polaroids of each
+    // size fit on the paper, in the chosen format.
     function updateSizeLabels() {
         const paper = currentPaper();
         const format = currentFormat();
@@ -348,9 +349,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     // updateFormat shows the controls that apply to the chosen format: the
-    // cover size for a cover sheet or spines, the cut mode for a cover sheet,
-    // what the cards are for for review cards, the header for a full page or
-    // a checklist.
+    // cover size for a cover sheet, spines or polaroids, the cut mode for a
+    // cover sheet, what the cards are for for review cards, the header for a
+    // full page or a checklist.
     function updateFormat() {
         const format = currentFormat();
         const usesSize = format?.usesSize ?? true;

@@ -672,8 +672,8 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 
 // pdfFileName is the default name of the PDF opts describe, e.g.
 // "covers_A4_Standard.pdf", "covers_A4_Standard_bleed.pdf", "cards_A4.pdf",
-// "spines_A4_Mini.pdf", "stubs_A4.pdf", "fullpage_A4.pdf" or
-// "checklist_A4.pdf".
+// "spines_A4_Mini.pdf", "stubs_A4.pdf", "fullpage_A4.pdf",
+// "checklist_A4.pdf" or "polaroid_A4_Standard.pdf".
 // The format, paper and, when the format uses them, size and a cut mode
 // other than the default tell sheets with other settings apart.
 func pdfFileName(opts sheet.Options) (string, error) {
