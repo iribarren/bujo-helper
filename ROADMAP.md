@@ -134,7 +134,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 - PDF export with several stubs per page and cut borders. Text fits as in review cards.
 - Layout tests.
 
-## 9. [ ] Full-page cover grids ("Books of 2026")
+## 9. [x] Full-page cover grids ("Books of 2026") (b9ba95d)
 
 **Why:** some users want a finished page to glue or bind into the journal, with no cutting.
 
