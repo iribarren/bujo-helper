@@ -88,10 +88,18 @@
             </div>
         </div>
         <label class="field">
+            <span>Format</span>
+            <select id="print-format" title="What to print for each cover: a sheet of covers, or a review card with its title, a date, stars and lines."></select>
+        </label>
+        <label id="print-media-field" class="field" hidden>
+            <span>Cards for</span>
+            <select id="print-media" title="Media type of the covers. It sets the date label on the cards, e.g. Read on or Watched on."></select>
+        </label>
+        <label class="field">
             <span>Paper</span>
             <select id="print-paper" title="Paper you print on. The grid is recomputed to fill it."></select>
         </label>
-        <label class="field">
+        <label id="print-size-field" class="field">
             <span>Cover size</span>
             <select id="print-size" title="Height of each printed cover. Smaller covers fit more per page."></select>
         </label>

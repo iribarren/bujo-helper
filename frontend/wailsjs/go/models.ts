@@ -40,6 +40,7 @@ export namespace main {
 	    id: string;
 	    label: string;
 	    creatorLabel: string;
+	    dateLabel: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new MediaTypeInfo(source);
@@ -50,6 +51,25 @@ export namespace main {
 	        this.id = source["id"];
 	        this.label = source["label"];
 	        this.creatorLabel = source["creatorLabel"];
+	        this.dateLabel = source["dateLabel"];
+	    }
+	}
+	export class PrintFormatInfo {
+	    id: string;
+	    label: string;
+	    usesSize: boolean;
+	    default: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrintFormatInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.usesSize = source["usesSize"];
+	        this.default = source["default"];
 	    }
 	}
 	export class PrintPaperInfo {
@@ -59,6 +79,7 @@ export namespace main {
 	    height: number;
 	    default: boolean;
 	    perPage: Record<string, number>;
+	    formatPerPage: Record<string, number>;
 	
 	    static createFrom(source: any = {}) {
 	        return new PrintPaperInfo(source);
@@ -72,6 +93,7 @@ export namespace main {
 	        this.height = source["height"];
 	        this.default = source["default"];
 	        this.perPage = source["perPage"];
+	        this.formatPerPage = source["formatPerPage"];
 	    }
 	}
 	export class PrintSizeInfo {
@@ -133,8 +155,10 @@ export namespace settings {
 export namespace sheet {
 	
 	export class Options {
+	    format: string;
 	    size: string;
 	    paper: string;
+	    dateLabel: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Options(source);
@@ -142,8 +166,10 @@ export namespace sheet {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.format = source["format"];
 	        this.size = source["size"];
 	        this.paper = source["paper"];
+	        this.dateLabel = source["dateLabel"];
 	    }
 	}
 

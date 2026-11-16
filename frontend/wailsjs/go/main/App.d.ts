@@ -24,6 +24,8 @@ export function OpenFile(arg1:string):Promise<void>;
 
 export function OpenFolder(arg1:string):Promise<void>;
 
+export function PrintFormats():Promise<Array<main.PrintFormatInfo>>;
+
 export function PrintPapers():Promise<Array<main.PrintPaperInfo>>;
 
 export function PrintSizes():Promise<Array<main.PrintSizeInfo>>;

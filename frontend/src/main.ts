@@ -450,7 +450,13 @@ export function outputFolder(): string {
     return ui.outputDir.value;
 }
 
-const printSheet = initPrint({outputFolder, showError, hideError});
+const printSheet = initPrint({
+    outputFolder,
+    showError,
+    hideError,
+    mediaTypes: () => mediaTypes,
+    mediaType: () => ui.mediaType.value,
+});
 const appRoot = byId<HTMLDivElement>('app');
 const tabs = [
     {name: 'download', tab: byId<HTMLButtonElement>('tab-download'), panel: byId<HTMLDivElement>('panel-download')},

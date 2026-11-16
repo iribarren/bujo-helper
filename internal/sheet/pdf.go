@@ -34,14 +34,18 @@ const (
 	maxWorkers = 4
 )
 
-// Build writes a PDF of the images at paths, laid out on the grid of opts,
-// to w. Images are downscaled to 300 dpi at their printed size and
-// re-encoded as JPEG to keep the file small. If any image cannot be read or
-// opts are invalid, Build returns an error (naming the file, if any) and
-// writes nothing.
+// Build writes a PDF of the images at paths, in the format and on the grid
+// of opts, to w: a cover sheet, or a review card per image. Images are
+// downscaled to 300 dpi at their printed size and re-encoded as JPEG to keep
+// the file small. If any image cannot be read or opts are invalid, Build
+// returns an error (naming the file, if any) and writes nothing.
 func Build(w io.Writer, paths []string, opts Options) error {
 	if len(paths) == 0 {
 		return errors.New("no covers selected")
+	}
+	format, err := FormatByID(opts.Format)
+	if err != nil {
+		return err
 	}
 	grid, err := opts.Grid()
 	if err != nil {
@@ -55,20 +59,49 @@ func Build(w io.Writer, paths []string, opts Options) error {
 		}
 		ratios[i] = r
 	}
-	pages, err := grid.Layout(ratios)
+
+	var pdf *fpdf.Fpdf
+	if format.ID == cardsFormat {
+		pdf, err = buildCards(grid, paths, ratios, opts)
+	} else {
+		pdf, err = buildCovers(grid, paths, ratios)
+	}
 	if err != nil {
 		return err
 	}
 
+	// Render in memory first so a failure leaves w untouched.
+	var buf bytes.Buffer
+	if err := pdf.Output(&buf); err != nil {
+		return fmt.Errorf("write PDF: %w", err)
+	}
+	_, err = w.Write(buf.Bytes())
+	return err
+}
+
+// newPDF starts a document of page-sized pages, in mm, drawing cut borders.
+func newPDF(page Page) *fpdf.Fpdf {
 	pdf := fpdf.NewCustom(&fpdf.InitType{
 		OrientationStr: "P",
 		UnitStr:        "mm",
-		Size:           fpdf.SizeType{Wd: grid.Page.Width, Ht: grid.Page.Height},
+		Size:           fpdf.SizeType{Wd: page.Width, Ht: page.Height},
 	})
 	pdf.SetMargins(0, 0, 0)
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.SetDrawColor(borderGrey, borderGrey, borderGrey)
 	pdf.SetLineWidth(borderWidth)
+	return pdf
+}
+
+// buildCovers draws a cover sheet: each image on grid, outlined by its cut
+// border.
+func buildCovers(grid Grid, paths []string, ratios []float64) (*fpdf.Fpdf, error) {
+	pages, err := grid.Layout(ratios)
+	if err != nil {
+		return nil, err
+	}
+
+	pdf := newPDF(grid.Page)
 	imgOpts := fpdf.ImageOptions{ImageType: "JPG"}
 
 	var boxes []Box
@@ -77,7 +110,7 @@ func Build(w io.Writer, paths []string, opts Options) error {
 	}
 	images, err := printImages(paths, boxes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	i := 0
@@ -89,19 +122,12 @@ func Build(w io.Writer, paths []string, opts Options) error {
 			pdf.ImageOptions(name, box.X, box.Y, box.W, box.H, false, imgOpts, 0, "")
 			pdf.Rect(box.X, box.Y, box.W, box.H, "D")
 			if err := pdf.Error(); err != nil {
-				return fmt.Errorf("%s: %w", filepath.Base(paths[i]), err)
+				return nil, fmt.Errorf("%s: %w", filepath.Base(paths[i]), err)
 			}
 			i++
 		}
 	}
-
-	// Render in memory first so a failure leaves w untouched.
-	var buf bytes.Buffer
-	if err := pdf.Output(&buf); err != nil {
-		return fmt.Errorf("write PDF: %w", err)
-	}
-	_, err = w.Write(buf.Bytes())
-	return err
+	return pdf, nil
 }
 
 // aspectRatio reads the image header of path and returns width / height.

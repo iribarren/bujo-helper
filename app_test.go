@@ -74,7 +74,7 @@ func (r *recorder) waitDone(t *testing.T) DoneEvent {
 func testApp(t *testing.T, p media.Provider) (*App, *recorder) {
 	t.Helper()
 	reg := media.NewRegistry()
-	if err := reg.Register(media.MediaType{ID: "books", Label: "Books", CreatorLabel: "Author", Providers: []media.Provider{p}}); err != nil {
+	if err := reg.Register(media.MediaType{ID: "books", Label: "Books", CreatorLabel: "Author", DateLabel: "Read on", Providers: []media.Provider{p}}); err != nil {
 		t.Fatal(err)
 	}
 	a := newApp(reg, http.DefaultClient)
@@ -221,7 +221,7 @@ func TestCancel(t *testing.T) {
 func TestMediaTypes(t *testing.T) {
 	a, _ := testApp(t, &fakeProvider{})
 	got := a.MediaTypes()
-	if len(got) != 1 || got[0] != (MediaTypeInfo{ID: "books", Label: "Books", CreatorLabel: "Author"}) {
+	if len(got) != 1 || got[0] != (MediaTypeInfo{ID: "books", Label: "Books", CreatorLabel: "Author", DateLabel: "Read on"}) {
 		t.Errorf("MediaTypes = %+v", got)
 	}
 }
@@ -420,6 +420,8 @@ func TestExportPDFRejectsUnknownSettingsBeforeAsking(t *testing.T) {
 		{"unknown size", sheet.Options{Size: "huge"}, `"huge"`},
 		{"unknown paper", sheet.Options{Paper: "a3"}, `"a3"`},
 		{"unknown paper with a known size", sheet.Options{Size: "mini", Paper: "legal"}, `"legal"`},
+		{"unknown format", sheet.Options{Format: "posters"}, `"posters"`},
+		{"unknown paper for cards", sheet.Options{Format: "cards", Paper: "a3"}, `"a3"`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -429,6 +431,36 @@ func TestExportPDFRejectsUnknownSettingsBeforeAsking(t *testing.T) {
 			_, err := a.ExportPDF([]string{cover}, "", tt.opts)
 			if err == nil || !strings.Contains(err.Error(), tt.want) {
 				t.Errorf("err = %v, want an error naming %s", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestExportPDFDefaultFileName(t *testing.T) {
+	tests := []struct {
+		name string
+		opts sheet.Options
+		want string
+	}{
+		{"default cover sheet", sheet.Options{}, "covers_A4_Standard.pdf"},
+		{"cover sheet", sheet.Options{Format: "covers", Size: "mini", Paper: "letter"}, "covers_Letter_Mini.pdf"},
+		{"review cards", sheet.Options{Format: "cards", Paper: "a5"}, "cards_A5.pdf"},
+		{"review cards ignore the size", sheet.Options{Format: "cards", Size: "huge", Paper: "a4"}, "cards_A4.pdf"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got string
+			stubDialogs(t, func(o runtime.SaveDialogOptions) (string, error) {
+				got = o.DefaultFilename
+				return "", nil // cancel: nothing is written
+			}, nil)
+			cover := writeCover(t, t.TempDir(), "c.jpg", 66, 100)
+			a := newApp(media.NewRegistry(), http.DefaultClient)
+			if _, err := a.ExportPDF([]string{cover}, "", tt.opts); err != nil {
+				t.Fatal(err)
+			}
+			if got != tt.want {
+				t.Errorf("default file name = %q, want %q", got, tt.want)
 			}
 		})
 	}
@@ -473,15 +505,29 @@ func TestPrintSizes(t *testing.T) {
 	}
 }
 
+func TestPrintFormats(t *testing.T) {
+	got := NewApp().PrintFormats()
+	want := []PrintFormatInfo{
+		{ID: "covers", Label: "Cover sheet", UsesSize: true, Default: true},
+		{ID: "cards", Label: "Review cards"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("PrintFormats() = %+v, want %+v", got, want)
+	}
+}
+
 func TestPrintPapers(t *testing.T) {
 	papers := NewApp().PrintPapers()
 	want := []PrintPaperInfo{
 		{ID: "a4", Label: "A4", Width: 210, Height: 297, Default: true,
-			PerPage: map[string]int{"mini": 81, "standard": 25, "large": 9}},
+			PerPage:       map[string]int{"mini": 81, "standard": 25, "large": 9},
+			FormatPerPage: map[string]int{"cards": 8}},
 		{ID: "letter", Label: "US Letter", Width: 215.9, Height: 279.4,
-			PerPage: map[string]int{"mini": 81, "standard": 20, "large": 9}},
+			PerPage:       map[string]int{"mini": 81, "standard": 20, "large": 9},
+			FormatPerPage: map[string]int{"cards": 8}},
 		{ID: "a5", Label: "A5", Width: 148, Height: 210,
-			PerPage: map[string]int{"mini": 36, "standard": 9, "large": 4}},
+			PerPage:       map[string]int{"mini": 36, "standard": 9, "large": 4},
+			FormatPerPage: map[string]int{"cards": 3}},
 	}
 	if len(papers) != len(want) {
 		t.Fatalf("PrintPapers() = %+v, want %+v", papers, want)
