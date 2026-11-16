@@ -154,6 +154,10 @@ func layoutSpineText(spine Box, title, creator string, measure measureFunc) []sp
 	for i, p := range parts {
 		maxPt := maxSize
 		if i > 0 {
+			if len(lines) == 0 {
+				// The title did not fit; a creator alone would read as a title.
+				break
+			}
 			// Smaller than the line above, even when that one shrank.
 			maxPt = max(minSpineFontSize, min(maxSize, lines[0].Size)*spineCreatorScale)
 		}

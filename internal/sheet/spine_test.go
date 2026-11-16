@@ -237,6 +237,15 @@ func TestLayoutSpineTextShrinksThenTruncates(t *testing.T) {
 	}
 }
 
+// A spine too short for even "…" leaves the title out; the creator must not
+// size itself from a title line that is not there.
+func TestLayoutSpineTextTitleThatCannotFit(t *testing.T) {
+	huge := func(string, bool, float64) float64 { return 1000 }
+	if lines := layoutSpineText(Box{W: 12, H: 25}, "Dune", "Frank Herbert", huge); len(lines) != 0 {
+		t.Errorf("got %+v, want no lines", lines)
+	}
+}
+
 func TestLayoutSpineTextCreatorIsSmaller(t *testing.T) {
 	for _, w := range []float64{MinSpineWidth, MaxSpineWidth} {
 		lines := layoutSpineText(Box{W: w, H: 80}, "Dune", "Frank Herbert", fakeMeasure)
