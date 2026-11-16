@@ -461,8 +461,14 @@ func TestNewClientUsesTheSharedThrottle(t *testing.T) {
 	if c.Transport != DefaultThrottle {
 		t.Errorf("Transport = %T, want DefaultThrottle", c.Transport)
 	}
-	if DefaultThrottle.MinInterval["api.themoviedb.org"] != 25*time.Millisecond ||
-		DefaultThrottle.MinInterval["www.wikidata.org"] != 200*time.Millisecond {
-		t.Errorf("DefaultThrottle.MinInterval = %v", DefaultThrottle.MinInterval)
+	for host, want := range map[string]time.Duration{
+		"api.themoviedb.org": 25 * time.Millisecond,
+		"www.wikidata.org":   200 * time.Millisecond,
+		// MusicBrainz allows at most one request per second.
+		"musicbrainz.org": time.Second,
+	} {
+		if got := DefaultThrottle.MinInterval[host]; got != want {
+			t.Errorf("DefaultThrottle.MinInterval[%q] = %v, want %v", host, got, want)
+		}
 	}
 }

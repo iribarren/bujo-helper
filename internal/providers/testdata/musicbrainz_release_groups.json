@@ -1,0 +1,150 @@
+{
+  "created": "2026-11-16T19:55:47.878Z",
+  "count": 6,
+  "offset": 0,
+  "release-groups": [
+    {
+      "id": "9162580e-5df4-32de-80cc-f45a8d8a9b1d",
+      "type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "score": 100,
+      "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "artist-credit-id": "c81491ca-a4b0-3bd7-92c0-8467809c8500",
+      "count": 75,
+      "title": "Abbey Road",
+      "first-release-date": "1969-09-26",
+      "primary-type": "Album",
+      "artist-credit": [
+        {
+          "name": "The Beatles",
+          "artist": {
+            "id": "b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d",
+            "name": "The Beatles",
+            "sort-name": "Beatles, The",
+            "disambiguation": "UK rock band, “The Fab Four”"
+          }
+        }
+      ]
+    },
+    {
+      "id": "42ef6001-3113-440c-ae7c-3667c7351e35",
+      "type-id": "0c60f497-ff81-3818-befd-abfc84a4858b",
+      "score": 92,
+      "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "artist-credit-id": "c81491ca-a4b0-3bd7-92c0-8467809c8500",
+      "count": 1,
+      "title": "Abbey Road Remix",
+      "first-release-date": "2012",
+      "primary-type": "Album",
+      "secondary-types": [
+        "Remix"
+      ],
+      "secondary-type-ids": [
+        "0c60f497-ff81-3818-befd-abfc84a4858b"
+      ],
+      "artist-credit": [
+        {
+          "name": "The Beatles",
+          "artist": {
+            "id": "b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d",
+            "name": "The Beatles",
+            "sort-name": "Beatles, The",
+            "disambiguation": "UK rock band, “The Fab Four”"
+          }
+        }
+      ]
+    },
+    {
+      "id": "99a0636c-e69f-3099-85f1-e6049b24946c",
+      "type-id": "4fc3be2b-de1e-396b-a933-beb8f1607a22",
+      "score": 92,
+      "primary-type-id": "4fc3be2b-de1e-396b-a933-beb8f1607a22",
+      "artist-credit-id": "c81491ca-a4b0-3bd7-92c0-8467809c8500",
+      "count": 1,
+      "title": "Abbey Road Companion",
+      "primary-type": "Other",
+      "artist-credit": [
+        {
+          "name": "The Beatles",
+          "artist": {
+            "id": "b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d",
+            "name": "The Beatles",
+            "sort-name": "Beatles, The",
+            "disambiguation": "UK rock band, “The Fab Four”"
+          }
+        }
+      ]
+    },
+    {
+      "id": "1624c19c-c4c5-31fd-96fe-b0c77def7a7b",
+      "type-id": "4fc3be2b-de1e-396b-a933-beb8f1607a22",
+      "score": 86,
+      "primary-type-id": "4fc3be2b-de1e-396b-a933-beb8f1607a22",
+      "artist-credit-id": "c81491ca-a4b0-3bd7-92c0-8467809c8500",
+      "count": 1,
+      "title": "The Alternate Abbey Road",
+      "first-release-date": "2000",
+      "primary-type": "Other",
+      "artist-credit": [
+        {
+          "name": "The Beatles",
+          "artist": {
+            "id": "b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d",
+            "name": "The Beatles",
+            "sort-name": "Beatles, The",
+            "disambiguation": "UK rock band, “The Fab Four”"
+          }
+        }
+      ]
+    },
+    {
+      "id": "827951f1-205f-4949-8e78-79dc57e20a30",
+      "type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "score": 86,
+      "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "artist-credit-id": "c81491ca-a4b0-3bd7-92c0-8467809c8500",
+      "count": 1,
+      "title": "The Alternate Abbey Road",
+      "first-release-date": "2000",
+      "primary-type": "Album",
+      "artist-credit": [
+        {
+          "name": "The Beatles",
+          "artist": {
+            "id": "b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d",
+            "name": "The Beatles",
+            "sort-name": "Beatles, The",
+            "disambiguation": "UK rock band, “The Fab Four”"
+          }
+        }
+      ]
+    },
+    {
+      "id": "5bdb444f-6b03-4e71-82ca-4f33243735b2",
+      "type-id": "dd2a21e1-0c00-3729-a7a0-de60b84eb5d1",
+      "score": 81,
+      "primary-type-id": "f529b476-6e62-324f-b0aa-1f3e33d313fc",
+      "artist-credit-id": "c81491ca-a4b0-3bd7-92c0-8467809c8500",
+      "count": 1,
+      "title": "Abbey Road / Hey Jude",
+      "first-release-date": "2000",
+      "primary-type": "Album",
+      "secondary-types": [
+        "Compilation"
+      ],
+      "secondary-type-ids": [
+        "dd2a21e1-0c00-3729-a7a0-de60b84eb5d1"
+      ],
+      "artist-credit": [
+        {
+          "name": "The Beatles",
+          "artist": {
+            "id": "b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d",
+            "name": "The Beatles",
+            "sort-name": "Beatles, The",
+            "disambiguation": "UK rock band, “The Fab Four”"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -159,7 +159,7 @@ func TestBleedGeometry(t *testing.T) {
 					for i := range ratios {
 						ratios[i] = rs[i%len(rs)]
 					}
-					pages, err := g.Layout(ratios)
+					pages, err := g.Flow(ratios)
 					if err != nil {
 						t.Fatal(err)
 					}

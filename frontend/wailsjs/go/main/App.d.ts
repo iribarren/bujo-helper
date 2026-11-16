@@ -28,6 +28,8 @@ export function PrintCutModes():Promise<Array<main.PrintCutModeInfo>>;
 
 export function PrintFormats():Promise<Array<main.PrintFormatInfo>>;
 
+export function PrintPages(arg1:Array<string>,arg2:sheet.Options):Promise<main.PrintPagesInfo>;
+
 export function PrintPapers():Promise<Array<main.PrintPaperInfo>>;
 
 export function PrintSizes():Promise<Array<main.PrintSizeInfo>>;

@@ -80,6 +80,25 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "Dark", Creator: "2017"},
 		},
 	})
+	// Album art is square. MusicBrainz + Cover Art Archive first (the
+	// user's choice), then the iTunes album search.
+	mustRegister(reg, media.MediaType{
+		ID:           "albums",
+		Label:        "Albums",
+		CreatorLabel: "Artist",
+		DateLabel:    "Listened on",
+		Providers: []media.Provider{
+			providers.NewMusicBrainz(client),
+			providers.NewAppleAlbums(client),
+		},
+		Samples: []media.Item{
+			{Title: "Abbey Road", Creator: "The Beatles"},
+			{Title: "Rumours", Creator: "Fleetwood Mac"},
+			{Title: "Kind of Blue", Creator: "Miles Davis"},
+			{Title: "Buena Vista Social Club", Creator: "Buena Vista Social Club"},
+			{Title: "Random Access Memories", Creator: "Daft Punk"},
+		},
+	})
 	return reg
 }
 

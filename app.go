@@ -577,6 +577,11 @@ type PrintPaperInfo struct {
 	// ID, for the formats that print one; PerPage has their counts without
 	// it. For example 16 checklist rows on A4, against 17 without a header.
 	HeaderPerPage map[string]int `json:"headerPerPage"`
+	// SquarePerPage is how many square images fit on a full page, by
+	// format ID, then size ID, for the formats that give them square cells
+	// (the cover sheet); in other formats they fit PerPage. For example 15
+	// standard album covers on A4, against 25 book covers.
+	SquarePerPage map[string]map[string]int `json:"squarePerPage"`
 }
 
 // PrintPapers lists the paper size presets, the default first, with how many
@@ -588,6 +593,7 @@ func (a *App) PrintPapers() []PrintPaperInfo {
 	for _, p := range sheet.Papers {
 		perPage := make(map[string]map[string]int, len(sheet.Formats))
 		headerPerPage := make(map[string]int)
+		squarePerPage := make(map[string]map[string]int)
 		for _, f := range sheet.Formats {
 			if f.UsesHeader {
 				// Any header takes the same band.
@@ -606,8 +612,10 @@ func (a *App) PrintPapers() []PrintPaperInfo {
 				}
 			}
 			counts := make(map[string]int, len(sizes))
+			squares := make(map[string]int, len(sizes))
 			for _, size := range sizes {
-				n, err := sheet.Options{Format: f.ID, Size: size, Paper: p.ID}.PerPage()
+				opts := sheet.Options{Format: f.ID, Size: size, Paper: p.ID}
+				n, err := opts.PerPage()
 				if err != nil {
 					// Every format and size fits every paper; sheet tests
 					// guard this.
@@ -615,8 +623,18 @@ func (a *App) PrintPapers() []PrintPaperInfo {
 					continue
 				}
 				counts[size] = n
+				if f.SquareCells {
+					if n, err := opts.SquarePerPage(); err != nil {
+						log.Printf("square images in print format %s, size %q on %s: %v", f.ID, size, p.ID, err)
+					} else {
+						squares[size] = n
+					}
+				}
 			}
 			perPage[f.ID] = counts
+			if f.SquareCells {
+				squarePerPage[f.ID] = squares
+			}
 		}
 		out = append(out, PrintPaperInfo{
 			ID:            p.ID,
@@ -626,9 +644,54 @@ func (a *App) PrintPapers() []PrintPaperInfo {
 			Default:       p.ID == sheet.DefaultPaper,
 			PerPage:       perPage,
 			HeaderPerPage: headerPerPage,
+			SquarePerPage: squarePerPage,
 		})
 	}
 	return out
+}
+
+// PrintPagesInfo is the page count of the images selected in the Print
+// sheet tab.
+type PrintPagesInfo struct {
+	Pages int `json:"pages"`
+	// AllSquare is whether there are images and every one is square, so a
+	// cover sheet gives each a square cell (see PrintPaperInfo.SquarePerPage).
+	AllSquare bool `json:"allSquare"`
+	// Exact is false when an image could not be read: Pages then counts it
+	// as a 2:3 cover, and AllSquare is false.
+	Exact bool `json:"exact"`
+}
+
+// PrintPages counts the pages the images at paths take with the print
+// settings opts, reading their image headers: on a cover sheet, square
+// images get square cells, so fewer fit on a page. An image that cannot be
+// read counts as a 2:3 cover, so the toolbar still shows a count;
+// ExportPDF reports the bad file.
+func (a *App) PrintPages(paths []string, opts sheet.Options) (PrintPagesInfo, error) {
+	if _, err := opts.Grid(); err != nil {
+		return PrintPagesInfo{}, err
+	}
+	exact := true
+	ratios := make([]float64, len(paths))
+	for i, p := range paths {
+		r, err := sheet.AspectRatios([]string{p})
+		if err != nil {
+			log.Printf("count print pages: %v", err)
+			exact = false
+			ratios[i] = 2.0 / 3
+			continue
+		}
+		ratios[i] = r[0]
+	}
+	pages, err := opts.Pages(ratios)
+	if err != nil {
+		return PrintPagesInfo{}, err
+	}
+	allSquare := exact && len(ratios) > 0
+	for _, r := range ratios {
+		allSquare = allSquare && sheet.IsSquare(r)
+	}
+	return PrintPagesInfo{Pages: pages, AllSquare: allSquare, Exact: exact}, nil
 }
 
 // ExportPDF asks where to save, then writes the print sheet PDF of the

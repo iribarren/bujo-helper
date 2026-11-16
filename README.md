@@ -3,11 +3,11 @@
 A desktop app for Windows and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
 
-Book covers, movie posters and TV series posters are supported. The core is media-agnostic, so music or games can be added later as new providers.
+Book covers, movie posters, TV series posters and album covers are supported. The core is media-agnostic, so games or other media can be added later as new providers.
 
 ## Features
 
-- Batch input: one `Title, Author` (books) or `Title, Year` (movies and TV series) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books), `Title, Year` (movies and TV series) or `Album, Artist` (albums) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
@@ -74,6 +74,17 @@ Movie and TV posters are about 2:3, like book covers, so the print sheet lays th
 
 TV series use the same services, under the same terms, as movies: the TMDB API (with the attribution below) and the unofficial IMDb endpoint, with no key. Downloaded posters are for personal use.
 
+Sources are tried in this order for albums (the artist is optional, but it helps):
+
+1. **MusicBrainz + Cover Art Archive** (no key): the MusicBrainz API finds the release group (the album across all its editions) by title and artist, preferring albums over singles and other releases with the same title. The [Cover Art Archive](https://coverartarchive.org/) serves its front cover at 1200 px, falling back to 500 px and then the original image.
+2. **Apple Music** (iTunes Search API, album search): large, high-quality artwork. It uses the store country.
+
+Album covers are square, unlike the 2:3 book covers and posters, so a cover sheet gives them square cells (see [Print sheet](#print-sheet)).
+
+MusicBrainz data is CC0, but the Cover Art Archive images carry no licence of their own: its documentation says to use them at your own risk. Apple's terms allow iTunes artwork only to promote the store's content, the same terms as the Apple Books and Apple TV sources above. Downloaded covers are for personal use.
+
+MusicBrainz allows at most one request per second and asks every client for a User-Agent with contact information. The app sends `cover-downloader/1.0 ( https://github.com/iribarren/bullet-journal-covers )` and spaces its MusicBrainz requests one second apart, so a long album list takes at least a second per album.
+
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
@@ -84,7 +95,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly, and requests to MusicBrainz one second apart.
 
 ## Local editions
 
@@ -115,19 +126,19 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies and TV series. The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies and TV series, `album,artist` for albums. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies or TV series).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series or albums).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
 ## Using the app
 
-1. Choose the media type: **Books**, **Movies** or **TV series**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters.
+1. Choose the media type: **Books**, **Movies**, **TV series** or **Albums**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters.
 2. Type or paste items, one per line, or click **Import CSV…**.
 3. Check the output folder (default: `~/Pictures/Covers`, or `%USERPROFILE%\Pictures\Covers` on Windows), and change it with **Browse…** if needed.
 4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
@@ -139,11 +150,11 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, [review cards](#review-cards), [spines](#spines), [ticket stubs](#ticket-stubs), a [full page](#full-page) of covers under a header, with nothing to cut, a [checklist](#checklist) to tick off as you read or watch, or [polaroids](#polaroid) with the title as a caption.
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
-2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page**, **Checklist** or **Polaroid**. For review cards, pick what they are **Cards for** (Books, Movies or TV series); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** (for example "Books of 2026" or "TBR 2026"), or leave it empty.
-3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines, or polaroids) fit on that paper.
+2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page**, **Checklist** or **Polaroid**. For review cards, pick what they are **Cards for** (Books, Movies, TV series or Albums); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** (for example "Books of 2026" or "TBR 2026"), or leave it empty.
+3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines, or polaroids) fit on that paper; for a cover sheet of only square covers (albums), how many square covers fit.
 4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet, spines and polaroids, so it is disabled for review cards, ticket stubs, full pages and checklists.
 5. For a cover sheet, pick a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). It never changes how many covers fit on a page.
-6. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size (and, for a checklist, header).
+6. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size (and, for a checklist, header). The page count is exact: it reads the size of each selected image, since square covers take more room on a cover sheet (an image that cannot be read counts as a 2:3 cover).
 7. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `spines_A4_Standard.pdf`, `polaroid_A4_Standard.pdf` or, for review cards, ticket stubs, full pages and checklists, `cards_A4.pdf`, `stubs_A4.pdf`, `fullpage_A4.pdf` and `checklist_A4.pdf`), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
@@ -170,7 +181,9 @@ How the grid is derived from the cover height *h* and the page width *W* and hei
 | Top/bottom margin | whatever height is left, split equally, so the grid is centred                             |
 | Cut border        | 0.2 mm grey (#999) line exactly around each cover, in the default [cut mode](#cut-mode)    |
 
-- **Shrink to fit:** a cover wider than its column (for example a square one) is shrunk to the column width and keeps its aspect ratio, so it ends up shorter than the chosen height. Each cover is centred in its cell. Typical book covers (about 2:3) keep the full height: at Standard size they are 50 mm tall and about 33 mm wide.
+- **Square cells:** a square cover (width / height within about 10 % of 1, such as album art) gets a square cell, *h* × *h*, instead of a column. Cells flow left to right, 4 mm apart, and a row wraps when the next cell does not fit, so a folder of books and albums mixes both kinds of cell. The rows per page stay the same. Each row is centred, and a short row is centred as if it were filled with more cells like its last one, so the last row lines up with the full rows above it. A sheet without square covers keeps the grid in the table above.
+- **Square covers per page:** A4 6 × 9 = 54 (Mini), 3 × 5 = 15 (Standard), 2 × 3 = 6 (Large); US Letter 7 × 9 = 63, 3 × 4 = 12, 2 × 3 = 6; A5 4 × 6 = 24, 2 × 3 = 6, 1 × 2 = 2.
+- **Shrink to fit:** a cover wider than its cell (for example a wide one) is shrunk to the cell width and keeps its aspect ratio, so it ends up shorter than the chosen height. Each cover is centred in its cell. Typical book covers (about 2:3) keep the full height: at Standard size they are 50 mm tall and about 33 mm wide. The other formats have no square cells: square images shrink to fit there.
 - **Pagination:** covers fill each page left to right, top to bottom. More covers than fit on a page add pages; the last page may be partly filled.
 - **Print at 100 % / actual size** (not "fit to page") on every paper, so covers come out at the chosen height. Pick the paper loaded in the printer: on Letter paper choose **US Letter**, not A4, so the printer does not scale or clip the page.
 - Images are downscaled to 300 dpi at their printed size (never upscaled) to keep the PDF small. If any image cannot be read, the export fails naming that file and no PDF is written. Mini covers need only about 300 px of height, and Large covers about 950 px, to print sharp.
@@ -199,8 +212,8 @@ The **Review cards** format prints one 90 × 55 mm card per selected cover, to f
 |------------|-----------------------------------------------------------------------------------------------|
 | Left side  | the cover                                                                                     |
 | Title      | from the file name `Title - Creator.jpg`, up to 2 lines; longer text ends with "…"            |
-| Creator    | the author, or the year for movies and TV series (`Title - Year.jpg`), on 1 line              |
-| Date field | **Read on** or **Watched on**, from the **Cards for** choice                                  |
+| Creator    | the author, the year for movies and TV series (`Title - Year.jpg`), or the artist for albums, on 1 line |
+| Date field | **Read on**, **Watched on** or **Listened on**, from the **Cards for** choice                 |
 | Rating     | 5 empty stars                                                                                 |
 | Notes      | 3 writing lines                                                                               |
 
@@ -252,7 +265,7 @@ The **Ticket stubs** format prints one 90 × 40 mm movie ticket stub per selecte
 | Perforation | a dashed line between the notches, 20 mm from the right edge                               |
 | Left side   | the poster                                                                                 |
 | Title       | bold, from the file name `Title - Creator.jpg`, up to 2 lines; longer text ends with "…"   |
-| Creator     | the year for movies and TV series (`Title - Year.jpg`), or the author for books, on 1 line |
+| Creator     | the year for movies and TV series (`Title - Year.jpg`), the author for books, or the artist for albums, on 1 line |
 | Fields      | **Date:** and **Where:**, each with a line to write on                                     |
 | Rating      | 5 empty stars                                                                              |
 | Stub end    | **ADMIT ONE**, turned to read bottom to top                                                |
@@ -300,7 +313,7 @@ The **Checklist** format prints a to-be-read list or watchlist to glue into a jo
 | Checkbox  | a 5 mm square on the left                                                                     |
 | Thumbnail | the cover in a 2:3 box 13 mm tall, keeping its aspect ratio (square and wide images are shrunk to fit and centred) |
 | Title     | bold, from the file name `Title - Creator.jpg`, on 1 line; longer text ends with "…"          |
-| Creator   | the year for movies and TV series (`Title - Year.jpg`), or the author for books, on 1 line under the title; without one, the title is centred alone |
+| Creator   | the year for movies and TV series (`Title - Year.jpg`), the author for books, or the artist for albums, on 1 line under the title; without one, the title is centred alone |
 | Rule      | a thin light-grey line under each row                                                         |
 
 Rows are 16 mm tall and span the page within 8 mm margins, from the top margin down, or right below the header:
@@ -356,13 +369,14 @@ go run ./cmd/covers -country us -csv sample_books.csv -o covers
 go run ./cmd/covers -type movies -o posters "Dune, 2021" "Inception, 2010"
 TMDB_API_KEY=<key> go run ./cmd/covers -type movies -o posters "The Matrix, 1999"
 go run ./cmd/covers -type tv -o posters "Breaking Bad, 2008" "Dark, 2017"
+go run ./cmd/covers -type albums -o albums "Abbey Road, The Beatles" "Rumours, Fleetwood Mac"
 ```
 
 Flags must come before the items:
 
 | Flag       | Default  | Meaning                                         |
 |------------|----------|-------------------------------------------------|
-| `-type`    | `books`  | Media type: `books`, `movies` or `tv`           |
+| `-type`    | `books`  | Media type: `books`, `movies`, `tv` or `albums` |
 | `-o`       | `covers` | Output folder                                   |
 | `-country` | `es`     | Store country code; its editions are preferred  |
 | `-csv`     | (none)   | CSV file, added after the positional items       |
@@ -437,7 +451,7 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming

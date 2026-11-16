@@ -24,7 +24,7 @@ func TestDefault(t *testing.T) {
 	for _, mt := range reg.List() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 
@@ -73,6 +73,28 @@ func TestDefault(t *testing.T) {
 	for _, s := range tv.Samples {
 		if s.Title == "" || len(s.Creator) != 4 {
 			t.Errorf("tv sample %+v, want a title and a year", s)
+		}
+	}
+
+	albums, _ := reg.Get("albums")
+	if albums.Label != "Albums" || albums.CreatorLabel != "Artist" || albums.DateLabel != "Listened on" || albums.LocalEditions {
+		t.Errorf("albums = %+v", albums)
+	}
+	if want := []string{"musicbrainz", "apple"}; !reflect.DeepEqual(providerNames(albums), want) {
+		t.Errorf("albums providers = %q, want %q", providerNames(albums), want)
+	}
+	if apple, ok := albums.Providers[1].(*providers.Apple); !ok || apple.Media != "music" || apple.Entity != "album" {
+		t.Errorf("second albums provider = %#v, want Apple in album mode", albums.Providers[1])
+	}
+	if apple := books.Providers[0].(*providers.Apple); apple.Media != "ebook" || apple.Entity != "" {
+		t.Errorf("books Apple = %#v, want ebook with no entity", apple)
+	}
+	if len(albums.Samples) != 5 {
+		t.Errorf("albums samples = %d, want 5", len(albums.Samples))
+	}
+	for _, s := range albums.Samples {
+		if s.Title == "" || s.Creator == "" {
+			t.Errorf("albums sample %+v, want an album and an artist", s)
 		}
 	}
 

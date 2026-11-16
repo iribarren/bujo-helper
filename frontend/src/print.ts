@@ -5,7 +5,7 @@
 // or a checklist, a header, and export them to a PDF on that paper (see
 // internal/sheet).
 
-import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCutModes, PrintFormats, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
+import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
 
 export interface PrintDeps {
@@ -65,9 +65,22 @@ function plural(n: number, word: string): string {
     return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
 
-// pageCount is the number of pages covers need at perPage covers a page.
+// pageCount is the number of pages covers need at perPage covers a page:
+// the estimate shown until PrintPages counts them from the images.
 export function pageCount(covers: number, perPage: number): number {
     return Math.ceil(covers / perPage);
+}
+
+// squarePerPageOf is how many square images fit on a page of paper in the
+// size sizeId, for a format that gives them square cells (a cover sheet),
+// or undefined for other formats.
+function squarePerPageOf(
+    paper: main.PrintPaperInfo | undefined,
+    format: main.PrintFormatInfo | undefined,
+    sizeId: string,
+): number | undefined {
+    if (!paper || !format) return undefined;
+    return paper.squarePerPage?.[format.id]?.[sizeId];
 }
 
 // perPageOf is how many items of format fit on a page of paper, in the size
@@ -136,6 +149,13 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // Whether the user picked what review cards are for in this tab; until
     // then it follows the Download tab's media type.
     let mediaChosen = false;
+    // The page count of the selection from PrintPages, for the request it
+    // answers (key: paths and settings; pathsKey: paths only); undefined
+    // until it arrives. pagesKey is the latest request; pagesSeq increases
+    // with every request, so a slow, older answer cannot overwrite a newer one.
+    let exact: {key: string; pathsKey: string; info: main.PrintPagesInfo} | undefined;
+    let pagesKey = '';
+    let pagesSeq = 0;
 
     function currentDir(): string {
         return chosenDir || deps.outputFolder();
@@ -173,12 +193,75 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         return {format, paper, size, perPage};
     }
 
+    // selectedPaths are the selected covers, in grid order.
+    function selectedPaths(): string[] {
+        return covers.filter((c) => selected.has(c.path)).map((c) => c.path);
+    }
+
+    type Layout = NonNullable<ReturnType<typeof currentLayout>>;
+
+    // printOptions are the print settings of layout.
+    function printOptions(layout: Layout): sheet.Options {
+        return sheet.Options.createFrom({
+            format: layout.format.id,
+            size: layout.size?.id ?? '',
+            paper: layout.paper.id,
+            // The cut mode never changes the page count.
+            cut: layout.format.usesCut ? ui.cut.value : '',
+            dateLabel: layout.format.id === REVIEW_CARDS ? currentMedia()?.dateLabel ?? '' : '',
+            header: layout.format.usesHeader ? ui.header.value.trim() : '',
+        });
+    }
+
+    // requestKey identifies a page count request: what changes the count.
+    function requestKey(paths: string[], opts: sheet.Options): string {
+        return JSON.stringify([paths, opts.format, opts.size, opts.paper, opts.header]);
+    }
+
+    // pagesOf is the page count of paths with layout: exact once PrintPages
+    // has answered for them, the estimate until then.
+    function pagesOf(paths: string[], layout: Layout): number {
+        const key = requestKey(paths, printOptions(layout));
+        return exact?.key === key && exact.info.pages > 0 ? exact.info.pages : pageCount(paths.length, layout.perPage);
+    }
+
+    // allSquare is whether PrintPages found every selected image square.
+    function allSquare(): boolean {
+        return exact?.pathsKey === JSON.stringify(selectedPaths()) && exact.info.allSquare;
+    }
+
+    // countPages asks PrintPages for the exact page count of paths with
+    // layout, unless that is the latest request already; the answer
+    // updates the toolbar and the size labels. On failure the estimate
+    // stays until the next request.
+    async function countPages(paths: string[], layout: Layout) {
+        const opts = printOptions(layout);
+        const key = requestKey(paths, opts);
+        if (key === pagesKey) return;
+        pagesKey = key;
+        const seq = ++pagesSeq;
+        try {
+            const info = await PrintPages(paths, opts);
+            if (seq !== pagesSeq) return;
+            exact = {key, pathsKey: JSON.stringify(paths), info};
+            updateSizeLabels();
+            updateSelection();
+        } catch (err) {
+            if (seq !== pagesSeq) return;
+            // Forget the key so the same request can be retried.
+            pagesKey = '';
+            console.warn(`Could not count pages: ${errorText(err)}`);
+        }
+    }
+
     function updateSelection() {
         const n = selected.size;
         const layout = currentLayout();
+        const paths = selectedPaths();
         ui.selection.textContent = layout
-            ? `${n} selected · ${plural(pageCount(n, layout.perPage), 'page')}`
+            ? `${n} selected · ${plural(pagesOf(paths, layout), 'page')}`
             : `${n} selected`;
+        if (layout) countPages(paths, layout);
         ui.exportPdf.disabled = n === 0 || exporting || !layout;
         ui.selectAll.disabled = covers.length === 0 || n === covers.length;
         ui.selectNone.disabled = n === 0;
@@ -229,6 +312,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     function render() {
+        // The images may have changed: count the pages again.
+        pagesKey = '';
         cards = new Map();
         ui.gallery.replaceChildren(...covers.map((cover) => {
             const card = renderCard(cover);
@@ -292,7 +377,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
 
     async function exportPdf() {
         // Export in grid order, not in the order covers were clicked.
-        const paths = covers.filter((c) => selected.has(c.path)).map((c) => c.path);
+        const paths = selectedPaths();
         const layout = currentLayout();
         if (paths.length === 0 || exporting || !layout) return;
         deps.hideError();
@@ -303,16 +388,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         ui.status.title = '';
         ui.openPdf.hidden = true;
         try {
-            const cards = layout.format.id === REVIEW_CARDS;
-            const saved = await ExportPDF(paths, currentDir(), sheet.Options.createFrom({
-                format: layout.format.id,
-                size: layout.size?.id ?? '',
-                paper: layout.paper.id,
-                // The cut mode never changes the page count.
-                cut: layout.format.usesCut ? ui.cut.value : '',
-                dateLabel: cards ? currentMedia()?.dateLabel ?? '' : '',
-                header: layout.format.usesHeader ? ui.header.value.trim() : '',
-            }));
+            const saved = await ExportPDF(paths, currentDir(), printOptions(layout));
             if (saved === '') {
                 // Dialog cancelled: leave the last result as it was.
                 ui.status.textContent = previous.text;
@@ -322,7 +398,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             }
             lastPdf = saved;
             ui.status.textContent =
-                `Saved ${baseName(saved)}: ${plural(paths.length, layout.format.noun || 'item')} on ${plural(pageCount(paths.length, layout.perPage), 'page')}`;
+                `Saved ${baseName(saved)}: ${plural(paths.length, layout.format.noun || 'item')} on ${plural(pagesOf(paths, layout), 'page')}`;
             ui.status.title = saved;
             ui.openPdf.hidden = false;
         } catch (err) {
@@ -336,14 +412,17 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     // updateSizeLabels shows how many covers, spines or polaroids of each
-    // size fit on the paper, in the chosen format.
+    // size fit on the paper, in the chosen format: on a cover sheet, how
+    // many square covers when every selected image is square.
     function updateSizeLabels() {
         const paper = currentPaper();
         const format = currentFormat();
+        const square = allSquare();
         for (const option of Array.from(ui.size.options)) {
             const size = sizes.find((s) => s.id === option.value);
             if (!size) continue;
-            const perPage = format?.usesSize ? perPageOf(paper, format, size.id) : undefined;
+            const perPage = !format?.usesSize ? undefined
+                : (square ? squarePerPageOf(paper, format, size.id) : undefined) ?? perPageOf(paper, format, size.id);
             option.textContent = sizeLabel(size, perPage);
         }
     }

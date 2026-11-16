@@ -73,13 +73,9 @@ func build(paths []string, opts Options) (*fpdf.Fpdf, error) {
 	if err != nil {
 		return nil, err
 	}
-	ratios := make([]float64, len(paths))
-	for i, p := range paths {
-		r, err := aspectRatio(p)
-		if err != nil {
-			return nil, err
-		}
-		ratios[i] = r
+	ratios, err := AspectRatios(paths)
+	if err != nil {
+		return nil, err
 	}
 
 	switch format.ID {
@@ -114,12 +110,12 @@ func newPDF(page Page) *fpdf.Fpdf {
 	return pdf
 }
 
-// buildCovers draws a cover sheet: each image on grid, prepared for
-// cutting as cut says. Border outlines each image with a grey line on its
+// buildCovers draws a cover sheet: each image in its cell as grid.Flow
+// lays them out, prepared for cutting as cut says. Border outlines each image with a grey line on its
 // cut box; None draws the image alone; Bleed runs the image Bleed past its
 // cut box, by repeating its edge pixels, and adds crop marks.
 func buildCovers(grid Grid, paths []string, ratios []float64, cut CutMode) (*fpdf.Fpdf, error) {
-	pages, err := grid.Layout(ratios)
+	pages, err := grid.Flow(ratios)
 	if err != nil {
 		return nil, err
 	}

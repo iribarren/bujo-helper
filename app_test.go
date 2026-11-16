@@ -565,7 +565,8 @@ func TestPrintPapers(t *testing.T) {
 				"checklist": {"": 17},
 				"polaroid":  {"mini": 56, "standard": 12, "large": 4},
 			},
-			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 16}},
+			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 16},
+			SquarePerPage: map[string]map[string]int{"covers": {"mini": 54, "standard": 15, "large": 6}}},
 		{ID: "letter", Label: "US Letter", Width: 215.9, Height: 279.4,
 			PerPage: map[string]map[string]int{
 				"covers":    {"mini": 81, "standard": 20, "large": 9},
@@ -576,7 +577,8 @@ func TestPrintPapers(t *testing.T) {
 				"checklist": {"": 16},
 				"polaroid":  {"mini": 56, "standard": 12, "large": 4},
 			},
-			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 15}},
+			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 15},
+			SquarePerPage: map[string]map[string]int{"covers": {"mini": 63, "standard": 12, "large": 6}}},
 		{ID: "a5", Label: "A5", Width: 148, Height: 210,
 			PerPage: map[string]map[string]int{
 				"covers":    {"mini": 36, "standard": 9, "large": 4},
@@ -587,7 +589,8 @@ func TestPrintPapers(t *testing.T) {
 				"checklist": {"": 12},
 				"polaroid":  {"mini": 25, "standard": 6, "large": 1},
 			},
-			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 11}},
+			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 11},
+			SquarePerPage: map[string]map[string]int{"covers": {"mini": 24, "standard": 6, "large": 2}}},
 	}
 	if len(papers) != len(want) {
 		t.Fatalf("PrintPapers() = %+v, want %+v", papers, want)
@@ -639,6 +642,76 @@ func TestPrintPapersMatchTheSheet(t *testing.T) {
 					t.Errorf("%s %s with a header: %d per page, want %d", p.ID, f.ID, got, want)
 				}
 			}
+			// Formats with square cells also have their square count.
+			squares, ok := p.SquarePerPage[f.ID]
+			if ok != f.SquareCells {
+				t.Errorf("%s %s: square counts listed: %v, want %v", p.ID, f.ID, ok, f.SquareCells)
+			}
+			for _, size := range sizes {
+				if !f.SquareCells {
+					break
+				}
+				want, err := sheet.Options{Format: f.ID, Paper: p.ID, Size: size}.SquarePerPage()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got := squares[size]; got != want {
+					t.Errorf("%s %s %q: %d squares per page, want %d", p.ID, f.ID, size, got, want)
+				}
+			}
+		}
+	}
+}
+
+func TestPrintPages(t *testing.T) {
+	dir := t.TempDir()
+	book := writeCover(t, dir, "Dune - Frank Herbert.jpg", 66, 100)
+	album := writeCover(t, dir, "Abbey Road - The Beatles.jpg", 120, 120)
+	bad := filepath.Join(dir, "Broken.jpg")
+	if err := os.WriteFile(bad, []byte("not an image"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	repeat := func(n int, paths ...string) []string {
+		out := make([]string, 0, n*len(paths))
+		for range n {
+			out = append(out, paths...)
+		}
+		return out
+	}
+	tests := []struct {
+		name  string
+		paths []string
+		opts  sheet.Options
+		want  PrintPagesInfo
+	}{
+		{"no images", nil, sheet.Options{}, PrintPagesInfo{Exact: true}},
+		{"25 books fill a page", repeat(25, book), sheet.Options{}, PrintPagesInfo{Pages: 1, Exact: true}},
+		{"26 books", repeat(26, book), sheet.Options{}, PrintPagesInfo{Pages: 2, Exact: true}},
+		{"15 albums fill a page", repeat(15, album), sheet.Options{}, PrintPagesInfo{Pages: 1, AllSquare: true, Exact: true}},
+		{"16 albums", repeat(16, album), sheet.Options{}, PrintPagesInfo{Pages: 2, AllSquare: true, Exact: true}},
+		{"large albums on A5", repeat(3, album), sheet.Options{Size: "large", Paper: "a5"}, PrintPagesInfo{Pages: 2, AllSquare: true, Exact: true}},
+		// A row holds 2 albums and a book (143.6 mm; another album does
+		// not fit), and 6 rows take 2 pages.
+		{"mixed", repeat(6, album, album, book), sheet.Options{}, PrintPagesInfo{Pages: 2, Exact: true}},
+		{"albums on review cards", repeat(9, album), sheet.Options{Format: "cards"}, PrintPagesInfo{Pages: 2, AllSquare: true, Exact: true}},
+		{"albums on a checklist with a header", repeat(17, album), sheet.Options{Format: "checklist", Header: "TBR"}, PrintPagesInfo{Pages: 2, AllSquare: true, Exact: true}},
+		// An unreadable image counts as a 2:3 cover; the readable albums
+		// still get square cells (31 albums need 3 pages, not 32/25 → 2).
+		{"unreadable image", append(repeat(31, album), bad), sheet.Options{}, PrintPagesInfo{Pages: 3}},
+		{"missing image", []string{filepath.Join(dir, "missing.jpg")}, sheet.Options{}, PrintPagesInfo{Pages: 1}},
+	}
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := a.PrintPages(tt.paths, tt.opts)
+			if err != nil || got != tt.want {
+				t.Errorf("PrintPages = %+v, %v; want %+v", got, err, tt.want)
+			}
+		})
+	}
+	for _, opts := range []sheet.Options{{Format: "poster"}, {Size: "huge"}, {Paper: "a3"}, {Cut: "laser"}} {
+		if _, err := a.PrintPages([]string{album}, opts); err == nil {
+			t.Errorf("PrintPages with %+v: want an error", opts)
 		}
 	}
 }
@@ -731,7 +804,7 @@ func TestDefaultAppMoviesUseTheSavedTMDBKey(t *testing.T) {
 	for _, mt := range a.MediaTypes() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 	movies, _ := a.registry.Get("movies")

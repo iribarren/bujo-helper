@@ -1,0 +1,93 @@
+{
+  "resultCount": 6,
+  "results": [
+    {
+      "wrapperType": "collection",
+      "collectionType": "Album",
+      "artistId": 136975,
+      "collectionId": 1474815798,
+      "artistName": "The Beatles",
+      "collectionName": "Abbey Road (2019 Mix)",
+      "collectionViewUrl": "https://music.apple.com/us/album/abbey-road-2019-mix/1474815798?uo=4",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/48/53/43/485343e3-dd6a-0034-faec-f4b6403f8108/13UMGIM63890.rgb.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/48/53/43/485343e3-dd6a-0034-faec-f4b6403f8108/13UMGIM63890.rgb.jpg/100x100bb.jpg",
+      "trackCount": 17,
+      "country": "USA",
+      "releaseDate": "1969-09-26T07:00:00Z",
+      "primaryGenreName": "Rock"
+    },
+    {
+      "wrapperType": "collection",
+      "collectionType": "Album",
+      "artistId": 136975,
+      "collectionId": 1441164426,
+      "artistName": "The Beatles",
+      "collectionName": "Abbey Road (Remastered)",
+      "collectionViewUrl": "https://music.apple.com/us/album/abbey-road-remastered/1441164426?uo=4",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/df/db/61/dfdb615d-47f8-06e9-9533-b96daccc029f/18UMGIM31076.rgb.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/df/db/61/dfdb615d-47f8-06e9-9533-b96daccc029f/18UMGIM31076.rgb.jpg/100x100bb.jpg",
+      "trackCount": 19,
+      "country": "USA",
+      "releaseDate": "1969-09-26T07:00:00Z",
+      "primaryGenreName": "Rock"
+    },
+    {
+      "wrapperType": "collection",
+      "collectionType": "Album",
+      "artistId": 136975,
+      "collectionId": 1000000001,
+      "artistName": "The Beatles",
+      "collectionName": "Abbey Road (Without Artwork)",
+      "collectionViewUrl": "https://music.apple.com/us/album/magical-mystery-tour/1441163490?uo=4",
+      "trackCount": 13,
+      "country": "USA",
+      "releaseDate": "1967-11-27T08:00:00Z",
+      "primaryGenreName": "Rock"
+    },
+    {
+      "wrapperType": "collection",
+      "collectionType": "Album",
+      "artistId": 420304967,
+      "collectionId": 497781952,
+      "artistName": "Abbey Road Dreamers",
+      "collectionName": "A Valentine's Tribute To The Beatles Abbey Road Dreamers",
+      "collectionViewUrl": "https://music.apple.com/us/album/a-valentines-tribute-to-the-beatles-abbey-road-dreamers/497781952?uo=4",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Music/1b/4f/c6/mzi.bzumvmgq.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Music/1b/4f/c6/mzi.bzumvmgq.jpg/100x100bb.jpg",
+      "trackCount": 12,
+      "country": "USA",
+      "releaseDate": "2011-01-23T08:00:00Z",
+      "primaryGenreName": "Tribute"
+    },
+    {
+      "wrapperType": "collection",
+      "collectionType": "Album",
+      "artistId": 136975,
+      "collectionId": 1441163490,
+      "artistName": "The Beatles",
+      "collectionName": "Magical Mystery Tour",
+      "collectionViewUrl": "https://music.apple.com/us/album/magical-mystery-tour/1441163490?uo=4",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/43/0e/37/430e3790-75d5-c96a-1380-f9d9803aa700/18UMGIM31245.rgb.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/43/0e/37/430e3790-75d5-c96a-1380-f9d9803aa700/18UMGIM31245.rgb.jpg/100x100bb.jpg",
+      "trackCount": 13,
+      "country": "USA",
+      "releaseDate": "1967-11-27T08:00:00Z",
+      "primaryGenreName": "Rock"
+    },
+    {
+      "wrapperType": "collection",
+      "collectionType": "Album",
+      "artistId": 136975,
+      "collectionId": 6818128121,
+      "artistName": "The Beatles",
+      "collectionName": "Abbey Road (Remastered 2009)",
+      "collectionViewUrl": "https://music.apple.com/us/album/abbey-road-remastered-2009/6818128121?uo=4",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/b8/fc/2d/b8fc2d07-d23f-a0ce-4fca-b7b418bb7ce6/13UMGIM63890.rgb.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/b8/fc/2d/b8fc2d07-d23f-a0ce-4fca-b7b418bb7ce6/13UMGIM63890.rgb.jpg/100x100bb.jpg",
+      "trackCount": 17,
+      "country": "USA",
+      "releaseDate": "1969-09-26T07:00:00Z",
+      "primaryGenreName": "Rock"
+    }
+  ]
+}
