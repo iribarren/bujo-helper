@@ -31,7 +31,7 @@ US users print on Letter, and many bullet journals are A5, so people want sheets
 
 ## Tasks
 - [x] T1 sheet: paper presets, `Options.Paper`, grid per paper; table-driven tests per paper × size, PDF MediaBox per paper. Route: inline (one package, layout already loaded; previous item used the same route).
-- [x] T3 PDF file name names the paper (`covers_A4.pdf`, `covers_Letter.pdf`, `covers_A5.pdf`), requested by the user after the GUI check. Route: inline (small, understood).
+- [x] T3 PDF file name names the paper and cover size (`covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`…), requested by the user after the GUI check. Route: inline (small, understood).
 - [x] T2 app + UI + docs: binding exposes papers and per-page counts per paper × size, `ExportPDF` validates the paper before the save dialog, Paper select, live page count, README Print sheet section. Route: delegated writer (writer trigger: app.go, print.ts, index.html, README, bindings).
 
 ## Progress
@@ -43,6 +43,9 @@ US users print on Letter, and many bullet journals are A5, so people want sheets
 - Manual GUI check passed (user, 2026-11-16).
 - T3 `e79e5c3` feat(ui): `sheet.Paper.FileTag` (A4, Letter, A5); `ExportPDF` suggests `covers_<tag>.pdf`; README step updated. RED: `DefaultFilename = "covers.pdf"`. GREEN: `go test -tags webkit2_41 ./...` 275 passed; vet, gofmt clean. Assess 8bf6d56..e79e5c3: medium, 58 lines, `under_budget`.
 - Whole-branch review main..c3fe6f7 (563 lines, medium): consent granted, reliability lens approved, acknowledged (authority burned). Same advisory SUGGESTION R3-001 (no frontend test runner); not scheduled.
+- Review of main..8b16ae6 (docs-only delta, started by the stop hook): consent granted, approved, acknowledged.
+- User reported the file name did not change: `build/bin/cover-downloader` was built 09:33, before e79e5c3 (10:03), so the app tried was stale. User also asked to add the cover size.
+- T3a `72b2162` feat(ui): `sheet.Size.FileTag`; name is `covers_<paper>_<size>.pdf`. RED: `DefaultFilename = "covers_A5.pdf"`, want `covers_A5_Mini.pdf` (+ build failure on `FileTag`). GREEN: `go test -tags webkit2_41 ./...` 276 passed; vet, gofmt clean. Rebuilt `wails build -tags webkit2_41` (binary 10:19); no binding mode changes.
 
 ## Next step
-User: confirm T3 (file name), then merge/push and mark ROADMAP item 2 done.
+User: GUI check of the file name with the rebuilt binary, then merge/push and mark ROADMAP item 2 done.
