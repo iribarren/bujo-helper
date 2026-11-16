@@ -17,7 +17,7 @@ import (
 var ErrNoTMDBKey = errors.New("no TMDB API key (set it in Settings)")
 
 // TMDB searches The Movie Database (API v3). It needs an API key: a v3 key
-// or a v4 read access token.
+// or a v4 read access token. It searches movies, or TV series when TV is set.
 type TMDB struct {
 	Client  *http.Client
 	BaseURL string
@@ -25,6 +25,8 @@ type TMDB struct {
 	ImageBase string
 	// Key returns the current API key. Nil or blank skips the provider.
 	Key func() string
+	// TV searches TV series (/search/tv) instead of movies.
+	TV bool
 }
 
 // NewTMDB returns a TMDB provider using client (or a default one) and the
@@ -41,20 +43,41 @@ func NewTMDB(client *http.Client, key func() string) *TMDB {
 	}
 }
 
+// NewTMDBTV returns a TMDB provider that searches TV series.
+func NewTMDBTV(client *http.Client, key func() string) *TMDB {
+	p := NewTMDB(client, key)
+	p.TV = true
+	return p
+}
+
 // Name implements media.Provider.
 func (p *TMDB) Name() string { return "tmdb" }
 
+// tmdbResponse holds movie (title, release_date) and TV (name,
+// first_air_date) results; each search fills one pair.
 type tmdbResponse struct {
 	Results []struct {
 		Title         string `json:"title"`
 		OriginalTitle string `json:"original_title"`
 		ReleaseDate   string `json:"release_date"`
+		Name          string `json:"name"`
+		OriginalName  string `json:"original_name"`
+		FirstAirDate  string `json:"first_air_date"`
 		PosterPath    string `json:"poster_path"`
 	} `json:"results"`
 }
 
-// Search implements media.Provider. item.Creator holds the release year,
-// if known; it filters the search and breaks ranking ties.
+// endpoint returns the search path and the name of its year filter.
+func (p *TMDB) endpoint() (path, yearParam string) {
+	if p.TV {
+		return "/search/tv", "first_air_date_year"
+	}
+	return "/search/movie", "year"
+}
+
+// Search implements media.Provider. item.Creator holds the release year
+// (the first air year for TV), if known; it filters the search and breaks
+// ranking ties.
 func (p *TMDB) Search(ctx context.Context, item media.Item, opts media.Options) ([]media.Candidate, error) {
 	key := ""
 	if p.Key != nil {
@@ -73,7 +96,10 @@ func (p *TMDB) Search(ctx context.Context, item media.Item, opts media.Options) 
 		"query":         {title},
 		"include_adult": {"false"},
 		"language":      {tmdbLanguage(opts)},
-		"region":        {strings.ToUpper(cc)},
+	}
+	if !p.TV {
+		// The TV search has no region parameter.
+		q.Set("region", strings.ToUpper(cc))
 	}
 	bearer := isTMDBToken(key)
 	if !bearer {
@@ -87,12 +113,13 @@ func (p *TMDB) Search(ctx context.Context, item media.Item, opts media.Options) 
 		}
 	}
 
+	_, yearParam := p.endpoint()
 	itemYear := strings.TrimSpace(item.Creator)
 	if !isYear(itemYear) {
 		itemYear = ""
 	}
 	if itemYear != "" {
-		q.Set("year", itemYear)
+		q.Set(yearParam, itemYear)
 	}
 	body, err := p.search(ctx, q, setHeaders, key)
 	if err != nil {
@@ -103,7 +130,7 @@ func (p *TMDB) Search(ctx context.Context, item media.Item, opts media.Options) 
 		// TMDB's year can be a year off (festival releases), and a match in
 		// that year may lack a poster; the ranking still prefers the
 		// requested year.
-		q.Del("year")
+		q.Del(yearParam)
 		if body, err = p.search(ctx, q, setHeaders, key); err != nil {
 			return nil, err
 		}
@@ -122,9 +149,13 @@ func (p *TMDB) posterCandidates(body *tmdbResponse) []media.Candidate {
 		if r.PosterPath == "" {
 			continue
 		}
-		y := year(r.ReleaseDate)
+		title, date := r.Title, r.ReleaseDate
+		if p.TV {
+			title, date = r.Name, r.FirstAirDate
+		}
+		y := year(date)
 		hits = append(hits, media.Candidate{
-			Title:   r.Title,
+			Title:   title,
 			Creator: y,
 			Year:    y,
 			ImageURLs: []string{
@@ -139,7 +170,8 @@ func (p *TMDB) posterCandidates(body *tmdbResponse) []media.Candidate {
 
 func (p *TMDB) search(ctx context.Context, q url.Values, setHeaders func(*http.Request), key string) (*tmdbResponse, error) {
 	var body tmdbResponse
-	err := getJSONWith(ctx, p.Client, p.BaseURL+"/search/movie?"+q.Encode(), setHeaders, &body)
+	path, _ := p.endpoint()
+	err := getJSONWith(ctx, p.Client, p.BaseURL+path+"?"+q.Encode(), setHeaders, &body)
 	// A v3 key travels in the URL, and transport errors quote the URL.
 	err = redactKey(err, key)
 	var status *httpStatusError
