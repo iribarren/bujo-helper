@@ -453,6 +453,9 @@ func TestExportPDFDefaultFileName(t *testing.T) {
 		{"no cut", sheet.Options{Size: "mini", Paper: "a5", Cut: "none"}, "covers_A5_Mini_none.pdf"},
 		{"review cards ignore the cut", sheet.Options{Format: "cards", Cut: "bleed"}, "cards_A4.pdf"},
 		{"spines ignore the cut", sheet.Options{Format: "spines", Cut: "none"}, "spines_A4_Standard.pdf"},
+		{"default ticket stubs", sheet.Options{Format: "stubs"}, "stubs_A4.pdf"},
+		{"ticket stubs", sheet.Options{Format: "stubs", Paper: "letter"}, "stubs_Letter.pdf"},
+		{"ticket stubs ignore the size and cut", sheet.Options{Format: "stubs", Size: "large", Paper: "a5", Cut: "bleed"}, "stubs_A5.pdf"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

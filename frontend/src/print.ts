@@ -1,7 +1,7 @@
 // The "Print sheet" tab: preview the covers in a folder, select some, pick
-// a format (a cover sheet, review cards or book spines), a paper, for a
-// cover sheet or spines a cover size and, for a cover sheet, a cut mode, and
-// export them to a PDF on that paper (see internal/sheet).
+// a format (a cover sheet, review cards, book spines or ticket stubs), a
+// paper, for a cover sheet or spines a cover size and, for a cover sheet, a
+// cut mode, and export them to a PDF on that paper (see internal/sheet).
 
 import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCutModes, PrintFormats, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
