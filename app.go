@@ -657,35 +657,41 @@ type PrintPagesInfo struct {
 	// AllSquare is whether there are images and every one is square, so a
 	// cover sheet gives each a square cell (see PrintPaperInfo.SquarePerPage).
 	AllSquare bool `json:"allSquare"`
-	// Exact is false when an image could not be read: Pages is then the
-	// estimate at PerPage images a page, and AllSquare is false.
+	// Exact is false when an image could not be read: Pages then counts it
+	// as a 2:3 cover, and AllSquare is false.
 	Exact bool `json:"exact"`
 }
 
 // PrintPages counts the pages the images at paths take with the print
 // settings opts, reading their image headers: on a cover sheet, square
-// images get square cells, so fewer fit on a page. If an image cannot be
-// read it falls back to the estimate at PerPage images a page, so the
-// toolbar still shows a count; ExportPDF reports the bad file.
+// images get square cells, so fewer fit on a page. An image that cannot be
+// read counts as a 2:3 cover, so the toolbar still shows a count;
+// ExportPDF reports the bad file.
 func (a *App) PrintPages(paths []string, opts sheet.Options) (PrintPagesInfo, error) {
-	perPage, err := opts.PerPage()
-	if err != nil {
+	if _, err := opts.Grid(); err != nil {
 		return PrintPagesInfo{}, err
 	}
-	ratios, err := sheet.AspectRatios(paths)
-	if err != nil {
-		log.Printf("count print pages: %v", err)
-		return PrintPagesInfo{Pages: (len(paths) + perPage - 1) / perPage}, nil
+	exact := true
+	ratios := make([]float64, len(paths))
+	for i, p := range paths {
+		r, err := sheet.AspectRatios([]string{p})
+		if err != nil {
+			log.Printf("count print pages: %v", err)
+			exact = false
+			ratios[i] = 2.0 / 3
+			continue
+		}
+		ratios[i] = r[0]
 	}
 	pages, err := opts.Pages(ratios)
 	if err != nil {
 		return PrintPagesInfo{}, err
 	}
-	allSquare := len(ratios) > 0
+	allSquare := exact && len(ratios) > 0
 	for _, r := range ratios {
 		allSquare = allSquare && sheet.IsSquare(r)
 	}
-	return PrintPagesInfo{Pages: pages, AllSquare: allSquare, Exact: true}, nil
+	return PrintPagesInfo{Pages: pages, AllSquare: allSquare, Exact: exact}, nil
 }
 
 // ExportPDF asks where to save, then writes the print sheet PDF of the

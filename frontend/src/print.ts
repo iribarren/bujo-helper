@@ -233,7 +233,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // countPages asks PrintPages for the exact page count of paths with
     // layout, unless that is the latest request already; the answer
     // updates the toolbar and the size labels. On failure the estimate
-    // stays.
+    // stays until the next request.
     async function countPages(paths: string[], layout: Layout) {
         const opts = printOptions(layout);
         const key = requestKey(paths, opts);
@@ -248,6 +248,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             updateSelection();
         } catch (err) {
             if (seq !== pagesSeq) return;
+            // Forget the key so the same request can be retried.
+            pagesKey = '';
             console.warn(`Could not count pages: ${errorText(err)}`);
         }
     }

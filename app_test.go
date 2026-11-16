@@ -695,8 +695,9 @@ func TestPrintPages(t *testing.T) {
 		{"mixed", repeat(6, album, album, book), sheet.Options{}, PrintPagesInfo{Pages: 2, Exact: true}},
 		{"albums on review cards", repeat(9, album), sheet.Options{Format: "cards"}, PrintPagesInfo{Pages: 2, AllSquare: true, Exact: true}},
 		{"albums on a checklist with a header", repeat(17, album), sheet.Options{Format: "checklist", Header: "TBR"}, PrintPagesInfo{Pages: 2, AllSquare: true, Exact: true}},
-		// An unreadable image: the estimate at 25 a page.
-		{"unreadable image", append(repeat(26, album), bad), sheet.Options{}, PrintPagesInfo{Pages: 2}},
+		// An unreadable image counts as a 2:3 cover; the readable albums
+		// still get square cells (31 albums need 3 pages, not 32/25 → 2).
+		{"unreadable image", append(repeat(31, album), bad), sheet.Options{}, PrintPagesInfo{Pages: 3}},
 		{"missing image", []string{filepath.Join(dir, "missing.jpg")}, sheet.Options{}, PrintPagesInfo{Pages: 1}},
 	}
 	a := newApp(media.NewRegistry(), http.DefaultClient)
