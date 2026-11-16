@@ -74,5 +74,12 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
   - R2 (split sentence fragments, tooltip text in both the markup and the dictionary, sample titles duplicating the creator labels, the `useLanguage` name, keys built from `undefined`) and R3 (no tests for the live relabel wiring, test files not type-checked): left as follow-ups.
 - T5 (inline): README has a Language section and a note on running the frontend tests. Final checks: gofmt clean, `go vet` clean, `go test ./...` 786 passed, `npm run build` clean, `npm test` 39 passed, `wails build -tags webkit2_41` builds `build/bin/bujo-helper` (wailsjs modes reset to 644).
 
+- The user checked the GUI (2026-11-17): everything works. The GitHub repo is renamed to `bujo-helper`.
+- macOS release `6499a1f`: a new `macos-latest` matrix entry builds `wails build -platform darwin/universal` and is packaged with `ditto -c -k --keepParent build/bin/bujo-helper.app` as `bujo-helper-<tag>-macos-universal.zip`. The bundle name comes from wails.json `name` (wails v2.17.1 `packager.go`: `ProjectData.Name + ".app"`). README has a macOS install section (the app is unsigned: Open Anyway or `xattr -dr com.apple.quarantine`) and the macOS settings path. The macOS job hasn't run yet; the `v0.2.0` tag run is its first test.
+- Review of `2f6c303..6499a1f`: high risk (shell in release.yml). The user granted consent and we ran a 4-lens review. Result: **approved and acknowledged**. Advisory findings:
+  - R3 WARNING (macOS lane not run, bundle name): the name was checked against the Wails source; the CI run will confirm it.
+  - R2 WARNING (task log didn't mention macOS): fixed by this entry.
+  - Suggestions left as follow-ups: R1 (pass `ref_name` through env in `run` lines; only tag pushers can trigger it), R2 (duplicated build step), R3 (move the cleanup in the new listener test into `afterEach`).
+
 ## Next step
-The user does the manual GUI check (list in the final report). Then merge to main and push, rename the GitHub repo to `bujo-helper`, and tag `v0.2.0`. All of these are the user's decisions.
+Merge to main, push, and tag `v0.2.0`. Then check that the release workflow builds all three platforms.
