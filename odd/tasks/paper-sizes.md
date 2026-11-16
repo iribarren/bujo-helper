@@ -42,6 +42,7 @@ US users print on Letter, and many bullet journals are A5, so people want sheets
 - Whole-branch review main..32842ae (516 lines, medium; preflight before reporting): consent granted, reliability lens approved, acknowledged (authority burned). Advisory SUGGESTION R3-001 (not scheduled): no automated test for the print.ts paper/size logic; the repo has no frontend test runner, so the manual GUI check covers it.
 - Manual GUI check passed (user, 2026-11-16).
 - T3 `e79e5c3` feat(ui): `sheet.Paper.FileTag` (A4, Letter, A5); `ExportPDF` suggests `covers_<tag>.pdf`; README step updated. RED: `DefaultFilename = "covers.pdf"`. GREEN: `go test -tags webkit2_41 ./...` 275 passed; vet, gofmt clean. Assess 8bf6d56..e79e5c3: medium, 58 lines, `under_budget`.
+- Whole-branch review main..c3fe6f7 (563 lines, medium): consent granted, reliability lens approved, acknowledged (authority burned). Same advisory SUGGESTION R3-001 (no frontend test runner); not scheduled.
 
 ## Next step
 User: confirm T3 (file name), then merge/push and mark ROADMAP item 2 done.
