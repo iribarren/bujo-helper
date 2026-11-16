@@ -26,11 +26,19 @@ Ticket stubs are a classic movie-tracker element.
 - Frontend: `npx tsc --noEmit` in `frontend/`; `wails build -tags webkit2_41`.
 
 ## Tasks
-- [ ] T1 sheet: `stubs` format, `NewStubGrid`, `layoutStub`, stub outline path with notches, perforation, PDF rendering; table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in internal/sheet).
+- [x] T1 sheet: `stubs` format, `NewStubGrid`, `layoutStub`, stub outline path with notches, perforation, PDF rendering; table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in internal/sheet).
 - [ ] T2 app + UI + docs: per-format per-page counts and `ExportPDF` name for stubs (check what is already generic), Print tab copy, README Print sheet "Ticket stubs" subsection and feature lists. Route: same delegated writer, separate commit.
 
 ## Progress
 - Feature doc created; branch `feat/ticket-stubs` from `0307fdd`. RDD on (global).
+
+- T1 done in `1cf932a` feat(sheet): add ticket stubs print format. Route: delegated writer. 10 files, +725 / −36 (≈ 761 authored lines, ≈ 57 % tests: `stub_test.go` +300, `pdf_test.go` +124, `format_test.go` +7, `app_test.go` +4). Over the ~400-line heuristic because the format needs its own layout, drawing and full table-driven tests; no artificial split.
+  - Files: `internal/sheet/stub.go` (constants, `NewStubGrid`, `stubParts`, `layoutStub`, `padded`), `internal/sheet/stubs.go` (`buildStubs`, `drawStub`, `drawStubOutline`), `layout.go` (`stubsFormat`, Formats entry, `Options.Grid` fixed-size switch), `pdf.go` (build switch), `card.go` (`NewCardGrid` → shared `newFixedGrid(page, w, h, noun)`), `cards.go` (title/creator drawing extracted to `drawTitleAndCreator`, shared with stubs). `app_test.go`: `TestPrintFormats` / `TestPrintPapers` list every format, so they gain the stubs entry (12 / 12 / 4) here to keep the commit green.
+  - RED: `go test -tags webkit2_41 ./internal/sheet/` → build failed: `undefined: StubWidth`, `undefined: NewStubGrid`, `undefined: layoutStub`, `undefined: stubEndWidth` …
+  - GREEN: `go test -tags webkit2_41 ./...` → all packages ok; `go vet` clean; `gofmt -l .` empty.
+  - Defaults unchanged: page streams of covers, cards and spines (uncompressed, fixed dates, `cutFixtures`) captured before and after the change are byte-identical (scratch comparison; refactors of `NewCardGrid` and the title/creator drawing are output-neutral).
+  - Design notes: stub 90 × 40 mm, perforation 20 mm from the right edge, notch radius 2.5 mm (inside the 3 mm padding). Reuses the card padding, 2:3 cover area, `cardTextGap`, text sizes and stars. Vertical stack: title (2 lines) + creator at the top, stars on the bottom padding, "Date:" and "Where:" spread with three equal gaps (≈ 3.9 mm) between them; both rules start after the longer label. "ADMIT ONE" bold 8 pt, rotated +90° (reads bottom to top) about the centre of the stub end. Perforation dashes 1.0 / 0.8 mm, dash pattern reset right after. Outline: one closed path (`MoveTo`/`LineTo`/`ArcTo`/`ClosePath`/`DrawPath("D")`).
+  - Visual check: A4 sample with 5 mixed-ratio images and long accented titles rendered with `pdftoppm -r 200`: notches, dashed perforation, rotated ADMIT ONE, five stars, all text inside the main part, "…" truncation.
 
 ## Next step
 T1 + T2 via one delegated writer.
