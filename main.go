@@ -20,6 +20,8 @@ func main() {
 		Height:    720,
 		MinWidth:  640,
 		MinHeight: 560,
+		// Width/Height still apply when the user un-maximizes.
+		WindowStartState: options.Maximised,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 			// Serves /thumbs (print sheet thumbnails); used only for
