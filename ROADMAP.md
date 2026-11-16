@@ -60,7 +60,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 - A4 gives today's output. Letter and A5 produce full, centred grids with no clipped covers.
 - Layout tests per paper size. The README table explains how the grid is derived.
 
-## 3. [ ] Review cards
+## 3. [x] Review cards (b529705)
 
 **Why:** a cover with a rating, a date and a few notes is the most common reading-log element.
 
