@@ -13,7 +13,7 @@ Game trackers exist in gaming bullet journals. The roadmap asks for a source com
   - Rate limit: 4 requests/s and at most 8 open requests; a 429 when over.
   - Images: `https://images.igdb.com/igdb/image/upload/t_{size}/{image_id}.jpg`. Sizes: `cover_big` 264 × 374, `720p` 1280 × 720 Fit, `1080p` 1920 × 1080 Fit, and `_2x` for retina.
 - **RAWG** (https://rawg.io/tos_api, https://rawg.io/apidocs): needs a key and an active link to RAWG on every page that uses its data. The free tier's commercial terms contradict each other. Its only image is a landscape `background_image`, with no box art. **Rejected.**
-- **Steam store search** (`https://store.steampowered.com/api/storesearch/?term=…&l=english&cc=US`): no key. It is undocumented, like the IMDb fallback for movies. Portrait art is at `https://cdn.cloudflare.steamstatic.com/steam/apps/{appid}/library_600x900_2x.jpg` (1200 × 1800, checked live) or `library_600x900.jpg`. It covers PC/Steam games only, and the search has no release date. The Steam Web API terms (https://steamcommunity.com/dev/apiterms) don't name store endpoints, grant no image rights and forbid implying Valve endorsement. Use is personal.
+- **Steam store search** (`https://store.steampowered.com/api/storesearch/?term=…&l=english&cc=US`): no key. It is undocumented, like the IMDb fallback for movies. Portrait art is at `https://cdn.cloudflare.steamstatic.com/steam/apps/{appid}/library_600x900_2x.jpg` (600 × 900, checked live) or `library_600x900.jpg` (300 × 450). It covers PC/Steam games only, and the search has no release date. The Steam Web API terms (https://steamcommunity.com/dev/apiterms) don't name store endpoints, grant no image rights and forbid implying Valve endorsement. Use is personal.
 - **User decision (2026-11-16):** IGDB first when Twitch credentials are set, then Steam (keyless).
 
 ## Scope / constraints
@@ -44,12 +44,24 @@ Game trackers exist in gaming bullet journals. The roadmap asks for a source com
 - Frontend: `npx tsc --noEmit` in `frontend/`. If the bindings change, run `wails build -tags webkit2_41`, restore the 0644 modes on `frontend/wailsjs/go/main/*` and `models.ts`, and rebuild `build/bin/cover-downloader` before the GUI check.
 
 ## Tasks
-- [ ] T1 Providers: IGDB (token cache, search, ranking), Steam, throttle entry, fixtures and tests. Route: delegated writer (2+ non-trivial files).
-- [ ] T2 Settings, catalog `games`, CLI flags and env, Settings dialog and tip, frontend example, README. Route: the same delegated writer, in a separate commit.
-- [ ] T3 Live CLI smoke test (keyless) and build. Route: inline.
+- [x] T1 Providers: IGDB (token cache, search, ranking), Steam, throttle entry, fixtures and tests. Route: delegated writer (2+ non-trivial files).
+- [x] T2 Settings, catalog `games`, CLI flags and env, Settings dialog and tip, frontend example, README. Route: the same delegated writer, in a separate commit.
+- [x] T3 Live CLI smoke test (keyless) and build. Route: inline.
 
 ## Progress
-- RDD on (global).
+- Plan commit `863b0ce`. RDD on (global); the plan commit was reviewed as low risk and acknowledged.
+- T1 `0880db6` feat(providers): IGDB and Steam game cover search. Route: delegated writer (2+ non-trivial files). 13 files, +1210 / −8 (567 lines of tests, 8 fixtures).
+  - The IGDB token is cached per (ID, Secret) pair and renewed 60 s before expiry, under a mutex. A 401 drops the token and retries once. Missing credentials return `ErrNoIGDBCredentials` with no HTTP call.
+  - Deviation: the token request sends the ID and secret in the form body, not the URL, so the secret stays out of URLs and errors (`redactKey`, with a test).
+  - Throttle: a 429 on a POST used to pass straight through. Requests with a replayable body (`GetBody`) are now retried with the usual backoff; one-shot bodies still pass through. `api.igdb.com` is spaced at 250 ms.
+  - `rankGames`: exact full-title matches come first, then `match.Rank`. Without it, "Hollow Knight: Silksong" tied with "Hollow Knight", since `match.Rank` compares the part before the colon.
+  - Steam year tie-break is implemented: `appdetails` release dates for up to 3 title-tied results. A failed lookup keeps the order.
+  - RED: build failed (`undefined: IGDB`, `NewIGDB`, `Steam`…). `TestThrottleRetriesReplayableBodies` and the `api.igdb.com` interval failed. `TestSteamSearch` ranked Silksong first. GREEN: all pass.
+- T2 `269ba6d` feat(catalog): games media type. 14 files, +543 / −72. Settings fields, `catalog.Keys.IGDB`, CLI flags and env (resolved lazily with `sync.OnceValue`, so the settings file is read only when a key is needed), Settings dialog fields and link, the generalized `#key-tip`, README.
+  - RED: `unknown field IGDBClientID`, `unknown field IGDB` in `Keys`. GREEN: 737 passed.
+- Writer verification: `go test ./...` 737 passed, `go vet` clean, `gofmt` empty, `tsc` clean, `wails build` ok (modes restored, `build/bin/cover-downloader` rebuilt). Parent spot check: `go test ./internal/providers/ ./internal/web/ ./cmd/...` 185 passed.
+- T3 live CLI (keyless, empty config). Route: inline. 5 of 6 OK from Steam, all at 600 × 900: Hollow Knight, Stardew Valley, The Witcher 3, Celeste, Prey 2017. Zelda: Breath of the Wild fails as expected (not on Steam; the error names the missing IGDB credentials). IGDB is not tested live (no credentials).
+  - Fix `3061b9b`: Steam `_2x` art is 600 × 900, not 1200 × 1800 (the plain one is 300 × 450). The code comment and README were corrected.
 
 ## Next step
-T1.
+Review the slice `863b0ce..HEAD` (medium, `slice_budget_reached`), then the user's GUI check.
