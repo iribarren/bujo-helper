@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -173,6 +174,8 @@ func TestMigrate(t *testing.T) {
 		// reports whether the new file must exist afterwards.
 		wantFile bool
 		want     Settings
+		// wantSkipped reports whether Migrate must return ErrLegacySkipped.
+		wantSkipped bool
 	}{
 		{
 			name:     "copies the legacy settings",
@@ -191,12 +194,21 @@ func TestMigrate(t *testing.T) {
 			name: "no legacy file creates nothing",
 		},
 		{
-			name:   "invalid legacy JSON is skipped",
-			legacy: ptr("{not json"),
+			name:        "invalid legacy JSON is skipped and reported",
+			legacy:      ptr("{not json"),
+			wantSkipped: true,
 		},
 		{
-			name:   "unreadable legacy is skipped",
-			legacy: ptr("dir"),
+			name:        "unreadable legacy is skipped and reported",
+			legacy:      ptr("dir"),
+			wantSkipped: true,
+		},
+		{
+			name:     "a bad legacy file is ignored once the new file exists",
+			legacy:   ptr("{not json"),
+			existing: ptr(`{"tmdbApiKey": "new-key"}`),
+			wantFile: true,
+			want:     Settings{TMDBAPIKey: "new-key"},
 		},
 	}
 	for _, tt := range tests {
@@ -217,7 +229,15 @@ func TestMigrate(t *testing.T) {
 				writeFile(t, path, *tt.existing)
 			}
 
-			if err := Migrate(legacy, path); err != nil {
+			err := Migrate(legacy, path)
+			if tt.wantSkipped {
+				if !errors.Is(err, ErrLegacySkipped) {
+					t.Fatalf("Migrate = %v, want ErrLegacySkipped", err)
+				}
+				if !strings.Contains(err.Error(), legacy) {
+					t.Errorf("Migrate error %q does not name the legacy file", err)
+				}
+			} else if err != nil {
 				t.Fatalf("Migrate: %v", err)
 			}
 

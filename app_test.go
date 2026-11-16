@@ -8,6 +8,7 @@ import (
 	"image"
 	"image/jpeg"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -780,6 +781,74 @@ func TestLoadSettingsErrorIsNotFatal(t *testing.T) {
 	}
 	if s, err := settings.Load(path); err != nil || s.TMDBAPIKey != "k" {
 		t.Errorf("file holds %+v (err %v), want key k", s, err)
+	}
+}
+
+// withConfigDir points the user config directory at a temporary folder on
+// every OS and returns it.
+func withConfigDir(t *testing.T) string {
+	t.Helper()
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("AppData", t.TempDir())
+	base, err := os.UserConfigDir()
+	if err != nil {
+		t.Skipf("no user config dir: %v", err)
+	}
+	return base
+}
+
+// captureLog sends the standard logger to a buffer for the rest of the test.
+func captureLog(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	t.Cleanup(func() { log.SetOutput(os.Stderr) })
+	return &buf
+}
+
+func TestNewAppMigratesTheLegacySettings(t *testing.T) {
+	base := withConfigDir(t)
+	legacy := filepath.Join(base, "cover-downloader", "settings.json")
+	if err := settings.Save(legacy, settings.Settings{TMDBAPIKey: "old-key", IGDBClientID: "old-id"}); err != nil {
+		t.Fatal(err)
+	}
+
+	a := NewApp()
+
+	if got, want := a.GetSettings(), (settings.Settings{TMDBAPIKey: "old-key", IGDBClientID: "old-id"}); got != want {
+		t.Errorf("GetSettings = %+v, want the legacy settings %+v", got, want)
+	}
+	if _, err := os.Stat(filepath.Join(base, "bujo-helper", "settings.json")); err != nil {
+		t.Errorf("new settings file not written: %v", err)
+	}
+	if err := a.SaveSettings(settings.Settings{TMDBAPIKey: "new-key"}); err != nil {
+		t.Fatalf("SaveSettings after migration: %v", err)
+	}
+}
+
+func TestNewAppLogsASkippedLegacyFile(t *testing.T) {
+	base := withConfigDir(t)
+	legacy := filepath.Join(base, "cover-downloader", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(legacy), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacy, []byte("{broken"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	logs := captureLog(t)
+
+	a := NewApp()
+
+	if got := a.GetSettings(); got != (settings.Settings{}) {
+		t.Errorf("GetSettings = %+v, want zero settings", got)
+	}
+	if out := logs.String(); !strings.Contains(out, "skipped legacy file") || !strings.Contains(out, legacy) {
+		t.Errorf("log = %q, want a warning naming the skipped legacy file", out)
+	}
+	// The app still saves settings normally.
+	if err := a.SaveSettings(settings.Settings{TMDBAPIKey: "k"}); err != nil {
+		t.Fatalf("SaveSettings: %v", err)
 	}
 }
 

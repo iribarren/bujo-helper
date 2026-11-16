@@ -49,7 +49,9 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
   - R3 WARNING: the GUI migration wiring (`NewApp`) has no test. R3 SUGGESTION: the CLI wiring has no test either.
   - R2 SUGGESTIONS: the migration wiring is duplicated in the CLI, `productVersion` is hardcoded in wails.json, and a test uses a sentinel directory.
   - Follow-up T2b handles the two warnings.
-- [ ] T2b (follow-up from review): report a skipped legacy file instead of skipping it silently (`Migrate` returns a non-fatal error that callers log or warn about), and test the GUI and CLI migration wiring.
+- [x] T2b (follow-up from review): report a skipped legacy file instead of skipping it silently (`Migrate` returns a non-fatal error that callers log or warn about), and test the GUI and CLI migration wiring.
+  - Route: delegated writer. `Migrate` returns an error wrapping `settings.ErrLegacySkipped` and the cause for an unreadable or invalid legacy file; a missing one is still `nil`, the new file is never overwritten and the legacy file stays. `migrateSettings` logs it; the CLI's `loadUserSettingsWarning(io.Writer)` seam warns on stderr. Tests: `TestMigrate` (skipped and reported), `TestNewAppMigratesTheLegacySettings`, `TestNewAppLogsASkippedLegacyFile`, `TestLoadUserSettingsMigratesTheLegacySettings`, `TestLoadUserSettingsWarnsAboutASkippedLegacyFile` (temp `XDG_CONFIG_HOME`/`HOME`/`AppData`).
+  - RED: `TestMigrate/*_skipped_and_reported`: `Migrate = <nil>, want ErrLegacySkipped`; against the old `Migrate`, the GUI and CLI warning tests failed (`log = ""`, `warnings = ""`). The migration wiring tests are characterization tests and passed on the old code. GREEN after the change. Checks: gofmt, `go vet ./...`, `go test ./...`.
 
 ## Next step
 T3 (with T2b in a separate commit).

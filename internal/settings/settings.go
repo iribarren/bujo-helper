@@ -59,23 +59,32 @@ func pathIn(name string) (string, error) {
 	return filepath.Join(dir, name, "settings.json"), nil
 }
 
+// ErrLegacySkipped reports that Migrate found a legacy settings file it
+// could not read or parse, and skipped it. It is not fatal: callers log it
+// and carry on without the old settings.
+var ErrLegacySkipped = errors.New("migrate settings: skipped legacy file")
+
 // Migrate copies the settings at legacy to path, once. It does nothing
 // when path already exists, so saved settings are never overwritten. A
-// legacy file that is missing, unreadable or not valid settings JSON is
-// skipped without an error. The legacy file is left in place. Only a
-// failure to write path is returned.
+// missing legacy file is not an error. A legacy file that is unreadable or
+// not valid settings JSON is skipped, and Migrate returns an error wrapping
+// ErrLegacySkipped and the cause, so callers can warn about it. The legacy
+// file is always left in place. Any other error is a failure to write path.
 func Migrate(legacy, path string) error {
 	if _, err := os.Lstat(path); !errors.Is(err, fs.ErrNotExist) {
 		// The new file exists, or its state is unknown: leave it alone.
 		return nil
 	}
 	b, err := os.ReadFile(legacy)
-	if err != nil {
+	if errors.Is(err, fs.ErrNotExist) {
 		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("%w %s: %w", ErrLegacySkipped, legacy, err)
 	}
 	var s Settings
 	if err := json.Unmarshal(b, &s); err != nil {
-		return nil
+		return fmt.Errorf("%w %s: %w", ErrLegacySkipped, legacy, err)
 	}
 	if err := Save(path, s); err != nil {
 		return fmt.Errorf("migrate settings: %w", err)

@@ -133,15 +133,20 @@ func NewApp() *App {
 }
 
 // migrateSettings copies the settings saved before the rename from Cover
-// Downloader to BuJo Helper, when path does not exist yet. A failure is
-// logged: the app still starts, only without the old keys.
+// Downloader to BuJo Helper, when path does not exist yet. A skipped
+// legacy file or a failed copy is logged: the app still starts, only
+// without the old keys.
 func migrateSettings(path string) {
 	legacy, err := settings.LegacyPath()
 	if err != nil {
 		log.Printf("settings: %v", err)
 		return
 	}
-	if err := settings.Migrate(legacy, path); err != nil {
+	err = settings.Migrate(legacy, path)
+	switch {
+	case errors.Is(err, settings.ErrLegacySkipped):
+		log.Printf("settings: %v; starting without the old settings", err)
+	case err != nil:
 		log.Printf("settings: %v", err)
 	}
 }

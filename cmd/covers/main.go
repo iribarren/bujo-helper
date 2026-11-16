@@ -177,17 +177,26 @@ func firstNonBlank(values ...string) string {
 	return ""
 }
 
-// loadUserSettings reads the settings file the GUI writes.
+// loadUserSettings reads the settings file the GUI writes. Warnings go to
+// standard error.
 func loadUserSettings() (settings.Settings, error) {
+	return loadUserSettingsWarning(os.Stderr)
+}
+
+// loadUserSettingsWarning reads the settings file the GUI writes, and
+// writes a warning to warn when the legacy settings are skipped or cannot
+// be copied.
+func loadUserSettingsWarning(warn io.Writer) (settings.Settings, error) {
 	path, err := settings.Path()
 	if err != nil {
 		return settings.Settings{}, err
 	}
 	// Bring over the settings saved before the rename to BuJo Helper. A
-	// failed copy is not fatal: Load then reports what is there.
+	// skipped legacy file or a failed copy is not fatal: Load then reports
+	// what is there.
 	if legacy, err := settings.LegacyPath(); err == nil {
 		if err := settings.Migrate(legacy, path); err != nil {
-			fmt.Fprintf(os.Stderr, "warning: %v\n", err)
+			fmt.Fprintf(warn, "warning: %v\n", err)
 		}
 	}
 	return settings.Load(path)
