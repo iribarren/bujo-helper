@@ -7,6 +7,7 @@
 
 import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
+import {has, label, onLangChange, pluralKey, t, tn, type MessageKey} from './i18n';
 
 export interface PrintDeps {
     // The download output folder; the print sheet shows it until the user
@@ -56,13 +57,17 @@ function baseName(path: string): string {
 // cards are for to label their date field.
 const REVIEW_CARDS = 'cards';
 
-// HEADER_EXAMPLES are the header placeholders of the formats that print a
-// header, by format ID; others use DEFAULT_HEADER_EXAMPLE.
-const HEADER_EXAMPLES: Record<string, string> = {checklist: 'TBR 2026'};
-const DEFAULT_HEADER_EXAMPLE = 'Books of 2026';
+// headerExample is the header placeholder of a format that prints a header:
+// the message "print.headerExample.<format ID>", or "print.headerExample".
+function headerExample(formatId: string): string {
+    const key = `print.headerExample.${formatId}`;
+    return has(key) ? t(key) : t('print.headerExample');
+}
 
-function plural(n: number, word: string): string {
-    return `${n} ${word}${n === 1 ? '' : 's'}`;
+// dateLabelOf is the translated date field label of review cards for a
+// media type, e.g. "Read on".
+function dateLabelOf(media: main.MediaTypeInfo): string {
+    return label('date', media.id, media.dateLabel);
 }
 
 // pageCount is the number of pages covers need at perPage covers a page:
@@ -101,8 +106,8 @@ function perPageOf(
 
 // sizeLabel names a cover size, with how many fit on a page once it is known.
 function sizeLabel(size: main.PrintSizeInfo, perPage?: number): string {
-    const label = `${size.label} · ${size.coverHeight} mm`;
-    return perPage ? `${label} (${perPage} per page)` : label;
+    const name = `${label('size', size.id, size.label)} · ${size.coverHeight} mm`;
+    return perPage ? t('print.perPage', {label: name, n: perPage}) : name;
 }
 
 export function initPrint(deps: PrintDeps): PrintSheet {
@@ -156,6 +161,10 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     let exact: {key: string; pathsKey: string; info: main.PrintPagesInfo} | undefined;
     let pagesKey = '';
     let pagesSeq = 0;
+    // The message of the empty gallery, and the last saved PDF's status
+    // (shown while lastExport is set), to show them again in another language.
+    let emptyKey: MessageKey = 'print.emptyFolder';
+    let lastExport: {file: string; formatId: string; items: number; pages: number} | undefined;
 
     function currentDir(): string {
         return chosenDir || deps.outputFolder();
@@ -202,13 +211,15 @@ export function initPrint(deps: PrintDeps): PrintSheet {
 
     // printOptions are the print settings of layout.
     function printOptions(layout: Layout): sheet.Options {
+        const media = currentMedia();
         return sheet.Options.createFrom({
             format: layout.format.id,
             size: layout.size?.id ?? '',
             paper: layout.paper.id,
             // The cut mode never changes the page count.
             cut: layout.format.usesCut ? ui.cut.value : '',
-            dateLabel: layout.format.id === REVIEW_CARDS ? currentMedia()?.dateLabel ?? '' : '',
+            // Translated here: Go prints the label as given.
+            dateLabel: layout.format.id === REVIEW_CARDS && media ? dateLabelOf(media) : '',
             header: layout.format.usesHeader ? ui.header.value.trim() : '',
         });
     }
@@ -259,8 +270,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         const layout = currentLayout();
         const paths = selectedPaths();
         ui.selection.textContent = layout
-            ? `${n} selected · ${plural(pagesOf(paths, layout), 'page')}`
-            : `${n} selected`;
+            ? t('print.selection', {selected: tn('print.selected', n), pages: tn('print.pages', pagesOf(paths, layout))})
+            : tn('print.selected', n);
         if (layout) countPages(paths, layout);
         ui.exportPdf.disabled = n === 0 || exporting || !layout;
         ui.selectAll.disabled = covers.length === 0 || n === covers.length;
@@ -325,11 +336,12 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         updateSelection();
     }
 
-    function showEmpty(message: string) {
+    function showEmpty(key: MessageKey) {
         covers = [];
         selected.clear();
         render();
-        ui.empty.textContent = message;
+        emptyKey = key;
+        ui.empty.textContent = t(key);
     }
 
     async function load() {
@@ -348,11 +360,12 @@ export function initPrint(deps: PrintDeps): PrintSheet {
                 if (!present.has(path)) selected.delete(path);
             }
             render();
-            ui.empty.textContent = 'No images in this folder';
+            emptyKey = 'print.emptyFolder';
+            ui.empty.textContent = t(emptyKey);
         } catch (err) {
             if (seq !== loadSeq) return;
-            showEmpty('No images to show');
-            deps.showError(`Could not list covers: ${errorText(err)}`);
+            showEmpty('print.emptyError');
+            deps.showError(t('print.errList', {error: errorText(err)}));
         } finally {
             if (seq === loadSeq) ui.gallery.removeAttribute('aria-busy');
         }
@@ -381,34 +394,59 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         const layout = currentLayout();
         if (paths.length === 0 || exporting || !layout) return;
         deps.hideError();
-        const previous = {text: ui.status.textContent ?? '', title: ui.status.title, open: !ui.openPdf.hidden};
+        const previous = {
+            text: ui.status.textContent ?? '',
+            title: ui.status.title,
+            open: !ui.openPdf.hidden,
+            export: lastExport,
+        };
         exporting = true;
         updateSelection();
-        ui.status.textContent = 'Exporting…';
+        lastExport = undefined;
+        ui.status.textContent = t('print.exporting');
         ui.status.title = '';
         ui.openPdf.hidden = true;
         try {
             const saved = await ExportPDF(paths, currentDir(), printOptions(layout));
             if (saved === '') {
                 // Dialog cancelled: leave the last result as it was.
+                lastExport = previous.export;
                 ui.status.textContent = previous.text;
                 ui.status.title = previous.title;
                 ui.openPdf.hidden = !previous.open;
+                renderExportStatus();
                 return;
             }
             lastPdf = saved;
-            ui.status.textContent =
-                `Saved ${baseName(saved)}: ${plural(paths.length, layout.format.noun || 'item')} on ${plural(pagesOf(paths, layout), 'page')}`;
+            lastExport = {
+                file: baseName(saved),
+                formatId: layout.format.id,
+                items: paths.length,
+                pages: pagesOf(paths, layout),
+            };
+            renderExportStatus();
             ui.status.title = saved;
             ui.openPdf.hidden = false;
         } catch (err) {
             ui.status.textContent = '';
             ui.status.title = '';
-            deps.showError(`Could not export PDF: ${errorText(err)}`);
+            deps.showError(t('print.errExport', {error: errorText(err)}));
         } finally {
             exporting = false;
             updateSelection();
         }
+    }
+
+    // renderExportStatus shows the last saved PDF, e.g. "Saved x.pdf: 9
+    // covers on 1 page", in the current language.
+    function renderExportStatus() {
+        if (!lastExport) return;
+        const {file, formatId, items, pages} = lastExport;
+        ui.status.textContent = t('print.saved', {
+            file,
+            items: tn(pluralKey('noun', formatId, 'noun.item'), items),
+            pages: tn('print.pages', pages),
+        });
     }
 
     // updateSizeLabels shows how many covers, spines or polaroids of each
@@ -441,7 +479,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         const usesHeader = format?.usesHeader ?? false;
         ui.header.disabled = !usesHeader;
         ui.headerField.hidden = !usesHeader;
-        ui.header.placeholder = HEADER_EXAMPLES[ui.format.value] ?? DEFAULT_HEADER_EXAMPLE;
+        ui.header.placeholder = headerExample(ui.format.value);
         updateSizeLabels();
         updateSelection();
     }
@@ -452,15 +490,51 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         const types = deps.mediaTypes();
         if (ui.media.options.length !== types.length) {
             const kept = ui.media.value;
-            ui.media.replaceChildren(...types.map((t) => {
-                const option = el('option', '', t.label);
-                option.value = t.id;
-                option.title = `Date field: ${t.dateLabel}`;
+            ui.media.replaceChildren(...types.map((type) => {
+                const option = el('option');
+                option.value = type.id;
                 return option;
             }));
             if (mediaChosen) ui.media.value = kept;
         }
+        labelMedia();
         if (!mediaChosen) ui.media.value = deps.mediaType();
+    }
+
+    // labelMedia names the Cards for choices, with their date field.
+    function labelMedia() {
+        for (const option of Array.from(ui.media.options)) {
+            const type = deps.mediaTypes().find((m) => m.id === option.value);
+            if (!type) continue;
+            option.textContent = label('media', type.id, type.label);
+            option.title = t('print.dateField', {label: dateLabelOf(type)});
+        }
+    }
+
+    // labelOptions names the options of a select by their preset IDs.
+    function labelOptions(select: HTMLSelectElement, kind: string, presets: Array<{id: string; label: string}>) {
+        for (const option of Array.from(select.options)) {
+            const preset = presets.find((p) => p.id === option.value);
+            if (preset) option.textContent = label(kind, preset.id, preset.label);
+        }
+    }
+
+    // The cut modes, from PrintCutModes; empty until they load.
+    let cuts: main.PrintCutModeInfo[] = [];
+
+    // relabel shows the tab's dynamic text in the current language, keeping
+    // the selections and the header.
+    function relabel() {
+        labelOptions(ui.format, 'format', formats);
+        labelOptions(ui.paper, 'paper', papers);
+        labelOptions(ui.cut, 'cut', cuts);
+        labelMedia();
+        updateSizeLabels();
+        ui.header.placeholder = headerExample(ui.format.value);
+        if (ui.empty.textContent) ui.empty.textContent = t(emptyKey);
+        if (exporting) ui.status.textContent = t('print.exporting');
+        else renderExportStatus();
+        updateSelection();
     }
 
     async function loadPresets() {
@@ -469,13 +543,13 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         if (formatList.status === 'fulfilled') {
             formats = formatList.value ?? [];
             ui.format.replaceChildren(...formats.map((format) => {
-                const option = el('option', '', format.label);
+                const option = el('option', '', label('format', format.id, format.label));
                 option.value = format.id;
                 option.selected = format.default;
                 return option;
             }));
         } else {
-            deps.showError(`Could not load print formats: ${errorText(formatList.reason)}`);
+            deps.showError(t('print.errFormats', {error: errorText(formatList.reason)}));
         }
         if (sizeList.status === 'fulfilled') {
             sizes = sizeList.value ?? [];
@@ -486,29 +560,30 @@ export function initPrint(deps: PrintDeps): PrintSheet {
                 return option;
             }));
         } else {
-            deps.showError(`Could not load cover sizes: ${errorText(sizeList.reason)}`);
+            deps.showError(t('print.errSizes', {error: errorText(sizeList.reason)}));
         }
         if (paperList.status === 'fulfilled') {
             papers = paperList.value ?? [];
             ui.paper.replaceChildren(...papers.map((paper) => {
-                const option = el('option', '', paper.label);
+                const option = el('option', '', label('paper', paper.id, paper.label));
                 option.value = paper.id;
                 option.title = `${paper.width} × ${paper.height} mm`;
                 option.selected = paper.default;
                 return option;
             }));
         } else {
-            deps.showError(`Could not load paper sizes: ${errorText(paperList.reason)}`);
+            deps.showError(t('print.errPapers', {error: errorText(paperList.reason)}));
         }
         if (cutList.status === 'fulfilled') {
-            ui.cut.replaceChildren(...(cutList.value ?? []).map((cut) => {
-                const option = el('option', '', cut.label);
+            cuts = cutList.value ?? [];
+            ui.cut.replaceChildren(...cuts.map((cut) => {
+                const option = el('option', '', label('cut', cut.id, cut.label));
                 option.value = cut.id;
                 option.selected = cut.default;
                 return option;
             }));
         } else {
-            deps.showError(`Could not load cut modes: ${errorText(cutList.reason)}`);
+            deps.showError(t('print.errCuts', {error: errorText(cutList.reason)}));
         }
         updateFormat();
     }
@@ -544,6 +619,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         updateSizeLabels();
         updateSelection();
     });
+    onLangChange(relabel);
     updateSelection();
     loadPresets();
 

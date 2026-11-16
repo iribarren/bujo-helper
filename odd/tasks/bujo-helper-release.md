@@ -30,7 +30,7 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
 - [x] T1 Roadmap item 7 marked WONT DO. Route: inline (one docs file).
 - [x] T2 Rename to bujo-helper: module and imports, wails.json with `info`, title and h1, settings dir with migration and tests, User-Agent, release.yml, README. Route: delegated writer (many files).
 - [x] T3 Go i18n: the `internal/i18n` package with a parity test, `Settings.Language`, `SetLanguage`, translated dialogs and errors, the `isYes` fix, `ItemEvent.Code`, sheet stub/card labels with a fit test, regenerated bindings. Route: delegated writer (2+ non-trivial files).
-- [ ] T4 Frontend i18n: `src/i18n` (en, es, index), `data-i18n` in index.html, main/print/settings using `t()`, the Language select, live switching, vitest tests, a CI test step. Route: delegated writer.
+- [x] T4 Frontend i18n: `src/i18n` (en, es, index), `data-i18n` in index.html, main/print/settings using `t()`, the Language select, live switching, vitest tests, a CI test step. Route: delegated writer.
 - [ ] T5 README Language section, final checks, release prep (v0.2.0 tag is the user's call). Route: inline.
 
 ## Acceptance
@@ -63,5 +63,10 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
   - R3 WARNING "PrintPages doesn't apply labels": not applicable. `PrintPages` only counts pages and draws no labels.
   - R3 SUGGESTION: test label fit across several poster ratios, plus one long label that triggers truncation. Deferred as an optional follow-up.
 
+- T4: route: delegated writer (2+ non-trivial files). `frontend/src/i18n`: `en.ts` (flat dotted keys, `_one`/`_other` plurals, Go presets keyed by ID), `es.ts` typed as `Messages` (a missing or extra key fails `tsc`, mutation-checked), `index.ts` (`detectLang`, `setLang`/`getLang`, `t` with `{name}` and ES → EN → key fallback, `tn` via `Intl.PluralRules` with `_other` for other categories, `onLangChange`, `applyDom`, `label`/`pluralKey` by ID with the Go label as fallback). `language.ts` `useLanguage(setting)` sets the UI language and calls `SetLanguage`. `index.html` uses `data-i18n*` on all static text. main/print/settings translate every dynamic string; media, format, size, paper and cut labels by ID; the card date label is translated before it goes to Go; item status by `code`, with the English `error` only when there is no code. Settings has a Language select (System/English/Español), saved with the other fields and applied live: `applyDom` plus per-module relabel that keeps selections, typed text, results, summary and status lines. Startup: `GetSettings` → `useLanguage` → `applyDom` → modules. vitest 5.0.5 + jsdom 29.1.1 (jsdom 30 needs Node ≥ 22.22.2; local is 22.22.1), `npm test`, and a "Test frontend" step (`npm ci` + `npm test`) in release.yml before the Wails build.
+  - RED: `npm test` failed with `Failed to resolve import "./en"`; GREEN: 38 tests (detectLang table, t interpolation/fallbacks, tn en/es 0/1/2, label, onLangChange, applyDom, key and placeholder parity). UI wiring has no DOM harness; it is covered by `tsc` and a manual GUI check.
+  - Checks: `npm run build` clean, `npm test` 38 passed, `npm ci` + `npm test` with npm 10.9.4 pass from the lockfile, `go test ./...` 786 passed, `wails build -tags webkit2_41` built `build/bin/bujo-helper` (wailsjs modes reset to 644). The Debian npm 9.2.0 (and npm 10.9.4) `npm install` crashes on vitest's peer set (`edgesOut`), so the deps were added with `npx npm@11.6.2`.
+  - Commits: `40ea155` (i18n module, tests, deps, CI), and the UI wiring commit after it.
+
 ## Next step
-T4 (frontend i18n). It must keep `language` when it saves settings and call `SetLanguage` at startup and whenever the language changes.
+Manual GUI check of T4 in Spanish and English (live switch, persistence, Spanish PDF labels), then T5.

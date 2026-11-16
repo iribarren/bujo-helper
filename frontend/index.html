@@ -10,57 +10,59 @@
     <header class="header">
         <h1>BuJo Helper</h1>
         <div class="header-controls">
-            <select id="media-type" aria-label="Media type"></select>
-            <button id="settings-open" type="button">Settings</button>
+            <select id="media-type" aria-label="Media type" data-i18n-aria-label="app.mediaType"></select>
+            <button id="settings-open" type="button" data-i18n="app.settings">Settings</button>
         </div>
     </header>
 
     <p id="key-tip" class="tip" hidden>
-        Tip: add <span id="key-tip-what">a TMDB API key</span> in <button id="key-tip-settings" class="link-button" type="button">Settings</button>
+        <span data-i18n="tip.add">Tip: add</span> <span id="key-tip-what">a TMDB API key</span> <span data-i18n="tip.in">in</span>
+        <button id="key-tip-settings" class="link-button" type="button" data-i18n="app.settings">Settings</button>
         <span id="key-tip-why">for better movie and TV posters.</span>
     </p>
 
-    <div class="tabs" role="tablist" aria-label="Sections">
+    <div class="tabs" role="tablist" aria-label="Sections" data-i18n-aria-label="app.sections">
         <button id="tab-download" class="tab" type="button" role="tab" aria-selected="true"
-                aria-controls="panel-download">Download</button>
+                aria-controls="panel-download" data-i18n="app.tabDownload">Download</button>
         <button id="tab-print" class="tab" type="button" role="tab" aria-selected="false"
-                aria-controls="panel-print" tabindex="-1">Print sheet</button>
+                aria-controls="panel-print" tabindex="-1" data-i18n="app.tabPrint">Print sheet</button>
     </div>
 
     <div id="banner" class="banner" role="alert" hidden>
         <span id="banner-text"></span>
-        <button id="banner-close" class="icon-button" type="button" aria-label="Dismiss">×</button>
+        <button id="banner-close" class="icon-button" type="button" aria-label="Dismiss" data-i18n-aria-label="app.dismiss">×</button>
     </div>
 
     <div id="panel-download" class="panel" role="tabpanel" aria-labelledby="tab-download">
     <section class="input">
         <div class="toolbar">
-            <button id="import" type="button">Import CSV…</button>
+            <button id="import" type="button" data-i18n="download.import">Import CSV…</button>
             <button id="sample-csv" class="link-button" type="button">Sample CSV</button>
             <span id="sample-status" class="muted" aria-live="polite"></span>
             <span id="count" class="muted">0 items</span>
         </div>
-        <textarea id="items" spellcheck="false" autocomplete="off" aria-label="Items, one per line"></textarea>
+        <textarea id="items" spellcheck="false" autocomplete="off" aria-label="Items, one per line" data-i18n-aria-label="download.itemsLabel"></textarea>
     </section>
 
     <section class="options">
         <div class="field grow">
-            <label for="output-dir">Output folder</label>
+            <label for="output-dir" data-i18n="download.outputFolder">Output folder</label>
             <div class="row">
                 <input id="output-dir" type="text" readonly/>
-                <button id="browse" type="button">Browse…</button>
+                <button id="browse" type="button" data-i18n="download.browse">Browse…</button>
             </div>
         </div>
         <label class="field">
-            <span>Country</span>
+            <span data-i18n="download.country">Country</span>
             <input id="country" type="text" value="es" maxlength="2" size="3" autocomplete="off" spellcheck="false"
-                   title="Two-letter store country code, e.g. es, us, gb, de. Covers of local editions are preferred."/>
+                   title="Two-letter store country code, e.g. es, us, gb, de. Covers of local editions are preferred."
+                   data-i18n-title="download.countryTitle"/>
         </label>
     </section>
 
     <section class="actions">
-        <button id="start" class="primary" type="button" title="Ctrl+Enter">Download covers</button>
-        <button id="cancel" type="button" hidden>Cancel</button>
+        <button id="start" class="primary" type="button" title="Ctrl+Enter" data-i18n="download.start">Download covers</button>
+        <button id="cancel" type="button" hidden data-i18n="download.cancel">Cancel</button>
         <div class="progress" aria-hidden="true">
             <div id="progress-bar" class="progress-bar"></div>
         </div>
@@ -73,99 +75,114 @@
 
     <footer class="footer">
         <span id="summary" class="muted"></span>
-        <button id="open-folder" type="button" hidden>Open folder</button>
+        <button id="open-folder" type="button" hidden data-i18n="download.openFolder">Open folder</button>
     </footer>
     </div>
 
     <div id="panel-print" class="panel" role="tabpanel" aria-labelledby="tab-print" hidden>
     <section class="options">
         <div class="field grow">
-            <label for="print-dir">Covers folder</label>
+            <label for="print-dir" data-i18n="print.coversFolder">Covers folder</label>
             <div class="row">
                 <input id="print-dir" type="text" readonly/>
-                <button id="print-browse" type="button">Browse…</button>
-                <button id="print-refresh" type="button">Refresh</button>
+                <button id="print-browse" type="button" data-i18n="download.browse">Browse…</button>
+                <button id="print-refresh" type="button" data-i18n="print.refresh">Refresh</button>
             </div>
         </div>
         <label class="field">
-            <span>Format</span>
-            <select id="print-format" title="What to print for each cover: a sheet of covers, a review card with its title, a date, stars and lines, a book spine in the cover's main colour for a bookshelf tracker, a movie ticket stub with the title, Date and Where fields and stars, a full page of covers under a header, sized to fit, to glue into a journal without cutting, a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row under a header, or a polaroid frame with the title as a caption."></select>
+            <span data-i18n="print.format">Format</span>
+            <select id="print-format" title="What to print for each cover: a sheet of covers, a review card with its title, a date, stars and lines, a book spine in the cover's main colour for a bookshelf tracker, a movie ticket stub with the title, Date and Where fields and stars, a full page of covers under a header, sized to fit, to glue into a journal without cutting, a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row under a header, or a polaroid frame with the title as a caption."
+                    data-i18n-title="print.formatTitle"></select>
         </label>
         <label id="print-header-field" class="field" hidden>
-            <span>Header</span>
+            <span data-i18n="print.header">Header</span>
             <input id="print-header" type="text" placeholder="Books of 2026" maxlength="120" autocomplete="off" disabled
-                   title="Printed at the top of every page, above the covers or rows. Leave it empty for no header."/>
+                   title="Printed at the top of every page, above the covers or rows. Leave it empty for no header."
+                   data-i18n-title="print.headerTitle"/>
         </label>
         <label id="print-media-field" class="field" hidden>
-            <span>Cards for</span>
-            <select id="print-media" title="Media type of the covers. It sets the date label on the cards, e.g. Read on or Watched on."></select>
+            <span data-i18n="print.cardsFor">Cards for</span>
+            <select id="print-media" title="Media type of the covers. It sets the date label on the cards, e.g. Read on or Watched on."
+                    data-i18n-title="print.cardsForTitle"></select>
         </label>
         <label class="field">
-            <span>Paper</span>
-            <select id="print-paper" title="Paper you print on. The grid is recomputed to fill it."></select>
+            <span data-i18n="print.paper">Paper</span>
+            <select id="print-paper" title="Paper you print on. The grid is recomputed to fill it."
+                    data-i18n-title="print.paperTitle"></select>
         </label>
         <label id="print-size-field" class="field">
-            <span>Cover size</span>
-            <select id="print-size" title="Height of each printed cover, spine or polaroid picture. Smaller sizes fit more per page."></select>
+            <span data-i18n="print.size">Cover size</span>
+            <select id="print-size" title="Height of each printed cover, spine or polaroid picture. Smaller sizes fit more per page."
+                    data-i18n-title="print.sizeTitle"></select>
         </label>
         <label id="print-cut-field" class="field">
-            <span>Cut mode</span>
-            <select id="print-cut" title="How covers are prepared for cutting. Border: a thin grey line on the cut line. Bleed + crop marks: each image runs 1 mm past its cut line, with marks at the corners, for print-then-cut machines or hand cutting without white edges. None: the images only."></select>
+            <span data-i18n="print.cut">Cut mode</span>
+            <select id="print-cut" title="How covers are prepared for cutting. Border: a thin grey line on the cut line. Bleed + crop marks: each image runs 1 mm past its cut line, with marks at the corners, for print-then-cut machines or hand cutting without white edges. None: the images only."
+                    data-i18n-title="print.cutTitle"></select>
         </label>
     </section>
 
     <div class="toolbar">
-        <button id="select-all" type="button">Select all</button>
-        <button id="select-none" type="button">Select none</button>
+        <button id="select-all" type="button" data-i18n="print.selectAll">Select all</button>
+        <button id="select-none" type="button" data-i18n="print.selectNone">Select none</button>
         <span id="selection" class="muted" aria-live="polite">0 selected · 0 pages</span>
     </div>
 
-    <ul id="gallery" class="gallery" aria-label="Covers in the folder"></ul>
+    <ul id="gallery" class="gallery" aria-label="Covers in the folder" data-i18n-aria-label="print.gallery"></ul>
     <p id="gallery-empty" class="gallery-empty muted" hidden></p>
 
     <footer class="footer">
         <span id="export-status" class="muted" aria-live="polite"></span>
         <div class="row">
-            <button id="open-pdf" type="button" hidden>Open PDF</button>
-            <button id="export-pdf" class="primary" type="button" disabled>Export PDF…</button>
+            <button id="open-pdf" type="button" hidden data-i18n="print.openPdf">Open PDF</button>
+            <button id="export-pdf" class="primary" type="button" disabled data-i18n="print.exportPdf">Export PDF…</button>
         </div>
     </footer>
     </div>
 </div>
 
 <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
-    <h2 id="settings-title">Settings</h2>
+    <h2 id="settings-title" data-i18n="settings.title">Settings</h2>
     <div class="field">
-        <label for="tmdb-key">TMDB API key</label>
+        <label for="language" data-i18n="settings.language">Language</label>
+        <select id="language">
+            <option value="" data-i18n="settings.languageSystem">System</option>
+            <option value="en" lang="en">English</option>
+            <option value="es" lang="es">Español</option>
+        </select>
+    </div>
+    <div class="field">
+        <label for="tmdb-key" data-i18n="settings.tmdbKey">TMDB API key</label>
         <div class="row">
             <input id="tmdb-key" type="password" autocomplete="off" spellcheck="false"/>
             <button id="tmdb-key-toggle" type="button" aria-controls="tmdb-key">Show</button>
         </div>
-        <p class="hint">Optional. Gives the best movie and TV posters. Get a free key at
+        <p class="hint"><span data-i18n="settings.tmdbHint">Optional. Gives the best movie and TV posters. Get a free key at</span>
             <a id="tmdb-link" href="https://www.themoviedb.org/settings/api">themoviedb.org</a></p>
     </div>
-    <p class="notice">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <p class="notice" data-i18n="settings.tmdbNotice">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
     <div class="field settings-section">
-        <label for="igdb-id">IGDB Client ID</label>
+        <label for="igdb-id" data-i18n="settings.igdbId">IGDB Client ID</label>
         <input id="igdb-id" type="text" autocomplete="off" spellcheck="false"/>
     </div>
     <div class="field">
-        <label for="igdb-secret">IGDB Client Secret</label>
+        <label for="igdb-secret" data-i18n="settings.igdbSecret">IGDB Client Secret</label>
         <div class="row">
             <input id="igdb-secret" type="password" autocomplete="off" spellcheck="false"/>
             <button id="igdb-secret-toggle" type="button" aria-controls="igdb-secret">Show</button>
         </div>
-        <p class="hint">Optional. Gives box art for all games; without it, Steam covers PC games only.
-            With a Twitch account with two-factor authentication, register an app at
+        <p class="hint"><span data-i18n="settings.igdbHint">Optional. Gives box art for all games; without it, Steam covers PC games only.
+            With a Twitch account with two-factor authentication, register an app at</span>
             <a id="twitch-link" href="https://dev.twitch.tv/console/apps">dev.twitch.tv/console/apps</a>
-            (Client Type <em>Confidential</em>, OAuth Redirect URL <code>http://localhost</code>), then copy its
-            Client ID and a new Client Secret.</p>
+            <span data-i18n="settings.igdbHintType">(Client Type</span> <em>Confidential</em><span
+                data-i18n="settings.igdbHintRedirect">, OAuth Redirect URL</span> <code>http://localhost</code><span
+                data-i18n="settings.igdbHintCopy">), then copy its Client ID and a new Client Secret.</span></p>
     </div>
     <div class="dialog-actions">
         <span id="settings-status" class="settings-status" aria-live="polite"></span>
         <div class="row">
-            <button id="settings-close" type="button">Close</button>
-            <button id="settings-save" class="primary" type="button">Save</button>
+            <button id="settings-close" type="button" data-i18n="settings.close">Close</button>
+            <button id="settings-save" class="primary" type="button" data-i18n="settings.save">Save</button>
         </div>
     </div>
 </dialog>
