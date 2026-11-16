@@ -29,7 +29,7 @@ Some users want a finished page to glue or bind into the journal, with no cuttin
 
 ## Tasks
 - [x] T1 sheet: `fullpage` format, `UsesHeader`, `Options.Header`, `Grid.Limit`, `NewFullPageGrid`, header drawing, `buildFullPage`; table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in internal/sheet).
-- [ ] T2 app + UI + docs: `PrintFormatInfo.UsesHeader`, export name test, Header input in Print tab, Wails models, README Print sheet "Full page" subsection and feature lists. Route: same delegated writer, separate commit.
+- [x] T2 app + UI + docs: `PrintFormatInfo.UsesHeader`, export name test, Header input in Print tab, Wails models, README Print sheet "Full page" subsection and feature lists. Route: same delegated writer, separate commit.
 
 ## Progress
 - Feature doc created; branch `feat/full-page` from `b7fd51b`. RDD on (global).
@@ -42,5 +42,11 @@ Some users want a finished page to glue or bind into the journal, with no cuttin
   - Design notes: `FullPageGap` 3 mm, header band `FullPageHeaderHeight` 12 mm, header bold 20 pt shrinking (0.1 pt steps, proportional) to 12 pt, then cut with "…" via `fitLines`; text `titleGrey`, centred in the band across the usable width. Tie-break: tallest cells; on a tie (1e-9), fewer empty cells, then more columns (A4: 2 → 2 × 1, 3 → 3 × 1, 4 → 2 × 2, 60 → 8 × 8 at 32.4 mm, 31 mm with header). `Grid.Spacing` (0 = `Gap`) carries the 3 mm gap; `Grid.Limit` = covers on the page (≤ 60). `Options.Grid` returns the 60-cover grid; `build` uses the grid for the actual count, same grid on every page. Fonts embedded only with a header. Header whitespace runs collapse.
   - Visual check (`pdftoppm -r 100`): A4 7 mixed covers + "Books of 2026" → 3 × 3 at 80 mm, header right above, block centred, no borders; A4 65 covers → page 1 8 × 8 (60), page 2 five covers in the same cells, header repeated; A5 long accented header → shrunk to 12 pt and cut with "…" inside the margins.
 
+- T2 done in `3b6583f` feat(ui): offer full page format in the print sheet. Route: delegated writer. 7 files, +73 / −26.
+  - Files: `app.go` (`PrintFormatInfo.UsesHeader` `json:"usesHeader"`, set from `sheet.Format`; `pdfFileName` doc example), `app_test.go` (`TestPrintFormats` fullpage `UsesHeader: true`; export names `fullpage_A4.pdf`, `fullpage_Letter.pdf` with a header, `fullpage_A5.pdf` with size/cut ignored), `frontend/index.html` (Header field `#print-header`, placeholder "Books of 2026", hidden and disabled by default; Format tooltip), `frontend/src/print.ts` (header shown/enabled only when `usesHeader`; `header` sent trimmed in `opts`, '' for other formats; file comment), `frontend/src/style.css` (`#print-header` 12em wide), `frontend/wailsjs/go/models.ts` (regenerated: `usesHeader`, `header`), README (feature line, Print sheet intro, Format step, Cover size note, file names, Cut mode note, new "Full page" subsection, `internal/sheet` line). Package doc in `layout.go` was updated in T1.
+  - RED: `go test -tags webkit2_41 .` → build failed: `unknown field UsesHeader in struct literal of type PrintFormatInfo`. Export-name cases are characterisation (`pdfFileName` is already generic).
+  - GREEN: `go test -tags webkit2_41 ./...` → 514 passed in 14 packages; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` no errors; `wails build -tags webkit2_41` built. It set 0755 on `frontend/wailsjs/go/main/App.{d.ts,js}` and `models.ts`; reverted to 0644, `git diff --summary main..HEAD` shows no mode changes.
+  - Pending: manual GUI check (Header field visibility per format, export with a header).
+
 ## Next step
-T2.
+Native review of the feature range; user GUI check, then local `--no-ff` merge.
