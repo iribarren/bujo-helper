@@ -86,7 +86,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 - Text is readable on light and dark colours, and long titles shrink or are truncated to fit.
 - Tests for colour extraction (solid-colour fixtures) and for the contrast choice.
 
-## 5. [ ] TV series media type
+## 5. [x] TV series media type (311b6c7)
 
 **Why:** TV trackers are as common as movie trackers. TMDB covers TV, so the existing API key can be reused.
 
