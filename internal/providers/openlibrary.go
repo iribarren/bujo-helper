@@ -9,9 +9,9 @@ import (
 	"strings"
 	"unicode"
 
-	"cover-downloader/internal/isbn"
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/isbn"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // OpenLibrary searches openlibrary.org and its covers API. Images are

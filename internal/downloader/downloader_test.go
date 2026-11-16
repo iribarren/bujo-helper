@@ -15,8 +15,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 var (

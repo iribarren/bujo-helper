@@ -5,9 +5,9 @@ package catalog
 import (
 	"net/http"
 
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/providers"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/providers"
+	"bujo-helper/internal/web"
 )
 
 // Keys supplies the API keys some providers need. Each func is called on

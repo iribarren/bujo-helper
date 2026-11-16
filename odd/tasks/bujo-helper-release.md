@@ -28,7 +28,7 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
 
 ## Tasks
 - [x] T1 Roadmap item 7 marked WONT DO. Route: inline (one docs file).
-- [ ] T2 Rename to bujo-helper: module and imports, wails.json with `info`, title and h1, settings dir with migration and tests, User-Agent, release.yml, README. Route: delegated writer (many files).
+- [x] T2 Rename to bujo-helper: module and imports, wails.json with `info`, title and h1, settings dir with migration and tests, User-Agent, release.yml, README. Route: delegated writer (many files).
 - [ ] T3 Go i18n: the `internal/i18n` package with a parity test, `Settings.Language`, `SetLanguage`, translated dialogs and errors, the `isYes` fix, `ItemEvent.Code`, sheet stub/card labels with a fit test, regenerated bindings. Route: delegated writer (2+ non-trivial files).
 - [ ] T4 Frontend i18n: `src/i18n` (en, es, index), `data-i18n` in index.html, main/print/settings using `t()`, the Language select, live switching, vitest tests, a CI test step. Route: delegated writer.
 - [ ] T5 README Language section, final checks, release prep (v0.2.0 tag is the user's call). Route: inline.
@@ -41,6 +41,7 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
 
 ## Progress / evidence
 - T1: ROADMAP.md item 7 is `[-] WONT DO`, and the legend has been updated.
+- T2: module `bujo-helper`, imports, wails.json (`name`, `outputfilename`, `info`), window title and h1, User-Agent strings, release.yml asset names and README are renamed. Settings move to `<config>/bujo-helper/settings.json`. `settings.Migrate(legacy, path)` copies `cover-downloader/settings.json` once when the new file is missing; it never overwrites, keeps the legacy file and skips a missing, unreadable or invalid legacy file. The GUI (`NewApp`) and the CLI (`loadUserSettings`) run it. RED: `TestMigrate/copies_the_legacy_settings` (new file missing) and `TestPathIsUnderTheUserConfigDir` (old dir) failed against stubs; then GREEN. Checks: gofmt clean, `go vet` clean, `go test ./...` passes in all 14 packages, and `wails build -tags webkit2_41` builds `build/bin/bujo-helper` (wailsjs mode-only changes reverted).
 
 ## Next step
-T2.
+T3.

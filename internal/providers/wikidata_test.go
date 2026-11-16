@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // wikidataServer fakes the Wikidata API (search and entities) and the

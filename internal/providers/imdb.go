@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // IMDb searches IMDb's public title suggestion endpoint (keyless and

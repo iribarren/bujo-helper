@@ -18,14 +18,14 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"cover-downloader/internal/batch"
-	"cover-downloader/internal/catalog"
-	"cover-downloader/internal/downloader"
-	"cover-downloader/internal/gallery"
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/settings"
-	"cover-downloader/internal/sheet"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/batch"
+	"bujo-helper/internal/catalog"
+	"bujo-helper/internal/downloader"
+	"bujo-helper/internal/gallery"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/settings"
+	"bujo-helper/internal/sheet"
+	"bujo-helper/internal/web"
 )
 
 // Events emitted to the frontend while a job runs.
@@ -126,8 +126,24 @@ func NewApp() *App {
 	path, err := settings.Path()
 	if err != nil {
 		log.Printf("settings: %v", err)
+	} else {
+		migrateSettings(path)
 	}
 	return newDefaultApp(web.NewClient(), path)
+}
+
+// migrateSettings copies the settings saved before the rename from Cover
+// Downloader to BuJo Helper, when path does not exist yet. A failure is
+// logged: the app still starts, only without the old keys.
+func migrateSettings(path string) {
+	legacy, err := settings.LegacyPath()
+	if err != nil {
+		log.Printf("settings: %v", err)
+		return
+	}
+	if err := settings.Migrate(legacy, path); err != nil {
+		log.Printf("settings: %v", err)
+	}
 }
 
 // newDefaultApp returns an App with the built-in media types and the
@@ -817,7 +833,7 @@ func exportTo(path string, files []string, opts sheet.Options) error {
 func writeFileAtomic(path, kind string, write func(io.Writer) error) error {
 	// A short fixed pattern keeps the temporary name within the file name
 	// limit even when the target's name is close to it.
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".cover-downloader-*.tmp")
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".bujo-helper-*.tmp")
 	if err != nil {
 		return fmt.Errorf("create %s: %w", kind, err)
 	}

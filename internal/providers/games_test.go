@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"cover-downloader/internal/media"
+	"bujo-helper/internal/media"
 )
 
 const (
@@ -183,7 +183,7 @@ func TestIGDBSearch(t *testing.T) {
 		"Client-ID":     "client-id",
 		"Authorization": "Bearer tok-1",
 		"Accept":        "application/json",
-		"User-Agent":    "cover-downloader/1.0",
+		"User-Agent":    "bujo-helper/1.0",
 	} {
 		if got := gr.Header.Get(header); got != want {
 			t.Errorf("games header %s = %q, want %q", header, got, want)

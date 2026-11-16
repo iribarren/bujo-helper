@@ -31,14 +31,56 @@ func (s Settings) Trimmed() Settings {
 	return s
 }
 
+const (
+	// dirName is the settings folder under the user config directory.
+	dirName = "bujo-helper"
+	// legacyDirName is the folder used before the app was renamed from
+	// Cover Downloader to BuJo Helper.
+	legacyDirName = "cover-downloader"
+)
+
 // Path returns the settings file location:
-// <user config dir>/cover-downloader/settings.json.
+// <user config dir>/bujo-helper/settings.json.
 func Path() (string, error) {
+	return pathIn(dirName)
+}
+
+// LegacyPath returns where the app kept its settings before the rename:
+// <user config dir>/cover-downloader/settings.json.
+func LegacyPath() (string, error) {
+	return pathIn(legacyDirName)
+}
+
+func pathIn(name string) (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("settings: %w", err)
 	}
-	return filepath.Join(dir, "cover-downloader", "settings.json"), nil
+	return filepath.Join(dir, name, "settings.json"), nil
+}
+
+// Migrate copies the settings at legacy to path, once. It does nothing
+// when path already exists, so saved settings are never overwritten. A
+// legacy file that is missing, unreadable or not valid settings JSON is
+// skipped without an error. The legacy file is left in place. Only a
+// failure to write path is returned.
+func Migrate(legacy, path string) error {
+	if _, err := os.Lstat(path); !errors.Is(err, fs.ErrNotExist) {
+		// The new file exists, or its state is unknown: leave it alone.
+		return nil
+	}
+	b, err := os.ReadFile(legacy)
+	if err != nil {
+		return nil
+	}
+	var s Settings
+	if err := json.Unmarshal(b, &s); err != nil {
+		return nil
+	}
+	if err := Save(path, s); err != nil {
+		return fmt.Errorf("migrate settings: %w", err)
+	}
+	return nil
 }
 
 // Load reads the settings at path. A missing file gives zero Settings and

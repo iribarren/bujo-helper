@@ -13,10 +13,10 @@ import (
 
 const (
 	// APIUserAgent identifies the app to public APIs (Apple, Open Library).
-	APIUserAgent = "cover-downloader/1.0"
+	APIUserAgent = "bujo-helper/1.0"
 	// MusicBrainzUserAgent identifies the app to MusicBrainz, which asks
 	// for a meaningful User-Agent with contact information.
-	MusicBrainzUserAgent = "cover-downloader/1.0 ( https://github.com/iribarren/bullet-journal-covers )"
+	MusicBrainzUserAgent = "bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )"
 	// BrowserUserAgent is a desktop Chrome UA, needed for store pages and
 	// image CDNs that reject unknown clients.
 	BrowserUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +

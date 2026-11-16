@@ -13,10 +13,10 @@ import (
 	"strings"
 	"sync"
 
-	"cover-downloader/internal/locale"
-	"cover-downloader/internal/match"
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/locale"
+	"bujo-helper/internal/match"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // Item statuses reported in ItemResult.Status.

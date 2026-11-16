@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"cover-downloader/internal/catalog"
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/settings"
+	"bujo-helper/internal/catalog"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/settings"
 )
 
 type fakeProvider struct{ imageURL string }

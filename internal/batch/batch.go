@@ -13,8 +13,8 @@ import (
 
 	"golang.org/x/text/encoding/charmap"
 
-	"cover-downloader/internal/match"
-	"cover-downloader/internal/media"
+	"bujo-helper/internal/match"
+	"bujo-helper/internal/media"
 )
 
 // ParseLines parses one "Title, Creator" item per line. The split happens on

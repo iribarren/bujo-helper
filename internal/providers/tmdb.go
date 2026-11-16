@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/web"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/web"
 )
 
 // ErrNoTMDBKey reports that no TMDB API key is configured. It does not wrap

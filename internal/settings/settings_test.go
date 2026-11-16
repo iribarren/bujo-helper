@@ -19,7 +19,7 @@ func TestLoadMissingFileReturnsZeroSettings(t *testing.T) {
 }
 
 func TestSaveThenLoad(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "cover-downloader", "settings.json")
+	path := filepath.Join(t.TempDir(), "bujo-helper", "settings.json")
 	if err := Save(path, Settings{TMDBAPIKey: "  abc123\n"}); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
@@ -110,8 +110,15 @@ func TestPathIsUnderTheUserConfigDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := filepath.Join(base, "cover-downloader", "settings.json"); got != want {
+	if want := filepath.Join(base, "bujo-helper", "settings.json"); got != want {
 		t.Errorf("Path = %q, want %q", got, want)
+	}
+	legacy, err := LegacyPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := filepath.Join(base, "cover-downloader", "settings.json"); legacy != want {
+		t.Errorf("LegacyPath = %q, want %q", legacy, want)
 	}
 }
 
@@ -150,5 +157,107 @@ func TestLoadKeepsOlderFilesWithoutIGDBCredentials(t *testing.T) {
 	}
 	if got != (Settings{TMDBAPIKey: "k"}) {
 		t.Errorf("Load = %+v, want only the TMDB key", got)
+	}
+}
+
+func TestMigrate(t *testing.T) {
+	const legacyJSON = `{"tmdbApiKey": "old-key", "igdbClientId": "old-id"}`
+	tests := []struct {
+		name string
+		// legacy is written to the legacy path; nil means no legacy file
+		// and "dir" makes the legacy path a directory (unreadable as a file).
+		legacy *string
+		// existing is written to the new path first; nil means none.
+		existing *string
+		// want is the expected new file content as Settings; wantFile
+		// reports whether the new file must exist afterwards.
+		wantFile bool
+		want     Settings
+	}{
+		{
+			name:     "copies the legacy settings",
+			legacy:   ptr(legacyJSON),
+			wantFile: true,
+			want:     Settings{TMDBAPIKey: "old-key", IGDBClientID: "old-id"},
+		},
+		{
+			name:     "never overwrites an existing new file",
+			legacy:   ptr(legacyJSON),
+			existing: ptr(`{"tmdbApiKey": "new-key"}`),
+			wantFile: true,
+			want:     Settings{TMDBAPIKey: "new-key"},
+		},
+		{
+			name: "no legacy file creates nothing",
+		},
+		{
+			name:   "invalid legacy JSON is skipped",
+			legacy: ptr("{not json"),
+		},
+		{
+			name:   "unreadable legacy is skipped",
+			legacy: ptr("dir"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			base := t.TempDir()
+			legacy := filepath.Join(base, "cover-downloader", "settings.json")
+			path := filepath.Join(base, "bujo-helper", "settings.json")
+			if tt.legacy != nil {
+				if *tt.legacy == "dir" {
+					if err := os.MkdirAll(legacy, 0o700); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					writeFile(t, legacy, *tt.legacy)
+				}
+			}
+			if tt.existing != nil {
+				writeFile(t, path, *tt.existing)
+			}
+
+			if err := Migrate(legacy, path); err != nil {
+				t.Fatalf("Migrate: %v", err)
+			}
+
+			_, statErr := os.Stat(path)
+			if exists := statErr == nil; exists != tt.wantFile {
+				t.Fatalf("new file exists = %v, want %v (stat err %v)", exists, tt.wantFile, statErr)
+			}
+			got, err := Load(path)
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if got != tt.want {
+				t.Errorf("Load = %+v, want %+v", got, tt.want)
+			}
+			if tt.legacy != nil {
+				if _, err := os.Stat(legacy); err != nil {
+					t.Errorf("legacy file was removed: %v", err)
+				}
+			}
+			if tt.wantFile && tt.existing == nil && runtime.GOOS != "windows" {
+				info, err := os.Stat(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if mode := info.Mode().Perm(); mode != 0o600 {
+					t.Errorf("file mode = %o, want 600", mode)
+				}
+			}
+		})
+	}
+}
+
+func ptr(s string) *string { return &s }
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
 	}
 }

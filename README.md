@@ -1,4 +1,6 @@
-# Cover Downloader
+# BuJo Helper
+
+Formerly "Cover Downloader".
 
 A desktop app for Windows and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
@@ -23,12 +25,12 @@ Book covers, movie posters, TV series posters, album covers and game box art are
 
 ## Download
 
-Get the latest version from the [Releases page](https://github.com/iribarren/bullet-journal-covers/releases/latest).
+Get the latest version from the [Releases page](https://github.com/iribarren/bujo-helper/releases/latest).
 
 ### Windows 10/11
 
-1. Download `cover-downloader-<version>-windows-amd64.zip` and extract it.
-2. Run `cover-downloader.exe`.
+1. Download `bujo-helper-<version>-windows-amd64.zip` and extract it.
+2. Run `bujo-helper.exe`.
 
 The executable is not code-signed yet, so Windows SmartScreen may show **"Windows protected your PC"** the first time. Click **More info**, then **Run anyway**. WebView2 is built into Windows 10/11, so nothing else needs to be installed.
 
@@ -40,11 +42,11 @@ The executable is not code-signed yet, so Windows SmartScreen may show **"Window
    sudo apt install libgtk-3-0 libwebkit2gtk-4.1-0
    ```
 
-2. Download `cover-downloader-<version>-linux-amd64.tar.gz`, then extract and run it:
+2. Download `bujo-helper-<version>-linux-amd64.tar.gz`, then extract and run it:
 
    ```sh
-   tar xzf cover-downloader-*-linux-amd64.tar.gz
-   ./cover-downloader
+   tar xzf bujo-helper-*-linux-amd64.tar.gz
+   ./bujo-helper
    ```
 
 The binary is built on Ubuntu 22.04, so it runs on that release and newer distributions.
@@ -83,7 +85,7 @@ Album covers are square, unlike the 2:3 book covers and posters, so a cover shee
 
 MusicBrainz data is CC0, but the Cover Art Archive images carry no licence of their own: its documentation says to use them at your own risk. Apple's terms allow iTunes artwork only to promote the store's content, the same terms as the Apple Books and Apple TV sources above. Downloaded covers are for personal use.
 
-MusicBrainz allows at most one request per second and asks every client for a User-Agent with contact information. The app sends `cover-downloader/1.0 ( https://github.com/iribarren/bullet-journal-covers )` and spaces its MusicBrainz requests one second apart, so a long album list takes at least a second per album.
+MusicBrainz allows at most one request per second and asks every client for a User-Agent with contact information. The app sends `bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )` and spaces its MusicBrainz requests one second apart, so a long album list takes at least a second per album.
 
 Sources are tried in this order for games (the year is the first release year, and it is optional):
 
@@ -97,7 +99,7 @@ The IGDB API is free for non-commercial use under the [Twitch Developer Services
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
-2. In the app, click **Settings** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/cover-downloader/settings.json` on Linux, `%AppData%\cover-downloader\settings.json` on Windows), readable only by you.
+2. In the app, click **Settings** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/bujo-helper/settings.json` on Linux, `%AppData%\bujo-helper\settings.json` on Windows), readable only by you. Settings saved by older versions in the `cover-downloader` folder are copied over automatically on first launch.
 3. For the command line, use `-tmdb-key`, or the `TMDB_API_KEY` environment variable; otherwise the key saved by the app is used.
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
@@ -434,10 +436,10 @@ This runs the app with hot reload of the frontend. Wails regenerates the TypeScr
 ## Building
 
 ```sh
-# Linux binary: build/bin/cover-downloader
+# Linux binary: build/bin/bujo-helper
 wails build -tags webkit2_41
 
-# Windows binary: build/bin/cover-downloader.exe
+# Windows binary: build/bin/bujo-helper.exe
 # Works from Windows or cross-compiled from Linux (no cgo needed).
 wails build -platform windows/amd64
 ```

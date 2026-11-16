@@ -18,11 +18,11 @@ import (
 	"testing"
 	"time"
 
-	"cover-downloader/internal/batch"
-	"cover-downloader/internal/media"
-	"cover-downloader/internal/providers"
-	"cover-downloader/internal/settings"
-	"cover-downloader/internal/sheet"
+	"bujo-helper/internal/batch"
+	"bujo-helper/internal/media"
+	"bujo-helper/internal/providers"
+	"bujo-helper/internal/settings"
+	"bujo-helper/internal/sheet"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -734,7 +734,7 @@ func TestIsYes(t *testing.T) {
 }
 
 func TestSaveSettingsRoundTrip(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "cover-downloader", "settings.json")
+	path := filepath.Join(t.TempDir(), "bujo-helper", "settings.json")
 	a := newApp(media.NewRegistry(), http.DefaultClient)
 	a.loadSettings(path)
 	if got := a.GetSettings(); got != (settings.Settings{}) {
