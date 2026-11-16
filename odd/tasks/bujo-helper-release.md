@@ -31,7 +31,7 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
 - [x] T2 Rename to bujo-helper: module and imports, wails.json with `info`, title and h1, settings dir with migration and tests, User-Agent, release.yml, README. Route: delegated writer (many files).
 - [x] T3 Go i18n: the `internal/i18n` package with a parity test, `Settings.Language`, `SetLanguage`, translated dialogs and errors, the `isYes` fix, `ItemEvent.Code`, sheet stub/card labels with a fit test, regenerated bindings. Route: delegated writer (2+ non-trivial files).
 - [x] T4 Frontend i18n: `src/i18n` (en, es, index), `data-i18n` in index.html, main/print/settings using `t()`, the Language select, live switching, vitest tests, a CI test step. Route: delegated writer.
-- [ ] T5 README Language section, final checks, release prep (v0.2.0 tag is the user's call). Route: inline.
+- [x] T5 README Language section, final checks, release prep (v0.2.0 tag is the user's call). Route: inline.
 
 ## Acceptance
 - `go test ./...` and `go vet` are clean. `npm run build` and `npm test` pass. `wails build` produces `build/bin/bujo-helper`.
@@ -68,5 +68,11 @@ Prepare a release with what already works: drop roadmap item 7, rename the app t
   - Checks: `npm run build` clean, `npm test` 38 passed, `npm ci` + `npm test` with npm 10.9.4 pass from the lockfile, `go test ./...` 786 passed, `wails build -tags webkit2_41` built `build/bin/bujo-helper` (wailsjs modes reset to 644). The Debian npm 9.2.0 (and npm 10.9.4) `npm install` crashes on vitest's peer set (`edgesOut`), so the deps were added with `npx npm@11.6.2`.
   - Commits: `40ea155` (i18n module, tests, deps, CI), and the UI wiring commit after it.
 
+- Review of `b999693..2f6c303` (T4 `40ea155`, `2f6c303`): high risk (shell in release.yml), 16 files, 2081 lines. The user granted consent and we ran a 4-lens review. Result: **approved and acknowledged**. Advisory findings:
+  - R4 WARNING (npm 9/10 `edgesOut` crash on `npm install`): CI runs `npm ci` from the lockfile before `wails build`, and `package.json.md5` is tracked and matches, so Wails skips `npm install`. Accepted.
+  - R4 SUGGESTION (a listener that throws stops the rest): fixed in `ab8d047`. RED: `keeps notifying the other listeners when one throws` failed with 'relabel failed' thrown. GREEN: 39 passed.
+  - R2 (split sentence fragments, tooltip text in both the markup and the dictionary, sample titles duplicating the creator labels, the `useLanguage` name, keys built from `undefined`) and R3 (no tests for the live relabel wiring, test files not type-checked): left as follow-ups.
+- T5 (inline): README has a Language section and a note on running the frontend tests. Final checks: gofmt clean, `go vet` clean, `go test ./...` 786 passed, `npm run build` clean, `npm test` 39 passed, `wails build -tags webkit2_41` builds `build/bin/bujo-helper` (wailsjs modes reset to 644).
+
 ## Next step
-Manual GUI check of T4 in Spanish and English (live switch, persistence, Spanish PDF labels), then T5.
+The user does the manual GUI check (list in the final report). Then merge to main and push, rename the GitHub repo to `bujo-helper`, and tag `v0.2.0`. All of these are the user's decisions.

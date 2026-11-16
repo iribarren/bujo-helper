@@ -20,6 +20,7 @@ Book covers, movie posters, TV series posters, album covers and game box art are
 - **Open folder** shows the results in the system file manager.
 - **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
+- English and Spanish interface. It follows the system language and can be changed in **Settings**, see [Language](#language).
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
 
@@ -425,11 +426,24 @@ Recent Ubuntu releases only ship WebKitGTK 4.1, so every `wails` command on Linu
 - The Wails CLI: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`.
 - WebView2 is built into Windows 10/11, so users need nothing else to run the `.exe`.
 
+## Language
+
+The app is available in English and Spanish.
+
+- By default it follows the system language: Spanish when the system language is Spanish (any region), English otherwise.
+- To choose a language, open **Settings** and set **Language** to **System**, **English** or **Español**. The change applies at once and is saved in the settings file (`"language"`: `""` for System, `"en"` or `"es"`).
+- Translated: the interface, native dialogs, error messages, item statuses, and the labels printed in PDFs (review card date label, ticket stub labels).
+- Not translated: technical details from the sources (for example `HTTP 503`), and the `covers` command-line tool, which stays in English.
+
+To add a language, add a dictionary next to `frontend/src/i18n/en.ts` (the compiler rejects missing or extra keys) and a catalog in `internal/i18n/catalog.go` (a test checks that every key exists).
+
 ## Development
 
 ```sh
 wails dev -tags webkit2_41        # Linux; on Windows just: wails dev
 ```
+
+Run the frontend unit tests with `npm test` in `frontend/` (vitest), and the Go tests with `go test ./...`.
 
 This runs the app with hot reload of the frontend. Wails regenerates the TypeScript bindings in `frontend/wailsjs/` when Go method signatures change (or run `wails generate module -tags webkit2_41`).
 
