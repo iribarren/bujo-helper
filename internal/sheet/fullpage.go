@@ -76,8 +76,9 @@ func NewFullPageGrid(page Page, count int, header bool) (Grid, error) {
 	}, nil
 }
 
-// fullPageHeaderBox is the header band of a full page on grid, across the
-// usable width right above the grid; ok is false if there is no header.
+// fullPageHeaderBox is the header band of a full page or checklist on
+// grid, across the usable width right above the grid; ok is false if there
+// is no header.
 func fullPageHeaderBox(g Grid, header bool) (b Box, ok bool) {
 	if !header {
 		return Box{}, false
@@ -121,6 +122,32 @@ func layoutFullPageHeader(text string, width float64, measure measureFunc) heade
 	return headerLine{Text: text, Size: pt}
 }
 
+// pdfMeasure measures text in the text fonts of pdf, which must be added.
+func pdfMeasure(pdf *fpdf.Fpdf) measureFunc {
+	return func(text string, bold bool, pt float64) float64 {
+		pdf.SetFont(textFont, fontStyle(bold), pt)
+		return pdf.GetStringWidth(text)
+	}
+}
+
+// fitHeader fits header on one line of width in the text fonts of pdf,
+// which must be added, as layoutFullPageHeader does.
+func fitHeader(pdf *fpdf.Fpdf, header string, width float64) headerLine {
+	return layoutFullPageHeader(header, width, pdfMeasure(pdf))
+}
+
+// drawHeader writes line, bold, centred in band; nothing if it is empty.
+func drawHeader(pdf *fpdf.Fpdf, band Box, line headerLine) {
+	if line.Text == "" {
+		return
+	}
+	pdf.SetTextColor(titleGrey, titleGrey, titleGrey)
+	pdf.SetFont(textFont, "B", line.Size)
+	x := band.X + (band.W-pdf.GetStringWidth(line.Text))/2
+	top := band.Y + (band.H-lineHeight(line.Size))/2
+	pdf.Text(x, baseline(top, line.Size), line.Text)
+}
+
 // buildFullPage draws full pages of covers on page: header, if not empty,
 // centred on every page, and the covers below it in the grid
 // NewFullPageGrid derives for their count, without borders.
@@ -149,23 +176,14 @@ func buildFullPage(page Page, paths []string, ratios []float64, header string) (
 		if err := addTextFonts(pdf); err != nil {
 			return nil, err
 		}
-		line = layoutFullPageHeader(header, band.W, func(text string, bold bool, pt float64) float64 {
-			pdf.SetFont(textFont, fontStyle(bold), pt)
-			return pdf.GetStringWidth(text)
-		})
+		line = fitHeader(pdf, header, band.W)
 	}
 	imgOpts := fpdf.ImageOptions{ImageType: "JPG"}
 
 	i := 0
 	for _, p := range pages {
 		pdf.AddPage()
-		if line.Text != "" {
-			pdf.SetTextColor(titleGrey, titleGrey, titleGrey)
-			pdf.SetFont(textFont, "B", line.Size)
-			x := band.X + (band.W-pdf.GetStringWidth(line.Text))/2
-			top := band.Y + (band.H-lineHeight(line.Size))/2
-			pdf.Text(x, baseline(top, line.Size), line.Text)
-		}
+		drawHeader(pdf, band, line)
 		for _, box := range p {
 			name := fmt.Sprintf("cover-%d", i)
 			pdf.RegisterImageOptionsReader(name, imgOpts, bytes.NewReader(images[i].jpeg))
