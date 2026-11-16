@@ -46,6 +46,7 @@ const EXAMPLES: Record<string, string> = {
     books: 'Dune, Frank Herbert',
     movies: 'Dune, 2021',
     tv: 'Breaking Bad, 2008',
+    albums: 'Abbey Road, The Beatles',
 };
 
 // Media types whose posters come from TMDB first.

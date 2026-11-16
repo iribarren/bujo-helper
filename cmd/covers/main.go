@@ -2,13 +2,14 @@
 //
 // Usage:
 //
-//	covers [-type books|movies|tv] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" | "Title, Year" ...]
+//	covers [-type books|movies|tv|albums] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" | "Title, Year" | "Album, Artist" ...]
 //
 // The TMDB API key (used by -type movies and -type tv) comes from -tmdb-key, else the
 // TMDB_API_KEY environment variable, else the settings file the GUI writes.
 //
 // Each positional argument is one "Title, Creator" item (split on the last
-// comma): "Title, Author" for books, "Title, Year" for movies and TV series.
+// comma): "Title, Author" for books, "Title, Year" for movies and TV series,
+// "Album, Artist" for albums.
 // Items from -csv are added after them. Flags must come before the items. The exit code is 1 when any item failed and 2 on usage errors.
 package main
 
@@ -54,13 +55,13 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 
 	fs := flag.NewFlagSet("covers", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie and TV items are "Title, Year"`)
+	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie and TV items are "Title, Year", albums "Album, Artist"`)
 	outDir := fs.String("o", "covers", "output directory")
 	country := fs.String("country", "es", "store country code (es, us, gb, de, ...); books prefer local editions")
-	csvPath := fs.String("csv", "", "CSV file with title and creator (author or year) columns")
+	csvPath := fs.String("csv", "", "CSV file with title and creator (author, year or artist) columns")
 	tmdbFlag := fs.String("tmdb-key", "", "TMDB API key (default: $TMDB_API_KEY, then the saved settings)")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" | "Title, Year" ...]`)
+		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" | "Title, Year" | "Album, Artist" ...]`)
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -79,7 +80,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 		items = append(items, csvItems...)
 	}
 	if len(items) == 0 {
-		fmt.Fprintln(stderr, "error: no items; pass \"Title, Author\" (or \"Title, Year\") arguments or -csv")
+		fmt.Fprintln(stderr, "error: no items; pass \"Title, Author\" (or \"Title, Year\", \"Album, Artist\") arguments or -csv")
 		fs.Usage()
 		return 2
 	}

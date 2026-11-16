@@ -284,7 +284,7 @@ func TestUsageListsMediaTypes(t *testing.T) {
 	if code := run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, e); code != 2 {
 		t.Fatalf("exit code = %d, want 2", code)
 	}
-	for _, want := range []string{"books, movies, tv", "books|movies|tv", `movie and TV items are "Title, Year"`} {
+	for _, want := range []string{"books, movies, tv, albums", "books|movies|tv|albums", `movie and TV items are "Title, Year"`, `albums "Album, Artist"`} {
 		if !strings.Contains(stderr.String(), want) {
 			t.Errorf("usage missing %q:\n%s", want, &stderr)
 		}

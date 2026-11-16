@@ -3,11 +3,11 @@
 A desktop app for Windows and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
 
-Book covers, movie posters and TV series posters are supported. The core is media-agnostic, so music or games can be added later as new providers.
+Book covers, movie posters, TV series posters and album covers are supported. The core is media-agnostic, so games or other media can be added later as new providers.
 
 ## Features
 
-- Batch input: one `Title, Author` (books) or `Title, Year` (movies and TV series) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books), `Title, Year` (movies and TV series) or `Album, Artist` (albums) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
@@ -74,6 +74,17 @@ Movie and TV posters are about 2:3, like book covers, so the print sheet lays th
 
 TV series use the same services, under the same terms, as movies: the TMDB API (with the attribution below) and the unofficial IMDb endpoint, with no key. Downloaded posters are for personal use.
 
+Sources are tried in this order for albums (the artist is optional, but it helps):
+
+1. **MusicBrainz + Cover Art Archive** (no key): the MusicBrainz API finds the release group (the album across all its editions) by title and artist, preferring albums over singles and other releases with the same title. The [Cover Art Archive](https://coverartarchive.org/) serves its front cover at 1200 px, falling back to 500 px and then the original image.
+2. **Apple Music** (iTunes Search API, album search): large, high-quality artwork. It uses the store country.
+
+Album covers are square, unlike the 2:3 book covers and posters.
+
+MusicBrainz data is CC0, but the Cover Art Archive images carry no licence of their own: its documentation says to use them at your own risk. Apple's terms allow iTunes artwork only to promote the store's content, the same terms as the Apple Books and Apple TV sources above. Downloaded covers are for personal use.
+
+MusicBrainz allows at most one request per second and asks every client for a User-Agent with contact information. The app sends `cover-downloader/1.0 ( https://github.com/iribarren/bullet-journal-covers )` and spaces its MusicBrainz requests one second apart, so a long album list takes at least a second per album.
+
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
@@ -84,7 +95,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly, and requests to MusicBrainz one second apart.
 
 ## Local editions
 
@@ -115,19 +126,19 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies and TV series. The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies and TV series, `album,artist` for albums. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies or TV series).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series or albums).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
 ## Using the app
 
-1. Choose the media type: **Books**, **Movies** or **TV series**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters.
+1. Choose the media type: **Books**, **Movies**, **TV series** or **Albums**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters.
 2. Type or paste items, one per line, or click **Import CSV…**.
 3. Check the output folder (default: `~/Pictures/Covers`, or `%USERPROFILE%\Pictures\Covers` on Windows), and change it with **Browse…** if needed.
 4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
@@ -356,13 +367,14 @@ go run ./cmd/covers -country us -csv sample_books.csv -o covers
 go run ./cmd/covers -type movies -o posters "Dune, 2021" "Inception, 2010"
 TMDB_API_KEY=<key> go run ./cmd/covers -type movies -o posters "The Matrix, 1999"
 go run ./cmd/covers -type tv -o posters "Breaking Bad, 2008" "Dark, 2017"
+go run ./cmd/covers -type albums -o albums "Abbey Road, The Beatles" "Rumours, Fleetwood Mac"
 ```
 
 Flags must come before the items:
 
 | Flag       | Default  | Meaning                                         |
 |------------|----------|-------------------------------------------------|
-| `-type`    | `books`  | Media type: `books`, `movies` or `tv`           |
+| `-type`    | `books`  | Media type: `books`, `movies`, `tv` or `albums` |
 | `-o`       | `covers` | Output folder                                   |
 | `-country` | `es`     | Store country code; its editions are preferred  |
 | `-csv`     | (none)   | CSV file, added after the positional items       |
@@ -437,7 +449,7 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming
