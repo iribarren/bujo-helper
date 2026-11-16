@@ -62,6 +62,14 @@ Game trackers exist in gaming bullet journals. The roadmap asks for a source com
 - Writer verification: `go test ./...` 737 passed, `go vet` clean, `gofmt` empty, `tsc` clean, `wails build` ok (modes restored, `build/bin/cover-downloader` rebuilt). Parent spot check: `go test ./internal/providers/ ./internal/web/ ./cmd/...` 185 passed.
 - T3 live CLI (keyless, empty config). Route: inline. 5 of 6 OK from Steam, all at 600 × 900: Hollow Knight, Stardew Valley, The Witcher 3, Celeste, Prey 2017. Zelda: Breath of the Wild fails as expected (not on Steam; the error names the missing IGDB credentials). IGDB is not tested live (no credentials).
   - Fix `3061b9b`: Steam `_2x` art is 600 × 900, not 1200 × 1800 (the plain one is 300 × 450). The code comment and README were corrected.
+- Review `863b0ce..51c9418` (28 files, 1857 lines, medium, `slice_budget_reached`): consent granted. The review-reliability lens approved it, and it was acknowledged (authority burned). Two advisory findings:
+  - R3-001 WARNING: any 4xx from the token endpoint, 429 included, was reported as "Twitch rejected the IGDB credentials". Fixed.
+  - R3-002 SUGGESTION: the CLI credential tests blocked on `<-got` and would hang if run exited early. Fixed.
+  - The Stop hook's selectorless STATUS proposed the whole branch `f74d951..HEAD`. It was not started: that range is this slice plus the plan commit, which was already acknowledged.
+- Fix `7517b31` fix(providers): only 400, 401 and 403 from the token endpoint mean bad credentials; a 429 or 5xx is reported as a token error. The CLI tests use a non-blocking `received` helper.
+  - RED: `TestIGDBRejectedCredentials/token_endpoint_answers_429` failed ("Twitch rejected the IGDB credentials (HTTP 429)"). GREEN: `go test ./...` 739 passed, `go vet` clean, `gofmt` empty.
+  - Assess `51c9418..7517b31`: medium, 38 lines, `under_budget`, so no review is due.
+  - `wails build` was rerun with modes restored, and `build/bin/cover-downloader` was rebuilt.
 
 ## Next step
-Review the slice `863b0ce..HEAD` (medium, `slice_budget_reached`), then the user's GUI check.
+The user's GUI check: the Settings IGDB fields, Show/Hide on the secret, the Twitch link, the Games tip, the placeholder and the sample CSV. Then merge, mark roadmap item 13 done, and push (the user's decision).
