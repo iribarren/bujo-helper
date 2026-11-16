@@ -94,6 +94,22 @@ export namespace main {
 	        this.default = source["default"];
 	    }
 	}
+	export class PrintPagesInfo {
+	    pages: number;
+	    allSquare: boolean;
+	    exact: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrintPagesInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.pages = source["pages"];
+	        this.allSquare = source["allSquare"];
+	        this.exact = source["exact"];
+	    }
+	}
 	export class PrintPaperInfo {
 	    id: string;
 	    label: string;
@@ -102,6 +118,7 @@ export namespace main {
 	    default: boolean;
 	    perPage: Record<string, any>;
 	    headerPerPage: Record<string, number>;
+	    squarePerPage: Record<string, any>;
 	
 	    static createFrom(source: any = {}) {
 	        return new PrintPaperInfo(source);
@@ -116,6 +133,7 @@ export namespace main {
 	        this.default = source["default"];
 	        this.perPage = source["perPage"];
 	        this.headerPerPage = source["headerPerPage"];
+	        this.squarePerPage = source["squarePerPage"];
 	    }
 	}
 	export class PrintSizeInfo {

@@ -50,6 +50,10 @@ export function PrintFormats() {
   return window['go']['main']['App']['PrintFormats']();
 }
 
+export function PrintPages(arg1, arg2) {
+  return window['go']['main']['App']['PrintPages'](arg1, arg2);
+}
+
 export function PrintPapers() {
   return window['go']['main']['App']['PrintPapers']();
 }
