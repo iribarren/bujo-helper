@@ -518,6 +518,7 @@ func TestPrintFormats(t *testing.T) {
 		{ID: "covers", Label: "Cover sheet", Noun: "cover", UsesSize: true, UsesCut: true, Default: true},
 		{ID: "cards", Label: "Review cards", Noun: "card"},
 		{ID: "spines", Label: "Spines", Noun: "spine", UsesSize: true},
+		{ID: "stubs", Label: "Ticket stubs", Noun: "stub"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("PrintFormats() = %+v, want %+v", got, want)
@@ -544,18 +545,21 @@ func TestPrintPapers(t *testing.T) {
 				"covers": {"mini": 81, "standard": 25, "large": 9},
 				"cards":  {"": 8},
 				"spines": {"mini": 144, "standard": 80, "large": 48},
+				"stubs":  {"": 12},
 			}},
 		{ID: "letter", Label: "US Letter", Width: 215.9, Height: 279.4,
 			PerPage: map[string]map[string]int{
 				"covers": {"mini": 81, "standard": 20, "large": 9},
 				"cards":  {"": 8},
 				"spines": {"mini": 144, "standard": 64, "large": 48},
+				"stubs":  {"": 12},
 			}},
 		{ID: "a5", Label: "A5", Width: 148, Height: 210,
 			PerPage: map[string]map[string]int{
 				"covers": {"mini": 36, "standard": 9, "large": 4},
 				"cards":  {"": 3},
 				"spines": {"mini": 66, "standard": 33, "large": 22},
+				"stubs":  {"": 4},
 			}},
 	}
 	if len(papers) != len(want) {

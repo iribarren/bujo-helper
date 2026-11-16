@@ -53,23 +53,31 @@ func baseline(top, pt float64) float64 {
 // between cards, centred on the page both ways. It returns an error if not
 // even one card fits on the page.
 func NewCardGrid(page Page) (Grid, error) {
+	return newFixedGrid(page, CardWidth, CardHeight, "card")
+}
+
+// newFixedGrid derives the grid of fixed-size w × h items on page, as many
+// as fit within MinMargin margins and Gap between items, centred on the
+// page both ways. noun names an item in the error returned if not even one
+// fits on the page.
+func newFixedGrid(page Page, w, h float64, noun string) (Grid, error) {
 	usableW := page.Width - 2*MinMargin
 	usableH := page.Height - 2*MinMargin
 	// A small tolerance keeps an exact fit from being lost to rounding.
 	const tol = 1e-9
-	if CardWidth > usableW+tol || CardHeight > usableH+tol {
-		return Grid{}, fmt.Errorf("a %v × %v mm card does not fit on a %v × %v mm page", CardWidth, CardHeight, page.Width, page.Height)
+	if w > usableW+tol || h > usableH+tol {
+		return Grid{}, fmt.Errorf("a %v × %v mm %s does not fit on a %v × %v mm page", w, h, noun, page.Width, page.Height)
 	}
-	cols := int(math.Floor((usableW+Gap)/(CardWidth+Gap) + tol))
-	rows := int(math.Floor((usableH+Gap)/(CardHeight+Gap) + tol))
+	cols := int(math.Floor((usableW+Gap)/(w+Gap) + tol))
+	rows := int(math.Floor((usableH+Gap)/(h+Gap) + tol))
 	return Grid{
 		Page:        page,
-		CoverHeight: CardHeight,
-		CellWidth:   CardWidth,
+		CoverHeight: h,
+		CellWidth:   w,
 		Columns:     cols,
 		Rows:        rows,
-		MarginX:     (page.Width - float64(cols)*CardWidth - float64(cols-1)*Gap) / 2,
-		MarginY:     (page.Height - float64(rows)*CardHeight - float64(rows-1)*Gap) / 2,
+		MarginX:     (page.Width - float64(cols)*w - float64(cols-1)*Gap) / 2,
+		MarginY:     (page.Height - float64(rows)*h - float64(rows-1)*Gap) / 2,
 	}, nil
 }
 

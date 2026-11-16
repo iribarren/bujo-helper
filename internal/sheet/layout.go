@@ -1,5 +1,6 @@
 // Package sheet lays out cover images on pages for printing and writes them
-// to a PDF, in one of several formats: a sheet of covers, review cards, or book spines.
+// to a PDF, in one of several formats: a sheet of covers, review cards, book
+// spines, or movie ticket stubs.
 //
 // On a cover sheet, covers have a fixed height chosen by a size preset (50 mm by default) and
 // keep their aspect ratio, in a centred grid derived from the cover height
@@ -115,6 +116,7 @@ const DefaultFormat = "covers"
 const (
 	cardsFormat  = "cards"
 	spinesFormat = "spines"
+	stubsFormat  = "stubs"
 )
 
 // Formats lists the print formats, the default first.
@@ -122,6 +124,7 @@ var Formats = []Format{
 	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true, UsesCut: true},
 	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", Noun: "card", UsesSize: false},
 	{ID: spinesFormat, Label: "Spines", FileTag: "spines", Noun: "spine", UsesSize: true},
+	{ID: stubsFormat, Label: "Ticket stubs", FileTag: "stubs", Noun: "stub", UsesSize: false},
 }
 
 // FormatByID returns the format with the given ID; "" means DefaultFormat.
@@ -150,9 +153,10 @@ type Options struct {
 }
 
 // Grid returns the grid the options describe: the cover grid of the size
-// preset for a cover sheet, the card grid for review cards, the spine grid
-// of the size preset (its cover height) for spines. The cut mode never
-// changes the grid, but an unknown one is an error.
+// preset for a cover sheet, the card grid for review cards, the stub grid
+// for ticket stubs, the spine grid of the size preset (its cover height)
+// for spines. The cut mode never changes the grid, but an unknown one is an
+// error.
 func (o Options) Grid() (Grid, error) {
 	f, err := FormatByID(o.Format)
 	if err != nil {
@@ -161,12 +165,19 @@ func (o Options) Grid() (Grid, error) {
 	if _, err := CutModeByID(o.Cut); err != nil {
 		return Grid{}, err
 	}
-	if f.ID == cardsFormat {
+	// Cards and stubs have a fixed size: only the paper applies.
+	fixed := func(newGrid func(Page) (Grid, error)) (Grid, error) {
 		p, err := PaperByID(o.Paper)
 		if err != nil {
 			return Grid{}, err
 		}
-		return NewCardGrid(p.Page)
+		return newGrid(p.Page)
+	}
+	switch f.ID {
+	case cardsFormat:
+		return fixed(NewCardGrid)
+	case stubsFormat:
+		return fixed(NewStubGrid)
 	}
 	s, err := SizeByID(o.Size)
 	if err != nil {
@@ -182,7 +193,7 @@ func (o Options) Grid() (Grid, error) {
 	return NewGrid(p.Page, s.CoverHeight)
 }
 
-// PerPage is the number of covers, cards or spines on a full page.
+// PerPage is the number of covers, cards, spines or stubs on a full page.
 func (o Options) PerPage() (int, error) {
 	g, err := o.Grid()
 	if err != nil {

@@ -87,19 +87,7 @@ func drawCard(pdf *fpdf.Fpdf, c cardParts, image string, imgOpts fpdf.ImageOptio
 	pdf.Rect(c.Card.X, c.Card.Y, c.Card.W, c.Card.H, "D")
 	pdf.ImageOptions(image, c.Cover.X, c.Cover.Y, c.Cover.W, c.Cover.H, false, imgOpts, 0, "")
 
-	// Title, then the creator right under its last line.
-	pdf.SetTextColor(titleGrey, titleGrey, titleGrey)
-	pdf.SetFont(textFont, "B", titleFontSize)
-	y := c.Title.Y
-	for _, line := range fitLines(title, c.Title.W, titleLines, pdf.GetStringWidth) {
-		pdf.Text(c.Title.X, baseline(y, titleFontSize), line)
-		y += lineHeight(titleFontSize)
-	}
-	pdf.SetTextColor(textGrey, textGrey, textGrey)
-	pdf.SetFont(textFont, "", creatorFontSize)
-	for _, line := range fitLines(creator, c.Creator.W, 1, pdf.GetStringWidth) {
-		pdf.Text(c.Creator.X, baseline(y, creatorFontSize), line)
-	}
+	drawTitleAndCreator(pdf, c.Title, c.Creator, title, creator)
 
 	// Date label, and a rule to the right edge to write the date on.
 	pdf.SetFont(textFont, "", labelFontSize)
@@ -123,6 +111,24 @@ func drawCard(pdf *fpdf.Fpdf, c cardParts, image string, imgOpts fpdf.ImageOptio
 	pdf.SetLineWidth(ruleWidth)
 	for _, l := range c.Lines {
 		pdf.Line(l.X, l.Y, l.X+l.W, l.Y)
+	}
+}
+
+// drawTitleAndCreator writes title, bold, in up to titleLines lines in
+// titleBox, then creator on one line right under the title's last line,
+// in creatorBox's width; text that does not fit ends with "…".
+func drawTitleAndCreator(pdf *fpdf.Fpdf, titleBox, creatorBox Box, title, creator string) {
+	pdf.SetTextColor(titleGrey, titleGrey, titleGrey)
+	pdf.SetFont(textFont, "B", titleFontSize)
+	y := titleBox.Y
+	for _, line := range fitLines(title, titleBox.W, titleLines, pdf.GetStringWidth) {
+		pdf.Text(titleBox.X, baseline(y, titleFontSize), line)
+		y += lineHeight(titleFontSize)
+	}
+	pdf.SetTextColor(textGrey, textGrey, textGrey)
+	pdf.SetFont(textFont, "", creatorFontSize)
+	for _, line := range fitLines(creator, creatorBox.W, 1, pdf.GetStringWidth) {
+		pdf.Text(creatorBox.X, baseline(y, creatorFontSize), line)
 	}
 }
 
