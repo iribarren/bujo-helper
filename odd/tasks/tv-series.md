@@ -41,5 +41,7 @@ TV trackers are as common as movie trackers. TMDB covers TV, so the existing API
   - Known limit: the keyless IMDb fallback can return a landscape still or a small image; TMDB (with a key) gives posters. Landscape images print shrink-to-fit in the 2:3 cell until the Non-2:3 images convention lands (items 12/14).
 - Review (843acc7..312d7bb, 14 files, 623 lines, medium): consent granted; lens review-reliability approved; acknowledged (authority burned). Advisory only: no frontend test for the TMDB tip on `tv` (no frontend test runner; covered by the GUI check).
 
+- 2026-11-16: user GUI check passed ("works fine"); merge to main and push authorized.
+
 ## Next step
-User: GUI check (TV series in the selector, tip, sample CSV, print sheet), live TMDB path with a key; then merge/push.
+Done. Merged to main; ROADMAP item 5 marked done.
