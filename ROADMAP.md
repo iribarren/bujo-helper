@@ -2,14 +2,14 @@
 
 New printables and content types for bullet journal users, based on research into common bujo spreads.
 
-- **Part 1 (items 1–13):** media spreads, such as reading logs, bookshelf trackers, movie and TV trackers and sticker sheets.
+- **Part 1 (items 1–13):** media spreads, such as reading logs, bookshelf trackers, movie and TV trackers and sticker sheets. Done, except item 7 (won't do).
 - **Part 2 (items 14–28):** other bujo collections, such as art, travel, nature, food and personal memories. Items are grouped by how well they fit the app: **Strong**, **Medium** and **Weak**.
 
 ## How to use this roadmap
 
 - Each item is **self-contained** and sized for **one fresh Claude session**. Start with: *"Implement roadmap item N from ROADMAP.md."*
 - Within each part, items are ordered by **value first, then effort**; in Part 2 they are also grouped by fit. Any order works. No item needs another one done first.
-- When an item is done, mark it `[x]` and add the merge commit hash.
+- When an item is done, mark it `[x]` and add the merge commit hash. Items we decided not to build are marked `[-] WONT DO`, with the reason.
 
 ## Shared conventions
 
@@ -111,7 +111,9 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 - The default output doesn't change. With bleed on, images don't overlap their neighbours (the gap absorbs the bleed).
 - Layout tests for bleed geometry.
 
-## 7. [ ] Grayscale / ink-saver mode
+## 7. [-] WONT DO: Grayscale / ink-saver mode
+
+**Decision (2026-11-16):** not built. The printer's own grayscale or ink-saving setting gives the same result.
 
 **Why:** many people print on cheap home inkjets, and some journals use a black-and-white aesthetic.
 
