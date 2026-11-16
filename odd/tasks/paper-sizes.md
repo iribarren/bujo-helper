@@ -31,10 +31,14 @@ US users print on Letter, and many bullet journals are A5, so people want sheets
 
 ## Tasks
 - [x] T1 sheet: paper presets, `Options.Paper`, grid per paper; table-driven tests per paper × size, PDF MediaBox per paper. Route: inline (one package, layout already loaded; previous item used the same route).
-- [ ] T2 app + UI + docs: binding exposes papers and per-page counts per paper × size, `ExportPDF` validates the paper before the save dialog, Paper select, live page count, README Print sheet section. Route: delegated writer (writer trigger: app.go, print.ts, index.html, README, bindings).
+- [x] T2 app + UI + docs: binding exposes papers and per-page counts per paper × size, `ExportPDF` validates the paper before the save dialog, Paper select, live page count, README Print sheet section. Route: delegated writer (writer trigger: app.go, print.ts, index.html, README, bindings).
 
 ## Progress
 - T1 `662ab2f` feat(sheet): `Papers` (A4 default, US Letter, A5), `PaperByID`, `Options.Paper`; `Options.Grid` uses the paper's page. Route: inline. RED: build failure (undefined A5/PaperByID, unknown field Paper). GREEN: `go test -tags webkit2_41 ./...` 262 passed (14 packages); vet and gofmt clean. Tests: grid per paper × size (full, centred), default = A4, unknown paper named, boxes inside margins on every paper, PDF MediaBox and page count per paper.
+- Review of main..cf527df (T1 + doc, 255 lines, medium; started by the stop hook): consent granted, reliability lens approved with no findings, acknowledged (authority burned). Reviewed boundary is now cf527df.
+- T2 `ff5a90a` feat(ui): `PrintPapers()` binding (`PrintPaperInfo` with `perPage` by size ID); `PerPage` moved off `PrintSizeInfo` so the paper is the single source of per-page counts; Paper select (before Cover size) whose change relabels the size options and the toolbar page count; `ExportPDF` gets `{size, paper}`; README grid table per paper and generic *W*/*H* formulas. Route: delegated writer (writer trigger). RED: `PrintPapers undefined`, `undefined: PrintPaperInfo`. Unknown-paper `ExportPDF` cases had no real RED: `ExportPDF` already validates through `opts.Grid()`, so those tests pin existing behaviour. GREEN (writer): `go test -tags webkit2_41 ./...` 269 passed; vet, gofmt clean; `tsc --noEmit` ok; `wails build -tags webkit2_41` ok; binding file modes restored to 644. Parent spot check: `go test` 269 passed.
+- Assess cf527df..ff5a90a: medium, 257 lines, `review_due` false (`under_budget`).
+- Pending: manual GUI check (user).
 
 ## Next step
-T2 (delegated writer).
+User: GUI check of the Paper select (A4/Letter/A5, page count updates live, exported PDF page size). Then merge/push (user's decision).
