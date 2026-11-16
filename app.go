@@ -573,16 +573,31 @@ type PrintPaperInfo struct {
 	// format that does not use a cover size has one count, under "". For
 	// example 25 standard covers, or 8 review cards, on A4.
 	PerPage map[string]map[string]int `json:"perPage"`
+	// HeaderPerPage is what fits on a full page with a header, by format
+	// ID, for the formats that print one; PerPage has their counts without
+	// it. For example 16 checklist rows on A4, against 17 without a header.
+	HeaderPerPage map[string]int `json:"headerPerPage"`
 }
 
 // PrintPapers lists the paper size presets, the default first, with how many
-// items of each format (and size, if it uses one) fit on a page, so the UI
-// can count pages without its own copy of the layout rules.
+// items of each format (and size, if it uses one; and with or without a
+// header, if it prints one) fit on a page, so the UI can count pages without
+// its own copy of the layout rules.
 func (a *App) PrintPapers() []PrintPaperInfo {
 	out := make([]PrintPaperInfo, 0, len(sheet.Papers))
 	for _, p := range sheet.Papers {
 		perPage := make(map[string]map[string]int, len(sheet.Formats))
+		headerPerPage := make(map[string]int)
 		for _, f := range sheet.Formats {
+			if f.UsesHeader {
+				// Any header takes the same band.
+				n, err := sheet.Options{Format: f.ID, Paper: p.ID, Header: "Header"}.PerPage()
+				if err != nil {
+					log.Printf("print format %s with a header on %s: %v", f.ID, p.ID, err)
+				} else {
+					headerPerPage[f.ID] = n
+				}
+			}
 			sizes := []string{""}
 			if f.UsesSize {
 				sizes = make([]string, 0, len(sheet.Sizes))
@@ -604,12 +619,13 @@ func (a *App) PrintPapers() []PrintPaperInfo {
 			perPage[f.ID] = counts
 		}
 		out = append(out, PrintPaperInfo{
-			ID:      p.ID,
-			Label:   p.Label,
-			Width:   p.Page.Width,
-			Height:  p.Page.Height,
-			Default: p.ID == sheet.DefaultPaper,
-			PerPage: perPage,
+			ID:            p.ID,
+			Label:         p.Label,
+			Width:         p.Page.Width,
+			Height:        p.Page.Height,
+			Default:       p.ID == sheet.DefaultPaper,
+			PerPage:       perPage,
+			HeaderPerPage: headerPerPage,
 		})
 	}
 	return out
@@ -656,7 +672,8 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 
 // pdfFileName is the default name of the PDF opts describe, e.g.
 // "covers_A4_Standard.pdf", "covers_A4_Standard_bleed.pdf", "cards_A4.pdf",
-// "spines_A4_Mini.pdf", "stubs_A4.pdf" or "fullpage_A4.pdf".
+// "spines_A4_Mini.pdf", "stubs_A4.pdf", "fullpage_A4.pdf" or
+// "checklist_A4.pdf".
 // The format, paper and, when the format uses them, size and a cut mode
 // other than the default tell sheets with other settings apart.
 func pdfFileName(opts sheet.Options) (string, error) {

@@ -16,7 +16,7 @@ Book covers, movie posters and TV series posters are supported. The core is medi
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
-- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, or as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in. See [Print sheet](#print-sheet).
+- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, or as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row. See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
@@ -136,15 +136,15 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 
 ## Print sheet
 
-The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, [review cards](#review-cards), [spines](#spines), [ticket stubs](#ticket-stubs), or a [full page](#full-page) of covers under a header, with nothing to cut.
+The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, [review cards](#review-cards), [spines](#spines), [ticket stubs](#ticket-stubs), a [full page](#full-page) of covers under a header, with nothing to cut, or a [checklist](#checklist) to tick off as you read or watch.
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
-2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs** or **Full page**. For review cards, pick what they are **Cards for** (Books, Movies or TV series); it follows the Download tab's media type until you change it here. For a full page, type a **Header** (for example "Books of 2026"), or leave it empty.
+2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page** or **Checklist**. For review cards, pick what they are **Cards for** (Books, Movies or TV series); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** (for example "Books of 2026" or "TBR 2026"), or leave it empty.
 3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines) fit on that paper.
-4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet and spines, so it is disabled for review cards, ticket stubs and full pages.
+4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet and spines, so it is disabled for review cards, ticket stubs, full pages and checklists.
 5. For a cover sheet, pick a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). It never changes how many covers fit on a page.
-6. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size.
-7. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `spines_A4_Standard.pdf` or, for review cards, ticket stubs and full pages, `cards_A4.pdf`, `stubs_A4.pdf` and `fullpage_A4.pdf`), then **Open PDF** to view it.
+6. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size (and, for a checklist, header).
+7. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `spines_A4_Standard.pdf` or, for review cards, ticket stubs, full pages and checklists, `cards_A4.pdf`, `stubs_A4.pdf`, `fullpage_A4.pdf` and `checklist_A4.pdf`), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 
@@ -177,7 +177,7 @@ How the grid is derived from the cover height *h* and the page width *W* and hei
 
 ### Cut mode
 
-The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, spines and ticket stubs always keep their grey cut border; a full page has none.
+The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, spines and ticket stubs always keep their grey cut border; a full page and a checklist have none.
 
 | Cut mode               | What is printed                                                                                                   |
 |------------------------|-------------------------------------------------------------------------------------------------------------------|
@@ -290,6 +290,32 @@ For example, on A4 with a header: 1 to 3 covers are 80 mm tall in one row, 4 are
 - The paper applies; the cover size and cut mode do not.
 - The suggested file name is `fullpage_<paper>.pdf`, for example `fullpage_A4.pdf`.
 
+### Checklist
+
+The **Checklist** format prints a to-be-read list or watchlist to glue into a journal: the **Header** you type (for example "TBR 2026" or "Watchlist"), then one row per selected cover to tick off. There are no cut borders.
+
+| Part      | Content                                                                                       |
+|-----------|-----------------------------------------------------------------------------------------------|
+| Header    | as on a [full page](#full-page): bold, centred, in a 12 mm band, shrunk then cut with "…" to fit; repeated on every page. Empty: no band |
+| Checkbox  | a 5 mm square on the left                                                                     |
+| Thumbnail | the cover in a 2:3 box 13 mm tall, keeping its aspect ratio (square and wide images are shrunk to fit and centred) |
+| Title     | bold, from the file name `Title - Creator.jpg`, on 1 line; longer text ends with "…"          |
+| Creator   | the year for movies and TV series (`Title - Year.jpg`), or the author for books, on 1 line under the title; without one, the title is centred alone |
+| Rule      | a thin light-grey line under each row                                                         |
+
+Rows are 16 mm tall and span the page within 8 mm margins, from the top margin down, or right below the header:
+
+| Paper     | Rows per page | With a header |
+|-----------|---------------|---------------|
+| **A4**    | 17            | 16            |
+| US Letter | 16            | 15            |
+| A5        | 12            | 11            |
+
+- More rows go on further pages, with the header repeated on every page; the last page may be partly filled.
+- The title and creator are read from the file name as for [review cards](#review-cards), with the same caveats.
+- The paper applies; the cover size and cut mode do not.
+- The suggested file name is `checklist_<paper>.pdf`, for example `checklist_A4.pdf`.
+
 ## Using the command line
 
 The `covers` CLI runs the same downloader without a window:
@@ -390,7 +416,7 @@ internal/
   web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
   settings/            user settings file (TMDB API key)
   gallery/             print sheet: folder listing and thumbnails for the UI
-  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page) and PDF export
+  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist) and PDF export
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
 legacy/                the original Python script
 ```

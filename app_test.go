@@ -459,6 +459,9 @@ func TestExportPDFDefaultFileName(t *testing.T) {
 		{"default full page", sheet.Options{Format: "fullpage"}, "fullpage_A4.pdf"},
 		{"full page with a header", sheet.Options{Format: "fullpage", Paper: "letter", Header: "Books of 2026"}, "fullpage_Letter.pdf"},
 		{"full page ignores the size and cut", sheet.Options{Format: "fullpage", Size: "large", Paper: "a5", Cut: "bleed"}, "fullpage_A5.pdf"},
+		{"default checklist", sheet.Options{Format: "checklist"}, "checklist_A4.pdf"},
+		{"checklist with a header", sheet.Options{Format: "checklist", Paper: "letter", Header: "TBR 2026"}, "checklist_Letter.pdf"},
+		{"checklist ignores the size and cut", sheet.Options{Format: "checklist", Size: "large", Paper: "a5", Cut: "bleed"}, "checklist_A5.pdf"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -556,7 +559,8 @@ func TestPrintPapers(t *testing.T) {
 				"stubs":     {"": 12},
 				"fullpage":  {"": 60},
 				"checklist": {"": 17},
-			}},
+			},
+			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 16}},
 		{ID: "letter", Label: "US Letter", Width: 215.9, Height: 279.4,
 			PerPage: map[string]map[string]int{
 				"covers":    {"mini": 81, "standard": 20, "large": 9},
@@ -565,7 +569,8 @@ func TestPrintPapers(t *testing.T) {
 				"stubs":     {"": 12},
 				"fullpage":  {"": 60},
 				"checklist": {"": 16},
-			}},
+			},
+			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 15}},
 		{ID: "a5", Label: "A5", Width: 148, Height: 210,
 			PerPage: map[string]map[string]int{
 				"covers":    {"mini": 36, "standard": 9, "large": 4},
@@ -574,7 +579,8 @@ func TestPrintPapers(t *testing.T) {
 				"stubs":     {"": 4},
 				"fullpage":  {"": 60},
 				"checklist": {"": 12},
-			}},
+			},
+			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 11}},
 	}
 	if len(papers) != len(want) {
 		t.Fatalf("PrintPapers() = %+v, want %+v", papers, want)
@@ -610,6 +616,20 @@ func TestPrintPapersMatchTheSheet(t *testing.T) {
 				}
 				if got := p.PerPage[f.ID][size]; got != want {
 					t.Errorf("%s %s %q: %d per page, want %d", p.ID, f.ID, size, got, want)
+				}
+			}
+			// Formats that print a header also have their count with one.
+			got, ok := p.HeaderPerPage[f.ID]
+			if ok != f.UsesHeader {
+				t.Errorf("%s %s: count with a header listed: %v, want %v", p.ID, f.ID, ok, f.UsesHeader)
+			}
+			if f.UsesHeader {
+				want, err := sheet.Options{Format: f.ID, Paper: p.ID, Header: "TBR 2026"}.PerPage()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got != want {
+					t.Errorf("%s %s with a header: %d per page, want %d", p.ID, f.ID, got, want)
 				}
 			}
 		}
