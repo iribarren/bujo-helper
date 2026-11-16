@@ -2,14 +2,14 @@
 //
 // Usage:
 //
-//	covers [-type books|movies] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" | "Title, Year" ...]
+//	covers [-type books|movies|tv] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" | "Title, Year" ...]
 //
-// The TMDB API key (used by -type movies) comes from -tmdb-key, else the
+// The TMDB API key (used by -type movies and -type tv) comes from -tmdb-key, else the
 // TMDB_API_KEY environment variable, else the settings file the GUI writes.
 //
 // Each positional argument is one "Title, Creator" item (split on the last
-// comma): "Title, Author" for books, "Title, Year" for movies. Items from -csv are added after them. Flags must come before the
-// items. The exit code is 1 when any item failed and 2 on usage errors.
+// comma): "Title, Author" for books, "Title, Year" for movies and TV series.
+// Items from -csv are added after them. Flags must come before the items. The exit code is 1 when any item failed and 2 on usage errors.
 package main
 
 import (
@@ -54,13 +54,13 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 
 	fs := flag.NewFlagSet("covers", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg)+`; movie items are "Title, Year"`)
+	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie and TV items are "Title, Year"`)
 	outDir := fs.String("o", "covers", "output directory")
 	country := fs.String("country", "es", "store country code (es, us, gb, de, ...); books prefer local editions")
 	csvPath := fs.String("csv", "", "CSV file with title and creator (author or year) columns")
 	tmdbFlag := fs.String("tmdb-key", "", "TMDB API key (default: $TMDB_API_KEY, then the saved settings)")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, `usage: covers [-type books|movies] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" | "Title, Year" ...]`)
+		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" | "Title, Year" ...]`)
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -84,7 +84,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 		return 2
 	}
 	if _, ok := reg.Get(*mediaType); !ok {
-		fmt.Fprintf(stderr, "error: unknown media type %q (available: %s)\n", *mediaType, typeIDs(reg))
+		fmt.Fprintf(stderr, "error: unknown media type %q (available: %s)\n", *mediaType, typeIDs(reg, ", "))
 		return 2
 	}
 	tmdbKey = resolveTMDBKey(*tmdbFlag, e.getenv, e.loadSettings)
@@ -160,10 +160,11 @@ func readCSV(path string) ([]media.Item, error) {
 	return batch.ReadCSV(f)
 }
 
-func typeIDs(reg *media.Registry) string {
+// typeIDs lists the registered media type IDs joined by sep.
+func typeIDs(reg *media.Registry, sep string) string {
 	var ids []string
 	for _, t := range reg.List() {
 		ids = append(ids, t.ID)
 	}
-	return strings.Join(ids, ", ")
+	return strings.Join(ids, sep)
 }

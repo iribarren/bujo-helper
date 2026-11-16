@@ -45,7 +45,11 @@ interface RateLimitEvent {
 const EXAMPLES: Record<string, string> = {
     books: 'Dune, Frank Herbert',
     movies: 'Dune, 2021',
+    tv: 'Breaking Bad, 2008',
 };
+
+// Media types whose posters come from TMDB first.
+const TMDB_TYPES = new Set(['movies', 'tv']);
 
 const STATUS_ICONS: Record<string, string> = {
     pending: '⏳',
@@ -167,10 +171,10 @@ function updatePlaceholder() {
     ui.items.placeholder = example ? `${first}\nOne per line, e.g.\n${example}` : `${first}\nOne per line`;
 }
 
-// updateMovieTip suggests a TMDB key while movies are selected and none is
-// saved.
+// updateMovieTip suggests a TMDB key while movies or TV series are selected
+// and none is saved.
 function updateMovieTip() {
-    ui.movieTip.hidden = ui.mediaType.value !== 'movies' || settingsDialog.hasTMDBKey();
+    ui.movieTip.hidden = !TMDB_TYPES.has(ui.mediaType.value) || settingsDialog.hasTMDBKey();
 }
 
 // updateSampleButton names the selected media type on the sample CSV

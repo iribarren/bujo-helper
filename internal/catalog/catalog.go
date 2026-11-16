@@ -61,6 +61,25 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "Amélie", Creator: "2001"},
 		},
 	})
+	// No Wikidata → iTunes fallback for TV: Wikidata only links Apple TV
+	// movie IDs.
+	mustRegister(reg, media.MediaType{
+		ID:           "tv",
+		Label:        "TV series",
+		CreatorLabel: "Year",
+		DateLabel:    "Watched on",
+		Providers: []media.Provider{
+			providers.NewTMDBTV(client, keys.TMDB),
+			providers.NewIMDbTV(client),
+		},
+		Samples: []media.Item{
+			{Title: "Breaking Bad", Creator: "2008"},
+			{Title: "The Office", Creator: "2005"},
+			{Title: "Stranger Things", Creator: "2016"},
+			{Title: "Money Heist", Creator: "2017"},
+			{Title: "Dark", Creator: "2017"},
+		},
+	})
 	return reg
 }
 

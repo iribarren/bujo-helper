@@ -3,11 +3,11 @@
 A desktop app for Windows and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
 
-Book covers and movie posters are supported. The core is media-agnostic, so music or games can be added later as new providers.
+Book covers, movie posters and TV series posters are supported. The core is media-agnostic, so music or games can be added later as new providers.
 
 ## Features
 
-- Batch input: one `Title, Author` (books) or `Title, Year` (movies) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books) or `Title, Year` (movies and TV series) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
@@ -63,7 +63,16 @@ Sources are tried in this order for movies:
 2. **IMDb** (the public title-suggestion endpoint, no key): large posters for most films. It is an unofficial endpoint and may change or stop working.
 3. **Wikidata → Apple TV** (no key): Wikidata links the film to its Apple TV (iTunes) movie ID, and the iTunes lookup returns the poster artwork (usually 2000 × 3000).
 
-Movie posters are about 2:3, like book covers, so the print sheet lays them out the same way.
+Sources are tried in this order for TV series (the year is the first air year, and it is optional):
+
+1. **TMDB** TV search: the same API, key and localized posters as for movies (for example the Spanish *La casa de papel* poster for `es`). The first air year filters the search; when nothing with a poster matches, it searches again without the year. Without a key it is skipped.
+2. **IMDb** (the same keyless, unofficial title-suggestion endpoint as for movies): it keeps TV series and mini-series and drops films.
+
+There is no Wikidata → Apple TV fallback for TV series: Wikidata only links Apple TV *movie* IDs, so it cannot find show artwork.
+
+Movie and TV posters are about 2:3, like book covers, so the print sheet lays them out the same way.
+
+TV series use the same services, under the same terms, as movies: the TMDB API (with the attribution below) and the unofficial IMDb endpoint, with no key. Downloaded posters are for personal use.
 
 ### TMDB API key
 
@@ -106,19 +115,19 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies. The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies and TV series. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books or movies).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies or TV series).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
 ## Using the app
 
-1. Choose the media type: **Books** or **Movies**. For movies, optionally add a TMDB API key in **Settings** for the best posters.
+1. Choose the media type: **Books**, **Movies** or **TV series**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters.
 2. Type or paste items, one per line, or click **Import CSV…**.
 3. Check the output folder (default: `~/Pictures/Covers`, or `%USERPROFILE%\Pictures\Covers` on Windows), and change it with **Browse…** if needed.
 4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
@@ -130,7 +139,7 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, [review cards](#review-cards) or [spines](#spines).
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
-2. Pick a **Format**: **Cover sheet** (the default), **Review cards** or **Spines**. For review cards, pick what they are **Cards for** (Books or Movies); it follows the Download tab's media type until you change it here.
+2. Pick a **Format**: **Cover sheet** (the default), **Review cards** or **Spines**. For review cards, pick what they are **Cards for** (Books, Movies or TV series); it follows the Download tab's media type until you change it here.
 3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines) fit on that paper.
 4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet and spines, so it is disabled for review cards.
 5. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size.
@@ -173,7 +182,7 @@ The **Review cards** format prints one 90 × 55 mm card per selected cover, to f
 |------------|-----------------------------------------------------------------------------------------------|
 | Left side  | the cover                                                                                     |
 | Title      | from the file name `Title - Creator.jpg`, up to 2 lines; longer text ends with "…"            |
-| Creator    | the author, or the year for movies (`Title - Year.jpg`), on 1 line                            |
+| Creator    | the author, or the year for movies and TV series (`Title - Year.jpg`), on 1 line              |
 | Date field | **Read on** or **Watched on**, from the **Cards for** choice                                  |
 | Rating     | 5 empty stars                                                                                 |
 | Notes      | 3 writing lines                                                                               |
@@ -225,13 +234,14 @@ go run ./cmd/covers -o covers "Dune, Frank Herbert" "Emma, Jane Austen"
 go run ./cmd/covers -country us -csv sample_books.csv -o covers
 go run ./cmd/covers -type movies -o posters "Dune, 2021" "Inception, 2010"
 TMDB_API_KEY=<key> go run ./cmd/covers -type movies -o posters "The Matrix, 1999"
+go run ./cmd/covers -type tv -o posters "Breaking Bad, 2008" "Dark, 2017"
 ```
 
 Flags must come before the items:
 
 | Flag       | Default  | Meaning                                         |
 |------------|----------|-------------------------------------------------|
-| `-type`    | `books`  | Media type: `books` or `movies`                 |
+| `-type`    | `books`  | Media type: `books`, `movies` or `tv`           |
 | `-o`       | `covers` | Output folder                                   |
 | `-country` | `es`     | Store country code; its editions are preferred  |
 | `-csv`     | (none)   | CSV file, added after the positional items       |
@@ -306,7 +316,7 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming
