@@ -37,7 +37,9 @@ Users print onto sticker paper and cut with a Cricut or Silhouette, or cut by ha
 - T1 design note: in Bleed mode each image is also clipped to its bleed box (`ClipRect`), so a low-resolution image whose whole-pixel padding exceeds 1 mm still stops exactly at the bleed. Unknown cut IDs are rejected by `Options.Grid()` for every format (and so by `Build` and `ExportPDF` before the dialog).
 - T2 (2026-11-16): RED = `go test .` build failure (unknown field `UsesCut`, undefined `PrintCutModes`/`PrintCutModeInfo`). GREEN = all app tests pass. Bindings regenerated with `wails generate module -tags webkit2_41`; it and `wails build` set 0755 on frontend/wailsjs files, reverted to 0644 (runtime/ files restored). The Cut mode field is hidden (not disabled) when the format does not use it.
 - Checks after T2: `go test -tags webkit2_41 ./...` ok; `go vet -tags webkit2_41 ./...` no issues; `gofmt -l .` empty; `npx tsc --noEmit` no errors; `wails build -tags webkit2_41` built; `git diff --summary HEAD~2` no mode changes.
-- Pending: GUI check by the user (single-pr strategy), native review per RDD.
+- Parent spot check: `go test -tags webkit2_41 ./...` 461 passed. Visual check: rendered a Bleed A4 sheet (portrait, square, landscape, mixed ratios) at 200 dpi; images run past the cut line, crop marks sit in the gaps at each corner.
+- Review of 108f5af..fc8c74d (906 lines, medium, `slice_budget_reached`): consent granted, reliability lens approved, acknowledged. Advisory, not scheduled: R3-bleed-placement-unproved (WARNING: no test asserts the drawn image coordinates of the padded image in the PDF), R3-bleed-horizontal-pad-from-height (SUGGESTION: the horizontal pad uses the vertical px/mm; equal up to rounding since aspect is kept).
+- Pending: GUI check by the user (single-pr strategy).
 
 ## Next step
 User GUI check of the Cut mode select and a Bleed PDF (print at 100 %), then review and local `--no-ff` merge.
