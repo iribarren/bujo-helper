@@ -446,6 +446,8 @@ func TestExportPDFDefaultFileName(t *testing.T) {
 		{"cover sheet", sheet.Options{Format: "covers", Size: "mini", Paper: "letter"}, "covers_Letter_Mini.pdf"},
 		{"review cards", sheet.Options{Format: "cards", Paper: "a5"}, "cards_A5.pdf"},
 		{"review cards ignore the size", sheet.Options{Format: "cards", Size: "huge", Paper: "a4"}, "cards_A4.pdf"},
+		{"default spines", sheet.Options{Format: "spines"}, "spines_A4_Standard.pdf"},
+		{"spines", sheet.Options{Format: "spines", Size: "large", Paper: "a5"}, "spines_A5_Large.pdf"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -508,9 +510,9 @@ func TestPrintSizes(t *testing.T) {
 func TestPrintFormats(t *testing.T) {
 	got := NewApp().PrintFormats()
 	want := []PrintFormatInfo{
-		{ID: "covers", Label: "Cover sheet", UsesSize: true, Default: true},
-		{ID: "cards", Label: "Review cards"},
-		{ID: "spines", Label: "Spines", UsesSize: true},
+		{ID: "covers", Label: "Cover sheet", Noun: "cover", UsesSize: true, Default: true},
+		{ID: "cards", Label: "Review cards", Noun: "card"},
+		{ID: "spines", Label: "Spines", Noun: "spine", UsesSize: true},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("PrintFormats() = %+v, want %+v", got, want)
@@ -521,14 +523,23 @@ func TestPrintPapers(t *testing.T) {
 	papers := NewApp().PrintPapers()
 	want := []PrintPaperInfo{
 		{ID: "a4", Label: "A4", Width: 210, Height: 297, Default: true,
-			PerPage:       map[string]int{"mini": 81, "standard": 25, "large": 9},
-			FormatPerPage: map[string]int{"cards": 8}},
+			PerPage: map[string]map[string]int{
+				"covers": {"mini": 81, "standard": 25, "large": 9},
+				"cards":  {"": 8},
+				"spines": {"mini": 144, "standard": 80, "large": 48},
+			}},
 		{ID: "letter", Label: "US Letter", Width: 215.9, Height: 279.4,
-			PerPage:       map[string]int{"mini": 81, "standard": 20, "large": 9},
-			FormatPerPage: map[string]int{"cards": 8}},
+			PerPage: map[string]map[string]int{
+				"covers": {"mini": 81, "standard": 20, "large": 9},
+				"cards":  {"": 8},
+				"spines": {"mini": 144, "standard": 64, "large": 48},
+			}},
 		{ID: "a5", Label: "A5", Width: 148, Height: 210,
-			PerPage:       map[string]int{"mini": 36, "standard": 9, "large": 4},
-			FormatPerPage: map[string]int{"cards": 3}},
+			PerPage: map[string]map[string]int{
+				"covers": {"mini": 36, "standard": 9, "large": 4},
+				"cards":  {"": 3},
+				"spines": {"mini": 66, "standard": 33, "large": 22},
+			}},
 	}
 	if len(papers) != len(want) {
 		t.Fatalf("PrintPapers() = %+v, want %+v", papers, want)
@@ -539,6 +550,34 @@ func TestPrintPapers(t *testing.T) {
 				t.Errorf("paper %d = %+v, want %+v", i, papers[i], w)
 			}
 		})
+	}
+}
+
+// The counts PrintPapers sends are the sheet's own, for every format,
+// paper and size.
+func TestPrintPapersMatchTheSheet(t *testing.T) {
+	for _, p := range NewApp().PrintPapers() {
+		for _, f := range sheet.Formats {
+			sizes := []string{""}
+			if f.UsesSize {
+				sizes = nil
+				for _, s := range sheet.Sizes {
+					sizes = append(sizes, s.ID)
+				}
+			}
+			if len(p.PerPage[f.ID]) != len(sizes) {
+				t.Errorf("%s %s: counts %v, want one for each of %q", p.ID, f.ID, p.PerPage[f.ID], sizes)
+			}
+			for _, size := range sizes {
+				want, err := sheet.Options{Format: f.ID, Paper: p.ID, Size: size}.PerPage()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got := p.PerPage[f.ID][size]; got != want {
+					t.Errorf("%s %s %q: %d per page, want %d", p.ID, f.ID, size, got, want)
+				}
+			}
+		}
 	}
 }
 

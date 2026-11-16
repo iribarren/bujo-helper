@@ -39,8 +39,8 @@ func TestFormatsHaveLabelsAndFileSafeTags(t *testing.T) {
 	const safe = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	seen := map[string]bool{}
 	for _, f := range Formats {
-		if f.ID == "" || f.Label == "" || seen[f.ID] {
-			t.Errorf("format %+v: want a unique ID and a label", f)
+		if f.ID == "" || f.Label == "" || f.Noun == "" || seen[f.ID] {
+			t.Errorf("format %+v: want a unique ID, a label and a noun", f)
 		}
 		seen[f.ID] = true
 		if f.FileTag == "" || strings.Trim(f.FileTag, safe) != "" {

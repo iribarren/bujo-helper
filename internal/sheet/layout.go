@@ -103,6 +103,7 @@ type Format struct {
 	ID       string
 	Label    string
 	FileTag  string // short, file-name-safe name, e.g. for "cards_A4.pdf"
+	Noun     string // what one printed item is called, e.g. "card"
 	UsesSize bool   // whether the cover size preset applies
 }
 
@@ -117,9 +118,9 @@ const (
 
 // Formats lists the print formats, the default first.
 var Formats = []Format{
-	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", UsesSize: true},
-	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", UsesSize: false},
-	{ID: spinesFormat, Label: "Spines", FileTag: "spines", UsesSize: true},
+	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true},
+	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", Noun: "card", UsesSize: false},
+	{ID: spinesFormat, Label: "Spines", FileTag: "spines", Noun: "spine", UsesSize: true},
 }
 
 // FormatByID returns the format with the given ID; "" means DefaultFormat.

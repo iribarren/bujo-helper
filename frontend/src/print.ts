@@ -1,6 +1,7 @@
 // The "Print sheet" tab: preview the covers in a folder, select some, pick
-// a format (a cover sheet or review cards), a paper and, for a cover sheet, a
-// cover size, and export them to a PDF on that paper (see internal/sheet).
+// a format (a cover sheet, review cards or book spines), a paper and, for a
+// cover sheet or spines, a cover size, and export them to a PDF on that paper
+// (see internal/sheet).
 
 import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintFormats, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
@@ -62,10 +63,22 @@ export function pageCount(covers: number, perPage: number): number {
     return Math.ceil(covers / perPage);
 }
 
-// sizeLabel names a cover size, with how many fit on paper once it is known.
-function sizeLabel(size: main.PrintSizeInfo, paper?: main.PrintPaperInfo): string {
+// perPageOf is how many items of format fit on a page of paper, in the size
+// sizeId when the format uses one, or undefined until they are known.
+function perPageOf(
+    paper: main.PrintPaperInfo | undefined,
+    format: main.PrintFormatInfo | undefined,
+    sizeId = '',
+): number | undefined {
+    if (!paper || !format) return undefined;
+    // Counts by size ID; a format without sizes has one, under ''.
+    const counts: Record<string, number> | undefined = paper.perPage?.[format.id];
+    return counts?.[format.usesSize ? sizeId : ''];
+}
+
+// sizeLabel names a cover size, with how many fit on a page once it is known.
+function sizeLabel(size: main.PrintSizeInfo, perPage?: number): string {
     const label = `${size.label} · ${size.coverHeight} mm`;
-    const perPage = paper?.perPage[size.id];
     return perPage ? `${label} (${perPage} per page)` : label;
 }
 
@@ -131,15 +144,15 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     // currentLayout is the chosen format, paper and, when the format uses
-    // one, size, with how many covers or cards fit on a page, or undefined
-    // until they have loaded.
+    // one, size, with how many items fit on a page, or undefined until they
+    // have loaded.
     function currentLayout() {
         const format = currentFormat();
         const paper = currentPaper();
         if (!format || !paper) return undefined;
         const size = format.usesSize ? currentSize() : undefined;
         if (format.usesSize && !size) return undefined;
-        const perPage = size ? paper.perPage[size.id] : paper.formatPerPage[format.id];
+        const perPage = perPageOf(paper, format, size?.id);
         if (!perPage) return undefined;
         return {format, paper, size, perPage};
     }
@@ -290,7 +303,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             }
             lastPdf = saved;
             ui.status.textContent =
-                `Saved ${baseName(saved)}: ${plural(paths.length, cards ? 'card' : 'cover')} on ${plural(pageCount(paths.length, layout.perPage), 'page')}`;
+                `Saved ${baseName(saved)}: ${plural(paths.length, layout.format.noun || 'item')} on ${plural(pageCount(paths.length, layout.perPage), 'page')}`;
             ui.status.title = saved;
             ui.openPdf.hidden = false;
         } catch (err) {
@@ -303,22 +316,28 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         }
     }
 
-    // updateSizeLabels shows how many covers of each size fit on the paper.
+    // updateSizeLabels shows how many covers or spines of each size fit on
+    // the paper, in the chosen format.
     function updateSizeLabels() {
         const paper = currentPaper();
+        const format = currentFormat();
         for (const option of Array.from(ui.size.options)) {
             const size = sizes.find((s) => s.id === option.value);
-            if (size) option.textContent = sizeLabel(size, paper);
+            if (!size) continue;
+            const perPage = format?.usesSize ? perPageOf(paper, format, size.id) : undefined;
+            option.textContent = sizeLabel(size, perPage);
         }
     }
 
     // updateFormat shows the controls that apply to the chosen format: the
-    // cover size for a cover sheet, what the cards are for for review cards.
+    // cover size for a cover sheet or spines, what the cards are for for
+    // review cards.
     function updateFormat() {
         const usesSize = currentFormat()?.usesSize ?? true;
         ui.size.disabled = !usesSize;
         ui.sizeField.classList.toggle('disabled', !usesSize);
         ui.mediaField.hidden = ui.format.value !== REVIEW_CARDS;
+        updateSizeLabels();
         updateSelection();
     }
 
@@ -376,7 +395,6 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         } else {
             deps.showError(`Could not load paper sizes: ${errorText(paperList.reason)}`);
         }
-        updateSizeLabels();
         updateFormat();
     }
 
