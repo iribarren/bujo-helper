@@ -49,5 +49,8 @@ Instant-photo-style frames are a popular decoration style for media spreads.
 
 - Assess 6f28aa8..cfdbf6b: medium, 772 lines, `review_due` (`slice_budget_reached`). Consent granted; reliability lens approved, acknowledged (authority burned). Advisory R3 SUGGESTION (`internal/sheet/polaroid_test.go:59`): A5 Standard fills the width exactly (3 × 41.33 + 2 × 4 = 132 mm), so its 3 columns depend on `newFixedGrid`'s tolerance; the test pins the boundary. Left as is (follow-up only if the tolerance changes).
 
+- Whole-branch review main..a46bcf5 (807 lines, medium): consent granted, reliability lens approved with no findings, acknowledged.
+- Manual GUI check passed (user, 2026-11-16) after rebuilding the stale `build/bin/cover-downloader`. Merged to main and pushed.
+
 ## Next step
-Manual GUI check (Polaroid in the Format list, Cover size applies, Cut mode hidden, page count per size, export).
+Done.
