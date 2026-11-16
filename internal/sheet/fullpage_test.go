@@ -210,8 +210,12 @@ func TestGridLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, pages := range [][][]Box{boxes, cells} {
-		if len(pages) != 3 || len(pages[0]) != 60 || len(pages[1]) != 60 || len(pages[2]) != 1 {
-			t.Errorf("pages of %d, %d, …; want 60, 60, 1", len(pages[0]), len(pages[1]))
+		counts := make([]int, len(pages))
+		for i, p := range pages {
+			counts[i] = len(p)
+		}
+		if len(pages) != 3 || counts[0] != 60 || counts[1] != 60 || counts[2] != 1 {
+			t.Fatalf("pages of %v; want [60 60 1]", counts)
 		}
 		// Every page starts at the same cell.
 		if pages[1][0] != pages[0][0] || pages[2][0] != pages[0][0] {
