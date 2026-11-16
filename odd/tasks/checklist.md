@@ -46,5 +46,9 @@ To-be-read lists and watchlists are standard bujo collections.
   - GREEN: `go test -tags webkit2_41 ./...` → 541 passed in 14 packages; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` no errors; `wails build -tags webkit2_41` built. It set 0755 on `frontend/wailsjs/go/main/App.{d.ts,js}` and `models.ts`; reverted to 0644, `git diff --summary main..HEAD` shows no mode changes.
   - Pending: manual GUI check (Checklist in the Format list, Header placeholder per format, page count changing as a header is typed, export with and without a header).
 
+- Parent spot check: `go test -tags webkit2_41 ./internal/sheet/ .` 340 passed; A4 render reviewed (header, 16 rows, thumbnails inside boxes, long title cut).
+- Plan commit 9f92ab5: low risk, auto-approved, acknowledged.
+- Assess 9f92ab5..8a27f44: medium, 873 lines, `review_due` (`slice_budget_reached`). Consent granted; reliability lens approved, acknowledged (authority burned). Advisory R3 SUGGESTION (`frontend/src/print.ts:169-170`, header-dependent page count has no automated test): the frontend has no test runner, so it is covered by the manual GUI check; Go side is covered by `TestPrintPapersMatchTheSheet`.
+
 ## Next step
-Parent: native review / manual GUI check.
+Manual GUI check by the user, then `--no-ff` merge.
