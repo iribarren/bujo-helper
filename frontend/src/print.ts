@@ -1,7 +1,8 @@
 // The "Print sheet" tab: preview the covers in a folder, select some, pick
-// a format (a cover sheet, review cards, book spines or ticket stubs), a
-// paper, for a cover sheet or spines a cover size and, for a cover sheet, a
-// cut mode, and export them to a PDF on that paper (see internal/sheet).
+// a format (a cover sheet, review cards, book spines, ticket stubs or a full
+// page), a paper, for a cover sheet or spines a cover size, for a cover
+// sheet a cut mode and, for a full page, a header, and export them to a PDF
+// on that paper (see internal/sheet).
 
 import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCutModes, PrintFormats, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
@@ -103,6 +104,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         paper: byId<HTMLSelectElement>('print-paper'),
         cut: byId<HTMLSelectElement>('print-cut'),
         cutField: byId<HTMLLabelElement>('print-cut-field'),
+        header: byId<HTMLInputElement>('print-header'),
+        headerField: byId<HTMLLabelElement>('print-header-field'),
     };
 
     // The folder picked with Browse…; empty means "follow the output folder".
@@ -297,6 +300,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
                 // The cut mode never changes the page count.
                 cut: layout.format.usesCut ? ui.cut.value : '',
                 dateLabel: cards ? currentMedia()?.dateLabel ?? '' : '',
+                header: layout.format.usesHeader ? ui.header.value.trim() : '',
             }));
             if (saved === '') {
                 // Dialog cancelled: leave the last result as it was.
@@ -335,7 +339,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
 
     // updateFormat shows the controls that apply to the chosen format: the
     // cover size for a cover sheet or spines, the cut mode for a cover sheet,
-    // what the cards are for for review cards.
+    // what the cards are for for review cards, the header for a full page.
     function updateFormat() {
         const format = currentFormat();
         const usesSize = format?.usesSize ?? true;
@@ -343,6 +347,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         ui.sizeField.classList.toggle('disabled', !usesSize);
         ui.cutField.hidden = !(format?.usesCut ?? true);
         ui.mediaField.hidden = ui.format.value !== REVIEW_CARDS;
+        const usesHeader = format?.usesHeader ?? false;
+        ui.header.disabled = !usesHeader;
+        ui.headerField.hidden = !usesHeader;
         updateSizeLabels();
         updateSelection();
     }

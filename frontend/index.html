@@ -89,7 +89,12 @@
         </div>
         <label class="field">
             <span>Format</span>
-            <select id="print-format" title="What to print for each cover: a sheet of covers, a review card with its title, a date, stars and lines, a book spine in the cover's main colour for a bookshelf tracker, or a movie ticket stub with the title, Date and Where fields and stars."></select>
+            <select id="print-format" title="What to print for each cover: a sheet of covers, a review card with its title, a date, stars and lines, a book spine in the cover's main colour for a bookshelf tracker, a movie ticket stub with the title, Date and Where fields and stars, or a full page of covers under a header, sized to fit, to glue into a journal without cutting."></select>
+        </label>
+        <label id="print-header-field" class="field" hidden>
+            <span>Header</span>
+            <input id="print-header" type="text" placeholder="Books of 2026" maxlength="120" autocomplete="off" disabled
+                   title="Printed above the covers on every page. Leave it empty for covers only."/>
         </label>
         <label id="print-media-field" class="field" hidden>
             <span>Cards for</span>

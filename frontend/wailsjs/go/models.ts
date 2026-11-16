@@ -76,6 +76,7 @@ export namespace main {
 	    noun: string;
 	    usesSize: boolean;
 	    usesCut: boolean;
+	    usesHeader: boolean;
 	    default: boolean;
 	
 	    static createFrom(source: any = {}) {
@@ -89,6 +90,7 @@ export namespace main {
 	        this.noun = source["noun"];
 	        this.usesSize = source["usesSize"];
 	        this.usesCut = source["usesCut"];
+	        this.usesHeader = source["usesHeader"];
 	        this.default = source["default"];
 	    }
 	}
@@ -178,6 +180,7 @@ export namespace sheet {
 	    paper: string;
 	    cut: string;
 	    dateLabel: string;
+	    header: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Options(source);
@@ -190,6 +193,7 @@ export namespace sheet {
 	        this.paper = source["paper"];
 	        this.cut = source["cut"];
 	        this.dateLabel = source["dateLabel"];
+	        this.header = source["header"];
 	    }
 	}
 

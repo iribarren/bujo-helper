@@ -36,9 +36,11 @@ const (
 
 // Build writes a PDF of the images at paths, in the format and on the grid
 // of opts, to w: a cover sheet, a review card per image, a book spine per
-// image, or a ticket stub per image. Images are downscaled to 300 dpi at their printed size and
-// re-encoded as JPEG to keep the file small. If any image cannot be read or opts are invalid, Build
-// returns an error (naming the file, if any) and writes nothing.
+// image, a ticket stub per image, or full pages of covers under a header.
+// Images are downscaled to 300 dpi at their printed size and re-encoded as
+// JPEG to keep the file small. If any image cannot be read or opts are
+// invalid, Build returns an error (naming the file, if any) and writes
+// nothing.
 func Build(w io.Writer, paths []string, opts Options) error {
 	pdf, err := build(paths, opts)
 	if err != nil {
@@ -86,6 +88,8 @@ func build(paths []string, opts Options) (*fpdf.Fpdf, error) {
 		return buildSpines(grid, paths)
 	case stubsFormat:
 		return buildStubs(grid, paths, ratios)
+	case fullFormat:
+		return buildFullPage(grid.Page, paths, ratios, opts.header())
 	default:
 		return buildCovers(grid, paths, ratios, cut)
 	}
