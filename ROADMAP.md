@@ -157,7 +157,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 **Acceptance**
 - PDF export for books and movies, with long titles truncated. Layout tests for rows per page.
 
-## 11. [ ] Polaroid frames
+## 11. [x] Polaroid frames (fde022c)
 
 **Why:** instant-photo-style frames are a popular decoration style for media spreads.
 
