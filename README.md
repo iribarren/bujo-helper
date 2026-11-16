@@ -88,7 +88,7 @@ MusicBrainz allows at most one request per second and asks every client for a Us
 Sources are tried in this order for games (the year is the first release year, and it is optional):
 
 1. **IGDB** (the Internet Game Database API, owned by Twitch): box art for games on every platform, at 1080p, then 720p, then the 528 × 748 cover. It needs your own free Twitch app credentials, see [IGDB credentials](#igdb-credentials). Without them it is skipped.
-2. **Steam** (the store search, no key): the portrait library art (1200 × 1800, or 600 × 900 for older games). It only knows PC games sold on Steam. Its search has no release dates, so when several results share the best title and a year is given, the app looks up the release dates of up to three of them to pick that year.
+2. **Steam** (the store search, no key): the portrait library art (600 × 900, about 300 dpi at the Standard 50 mm size; 300 × 450 when the larger one is missing). It only knows PC games sold on Steam. Its search has no release dates, so when several results share the best title and a year is given, the app looks up the release dates of up to three of them to pick that year.
 
 Game covers are about 3:4 (IGDB) or 2:3 (Steam). The print sheet fits them into the same 2:3 cells as book covers.
 

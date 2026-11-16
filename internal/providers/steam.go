@@ -84,8 +84,8 @@ func (p *Steam) Search(ctx context.Context, item media.Item, _ media.Options) ([
 			continue
 		}
 		id := strconv.FormatInt(it.ID, 10)
-		// The 2x capsule is 1200 × 1800; older games only have the 600 × 900
-		// one, and the downloader moves on after a 404.
+		// The 2x capsule is 600 × 900 and the plain one 300 × 450 (checked
+		// live); the downloader moves on to the next URL after a 404.
 		base := p.ImageBase + "/" + id
 		hits = append(hits, steamHit{
 			Candidate: media.Candidate{
