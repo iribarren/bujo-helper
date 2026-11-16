@@ -47,10 +47,32 @@ const EXAMPLES: Record<string, string> = {
     movies: 'Dune, 2021',
     tv: 'Breaking Bad, 2008',
     albums: 'Abbey Road, The Beatles',
+    games: 'Hollow Knight, 2017',
 };
 
-// Media types whose posters come from TMDB first.
-const TMDB_TYPES = new Set(['movies', 'tv']);
+// The tip shown above the list for media types whose best source needs a
+// key, while none is saved: what to add, why, and whether it is saved.
+interface KeyTip {
+    what: string;
+    why: string;
+    saved(): boolean;
+}
+
+const TMDB_TIP: KeyTip = {
+    what: 'a TMDB API key',
+    why: 'for better movie and TV posters.',
+    saved: () => settingsDialog.hasTMDBKey(),
+};
+
+const KEY_TIPS: Record<string, KeyTip> = {
+    movies: TMDB_TIP,
+    tv: TMDB_TIP,
+    games: {
+        what: 'IGDB credentials',
+        why: 'for box art of all games; without them, Steam covers PC games only.',
+        saved: () => settingsDialog.hasIGDBCredentials(),
+    },
+};
 
 const STATUS_ICONS: Record<string, string> = {
     pending: '⏳',
@@ -68,8 +90,10 @@ function byId<T extends HTMLElement>(id: string): T {
 const ui = {
     mediaType: byId<HTMLSelectElement>('media-type'),
     settingsOpen: byId<HTMLButtonElement>('settings-open'),
-    movieTip: byId<HTMLParagraphElement>('movie-tip'),
-    movieTipSettings: byId<HTMLButtonElement>('movie-tip-settings'),
+    keyTip: byId<HTMLParagraphElement>('key-tip'),
+    keyTipWhat: byId<HTMLSpanElement>('key-tip-what'),
+    keyTipWhy: byId<HTMLSpanElement>('key-tip-why'),
+    keyTipSettings: byId<HTMLButtonElement>('key-tip-settings'),
     rateLimit: byId<HTMLParagraphElement>('rate-limit'),
     banner: byId<HTMLDivElement>('banner'),
     bannerText: byId<HTMLSpanElement>('banner-text'),
@@ -172,10 +196,16 @@ function updatePlaceholder() {
     ui.items.placeholder = example ? `${first}\nOne per line, e.g.\n${example}` : `${first}\nOne per line`;
 }
 
-// updateMovieTip suggests a TMDB key while movies or TV series are selected
-// and none is saved.
-function updateMovieTip() {
-    ui.movieTip.hidden = !TMDB_TYPES.has(ui.mediaType.value) || settingsDialog.hasTMDBKey();
+// updateKeyTip suggests a key while a media type whose best source needs
+// one is selected and none is saved: TMDB for movies and TV series, IGDB
+// for games.
+function updateKeyTip() {
+    const tip = KEY_TIPS[ui.mediaType.value];
+    ui.keyTip.hidden = !tip || tip.saved();
+    if (tip) {
+        ui.keyTipWhat.textContent = tip.what;
+        ui.keyTipWhy.textContent = tip.why;
+    }
 }
 
 // updateSampleButton names the selected media type on the sample CSV
@@ -190,7 +220,7 @@ function updateSampleButton() {
 
 function updateMediaType() {
     updatePlaceholder();
-    updateMovieTip();
+    updateKeyTip();
     updateSampleButton();
 }
 
@@ -410,7 +440,7 @@ async function openFolder() {
 
 // --- wiring ----------------------------------------------------------------
 
-const settingsDialog = initSettings({onChange: updateMovieTip});
+const settingsDialog = initSettings({onChange: updateKeyTip});
 
 EventsOn('job:item', (ev: ItemEvent) => {
     if (awaitingStart) {
@@ -433,7 +463,7 @@ EventsOn('job:done', (done: DoneEvent) => {
 ui.items.addEventListener('input', updateCount);
 ui.mediaType.addEventListener('change', updateMediaType);
 ui.settingsOpen.addEventListener('click', () => settingsDialog.open());
-ui.movieTipSettings.addEventListener('click', () => settingsDialog.open());
+ui.keyTipSettings.addEventListener('click', () => settingsDialog.open());
 ui.importBtn.addEventListener('click', importCSV);
 ui.sampleCsv.addEventListener('click', saveSampleCSV);
 ui.browse.addEventListener('click', browseFolder);

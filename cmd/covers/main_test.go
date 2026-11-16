@@ -284,9 +284,169 @@ func TestUsageListsMediaTypes(t *testing.T) {
 	if code := run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, e); code != 2 {
 		t.Fatalf("exit code = %d, want 2", code)
 	}
-	for _, want := range []string{"books, movies, tv, albums", "books|movies|tv|albums", `movie and TV items are "Title, Year"`, `albums "Album, Artist"`} {
+	for _, want := range []string{
+		"books, movies, tv, albums, games",
+		"books|movies|tv|albums|games",
+		`movie, TV and game items are "Title, Year"`,
+		`albums "Album, Artist"`,
+		"-igdb-id", "-igdb-secret", "$IGDB_CLIENT_ID", "$IGDB_CLIENT_SECRET",
+	} {
 		if !strings.Contains(stderr.String(), want) {
 			t.Errorf("usage missing %q:\n%s", want, &stderr)
 		}
+	}
+}
+
+func TestResolveIGDBCredentials(t *testing.T) {
+	fromFile := func(id, secret string, err error) func() (settings.Settings, error) {
+		return func() (settings.Settings, error) {
+			return settings.Settings{IGDBClientID: id, IGDBClientSecret: secret}, err
+		}
+	}
+	env := func(vals map[string]string) func(string) string {
+		return func(k string) string { return vals[k] }
+	}
+	bothEnv := map[string]string{"IGDB_CLIENT_ID": "env-id", "IGDB_CLIENT_SECRET": "env-secret"}
+	tests := []struct {
+		name               string
+		idFlag, secretFlag string
+		env                map[string]string
+		load               func() (settings.Settings, error)
+		wantID, wantSecret string
+	}{
+		{"flags win", "flag-id", "flag-secret", bothEnv, fromFile("file-id", "file-secret", nil), "flag-id", "flag-secret"},
+		{"env beats file", "", "", bothEnv, fromFile("file-id", "file-secret", nil), "env-id", "env-secret"},
+		{"file when no flags or env", "", "", nil, fromFile("file-id", "file-secret", nil), "file-id", "file-secret"},
+		{"each value falls through on its own", "flag-id", "", map[string]string{"IGDB_CLIENT_SECRET": " "}, fromFile("file-id", "file-secret", nil), "flag-id", "file-secret"},
+		{"values are trimmed", " flag-id\n", "", map[string]string{"IGDB_CLIENT_SECRET": " env-secret "}, fromFile("", "", nil), "flag-id", "env-secret"},
+		{"settings error gives no credentials", "", "", nil, fromFile("file-id", "file-secret", errors.New("unreadable")), "", ""},
+		{"nothing set", "", "", nil, fromFile("", "", nil), "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			id, secret := resolveIGDBCredentials(tt.idFlag, tt.secretFlag, env(tt.env), tt.load)
+			if id != tt.wantID || secret != tt.wantSecret {
+				t.Errorf("resolveIGDBCredentials = %q, %q, want %q, %q", id, secret, tt.wantID, tt.wantSecret)
+			}
+		})
+	}
+}
+
+func TestResolveIGDBCredentialsSkipsTheFileWhenNotNeeded(t *testing.T) {
+	load := func() (settings.Settings, error) {
+		t.Error("settings file read although the flags gave both values")
+		return settings.Settings{}, nil
+	}
+	if id, secret := resolveIGDBCredentials("id", "secret", func(string) string { return "" }, load); id != "id" || secret != "secret" {
+		t.Errorf("resolveIGDBCredentials = %q, %q, want id, secret", id, secret)
+	}
+}
+
+// credsProvider records the IGDB credentials it sees at search time.
+type credsProvider struct {
+	creds func() (string, string)
+	got   chan [2]string
+}
+
+func (p credsProvider) Name() string { return "creds" }
+
+func (p credsProvider) Search(context.Context, media.Item, media.Options) ([]media.Candidate, error) {
+	var id, secret string
+	if p.creds != nil {
+		id, secret = p.creds()
+	}
+	p.got <- [2]string{id, secret}
+	return nil, media.ErrNotFound
+}
+
+func TestRunPassesTheIGDBCredentials(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		env  map[string]string
+		file settings.Settings
+		want [2]string
+	}{
+		{
+			name: "flags",
+			args: []string{"-igdb-id", "flag-id", "-igdb-secret", "flag-secret"},
+			env:  map[string]string{"IGDB_CLIENT_ID": "env-id", "IGDB_CLIENT_SECRET": "env-secret"},
+			want: [2]string{"flag-id", "flag-secret"},
+		},
+		{
+			name: "environment",
+			env:  map[string]string{"IGDB_CLIENT_ID": "env-id", "IGDB_CLIENT_SECRET": "env-secret"},
+			file: settings.Settings{IGDBClientID: "file-id", IGDBClientSecret: "file-secret"},
+			want: [2]string{"env-id", "env-secret"},
+		},
+		{
+			name: "settings file",
+			file: settings.Settings{TMDBAPIKey: "tmdb", IGDBClientID: "file-id", IGDBClientSecret: "file-secret"},
+			want: [2]string{"file-id", "file-secret"},
+		},
+		{name: "none"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := make(chan [2]string, 1)
+			e := env{
+				getenv:       func(name string) string { return tt.env[name] },
+				loadSettings: func() (settings.Settings, error) { return tt.file, nil },
+				registry: func(keys catalog.Keys) *media.Registry {
+					reg := media.NewRegistry()
+					if err := reg.Register(media.MediaType{ID: "games", Providers: []media.Provider{credsProvider{keys.IGDB, got}}}); err != nil {
+						t.Fatal(err)
+					}
+					return reg
+				},
+			}
+			args := append([]string{"-type", "games", "-o", t.TempDir()}, tt.args...)
+			var stdout, stderr bytes.Buffer
+			run(context.Background(), append(args, "Hollow Knight, 2017"), &stdout, &stderr, e)
+			if c := <-got; c != tt.want {
+				t.Errorf("credentials = %q, want %q", c, tt.want)
+			}
+		})
+	}
+}
+
+func TestRunReadsTheSettingsFileOnlyWhenNeeded(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		withKeys  bool
+		wantReads int
+	}{
+		{"once for both keys", true, 1},
+		{"never without key lookups", false, 0},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			reads := 0
+			tmdb := make(chan string, 1)
+			igdb := make(chan [2]string, 1)
+			e := testEnv(nil)
+			e.loadSettings = func() (settings.Settings, error) {
+				reads++
+				return settings.Settings{TMDBAPIKey: "tmdb", IGDBClientID: "id", IGDBClientSecret: "secret"}, nil
+			}
+			e.registry = func(keys catalog.Keys) *media.Registry {
+				if !tt.withKeys {
+					return testRegistry(t)
+				}
+				reg := media.NewRegistry()
+				p := []media.Provider{keyProvider{keys.TMDB, tmdb}, credsProvider{keys.IGDB, igdb}}
+				if err := reg.Register(media.MediaType{ID: "books", Providers: p}); err != nil {
+					t.Fatal(err)
+				}
+				return reg
+			}
+			var stdout, stderr bytes.Buffer
+			run(context.Background(), []string{"-o", t.TempDir(), "Dune, Frank Herbert"}, &stdout, &stderr, e)
+			if reads != tt.wantReads {
+				t.Errorf("settings file reads = %d, want %d", reads, tt.wantReads)
+			}
+			if tt.withKeys && (<-tmdb != "tmdb" || <-igdb != [2]string{"id", "secret"}) {
+				t.Error("keys not read from the settings file")
+			}
+		})
 	}
 }

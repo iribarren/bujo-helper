@@ -2,14 +2,17 @@
 //
 // Usage:
 //
-//	covers [-type books|movies|tv|albums] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" | "Title, Year" | "Album, Artist" ...]
+//	covers [-type books|movies|tv|albums|games] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] ["Title, Author" | "Title, Year" | "Album, Artist" ...]
 //
 // The TMDB API key (used by -type movies and -type tv) comes from -tmdb-key, else the
 // TMDB_API_KEY environment variable, else the settings file the GUI writes.
+// The IGDB credentials (used by -type games) come from -igdb-id and
+// -igdb-secret, else IGDB_CLIENT_ID and IGDB_CLIENT_SECRET, else the
+// settings file.
 //
 // Each positional argument is one "Title, Creator" item (split on the last
-// comma): "Title, Author" for books, "Title, Year" for movies and TV series,
-// "Album, Artist" for albums.
+// comma): "Title, Author" for books, "Title, Year" for movies, TV series and
+// games, "Album, Artist" for albums.
 // Items from -csv are added after them. Flags must come before the items. The exit code is 1 when any item failed and 2 on usage errors.
 package main
 
@@ -49,19 +52,27 @@ type env struct {
 }
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) int {
-	// The key is resolved after the flags are parsed and before any search.
-	var tmdbKey string
-	reg := e.registry(catalog.Keys{TMDB: func() string { return tmdbKey }})
+	// The keys are resolved after the flags are parsed, on first use, so
+	// the settings file is read at most once and only when a search needs
+	// a key.
+	tmdbKey := func() string { return "" }
+	igdbCredentials := func() (string, string) { return "", "" }
+	reg := e.registry(catalog.Keys{
+		TMDB: func() string { return tmdbKey() },
+		IGDB: func() (string, string) { return igdbCredentials() },
+	})
 
 	fs := flag.NewFlagSet("covers", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie and TV items are "Title, Year", albums "Album, Artist"`)
+	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie, TV and game items are "Title, Year", albums "Album, Artist"`)
 	outDir := fs.String("o", "covers", "output directory")
 	country := fs.String("country", "es", "store country code (es, us, gb, de, ...); books prefer local editions")
 	csvPath := fs.String("csv", "", "CSV file with title and creator (author, year or artist) columns")
 	tmdbFlag := fs.String("tmdb-key", "", "TMDB API key (default: $TMDB_API_KEY, then the saved settings)")
+	igdbIDFlag := fs.String("igdb-id", "", "IGDB (Twitch) Client ID (default: $IGDB_CLIENT_ID, then the saved settings)")
+	igdbSecretFlag := fs.String("igdb-secret", "", "IGDB (Twitch) Client Secret (default: $IGDB_CLIENT_SECRET, then the saved settings)")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] ["Title, Author" | "Title, Year" | "Album, Artist" ...]`)
+		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] ["Title, Author" | "Title, Year" | "Album, Artist" ...]`)
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -88,7 +99,13 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 		fmt.Fprintf(stderr, "error: unknown media type %q (available: %s)\n", *mediaType, typeIDs(reg, ", "))
 		return 2
 	}
-	tmdbKey = resolveTMDBKey(*tmdbFlag, e.getenv, e.loadSettings)
+	loadSettings := sync.OnceValues(e.loadSettings)
+	tmdbKey = sync.OnceValue(func() string {
+		return resolveTMDBKey(*tmdbFlag, e.getenv, loadSettings)
+	})
+	igdbCredentials = sync.OnceValues(func() (string, string) {
+		return resolveIGDBCredentials(*igdbIDFlag, *igdbSecretFlag, e.getenv, loadSettings)
+	})
 
 	var mu sync.Mutex
 	d := &downloader.Downloader{Registry: reg}
@@ -130,6 +147,34 @@ func resolveTMDBKey(flagVal string, getenv func(string) string, loadSettings fun
 		return ""
 	}
 	return strings.TrimSpace(s.TMDBAPIKey)
+}
+
+// resolveIGDBCredentials returns the IGDB (Twitch) Client ID and Client
+// Secret. Each comes from its flag, else its environment variable
+// (IGDB_CLIENT_ID, IGDB_CLIENT_SECRET), else the saved settings. Blank
+// values are skipped, and the settings are read only when needed. An
+// unreadable settings file gives no value.
+func resolveIGDBCredentials(idFlag, secretFlag string, getenv func(string) string, loadSettings func() (settings.Settings, error)) (clientID, clientSecret string) {
+	clientID = firstNonBlank(idFlag, getenv("IGDB_CLIENT_ID"))
+	clientSecret = firstNonBlank(secretFlag, getenv("IGDB_CLIENT_SECRET"))
+	if clientID != "" && clientSecret != "" {
+		return clientID, clientSecret
+	}
+	s, err := loadSettings()
+	if err != nil {
+		return clientID, clientSecret
+	}
+	return firstNonBlank(clientID, s.IGDBClientID), firstNonBlank(clientSecret, s.IGDBClientSecret)
+}
+
+// firstNonBlank returns the first value that is not blank, trimmed.
+func firstNonBlank(values ...string) string {
+	for _, v := range values {
+		if v = strings.TrimSpace(v); v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // loadUserSettings reads the settings file the GUI writes.

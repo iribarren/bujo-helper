@@ -804,7 +804,7 @@ func TestDefaultAppMoviesUseTheSavedTMDBKey(t *testing.T) {
 	for _, mt := range a.MediaTypes() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 	movies, _ := a.registry.Get("movies")
@@ -820,6 +820,46 @@ func TestDefaultAppMoviesUseTheSavedTMDBKey(t *testing.T) {
 	}
 	if got := tmdb.Key(); got != "new-key" {
 		t.Errorf("TMDB key after saving = %q, want new-key without a restart", got)
+	}
+}
+
+func TestSaveSettingsTrimsTheIGDBCredentials(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+	if err := a.SaveSettings(settings.Settings{IGDBClientID: " id ", IGDBClientSecret: "\tsecret\n"}); err != nil {
+		t.Fatalf("SaveSettings: %v", err)
+	}
+	if id, secret := a.igdbCredentials(); id != "id" || secret != "secret" {
+		t.Errorf("igdbCredentials = %q, %q, want trimmed values without a restart", id, secret)
+	}
+	if s, err := settings.Load(path); err != nil || s.IGDBClientID != "id" || s.IGDBClientSecret != "secret" {
+		t.Errorf("file holds %+v (err %v), want the trimmed credentials", s, err)
+	}
+}
+
+func TestDefaultAppGamesUseTheSavedIGDBCredentials(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := settings.Save(path, settings.Settings{IGDBClientID: "saved-id", IGDBClientSecret: "saved-secret"}); err != nil {
+		t.Fatal(err)
+	}
+	a := newDefaultApp(http.DefaultClient, path)
+	games, ok := a.registry.Get("games")
+	if !ok {
+		t.Fatal("no games media type")
+	}
+	igdb, ok := games.Providers[0].(*providers.IGDB)
+	if !ok {
+		t.Fatalf("first games provider is %T, want *providers.IGDB", games.Providers[0])
+	}
+	if id, secret := igdb.Credentials(); id != "saved-id" || secret != "saved-secret" {
+		t.Errorf("IGDB credentials = %q, %q, want the saved ones", id, secret)
+	}
+	if err := a.SaveSettings(settings.Settings{IGDBClientID: "new-id", IGDBClientSecret: "new-secret"}); err != nil {
+		t.Fatal(err)
+	}
+	if id, secret := igdb.Credentials(); id != "new-id" || secret != "new-secret" {
+		t.Errorf("IGDB credentials after saving = %q, %q, want the new ones without a restart", id, secret)
 	}
 }
 

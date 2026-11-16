@@ -223,6 +223,19 @@ input[readonly] {
     margin-top: 12px;
 }
 
+/* A group of fields for another source, below the previous one. */
+.settings-dialog .settings-section {
+    margin-top: 16px;
+}
+
+.settings-dialog .field + .field {
+    margin-top: 10px;
+}
+
+.settings-dialog code {
+    font-size: 11px;
+}
+
 .settings-dialog a {
     color: var(--accent);
 }
@@ -519,7 +532,7 @@ textarea {
     visibility: hidden;
 }
 
-#app[data-tab="print"] #movie-tip {
+#app[data-tab="print"] #key-tip {
     display: none;
 }
 

@@ -24,7 +24,7 @@ func TestDefault(t *testing.T) {
 	for _, mt := range reg.List() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 
@@ -98,6 +98,24 @@ func TestDefault(t *testing.T) {
 		}
 	}
 
+	games, _ := reg.Get("games")
+	if games.Label != "Games" || games.CreatorLabel != "Year" || games.DateLabel != "Played on" || games.LocalEditions {
+		t.Errorf("games = %+v", games)
+	}
+	if want := []string{"igdb", "steam"}; !reflect.DeepEqual(providerNames(games), want) {
+		t.Errorf("games providers = %q, want %q", providerNames(games), want)
+	}
+	wantGames := []media.Item{
+		{Title: "Hollow Knight", Creator: "2017"},
+		{Title: "Stardew Valley", Creator: "2016"},
+		{Title: "The Witcher 3: Wild Hunt", Creator: "2015"},
+		{Title: "Celeste", Creator: "2018"},
+		{Title: "The Legend of Zelda: Breath of the Wild", Creator: "2017"},
+	}
+	if !reflect.DeepEqual(games.Samples, wantGames) {
+		t.Errorf("games samples = %+v, want %+v", games.Samples, wantGames)
+	}
+
 	if Default(nil, Keys{}) == nil {
 		t.Error("Default(nil) should fall back to a default client")
 	}
@@ -122,5 +140,19 @@ func TestDefaultPassesTheTMDBKey(t *testing.T) {
 	}
 	if got := tvTMDB.Key(); got != "second" {
 		t.Errorf("TV TMDB key = %q, want it read live", got)
+	}
+}
+
+func TestDefaultPassesTheIGDBCredentials(t *testing.T) {
+	id, secret := "id-1", "secret-1"
+	reg := Default(http.DefaultClient, Keys{IGDB: func() (string, string) { return id, secret }})
+	games, _ := reg.Get("games")
+	igdb, ok := games.Providers[0].(*providers.IGDB)
+	if !ok {
+		t.Fatalf("first games provider is %T, want *providers.IGDB", games.Providers[0])
+	}
+	id, secret = "id-2", "secret-2"
+	if gotID, gotSecret := igdb.Credentials(); gotID != "id-2" || gotSecret != "secret-2" {
+		t.Errorf("IGDB credentials = %q, %q, want them read live", gotID, gotSecret)
 	}
 }

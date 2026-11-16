@@ -114,7 +114,7 @@ type App struct {
 
 	// settingsPath is the settings file; "" means it is unknown and
 	// SaveSettings fails. settings is the current copy, read live by
-	// tmdbKey so a saved key is used without a restart.
+	// tmdbKey and igdbCredentials so saved keys are used without a restart.
 	settingsMu   sync.Mutex
 	settingsPath string
 	settings     settings.Settings
@@ -131,13 +131,16 @@ func NewApp() *App {
 }
 
 // newDefaultApp returns an App with the built-in media types and the
-// settings file at path. The movie sources read the TMDB key from the
-// App's live settings.
+// settings file at path. The movie, TV and game sources read their keys
+// from the App's live settings.
 func newDefaultApp(client *http.Client, path string) *App {
 	var a *App
 	// The catalog is built before the App exists; a is set before any
 	// search can call the key func.
-	reg := catalog.Default(client, catalog.Keys{TMDB: func() string { return a.tmdbKey() }})
+	reg := catalog.Default(client, catalog.Keys{
+		TMDB: func() string { return a.tmdbKey() },
+		IGDB: func() (string, string) { return a.igdbCredentials() },
+	})
 	a = newApp(reg, client)
 	a.loadSettings(path)
 	return a
@@ -177,7 +180,7 @@ func (a *App) GetSettings() settings.Settings {
 
 // SaveSettings saves s to the settings file and uses it at once.
 func (a *App) SaveSettings(s settings.Settings) error {
-	s.TMDBAPIKey = strings.TrimSpace(s.TMDBAPIKey)
+	s = s.Trimmed()
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
 	if a.settingsPath == "" {
@@ -196,6 +199,14 @@ func (a *App) tmdbKey() string {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
 	return a.settings.TMDBAPIKey
+}
+
+// igdbCredentials returns the current Twitch Client ID and Client Secret
+// for IGDB, read live like tmdbKey.
+func (a *App) igdbCredentials() (clientID, clientSecret string) {
+	a.settingsMu.Lock()
+	defer a.settingsMu.Unlock()
+	return a.settings.IGDBClientID, a.settings.IGDBClientSecret
 }
 
 // startup is called when the app starts. The context is kept for the
