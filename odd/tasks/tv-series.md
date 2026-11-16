@@ -23,11 +23,19 @@ TV trackers are as common as movie trackers. TMDB covers TV, so the existing API
 - README Sources section updated.
 
 ## Tasks
-- [ ] T1 Providers: TMDB TV mode + IMDb TV kinds, fixtures, tests. Route: delegated writer (2+ non-trivial files).
-- [ ] T2 Catalog `tv` registration, CLI usage text, frontend tip/example, README, tests. Route: same delegated writer, separate commit.
+- [x] T1 Providers: TMDB TV mode + IMDb TV kinds, fixtures, tests. Route: delegated writer (2+ non-trivial files).
+- [x] T2 Catalog `tv` registration, CLI usage text, frontend tip/example, README, tests. Route: same delegated writer, separate commit.
 - [ ] T3 Live CLI smoke (keyless) + build. Route: inline.
 
 ## Progress / evidence
+- T1 (route: delegated writer, 2+ non-trivial files) — commit 0ed8b33 `feat(providers): TMDB and IMDb TV series search`.
+  - Design: `TMDB.TV` / `NewTMDBTV` (`/search/tv`, `first_air_date_year`, no `region`, decodes `name`/`first_air_date`); `IMDb.TV` / `NewIMDbTV` (kinds `tvSeries`, `tvMiniSeries`; not-found says "no TV series results with a poster"). Movie mode unchanged.
+  - RED: `go test ./internal/providers/` failed to build (`undefined: NewTMDBTV`, `undefined: NewIMDbTV`).
+  - GREEN: providers package 54 tests pass (9 new in `tv_test.go`, fixtures `tmdb_search_tv.json`, `imdb_suggestion_tv.json`); existing movie tests unchanged and passing.
+- T2 (route: same delegated writer) — commit 33f8eab `feat(catalog): TV series media type`.
+  - RED: `TestDefault`, `TestDefaultPassesTheTMDBKey`, `TestDefaultAppMoviesUseTheSavedTMDBKey`, `TestUsageListsMediaTypes` failed (ID list `books, movies`, usage `books|movies`).
+  - GREEN: `go test -tags webkit2_41 ./...` 401 passed in 14 packages; `go vet -tags webkit2_41 ./...` clean; `gofmt -l .` clean; `npx tsc --noEmit` clean.
+  - CLI usage now derives `-type books|movies|tv` from the registry. Frontend: `tv` placeholder example, TMDB tip for movies and TV. README Sources, licensing note, CSV, usage, `-type` flag, layout updated.
 
 ## Next step
-T1.
+T3: live keyless CLI smoke (`go run ./cmd/covers -type tv -o <tmp> "Breaking Bad, 2008"`) and build.
