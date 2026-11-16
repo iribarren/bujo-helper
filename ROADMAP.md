@@ -122,7 +122,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 **Acceptance**
 - The PDF images are grayscale; with the box unchecked, output doesn't change. Unit test on a colour fixture.
 
-## 8. [ ] Movie ticket stubs
+## 8. [x] Movie ticket stubs (664d66d)
 
 **Why:** ticket stubs are a classic movie-tracker element.
 
