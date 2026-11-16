@@ -15,13 +15,16 @@ import (
 	"cover-downloader/internal/web"
 )
 
-// Apple searches Apple Books through the public iTunes Search API. It returns
-// the original artwork resolution.
+// Apple searches the public iTunes Search API: Apple Books by default, or
+// music albums. It returns the original artwork resolution.
 type Apple struct {
 	Client  *http.Client
 	BaseURL string
 	// Media is the iTunes media type to search, e.g. "ebook".
 	Media string
+	// Entity narrows the results within Media, e.g. "album". Empty sends
+	// no entity parameter.
+	Entity string
 }
 
 // NewApple returns an Apple Books provider using client (or a default one).
@@ -32,15 +35,27 @@ func NewApple(client *http.Client) *Apple {
 	return &Apple{Client: client, BaseURL: "https://itunes.apple.com/search", Media: "ebook"}
 }
 
+// NewAppleAlbums returns an Apple provider that searches music albums.
+func NewAppleAlbums(client *http.Client) *Apple {
+	a := NewApple(client)
+	a.Media, a.Entity = "music", "album"
+	return a
+}
+
+// albums reports whether a searches music albums rather than tracks or books.
+func (a *Apple) albums() bool { return a.Entity == "album" }
+
 // Name implements media.Provider.
 func (a *Apple) Name() string { return "apple" }
 
 type appleResponse struct {
 	Results []struct {
-		TrackName     string `json:"trackName"`
-		ArtistName    string `json:"artistName"`
-		ReleaseDate   string `json:"releaseDate"`
-		ArtworkURL100 string `json:"artworkUrl100"`
+		TrackName string `json:"trackName"`
+		// CollectionName is the album title in album searches.
+		CollectionName string `json:"collectionName"`
+		ArtistName     string `json:"artistName"`
+		ReleaseDate    string `json:"releaseDate"`
+		ArtworkURL100  string `json:"artworkUrl100"`
 	} `json:"results"`
 }
 
@@ -52,6 +67,9 @@ func (a *Apple) Search(ctx context.Context, item media.Item, opts media.Options)
 		"limit":   {"25"},
 		"country": {country(opts)},
 	}
+	if a.Entity != "" {
+		q.Set("entity", a.Entity)
+	}
 	var body appleResponse
 	if err := getJSON(ctx, a.Client, a.BaseURL+"?"+q.Encode(), &body); err != nil {
 		return nil, err
@@ -62,16 +80,21 @@ func (a *Apple) Search(ctx context.Context, item media.Item, opts media.Options)
 		if r.ArtworkURL100 == "" {
 			continue
 		}
-		hits = append(hits, media.Candidate{
+		c := media.Candidate{
 			Title:   r.TrackName,
 			Creator: r.ArtistName,
 			Year:    year(r.ReleaseDate),
 			// Asking for an oversized box returns the original artwork resolution.
 			ImageURLs: []string{strings.Replace(r.ArtworkURL100, "100x100bb", "10000x10000bb", 1)},
 			Source:    a.Name(),
+		}
+		if a.albums() {
+			c.Title = r.CollectionName
+		} else {
 			// The artwork file is usually named after the edition ISBN-13.
-			ISBN: isbn.Find(r.ArtworkURL100),
-		})
+			c.ISBN = isbn.Find(r.ArtworkURL100)
+		}
+		hits = append(hits, c)
 	}
 	if len(hits) == 0 {
 		return nil, fmt.Errorf("%w: no results with artwork", media.ErrNotFound)

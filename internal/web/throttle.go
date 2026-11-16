@@ -74,6 +74,8 @@ var DefaultThrottle = &Throttle{
 	MinInterval: map[string]time.Duration{
 		"api.themoviedb.org": 25 * time.Millisecond,
 		"www.wikidata.org":   200 * time.Millisecond,
+		// MusicBrainz allows one request per second per client.
+		"musicbrainz.org": time.Second,
 	},
 }
 

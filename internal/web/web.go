@@ -14,6 +14,9 @@ import (
 const (
 	// APIUserAgent identifies the app to public APIs (Apple, Open Library).
 	APIUserAgent = "cover-downloader/1.0"
+	// MusicBrainzUserAgent identifies the app to MusicBrainz, which asks
+	// for a meaningful User-Agent with contact information.
+	MusicBrainzUserAgent = "cover-downloader/1.0 ( https://github.com/iribarren/bullet-journal-covers )"
 	// BrowserUserAgent is a desktop Chrome UA, needed for store pages and
 	// image CDNs that reject unknown clients.
 	BrowserUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
@@ -41,6 +44,13 @@ func NewClient() *http.Client {
 // SetAPIHeaders marks a request as coming from this app.
 func SetAPIHeaders(req *http.Request) {
 	req.Header.Set("User-Agent", APIUserAgent)
+}
+
+// SetMusicBrainzHeaders marks a request to the MusicBrainz API as coming
+// from this app, with the contact MusicBrainz requires.
+func SetMusicBrainzHeaders(req *http.Request) {
+	req.Header.Set("User-Agent", MusicBrainzUserAgent)
+	req.Header.Set("Accept", "application/json")
 }
 
 // SetBrowserHeaders makes a request look like a desktop browser.
