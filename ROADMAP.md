@@ -31,7 +31,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 
 # Part 1: Media spreads
 
-## 1. [ ] Cover size presets
+## 1. [x] Cover size presets (432db6a)
 
 **Why:** 5 cm is too big for "year in books" grids and too small for a featured cover. Small covers are the most requested way to fit many items on one spread.
 

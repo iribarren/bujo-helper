@@ -39,7 +39,7 @@ Let the print sheet use three cover sizes: **Mini** (25 mm tall), **Standard** (
 - T2 `7aa0cb5` feat(ui): `PrintSizes()` binding (ID, label, height, per page, default), `ExportPDF(paths, dir, sheet.Options)` rejects an unknown size before the save dialog, Cover size select, live page count from `perPage`, README Print sheet section (size table + derivation rules). Bindings regenerated (`wails generate module`). Route: inline. RED: undefined `PrintSizes`/`PrintSizeInfo`. GREEN: `go test -tags webkit2_41 ./...` 256 passed; vet, gofmt clean; `tsc --noEmit` ok; `wails build -tags webkit2_41` ok.
 - `wails generate` set +x on the generated bindings (first assess: high, `executable_mode`); restored to 644 in a chore commit. Re-assess of 9766179..HEAD: medium, 303 lines, `review_due` false (`under_budget`), pending in the slice.
 - Whole-branch review main..HEAD (786 lines, medium), started by the stop hook: consent granted, reliability lens approved, acknowledged (authority burned). Advisory SUGGESTION (not scheduled): `TestExportPDFRejectsUnknownSizeBeforeAsking` could also assert that the error names the size. The no-dialog guarantee already holds: `stubDialogs` with a nil save stub fails the test if the dialog opens.
-- Pending: manual GUI check (select changes page count, export at each size, print at 100 %). ROADMAP item 1 gets `[x]` + merge hash at merge time.
+- Manual GUI check passed (user). Merged in `432db6a`; ROADMAP item 1 marked done.
 
 ## Next step
-User: manual GUI check, then decide on push/merge.
+Done: GUI check passed (user, 2026-11-16); merged to main in 432db6a and pushed.
