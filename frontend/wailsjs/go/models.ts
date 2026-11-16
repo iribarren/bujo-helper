@@ -54,11 +54,28 @@ export namespace main {
 	        this.dateLabel = source["dateLabel"];
 	    }
 	}
+	export class PrintCutModeInfo {
+	    id: string;
+	    label: string;
+	    default: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrintCutModeInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.default = source["default"];
+	    }
+	}
 	export class PrintFormatInfo {
 	    id: string;
 	    label: string;
 	    noun: string;
 	    usesSize: boolean;
+	    usesCut: boolean;
 	    default: boolean;
 	
 	    static createFrom(source: any = {}) {
@@ -71,6 +88,7 @@ export namespace main {
 	        this.label = source["label"];
 	        this.noun = source["noun"];
 	        this.usesSize = source["usesSize"];
+	        this.usesCut = source["usesCut"];
 	        this.default = source["default"];
 	    }
 	}
@@ -158,6 +176,7 @@ export namespace sheet {
 	    format: string;
 	    size: string;
 	    paper: string;
+	    cut: string;
 	    dateLabel: string;
 	
 	    static createFrom(source: any = {}) {
@@ -169,6 +188,7 @@ export namespace sheet {
 	        this.format = source["format"];
 	        this.size = source["size"];
 	        this.paper = source["paper"];
+	        this.cut = source["cut"];
 	        this.dateLabel = source["dateLabel"];
 	    }
 	}

@@ -16,7 +16,7 @@ Book covers, movie posters and TV series posters are supported. The core is medi
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
-- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), as review cards with a date, stars and lines to fill in, or as book spines for a bookshelf tracker. See [Print sheet](#print-sheet).
+- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, or as book spines for a bookshelf tracker. See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
@@ -142,8 +142,9 @@ The **Print sheet** tab turns downloaded covers into a PDF to cut out, for examp
 2. Pick a **Format**: **Cover sheet** (the default), **Review cards** or **Spines**. For review cards, pick what they are **Cards for** (Books, Movies or TV series); it follows the Download tab's media type until you change it here.
 3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines) fit on that paper.
 4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet and spines, so it is disabled for review cards.
-5. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size.
-6. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper and cover size, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `spines_A4_Standard.pdf` or, for review cards, `cards_A4.pdf`), then **Open PDF** to view it.
+5. For a cover sheet, pick a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). It never changes how many covers fit on a page.
+6. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size.
+7. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `spines_A4_Standard.pdf` or, for review cards, `cards_A4.pdf`), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 
@@ -167,12 +168,28 @@ How the grid is derived from the cover height *h* and the page width *W* and hei
 | Column width      | the columns then widen to fill the width between the side margins                          |
 | Rows              | as many as fit with at least 8 mm top and bottom: ⌊(*H* − 2·8 + 4) / (*h* + 4)⌋             |
 | Top/bottom margin | whatever height is left, split equally, so the grid is centred                             |
-| Cut border        | 0.2 mm grey (#999) line exactly around each cover                                          |
+| Cut border        | 0.2 mm grey (#999) line exactly around each cover, in the default [cut mode](#cut-mode)    |
 
 - **Shrink to fit:** a cover wider than its column (for example a square one) is shrunk to the column width and keeps its aspect ratio, so it ends up shorter than the chosen height. Each cover is centred in its cell. Typical book covers (about 2:3) keep the full height: at Standard size they are 50 mm tall and about 33 mm wide.
 - **Pagination:** covers fill each page left to right, top to bottom. More covers than fit on a page add pages; the last page may be partly filled.
 - **Print at 100 % / actual size** (not "fit to page") on every paper, so covers come out at the chosen height. Pick the paper loaded in the printer: on Letter paper choose **US Letter**, not A4, so the printer does not scale or clip the page.
 - Images are downscaled to 300 dpi at their printed size (never upscaled) to keep the PDF small. If any image cannot be read, the export fails naming that file and no PDF is written. Mini covers need only about 300 px of height, and Large covers about 950 px, to print sharp.
+
+### Cut mode
+
+The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards and spines always keep their grey cut border.
+
+| Cut mode               | What is printed                                                                                                   |
+|------------------------|-------------------------------------------------------------------------------------------------------------------|
+| **Border** (default)   | each cover with a 0.2 mm grey (#999) line on its cut line                                                         |
+| Bleed + crop marks     | each cover runs 1 mm past its cut line, with crop marks at its corners and no border                              |
+| None                   | the covers only, with no border and no marks                                                                      |
+
+- **Bleed:** the 1 mm past the cut line repeats the cover's edge pixels outward, so the cover inside the cut line is exactly what Border mode prints, neither zoomed nor cropped. A slightly off cut leaves no white edge. The 4 mm gap absorbs the bleed, so neighbours never overlap.
+- **Crop marks:** thin (0.1 mm) black lines that continue each cut edge outward at the four corners, from 1 mm to 2 mm past the cut line, so a mark never reaches the neighbouring cover's half of the gap. Cut along the line through two marks.
+- The grid, the covers per page and the page count are the same in every cut mode. The suggested file name ends in `_bleed` or `_none` for those modes, for example `covers_A4_Standard_bleed.pdf`.
+
+**Print then cut:** Cricut Design Space and Silhouette Studio add their own registration marks when you import a page, so the app draws none. Import the **Bleed** or **None** PDF page into the machine's app and run its print-then-cut flow there. Cricut limits the Print Then Cut area to less than a full page (see Cricut's help article "How large can I Print Then Cut?"), so a full-page sheet may need scaling or fewer covers.
 
 ### Review cards
 

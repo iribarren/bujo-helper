@@ -448,6 +448,11 @@ func TestExportPDFDefaultFileName(t *testing.T) {
 		{"review cards ignore the size", sheet.Options{Format: "cards", Size: "huge", Paper: "a4"}, "cards_A4.pdf"},
 		{"default spines", sheet.Options{Format: "spines"}, "spines_A4_Standard.pdf"},
 		{"spines", sheet.Options{Format: "spines", Size: "large", Paper: "a5"}, "spines_A5_Large.pdf"},
+		{"border cut is the default", sheet.Options{Cut: "border"}, "covers_A4_Standard.pdf"},
+		{"bleed cut", sheet.Options{Cut: "bleed"}, "covers_A4_Standard_bleed.pdf"},
+		{"no cut", sheet.Options{Size: "mini", Paper: "a5", Cut: "none"}, "covers_A5_Mini_none.pdf"},
+		{"review cards ignore the cut", sheet.Options{Format: "cards", Cut: "bleed"}, "cards_A4.pdf"},
+		{"spines ignore the cut", sheet.Options{Format: "spines", Cut: "none"}, "spines_A4_Standard.pdf"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -510,12 +515,24 @@ func TestPrintSizes(t *testing.T) {
 func TestPrintFormats(t *testing.T) {
 	got := NewApp().PrintFormats()
 	want := []PrintFormatInfo{
-		{ID: "covers", Label: "Cover sheet", Noun: "cover", UsesSize: true, Default: true},
+		{ID: "covers", Label: "Cover sheet", Noun: "cover", UsesSize: true, UsesCut: true, Default: true},
 		{ID: "cards", Label: "Review cards", Noun: "card"},
 		{ID: "spines", Label: "Spines", Noun: "spine", UsesSize: true},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("PrintFormats() = %+v, want %+v", got, want)
+	}
+}
+
+func TestPrintCutModes(t *testing.T) {
+	got := NewApp().PrintCutModes()
+	want := []PrintCutModeInfo{
+		{ID: "border", Label: "Border", Default: true},
+		{ID: "bleed", Label: "Bleed + crop marks"},
+		{ID: "none", Label: "None"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("PrintCutModes() = %+v, want %+v", got, want)
 	}
 }
 
@@ -965,6 +982,17 @@ func TestSaveSampleCSVDialogOutcomes(t *testing.T) {
 			t.Errorf("saved %q, want the sample %q", b, data)
 		}
 	})
+}
+
+func TestExportPDFRejectsUnknownCutBeforeTheDialog(t *testing.T) {
+	stubDialogs(t, func(runtime.SaveDialogOptions) (string, error) {
+		t.Error("save dialog shown for an unknown cut mode")
+		return "", nil
+	}, nil)
+	_, err := NewApp().ExportPDF([]string{"cover.jpg"}, "", sheet.Options{Cut: "kiss"})
+	if err == nil || !strings.Contains(err.Error(), "kiss") {
+		t.Errorf("error %v, want one naming the cut mode", err)
+	}
 }
 
 func TestExportPDFSuggestsFileNameWithPaperAndSize(t *testing.T) {
