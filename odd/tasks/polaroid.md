@@ -47,5 +47,7 @@ Instant-photo-style frames are a popular decoration style for media spreads.
   - Deviation: PDF name is `polaroid_<paper>_<size>.pdf` (existing `pdfFileName` rule for `UsesSize` formats, like spines), not `polaroid_<paper>.pdf`.
 - Parent spot check: `go test -tags webkit2_41 ./internal/sheet/ .` 398 passed; A4 Standard render reviewed (4 × 3 frames, thick bottom band, centred captions, long title cut with "…", square/wide/narrow images inside the window).
 
+- Assess 6f28aa8..cfdbf6b: medium, 772 lines, `review_due` (`slice_budget_reached`). Consent granted; reliability lens approved, acknowledged (authority burned). Advisory R3 SUGGESTION (`internal/sheet/polaroid_test.go:59`): A5 Standard fills the width exactly (3 × 41.33 + 2 × 4 = 132 mm), so its 3 columns depend on `newFixedGrid`'s tolerance; the test pins the boundary. Left as is (follow-up only if the tolerance changes).
+
 ## Next step
-Native review of the T1..T2 range, then manual GUI check (Polaroid in the Format list, Cover size applies, Cut mode hidden, page count per size, export).
+Manual GUI check (Polaroid in the Format list, Cover size applies, Cut mode hidden, page count per size, export).
