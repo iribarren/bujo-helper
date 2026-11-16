@@ -1,6 +1,6 @@
 // Package sheet lays out cover images on pages for printing and writes them
 // to a PDF, in one of several formats: a sheet of covers, review cards, book
-// spines, or movie ticket stubs.
+// spines, movie ticket stubs, or a full page of covers under a header.
 //
 // On a cover sheet, covers have a fixed height chosen by a size preset (50 mm by default) and
 // keep their aspect ratio, in a centred grid derived from the cover height
@@ -107,6 +107,8 @@ type Format struct {
 	Noun     string // what one printed item is called, e.g. "card"
 	UsesSize bool   // whether the cover size preset applies
 	UsesCut  bool   // whether the cut mode applies; other formats keep their borders
+	// UsesHeader is whether the format prints the header the user types.
+	UsesHeader bool
 }
 
 // DefaultFormat is the ID of the format used when none is chosen.
@@ -117,6 +119,7 @@ const (
 	cardsFormat  = "cards"
 	spinesFormat = "spines"
 	stubsFormat  = "stubs"
+	fullFormat   = "fullpage"
 )
 
 // Formats lists the print formats, the default first.
@@ -125,6 +128,7 @@ var Formats = []Format{
 	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", Noun: "card", UsesSize: false},
 	{ID: spinesFormat, Label: "Spines", FileTag: "spines", Noun: "spine", UsesSize: true},
 	{ID: stubsFormat, Label: "Ticket stubs", FileTag: "stubs", Noun: "stub", UsesSize: false},
+	{ID: fullFormat, Label: "Full page", FileTag: "fullpage", Noun: "cover", UsesHeader: true},
 }
 
 // FormatByID returns the format with the given ID; "" means DefaultFormat.
@@ -150,13 +154,17 @@ type Options struct {
 	// DateLabel labels the date field of review cards, e.g. "Read on";
 	// "" means "Date".
 	DateLabel string `json:"dateLabel"`
+	// Header is printed above the covers of a full page, e.g. "Books of
+	// 2026"; "" (or only spaces) means no header. Ignored by other formats.
+	Header string `json:"header"`
 }
 
 // Grid returns the grid the options describe: the cover grid of the size
 // preset for a cover sheet, the card grid for review cards, the stub grid
 // for ticket stubs, the spine grid of the size preset (its cover height)
-// for spines. The cut mode never changes the grid, but an unknown one is an
-// error.
+// for spines, and for a full page the grid of a page of FullPageMax covers,
+// below a header band if there is a header. The cut mode never changes the
+// grid, but an unknown one is an error.
 func (o Options) Grid() (Grid, error) {
 	f, err := FormatByID(o.Format)
 	if err != nil {
@@ -178,6 +186,10 @@ func (o Options) Grid() (Grid, error) {
 		return fixed(NewCardGrid)
 	case stubsFormat:
 		return fixed(NewStubGrid)
+	case fullFormat:
+		return fixed(func(page Page) (Grid, error) {
+			return NewFullPageGrid(page, FullPageMax, o.header() != "")
+		})
 	}
 	s, err := SizeByID(o.Size)
 	if err != nil {
@@ -202,6 +214,12 @@ func (o Options) PerPage() (int, error) {
 	return g.PerPage(), nil
 }
 
+// header is the header of a full page, its runs of spaces collapsed; "" if
+// there is none.
+func (o Options) header() string {
+	return strings.Join(strings.Fields(o.Header), " ")
+}
+
 // dateLabel is the text of the date field of a review card, with its colon.
 func (o Options) dateLabel() string {
 	label := strings.TrimSpace(o.DateLabel)
@@ -223,6 +241,10 @@ type Grid struct {
 	// Spines makes the columns book spines: their widths follow the
 	// spineWidths pattern, spineGap apart, and CellWidth is unused.
 	Spines bool
+	// Spacing is the space between cells, both ways; 0 means Gap.
+	Spacing float64
+	// Limit caps the items on a page below Columns × Rows; 0 means no cap.
+	Limit int
 }
 
 // NewGrid derives the grid of covers coverHeight tall on page. As many
@@ -251,9 +273,22 @@ func NewGrid(page Page, coverHeight float64) (Grid, error) {
 	}, nil
 }
 
-// PerPage is the number of covers on a full page.
+// PerPage is the number of covers on a full page: every cell, or Limit if
+// that is fewer.
 func (g Grid) PerPage() int {
-	return g.Columns * g.Rows
+	n := g.Columns * g.Rows
+	if g.Limit > 0 {
+		return min(n, g.Limit)
+	}
+	return n
+}
+
+// gap is the space between cells.
+func (g Grid) gap() float64 {
+	if g.Spacing > 0 {
+		return g.Spacing
+	}
+	return Gap
 }
 
 // Box is where one cover is drawn on its page: top-left corner, width and
@@ -305,12 +340,12 @@ func (g Grid) Cells(count int) ([][]Box, error) {
 // cell returns cell n of a page.
 func (g Grid) cell(n int) Box {
 	col, row := n%g.Columns, n/g.Columns
-	y := g.MarginY + float64(row)*(g.CoverHeight+Gap)
+	y := g.MarginY + float64(row)*(g.CoverHeight+g.gap())
 	if g.Spines {
 		return spineCell(g.MarginX, y, g.CoverHeight, col)
 	}
 	return Box{
-		X: g.MarginX + float64(col)*(g.CellWidth+Gap),
+		X: g.MarginX + float64(col)*(g.CellWidth+g.gap()),
 		Y: y,
 		W: g.CellWidth,
 		H: g.CoverHeight,

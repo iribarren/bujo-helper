@@ -10,19 +10,20 @@ func TestFormatByID(t *testing.T) {
 		t.Errorf("DefaultFormat = %q, first format %q; want covers first", DefaultFormat, Formats[0].ID)
 	}
 	tests := []struct {
-		id, want          string
-		usesSize, usesCut bool
+		id, want                      string
+		usesSize, usesCut, usesHeader bool
 	}{
-		{"", "covers", true, true},
-		{"covers", "covers", true, true},
-		{"cards", "cards", false, false},
-		{"spines", "spines", true, false},
-		{"stubs", "stubs", false, false},
+		{"", "covers", true, true, false},
+		{"covers", "covers", true, true, false},
+		{"cards", "cards", false, false, false},
+		{"spines", "spines", true, false, false},
+		{"stubs", "stubs", false, false, false},
+		{"fullpage", "fullpage", false, false, true},
 	}
 	for _, tt := range tests {
 		f, err := FormatByID(tt.id)
-		if err != nil || f.ID != tt.want || f.UsesSize != tt.usesSize || f.UsesCut != tt.usesCut {
-			t.Errorf("FormatByID(%q) = %+v, %v; want %s (uses size: %v, uses cut: %v)", tt.id, f, err, tt.want, tt.usesSize, tt.usesCut)
+		if err != nil || f.ID != tt.want || f.UsesSize != tt.usesSize || f.UsesCut != tt.usesCut || f.UsesHeader != tt.usesHeader {
+			t.Errorf("FormatByID(%q) = %+v, %v; want %s (uses size: %v, uses cut: %v, uses header: %v)", tt.id, f, err, tt.want, tt.usesSize, tt.usesCut, tt.usesHeader)
 		}
 	}
 	if _, err := FormatByID("poster"); err == nil || !strings.Contains(err.Error(), "poster") {
@@ -96,6 +97,11 @@ func TestOptionsPerPage(t *testing.T) {
 		// The cover size does not apply to stubs.
 		{Options{Format: "stubs", Size: "mini"}, 12},
 		{Options{Format: "stubs", Size: "large", Paper: "a5"}, 4},
+		// A full page holds up to 60 covers, whatever the paper, size or
+		// header.
+		{Options{Format: "fullpage"}, 60},
+		{Options{Format: "fullpage", Paper: "letter", Header: "Books of 2026"}, 60},
+		{Options{Format: "fullpage", Paper: "a5", Size: "large"}, 60},
 	}
 	for _, tt := range tests {
 		got, err := tt.opts.PerPage()

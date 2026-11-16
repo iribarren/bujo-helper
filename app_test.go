@@ -522,6 +522,7 @@ func TestPrintFormats(t *testing.T) {
 		{ID: "cards", Label: "Review cards", Noun: "card"},
 		{ID: "spines", Label: "Spines", Noun: "spine", UsesSize: true},
 		{ID: "stubs", Label: "Ticket stubs", Noun: "stub"},
+		{ID: "fullpage", Label: "Full page", Noun: "cover"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("PrintFormats() = %+v, want %+v", got, want)
@@ -545,24 +546,27 @@ func TestPrintPapers(t *testing.T) {
 	want := []PrintPaperInfo{
 		{ID: "a4", Label: "A4", Width: 210, Height: 297, Default: true,
 			PerPage: map[string]map[string]int{
-				"covers": {"mini": 81, "standard": 25, "large": 9},
-				"cards":  {"": 8},
-				"spines": {"mini": 144, "standard": 80, "large": 48},
-				"stubs":  {"": 12},
+				"covers":   {"mini": 81, "standard": 25, "large": 9},
+				"cards":    {"": 8},
+				"spines":   {"mini": 144, "standard": 80, "large": 48},
+				"stubs":    {"": 12},
+				"fullpage": {"": 60},
 			}},
 		{ID: "letter", Label: "US Letter", Width: 215.9, Height: 279.4,
 			PerPage: map[string]map[string]int{
-				"covers": {"mini": 81, "standard": 20, "large": 9},
-				"cards":  {"": 8},
-				"spines": {"mini": 144, "standard": 64, "large": 48},
-				"stubs":  {"": 12},
+				"covers":   {"mini": 81, "standard": 20, "large": 9},
+				"cards":    {"": 8},
+				"spines":   {"mini": 144, "standard": 64, "large": 48},
+				"stubs":    {"": 12},
+				"fullpage": {"": 60},
 			}},
 		{ID: "a5", Label: "A5", Width: 148, Height: 210,
 			PerPage: map[string]map[string]int{
-				"covers": {"mini": 36, "standard": 9, "large": 4},
-				"cards":  {"": 3},
-				"spines": {"mini": 66, "standard": 33, "large": 22},
-				"stubs":  {"": 4},
+				"covers":   {"mini": 36, "standard": 9, "large": 4},
+				"cards":    {"": 3},
+				"spines":   {"mini": 66, "standard": 33, "large": 22},
+				"stubs":    {"": 4},
+				"fullpage": {"": 60},
 			}},
 	}
 	if len(papers) != len(want) {
