@@ -73,7 +73,7 @@ func (o Options) Grid() (Grid, error) {
 	if err != nil {
 		return Grid{}, err
 	}
-	return NewGrid(A4, s.CoverHeight), nil
+	return NewGrid(A4, s.CoverHeight)
 }
 
 // Grid is the cell layout of a page.
@@ -91,14 +91,17 @@ type Grid struct {
 // columns fit as keep every cell at least 2:3, within MinMargin side margins
 // and Gap between cells; the columns then widen to fill the width. As many
 // rows fit as the height allows within MinMargin, and the rows are centred
-// vertically. A page always holds at least one cell.
-func NewGrid(page Page, coverHeight float64) Grid {
+// vertically. It returns an error if not even one cell fits on the page.
+func NewGrid(page Page, coverHeight float64) (Grid, error) {
 	usableW := page.Width - 2*MinMargin
 	usableH := page.Height - 2*MinMargin
 	// A small tolerance keeps an exact fit from being lost to rounding.
 	const tol = 1e-9
-	cols := max(1, int(math.Floor((usableW+Gap)/(coverHeight*minCellRatio+Gap)+tol)))
-	rows := max(1, int(math.Floor((usableH+Gap)/(coverHeight+Gap)+tol)))
+	if !(coverHeight > 0) || coverHeight > usableH+tol || coverHeight*minCellRatio > usableW+tol {
+		return Grid{}, fmt.Errorf("a %v mm cover does not fit on a %v × %v mm page", coverHeight, page.Width, page.Height)
+	}
+	cols := int(math.Floor((usableW+Gap)/(coverHeight*minCellRatio+Gap) + tol))
+	rows := int(math.Floor((usableH+Gap)/(coverHeight+Gap) + tol))
 	return Grid{
 		Page:        page,
 		CoverHeight: coverHeight,
@@ -107,7 +110,7 @@ func NewGrid(page Page, coverHeight float64) Grid {
 		Rows:        rows,
 		MarginX:     MinMargin,
 		MarginY:     (page.Height - float64(rows)*coverHeight - float64(rows-1)*Gap) / 2,
-	}
+	}, nil
 }
 
 // PerPage is the number of covers on a full page.

@@ -288,3 +288,15 @@ func TestLayoutGridIsCentred(t *testing.T) {
 		}
 	}
 }
+
+func TestNewGridRejectsHeightsThatDoNotFit(t *testing.T) {
+	for _, h := range []float64{0, -1, math.NaN(), math.Inf(1), 282, 500} {
+		if g, err := NewGrid(A4, h); err == nil {
+			t.Errorf("NewGrid(A4, %v) = %+v, want an error", h, g)
+		}
+	}
+	// The tallest cover that fits: the page height minus both margins.
+	if g, err := NewGrid(A4, 281); err != nil || g.PerPage() != 1 || g.MarginY < MinMargin-eps {
+		t.Errorf("NewGrid(A4, 281) = %+v, %v; want one cell within the margins", g, err)
+	}
+}
