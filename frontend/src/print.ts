@@ -1,12 +1,13 @@
 // The "Print sheet" tab: preview the covers in a folder, select some, pick
 // a format (a cover sheet, review cards, book spines, ticket stubs, a full
 // page, a checklist or polaroids), a paper, for a cover sheet, spines or
-// polaroids a cover size, for a cover sheet a cut mode and, for a full page
-// or a checklist, a header, and whether to end with a credits page for the
+// polaroids a cover size, for a cover sheet a crop mode (a standard print
+// shape the photos are cropped to) and a cut mode and, for a full page or a
+// checklist, a header, and whether to end with a credits page for the
 // images that have a credit, and export them to a PDF on that paper (see
 // internal/sheet).
 
-import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
+import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCropModes, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
 import {has, label, onLangChange, pluralKey, t, tn, type MessageKey} from './i18n';
 
@@ -98,33 +99,67 @@ export interface SelectionShape {
     widePerPage?: Record<string, number> | null;
 }
 
+// activeCrop is the crop mode that applies to format: crop, unless it is
+// None (the default) or the format does not crop; undefined until they load.
+export function activeCrop(
+    format: main.PrintFormatInfo | undefined,
+    crop: main.PrintCropModeInfo | undefined,
+): main.PrintCropModeInfo | undefined {
+    return format?.usesCrop && crop && !crop.default ? crop : undefined;
+}
+
+// usesSizeOf is whether the cover size applies to format with crop: when
+// the format uses one, unless the crop mode has a fixed size. True until
+// the formats load.
+export function usesSizeOf(format: main.PrintFormatInfo | undefined, crop: main.PrintCropModeInfo | undefined): boolean {
+    return (format?.usesSize ?? true) && (activeCrop(format, crop)?.usesSize ?? true);
+}
+
+// usesCutOf is whether the cut mode applies to format with crop: when the
+// format uses one, unless the crop mode draws a frame instead. True until
+// the formats load.
+export function usesCutOf(format: main.PrintFormatInfo | undefined, crop: main.PrintCropModeInfo | undefined): boolean {
+    return (format?.usesCut ?? true) && (activeCrop(format, crop)?.usesCut ?? true);
+}
+
 // sizePerPageOf is how many of the selected images fit on a page of paper
-// in the size sizeId, for the size labels: on a cover sheet, the square
-// count when every image is square, the wide count when every image gets a
-// wide cell at that size (landscape images, 4:5 portraits), and the 2:3
-// count otherwise or until PrintPages answers. It is undefined for a
-// format without sizes, or until the counts load.
+// in the size sizeId, for the size labels: with a crop mode, how many
+// photos of that shape; on a cover sheet, the square count when every
+// image is square, the wide count when every image gets a wide cell at
+// that size (landscape images, 4:5 portraits), and the 2:3 count otherwise
+// or until PrintPages answers. It is undefined for a format or crop mode
+// without sizes, or until the counts load.
 export function sizePerPageOf(
     paper: main.PrintPaperInfo | undefined,
     format: main.PrintFormatInfo | undefined,
     sizeId: string,
     shape?: SelectionShape,
+    crop?: main.PrintCropModeInfo,
 ): number | undefined {
-    if (!paper || !format?.usesSize) return undefined;
+    if (!paper || !format?.usesSize || !usesSizeOf(format, crop)) return undefined;
+    if (activeCrop(format, crop)) return perPageOf(paper, format, sizeId, false, crop);
     const shaped = shape?.allSquare ? squarePerPageOf(paper, format, sizeId) : shape?.widePerPage?.[sizeId];
     return shaped ?? perPageOf(paper, format, sizeId);
 }
 
 // perPageOf is how many items of format fit on a page of paper, in the size
-// sizeId when the format uses one, and below a header when withHeader and
-// the format prints one, or undefined until they are known.
-function perPageOf(
+// sizeId when the format uses one, below a header when withHeader and the
+// format prints one, and cropped to crop when the format crops (photos, for
+// a photo strip), or undefined until they are known.
+export function perPageOf(
     paper: main.PrintPaperInfo | undefined,
     format: main.PrintFormatInfo | undefined,
     sizeId = '',
     withHeader = false,
+    crop?: main.PrintCropModeInfo,
 ): number | undefined {
     if (!paper || !format) return undefined;
+    const cropped = activeCrop(format, crop);
+    if (cropped) {
+        // Counts by size ID; a crop mode without sizes has one, under ''.
+        const counts: Record<string, number> | undefined = paper.cropPerPage?.[cropped.id];
+        return counts?.[cropped.usesSize ? sizeId : ''];
+    }
     if (withHeader && format.usesHeader) return paper.headerPerPage?.[format.id];
     // Counts by size ID; a format without sizes has one, under ''.
     const counts: Record<string, number> | undefined = paper.perPage?.[format.id];
@@ -156,6 +191,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         size: byId<HTMLSelectElement>('print-size'),
         sizeField: byId<HTMLLabelElement>('print-size-field'),
         paper: byId<HTMLSelectElement>('print-paper'),
+        crop: byId<HTMLSelectElement>('print-crop'),
+        cropField: byId<HTMLLabelElement>('print-crop-field'),
         cut: byId<HTMLSelectElement>('print-cut'),
         cutField: byId<HTMLLabelElement>('print-cut-field'),
         header: byId<HTMLInputElement>('print-header'),
@@ -179,6 +216,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     let papers: main.PrintPaperInfo[] = [];
     // The print formats, from PrintFormats; empty until they load.
     let formats: main.PrintFormatInfo[] = [];
+    // The crop modes, from PrintCropModes; empty until they load.
+    let crops: main.PrintCropModeInfo[] = [];
     // Whether the user picked what review cards are for in this tab; until
     // then it follows the Download tab's media type.
     let mediaChosen = false;
@@ -215,20 +254,26 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         return papers.find((p) => p.id === ui.paper.value);
     }
 
-    // currentLayout is the chosen format, paper and, when the format uses
-    // one, size, with how many items fit on a page, or undefined until they
-    // have loaded.
+    function currentCrop(): main.PrintCropModeInfo | undefined {
+        return crops.find((c) => c.id === ui.crop.value);
+    }
+
+    // currentLayout is the chosen format, paper and, when they apply, crop
+    // mode and size, with how many items fit on a page, or undefined until
+    // they have loaded.
     function currentLayout() {
         const format = currentFormat();
         const paper = currentPaper();
         if (!format || !paper) return undefined;
-        const size = format.usesSize ? currentSize() : undefined;
-        if (format.usesSize && !size) return undefined;
+        const crop = activeCrop(format, currentCrop());
+        const usesSize = usesSizeOf(format, crop);
+        const size = usesSize ? currentSize() : undefined;
+        if (usesSize && !size) return undefined;
         // A header may leave room for fewer items (checklist rows).
         const withHeader = format.usesHeader && ui.header.value.trim() !== '';
-        const perPage = perPageOf(paper, format, size?.id, withHeader);
+        const perPage = perPageOf(paper, format, size?.id, withHeader, crop);
         if (!perPage) return undefined;
-        return {format, paper, size, perPage};
+        return {format, paper, size, crop, perPage};
     }
 
     // selectedPaths are the selected covers, in grid order.
@@ -245,8 +290,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             format: layout.format.id,
             size: layout.size?.id ?? '',
             paper: layout.paper.id,
+            crop: layout.crop?.id ?? '',
             // The cut mode never changes the page count.
-            cut: layout.format.usesCut ? ui.cut.value : '',
+            cut: usesCutOf(layout.format, layout.crop) ? ui.cut.value : '',
             // Translated here: Go prints the label as given.
             dateLabel: layout.format.id === REVIEW_CARDS && media ? dateLabelOf(media) : '',
             header: layout.format.usesHeader ? ui.header.value.trim() : '',
@@ -256,7 +302,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
 
     // requestKey identifies a page count request: what changes the count.
     function requestKey(paths: string[], opts: sheet.Options): string {
-        return JSON.stringify([paths, opts.format, opts.size, opts.paper, opts.header, opts.credits]);
+        return JSON.stringify([paths, opts.format, opts.size, opts.paper, opts.crop, opts.header, opts.credits]);
     }
 
     // pagesOf is the page count of paths with layout: exact once PrintPages
@@ -267,8 +313,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     // shapeKey identifies what the wide counts of PrintPages depend on.
-    function shapeKey(paths: string[], format: string, paper: string): string {
-        return JSON.stringify([paths, format, paper]);
+    function shapeKey(paths: string[], format: string, paper: string, crop: string): string {
+        return JSON.stringify([paths, format, paper, crop]);
     }
 
     // selectionShape is what PrintPages found about the shapes of the
@@ -277,7 +323,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     function selectionShape(): SelectionShape | undefined {
         const paths = selectedPaths();
         if (exact?.pathsKey !== JSON.stringify(paths)) return undefined;
-        const sameShape = exact.shapeKey === shapeKey(paths, ui.format.value, ui.paper.value);
+        const crop = activeCrop(currentFormat(), currentCrop())?.id ?? '';
+        const sameShape = exact.shapeKey === shapeKey(paths, ui.format.value, ui.paper.value, crop);
         return {allSquare: exact.info.allSquare, widePerPage: sameShape ? exact.info.widePerPage : undefined};
     }
 
@@ -294,7 +341,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         try {
             const info = await PrintPages(paths, opts);
             if (seq !== pagesSeq) return;
-            exact = {key, pathsKey: JSON.stringify(paths), shapeKey: shapeKey(paths, opts.format, opts.paper), info};
+            exact = {key, pathsKey: JSON.stringify(paths), shapeKey: shapeKey(paths, opts.format, opts.paper, opts.crop), info};
             updateSizeLabels();
             updateSelection();
         } catch (err) {
@@ -489,31 +536,38 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         });
     }
 
-    // updateSizeLabels shows how many covers, spines or polaroids of each
-    // size fit on the paper, in the chosen format: on a cover sheet, how
-    // many square covers when every selected image is square, and how many
-    // like the selection when every one gets a wide cell (see sizePerPageOf).
+    // updateSizeLabels shows how many covers, spines, polaroids or cropped
+    // photos of each size fit on the paper, in the chosen format: on a
+    // cover sheet, how many square covers when every selected image is
+    // square, and how many like the selection when every one gets a wide
+    // cell (see sizePerPageOf).
     function updateSizeLabels() {
         const paper = currentPaper();
         const format = currentFormat();
         const shape = selectionShape();
+        const crop = currentCrop();
         for (const option of Array.from(ui.size.options)) {
             const size = sizes.find((s) => s.id === option.value);
             if (!size) continue;
-            option.textContent = sizeLabel(size, sizePerPageOf(paper, format, size.id, shape));
+            option.textContent = sizeLabel(size, sizePerPageOf(paper, format, size.id, shape, crop));
         }
     }
 
-    // updateFormat shows the controls that apply to the chosen format: the
-    // cover size for a cover sheet, spines or polaroids, the cut mode for a
-    // cover sheet, what the cards are for for review cards, the header for a
-    // full page or a checklist.
+    // updateFormat shows the controls that apply to the chosen format and
+    // crop mode: the cover size for a cover sheet, spines or polaroids
+    // (hidden for a crop mode with a fixed size), the crop mode for a cover
+    // sheet, the cut mode for a cover sheet unless the crop mode draws a
+    // frame, what the cards are for for review cards, the header for a full
+    // page or a checklist.
     function updateFormat() {
         const format = currentFormat();
-        const usesSize = format?.usesSize ?? true;
-        ui.size.disabled = !usesSize;
-        ui.sizeField.classList.toggle('disabled', !usesSize);
-        ui.cutField.hidden = !(format?.usesCut ?? true);
+        const crop = currentCrop();
+        const formatUsesSize = format?.usesSize ?? true;
+        ui.size.disabled = !formatUsesSize;
+        ui.sizeField.classList.toggle('disabled', !formatUsesSize);
+        ui.sizeField.hidden = formatUsesSize && !usesSizeOf(format, crop);
+        ui.cropField.hidden = !(format?.usesCrop ?? true);
+        ui.cutField.hidden = !usesCutOf(format, crop);
         ui.mediaField.hidden = ui.format.value !== REVIEW_CARDS;
         const usesHeader = format?.usesHeader ?? false;
         ui.header.disabled = !usesHeader;
@@ -561,11 +615,23 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // The cut modes, from PrintCutModes; empty until they load.
     let cuts: main.PrintCutModeInfo[] = [];
 
+    // fillSelect fills select with the presets, named by their IDs, the
+    // default selected.
+    function fillSelect(select: HTMLSelectElement, kind: string, presets: Array<{id: string; label: string; default: boolean}>) {
+        select.replaceChildren(...presets.map((preset) => {
+            const option = el('option', '', label(kind, preset.id, preset.label));
+            option.value = preset.id;
+            option.selected = preset.default;
+            return option;
+        }));
+    }
+
     // relabel shows the tab's dynamic text in the current language, keeping
     // the selections and the header.
     function relabel() {
         labelOptions(ui.format, 'format', formats);
         labelOptions(ui.paper, 'paper', papers);
+        labelOptions(ui.crop, 'crop', crops);
         labelOptions(ui.cut, 'cut', cuts);
         labelMedia();
         updateSizeLabels();
@@ -577,8 +643,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     async function loadPresets() {
-        const [formatList, sizeList, paperList, cutList] =
-            await Promise.allSettled([PrintFormats(), PrintSizes(), PrintPapers(), PrintCutModes()]);
+        const [formatList, sizeList, paperList, cutList, cropList] =
+            await Promise.allSettled([PrintFormats(), PrintSizes(), PrintPapers(), PrintCutModes(), PrintCropModes()]);
         if (formatList.status === 'fulfilled') {
             formats = formatList.value ?? [];
             ui.format.replaceChildren(...formats.map((format) => {
@@ -615,14 +681,15 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         }
         if (cutList.status === 'fulfilled') {
             cuts = cutList.value ?? [];
-            ui.cut.replaceChildren(...cuts.map((cut) => {
-                const option = el('option', '', label('cut', cut.id, cut.label));
-                option.value = cut.id;
-                option.selected = cut.default;
-                return option;
-            }));
+            fillSelect(ui.cut, 'cut', cuts);
         } else {
             deps.showError(t('print.errCuts', {error: errorText(cutList.reason)}));
+        }
+        if (cropList.status === 'fulfilled') {
+            crops = cropList.value ?? [];
+            fillSelect(ui.crop, 'crop', crops);
+        } else {
+            deps.showError(t('print.errCrops', {error: errorText(cropList.reason)}));
         }
         updateFormat();
     }
@@ -652,6 +719,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         mediaChosen = true;
     });
     ui.size.addEventListener('change', updateSelection);
+    // A crop mode shows or hides the size and cut mode, and sets the count.
+    ui.crop.addEventListener('change', updateFormat);
     // A header may change the page count.
     ui.header.addEventListener('input', updateSelection);
     // Credits pages follow the images when a selected image has a credit.

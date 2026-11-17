@@ -518,6 +518,14 @@ func TestExportPDFDefaultFileName(t *testing.T) {
 		{"default polaroids", sheet.Options{Format: "polaroid"}, "polaroid_A4_Standard.pdf"},
 		{"polaroids", sheet.Options{Format: "polaroid", Size: "mini", Paper: "letter"}, "polaroid_Letter_Mini.pdf"},
 		{"polaroids ignore the cut and header", sheet.Options{Format: "polaroid", Size: "large", Paper: "a5", Cut: "bleed", Header: "Books of 2026"}, "polaroid_A5_Large.pdf"},
+		{"no crop is the default", sheet.Options{Crop: "none"}, "covers_A4_Standard.pdf"},
+		{"instant mini", sheet.Options{Crop: "instax"}, "covers_A4_instax.pdf"},
+		{"instant mini ignores the size and cut", sheet.Options{Crop: "instax", Size: "mini", Cut: "bleed"}, "covers_A4_instax.pdf"},
+		{"square", sheet.Options{Crop: "square", Size: "large"}, "covers_A4_Large_square.pdf"},
+		{"square with bleed", sheet.Options{Crop: "square", Cut: "bleed"}, "covers_A4_Standard_square_bleed.pdf"},
+		{"wallet ignores the size", sheet.Options{Crop: "wallet", Size: "mini", Paper: "letter", Cut: "none"}, "covers_Letter_wallet_none.pdf"},
+		{"photo strip", sheet.Options{Crop: "strip4", Paper: "a5", Cut: "none"}, "covers_A5_strip4.pdf"},
+		{"polaroids ignore the crop", sheet.Options{Format: "polaroid", Crop: "instax"}, "polaroid_A4_Standard.pdf"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -580,7 +588,7 @@ func TestPrintSizes(t *testing.T) {
 func TestPrintFormats(t *testing.T) {
 	got := NewApp().PrintFormats()
 	want := []PrintFormatInfo{
-		{ID: "covers", Label: "Cover sheet", Noun: "cover", UsesSize: true, UsesCut: true, Default: true},
+		{ID: "covers", Label: "Cover sheet", Noun: "cover", UsesSize: true, UsesCut: true, UsesCrop: true, Default: true},
 		{ID: "cards", Label: "Review cards", Noun: "card"},
 		{ID: "spines", Label: "Spines", Noun: "spine", UsesSize: true},
 		{ID: "stubs", Label: "Ticket stubs", Noun: "stub"},
@@ -605,6 +613,21 @@ func TestPrintCutModes(t *testing.T) {
 	}
 }
 
+func TestPrintCropModes(t *testing.T) {
+	got := NewApp().PrintCropModes()
+	want := []PrintCropModeInfo{
+		{ID: "none", Label: "None", UsesSize: true, UsesCut: true, Frames: 1, Default: true},
+		{ID: "instax", Label: "Instant mini", Frames: 1},
+		{ID: "square", Label: "Square", UsesSize: true, UsesCut: true, Frames: 1},
+		{ID: "strip3", Label: "Photo strip (3 frames)", Frames: 3},
+		{ID: "strip4", Label: "Photo strip (4 frames)", Frames: 4},
+		{ID: "wallet", Label: "Wallet", UsesCut: true, Frames: 1},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("PrintCropModes() = %+v, want %+v", got, want)
+	}
+}
+
 func TestPrintPapers(t *testing.T) {
 	papers := NewApp().PrintPapers()
 	want := []PrintPaperInfo{
@@ -619,7 +642,8 @@ func TestPrintPapers(t *testing.T) {
 				"polaroid":  {"mini": 56, "standard": 12, "large": 4},
 			},
 			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 16},
-			SquarePerPage: map[string]map[string]int{"covers": {"mini": 54, "standard": 15, "large": 6}}},
+			SquarePerPage: map[string]map[string]int{"covers": {"mini": 54, "standard": 15, "large": 6}},
+			CropPerPage:   map[string]map[string]int{"instax": {"": 9}, "square": {"mini": 54, "standard": 15, "large": 6}, "strip3": {"": 9}, "strip4": {"": 12}, "wallet": {"": 6}}},
 		{ID: "letter", Label: "US Letter", Width: 215.9, Height: 279.4,
 			PerPage: map[string]map[string]int{
 				"covers":    {"mini": 81, "standard": 20, "large": 9},
@@ -631,7 +655,8 @@ func TestPrintPapers(t *testing.T) {
 				"polaroid":  {"mini": 56, "standard": 12, "large": 4},
 			},
 			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 15},
-			SquarePerPage: map[string]map[string]int{"covers": {"mini": 63, "standard": 12, "large": 6}}},
+			SquarePerPage: map[string]map[string]int{"covers": {"mini": 63, "standard": 12, "large": 6}},
+			CropPerPage:   map[string]map[string]int{"instax": {"": 6}, "square": {"mini": 63, "standard": 12, "large": 6}, "strip3": {"": 9}, "strip4": {"": 12}, "wallet": {"": 4}}},
 		{ID: "a5", Label: "A5", Width: 148, Height: 210,
 			PerPage: map[string]map[string]int{
 				"covers":    {"mini": 36, "standard": 9, "large": 4},
@@ -643,7 +668,8 @@ func TestPrintPapers(t *testing.T) {
 				"polaroid":  {"mini": 25, "standard": 6, "large": 1},
 			},
 			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 11},
-			SquarePerPage: map[string]map[string]int{"covers": {"mini": 24, "standard": 6, "large": 2}}},
+			SquarePerPage: map[string]map[string]int{"covers": {"mini": 24, "standard": 6, "large": 2}},
+			CropPerPage:   map[string]map[string]int{"instax": {"": 4}, "square": {"mini": 24, "standard": 6, "large": 2}, "strip3": {"": 6}, "strip4": {"": 8}, "wallet": {"": 4}}},
 	}
 	if len(papers) != len(want) {
 		t.Fatalf("PrintPapers() = %+v, want %+v", papers, want)
@@ -693,6 +719,29 @@ func TestPrintPapersMatchTheSheet(t *testing.T) {
 				}
 				if got != want {
 					t.Errorf("%s %s with a header: %d per page, want %d", p.ID, f.ID, got, want)
+				}
+			}
+			// Crop modes other than None have their counts, by size if
+			// they use one.
+			for _, c := range sheet.CropModes {
+				if !f.UsesCrop || c.ID == sheet.DefaultCrop {
+					continue
+				}
+				cropSizes := []string{""}
+				if c.UsesSize {
+					cropSizes = sizes
+				}
+				if len(p.CropPerPage[c.ID]) != len(cropSizes) {
+					t.Errorf("%s crop %s: counts %v, want one for each of %q", p.ID, c.ID, p.CropPerPage[c.ID], cropSizes)
+				}
+				for _, size := range cropSizes {
+					want, err := sheet.Options{Format: f.ID, Paper: p.ID, Size: size, Crop: c.ID}.PerPage()
+					if err != nil {
+						t.Fatal(err)
+					}
+					if got := p.CropPerPage[c.ID][size]; got != want {
+						t.Errorf("%s crop %s %q: %d per page, want %d", p.ID, c.ID, size, got, want)
+					}
 				}
 			}
 			// Formats with square cells also have their square count.
@@ -778,6 +827,14 @@ func TestPrintPages(t *testing.T) {
 		{"paintings on review cards", repeat(9, painting), sheet.Options{Format: "cards"}, PrintPagesInfo{Pages: 2, Exact: true}},
 		// The readable paintings keep their wide cells: 6 rows, 2 pages.
 		{"unreadable painting", append(repeat(12, painting), bad), sheet.Options{}, PrintPagesInfo{Pages: 2}},
+		// Cropped photos all take the same piece, whatever their shape,
+		// so there are no wide counts.
+		{"9 paintings fill a page of instant minis", repeat(9, painting), sheet.Options{Crop: "instax"}, PrintPagesInfo{Pages: 1, Exact: true}},
+		{"10 paintings as instant minis", repeat(10, painting), sheet.Options{Crop: "instax"}, PrintPagesInfo{Pages: 2, Exact: true}},
+		{"16 albums as squares", repeat(16, album), sheet.Options{Crop: "square"}, PrintPagesInfo{Pages: 2, AllSquare: true, Exact: true}},
+		{"mixed photo strips", repeat(5, book, painting, panorama), sheet.Options{Crop: "strip3"}, PrintPagesInfo{Pages: 2, Exact: true}},
+		{"wallets on A5", repeat(3, portrait, book), sheet.Options{Crop: "wallet", Paper: "a5"}, PrintPagesInfo{Pages: 2, Exact: true}},
+		{"review cards ignore the crop", repeat(9, painting), sheet.Options{Format: "cards", Crop: "strip4"}, PrintPagesInfo{Pages: 2, Exact: true}},
 	}
 	a := newApp(media.NewRegistry(), http.DefaultClient)
 	for _, tt := range tests {
@@ -788,7 +845,7 @@ func TestPrintPages(t *testing.T) {
 			}
 		})
 	}
-	for _, opts := range []sheet.Options{{Format: "poster"}, {Size: "huge"}, {Paper: "a3"}, {Cut: "laser"}} {
+	for _, opts := range []sheet.Options{{Format: "poster"}, {Size: "huge"}, {Paper: "a3"}, {Cut: "laser"}, {Crop: "panorama"}} {
 		if _, err := a.PrintPages([]string{album}, opts); err == nil {
 			t.Errorf("PrintPages with %+v: want an error", opts)
 		}

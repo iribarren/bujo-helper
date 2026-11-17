@@ -42,6 +42,10 @@ export function OpenFolder(arg1) {
   return window['go']['main']['App']['OpenFolder'](arg1);
 }
 
+export function PrintCropModes() {
+  return window['go']['main']['App']['PrintCropModes']();
+}
+
 export function PrintCutModes() {
   return window['go']['main']['App']['PrintCutModes']();
 }

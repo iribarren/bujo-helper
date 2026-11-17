@@ -5,7 +5,8 @@
 // "<key>_other", looked up by tn(); "{name}" placeholders are filled by t().
 // Labels of Go presets are keyed by their ID: "media.<id>", "creator.<id>",
 // "date.<id>", "sample.button.<id>", "sample.title.<id>", "format.<id>",
-// "noun.<format id>_one/_other", "size.<id>", "paper.<id>" and "cut.<id>".
+// "noun.<format id>_one/_other", "size.<id>", "paper.<id>", "cut.<id>" and
+// "crop.<id>".
 export const en = {
     // Header, tabs and banner.
     'app.mediaType': 'Media type',
@@ -142,6 +143,8 @@ export const en = {
     'print.paperTitle': 'Paper you print on. The grid is recomputed to fill it.',
     'print.size': 'Cover size',
     'print.sizeTitle': 'Height of each printed cover, spine or polaroid picture. Smaller sizes fit more per page.',
+    'print.crop': 'Crop to',
+    'print.cropTitle': 'Cut each photo to a standard print shape. Photos are centre-cropped to fill their window exactly; the image files are not changed. None: whole images at the cover size. Instant mini: a 54 × 86 mm white frame around a 46 × 62 mm photo. Square: square photos at the cover size. Photo strip: 2 × 6 in strips of 3 or 4 consecutive photos. Wallet: 64 × 89 mm photos.',
     'print.cut': 'Cut mode',
     'print.cutTitle': 'How covers are prepared for cutting. Border: a thin grey line on the cut line. Bleed + crop marks: each image runs 1 mm past its cut line, with marks at the corners, for print-then-cut machines or hand cutting without white edges. None: the images only.',
     'print.credits': 'Credits page',
@@ -168,6 +171,7 @@ export const en = {
     'print.errSizes': 'Could not load cover sizes: {error}',
     'print.errPapers': 'Could not load paper sizes: {error}',
     'print.errCuts': 'Could not load cut modes: {error}',
+    'print.errCrops': 'Could not load crop modes: {error}',
 
     // Print formats (Go: sheet.Formats), by ID, and what each prints.
     'format.covers': 'Cover sheet',
@@ -194,7 +198,8 @@ export const en = {
     'noun.polaroid_one': '{n} polaroid',
     'noun.polaroid_other': '{n} polaroids',
 
-    // Cover sizes, papers and cut modes (Go: sheet.Sizes, Papers, CutModes).
+    // Cover sizes, papers, cut and crop modes (Go: sheet.Sizes, Papers,
+    // CutModes, CropModes).
     'size.mini': 'Mini',
     'size.standard': 'Standard',
     'size.large': 'Large',
@@ -204,6 +209,12 @@ export const en = {
     'cut.border': 'Border',
     'cut.bleed': 'Bleed + crop marks',
     'cut.none': 'None',
+    'crop.none': 'None',
+    'crop.instax': 'Instant mini',
+    'crop.square': 'Square',
+    'crop.strip3': 'Photo strip (3 frames)',
+    'crop.strip4': 'Photo strip (4 frames)',
+    'crop.wallet': 'Wallet',
 
     // Settings dialog.
     'settings.title': 'Settings',
