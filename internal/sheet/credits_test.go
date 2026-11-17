@@ -232,3 +232,49 @@ func TestBuildCreditsNamesAnUnreadableSidecarAndWritesNothing(t *testing.T) {
 		t.Errorf("wrote %d bytes, want none", out.Len())
 	}
 }
+
+// Credits hold long unbroken URLs: they are split across lines within the
+// width, and no character of an attribution is lost.
+func TestLayoutCreditsSplitsUnbrokenTokens(t *testing.T) {
+	a4 := Page{Width: 210, Height: 297}
+	url := "https://commons.wikimedia.org/wiki/File:" + strings.Repeat("Very_long_file_name_", 20) + ".jpg"
+	pages := layoutCredits(a4, "Credits", []credit{{Name: "Place", Text: "File page: " + url}}, fakeMeasure)
+	if len(pages) != 1 {
+		t.Fatalf("got %d pages, want 1", len(pages))
+	}
+	right := a4.Width - creditsMargin
+	var text strings.Builder
+	for _, l := range pages[0][1:] {
+		if l.X+fakeMeasure(l.Text, l.Bold, l.Size) > right+fitTolerance {
+			t.Errorf("line %q overflows the width", l.Text)
+		}
+		if !l.Bold {
+			text.WriteString(l.Text)
+		}
+	}
+	if got, want := text.String(), "File page:"+url; got != want {
+		t.Errorf("credit text = %q, want %q", got, want)
+	}
+}
+
+// A single credit line longer than maxCreditLines wrapped lines (only a
+// hand-edited sidecar can be) is cut with an ellipsis, not dropped silently.
+func TestLayoutCreditsMarksAnOverlongLine(t *testing.T) {
+	a4 := Page{Width: 210, Height: 297}
+	huge := strings.Repeat("word ", 200*maxCreditLines)
+	pages := layoutCredits(a4, "Credits", []credit{{Name: "Place", Text: huge}}, fakeMeasure)
+	var lines []creditLine
+	for _, p := range pages {
+		for _, l := range p[1:] {
+			if !l.Bold {
+				lines = append(lines, l)
+			}
+		}
+	}
+	if len(lines) != maxCreditLines {
+		t.Fatalf("got %d credit lines, want %d", len(lines), maxCreditLines)
+	}
+	if last := lines[len(lines)-1].Text; !strings.HasSuffix(last, ellipsis) {
+		t.Errorf("last line %q does not end with %q", last, ellipsis)
+	}
+}

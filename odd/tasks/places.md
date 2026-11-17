@@ -45,7 +45,7 @@ Travel logs and "places visited" spreads use landmark pictures, postcard-style i
 - [x] T1 Provider `wikimedia`: Wikidata search, country preference, flag mode, Commons imageinfo, credit text, headers, throttle, fixtures and tests. Route: delegated writer (2+ non-trivial files).
 - [x] T2 Catalog `places`, CLI, frontend example, sample CSV, README Sources. Route: the same delegated writer, separate commit.
 - [x] T3 PDF credits page: sheet option, sidecar reading, Print sheet checkbox, bindings, tests, README Print sheet. Route: delegated writer.
-- [ ] T4 Live CLI smoke test and build. Route: inline.
+- [x] T4 Live CLI smoke test and build. Route: inline.
 
 ## Progress
 - Plan written; RDD on (global).
@@ -69,6 +69,11 @@ Travel logs and "places visited" spreads use landmark pictures, postcard-style i
   - R3-flag-rank-slice WARNING (`wikimedia.go:143`, `rankPlaces(...)[:1]` could panic if ranking dropped entries): not a defect, `match.Rank` never drops entries. The real gap behind it: the P41 search returns any entity with a flag, so `Flag of <unknown>` downloaded an unrelated flag. Fixed below.
   - R3-flag-suffix-mode SUGGESTION: a place name ending in "flag" switches to flag mode. Accepted as a documented limitation (rare; `Flag of X` is the primary form).
 - Fix (flag plausibility): flag mode now requires the best label to be a plausible (exact or prefix) match via `match.Plausible`, else ErrNotFound "no Wikidata country named %q with a flag". Route: inline (one file + test). RED: `TestWikimediaFlagModeRejectsUnrelatedCountries` requested imageinfo for "Flag of Japan (1870–1999).svg" on "Flag of Narnia"/"Atlantis flag". GREEN: providers 197 passed, vet clean, gofmt empty. Live: Flag of Japan, USA flag, Flag of the United Kingdom OK (Narnia really has a flag on Wikidata, so it downloads).
+- Review `7cf4528..bed7ceb` (T3 + flag fix; 20 files, 662 lines, medium, `slice_budget_reached`): consent granted; lens review-reliability approved; acknowledged (authority burned). Two advisory suggestions, both closed with tests (no code change; they passed at once, so no RED):
+  - R3-credit-unbroken-token-width: `TestLayoutCreditsSplitsUnbrokenTokens`, a 400+ character URL is split within the width and no character is lost.
+  - R3-credit-line-cap-silent: `TestLayoutCreditsMarksAnOverlongLine`, a line past `maxCreditLines` (only possible in a hand-edited sidecar) is cut with an ellipsis, not silently.
+- T4 (inline): `go test -tags webkit2_41 ./...` 1065 passed in 15 packages; `go vet` clean; `gofmt -l .` empty; `tsc` clean; vitest 48/48; `wails build` ok (T3 writer). Live CLI: Eiffel Tower, Machu Picchu, Sydney Opera House, Colosseum and Flag of Japan all OK, 5 `.credit.txt` sidecars. Smoke PDF (T3): credits page lists both items with every credit line.
+- Follow-ups: emoji (non-BMP) in file-name titles likely panics non-credits formats (pre-existing, fpdf); "X flag" suffix false positives (documented limitation); some Commons author fields are odd ("FeaturedPics", "No machine-readable author provided") and are stored as given; the credits checkbox isn't remembered across restarts (no Print option is).
 
 ## Next step
-T4.
+Manual GUI check by the user, then a local `--no-ff` merge to main (user decision).
