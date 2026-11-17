@@ -1,0 +1,44 @@
+{
+  "Status": "ok",
+  "ErrorMessage": "",
+  "Result": [
+    {
+      "NameConfirmed": "Erithacus rubecula",
+      "NameCanonical": "Erithacus rubecula",
+      "Titles": [
+        {
+          "TitleID": 4001,
+          "ShortTitle": "Bird notes",
+          "PublicationDate": "1902-1925",
+          "TitleUrl": "https://www.biodiversitylibrary.org/title/4001",
+          "Items": [
+            {
+              "ItemID": 401,
+              "Volume": "v.1 (1902)",
+              "HoldingInstitution": "Cornell University Library",
+              "ItemUrl": "https://www.biodiversitylibrary.org/item/401",
+              "Pages": [
+                {
+                  "PageID": 40011,
+                  "ItemID": "401",
+                  "PageUrl": "https://www.biodiversitylibrary.org/page/40011",
+                  "FullSizeImageUrl": "https://www.biodiversitylibrary.org/pageimage/40011",
+                  "PageTypes": [{"PageTypeName": "Text"}],
+                  "PageNumbers": [{"Prefix": "Page", "Number": "17"}]
+                },
+                {
+                  "PageID": 40012,
+                  "ItemID": "401",
+                  "PageUrl": "https://www.biodiversitylibrary.org/page/40012",
+                  "FullSizeImageUrl": "https://www.biodiversitylibrary.org/pageimage/40012",
+                  "PageTypes": [{"PageTypeName": "Index"}],
+                  "PageNumbers": [{}]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

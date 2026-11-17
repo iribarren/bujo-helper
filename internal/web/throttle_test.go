@@ -514,6 +514,10 @@ func TestNewClientUsesTheSharedThrottle(t *testing.T) {
 		"commons.wikimedia.org": 200 * time.Millisecond,
 		"upload.wikimedia.org":  500 * time.Millisecond,
 		"thumb.wikimedia.org":   500 * time.Millisecond,
+		// BHL publishes no rate numbers: its API and page scans (served
+		// from S3) are spaced gently.
+		"www.biodiversitylibrary.org":              500 * time.Millisecond,
+		"bhl-open-data.s3.us-east-2.amazonaws.com": 500 * time.Millisecond,
 	} {
 		if got := DefaultThrottle.MinInterval[host]; got != want {
 			t.Errorf("DefaultThrottle.MinInterval[%q] = %v, want %v", host, got, want)

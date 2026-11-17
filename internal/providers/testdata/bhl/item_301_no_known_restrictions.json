@@ -1,0 +1,23 @@
+{
+  "Status": "ok",
+  "ErrorMessage": "",
+  "Result": [
+    {
+      "ItemID": 301,
+      "TitleID": "3001",
+      "Source": "Internet Archive",
+      "Volume": "v.1",
+      "Year": "1923",
+      "HoldingInstitution": "Smithsonian Libraries and Archives",
+      "Sponsor": "Smithsonian Libraries and Archives",
+      "Language": "English",
+      "LicenseUrl": "",
+      "Rights": "https://www.biodiversitylibrary.org/permissions",
+      "CopyrightStatus": "No known copyright restrictions as determined by scanning institution.",
+      "ItemUrl": "https://www.biodiversitylibrary.org/item/301",
+      "TitleUrl": "https://www.biodiversitylibrary.org/bibliography/3001",
+      "ItemThumbUrl": "https://www.biodiversitylibrary.org/pagethumb/3010",
+      "CreationDate": "2012/10/01 00:02:30"
+    }
+  ]
+}

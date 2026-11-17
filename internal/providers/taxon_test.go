@@ -67,8 +67,8 @@ func TestTaxonResolverDefaults(t *testing.T) {
 }
 
 func TestTaxonResolve(t *testing.T) {
-	robin := Taxon{ID: "Q25334", Label: "European robin", Name: "Erithacus rubecula", Category: "Erithacus rubecula"}
-	monstera := Taxon{ID: "Q161077", Label: "Monstera deliciosa", Name: "Monstera deliciosa", Category: "Monstera deliciosa"}
+	robin := Taxon{ID: "Q25334", Label: "European robin", Name: "Erithacus rubecula", HasTaxonName: true, Category: "Erithacus rubecula"}
+	monstera := Taxon{ID: "Q161077", Label: "Monstera deliciosa", Name: "Monstera deliciosa", HasTaxonName: true, Category: "Monstera deliciosa"}
 	tests := []struct {
 		name, fixtures, query string
 		want                  Taxon
@@ -201,8 +201,8 @@ func TestTaxonResolveNotFound(t *testing.T) {
 }
 
 func TestTaxonResolveFallsBackToLabel(t *testing.T) {
-	// A taxon item without P225 or P373: the label is the taxon name and
-	// there is no Commons category.
+	// A taxon item without P225 or P373: the label stands in for the taxon
+	// name (HasTaxonName is false) and there is no Commons category.
 	f := loadTaxonFixtures(t, "monstera")
 	f.claims = []byte(`{"entities":{"Q161077":{"id":"Q161077","claims":{"P225":[{"mainsnak":{"datavalue":{"value":"Old name"}},"rank":"deprecated"}]}}}}`)
 	tr, _ := newTaxonTest(t, f)

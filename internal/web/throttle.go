@@ -91,6 +91,11 @@ var DefaultThrottle = &Throttle{
 		"commons.wikimedia.org": 200 * time.Millisecond,
 		"upload.wikimedia.org":  500 * time.Millisecond,
 		"thumb.wikimedia.org":   500 * time.Millisecond,
+		// The Biodiversity Heritage Library publishes no rate numbers but
+		// has IP limits: its API and page scans (redirected to S3) are
+		// spaced half a second apart.
+		"www.biodiversitylibrary.org":              500 * time.Millisecond,
+		"bhl-open-data.s3.us-east-2.amazonaws.com": 500 * time.Millisecond,
 	},
 }
 

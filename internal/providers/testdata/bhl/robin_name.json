@@ -1,0 +1,126 @@
+{
+  "Status": "ok",
+  "ErrorMessage": "",
+  "Result": [
+    {
+      "Identifiers": [
+        {"IdentifierName": "GNI", "IdentifierValue": "0f0e3c1a-0000-5000-8000-000000000001"}
+      ],
+      "NameConfirmed": "Erithacus rubecula",
+      "NameCanonical": "Erithacus rubecula",
+      "CreationDate": "2008/06/20 04:56:27",
+      "Titles": [
+        {
+          "TitleID": 3001,
+          "ShortTitle": "Journal of a garden naturalist",
+          "PublicationDate": "1923",
+          "TitleUrl": "https://www.biodiversitylibrary.org/title/3001",
+          "Items": [
+            {
+              "ItemID": 301,
+              "Source": "Internet Archive",
+              "SourceIdentifier": "journalofgarden00test",
+              "Volume": "v.2 (1923)",
+              "HoldingInstitution": "Smithsonian Libraries and Archives",
+              "ItemUrl": "https://www.biodiversitylibrary.org/item/301",
+              "Pages": [
+                {
+                  "PageID": 30011,
+                  "ItemID": "301",
+                  "Year": "1923",
+                  "TextSource": "OCR",
+                  "PageUrl": "https://www.biodiversitylibrary.org/page/30011",
+                  "ThumbnailUrl": "https://www.biodiversitylibrary.org/pagethumb/30011",
+                  "FullSizeImageUrl": "https://www.biodiversitylibrary.org/pageimage/30011",
+                  "OcrUrl": "https://www.biodiversitylibrary.org/pagetext/30011",
+                  "PageTypes": [{"PageTypeName": "Illustration"}],
+                  "PageNumbers": [{}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "TitleID": 4001,
+          "ShortTitle": "Bird notes",
+          "PublicationDate": "1902-1925",
+          "TitleUrl": "https://www.biodiversitylibrary.org/title/4001",
+          "Items": [
+            {
+              "ItemID": 401,
+              "Source": "Internet Archive",
+              "SourceIdentifier": "birdnotes00test",
+              "Volume": "v.1 (1902)",
+              "HoldingInstitution": "Cornell University Library",
+              "ItemUrl": "https://www.biodiversitylibrary.org/item/401",
+              "Pages": [
+                {
+                  "PageID": 40011,
+                  "ItemID": "401",
+                  "TextSource": "OCR",
+                  "PageUrl": "https://www.biodiversitylibrary.org/page/40011",
+                  "ThumbnailUrl": "https://www.biodiversitylibrary.org/pagethumb/40011",
+                  "FullSizeImageUrl": "https://www.biodiversitylibrary.org/pageimage/40011",
+                  "OcrUrl": "https://www.biodiversitylibrary.org/pagetext/40011",
+                  "PageTypes": [{"PageTypeName": "Text"}],
+                  "PageNumbers": [{"Prefix": "Page", "Number": "17"}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "TitleID": 2001,
+          "ShortTitle": "Coloured figures of the birds of the British Islands",
+          "PublicationDate": "1885-1897",
+          "TitleUrl": "https://www.biodiversitylibrary.org/title/2001",
+          "Items": [
+            {
+              "ItemID": 201,
+              "Source": "Internet Archive",
+              "SourceIdentifier": "colouredfigureso01lilf",
+              "Volume": "v.1",
+              "HoldingInstitution": "Natural History Museum Library, London",
+              "ItemUrl": "https://www.biodiversitylibrary.org/item/201",
+              "Pages": [
+                {
+                  "PageID": 20011,
+                  "ItemID": "201",
+                  "TextSource": "OCR",
+                  "PageUrl": "https://www.biodiversitylibrary.org/page/20011",
+                  "ThumbnailUrl": "https://www.biodiversitylibrary.org/pagethumb/20011",
+                  "FullSizeImageUrl": "https://www.biodiversitylibrary.org/pageimage/20011",
+                  "OcrUrl": "https://www.biodiversitylibrary.org/pagetext/20011",
+                  "PageTypes": [{"PageTypeName": "Text"}],
+                  "PageNumbers": [{"Prefix": "Page", "Number": "12"}]
+                },
+                {
+                  "PageID": 20012,
+                  "ItemID": "201",
+                  "TextSource": "OCR",
+                  "PageUrl": "https://www.biodiversitylibrary.org/page/20012",
+                  "ThumbnailUrl": "https://www.biodiversitylibrary.org/pagethumb/20012",
+                  "FullSizeImageUrl": "https://www.biodiversitylibrary.org/pageimage/20012",
+                  "OcrUrl": "https://www.biodiversitylibrary.org/pagetext/20012",
+                  "PageTypes": [{"PageTypeName": "Illustration"}],
+                  "PageNumbers": [{}]
+                },
+                {
+                  "PageID": 20013,
+                  "ItemID": "201",
+                  "TextSource": "OCR",
+                  "PageUrl": "https://www.biodiversitylibrary.org/page/20013",
+                  "ThumbnailUrl": "https://www.biodiversitylibrary.org/pagethumb/20013",
+                  "FullSizeImageUrl": "https://www.biodiversitylibrary.org/pageimage/20013",
+                  "OcrUrl": "https://www.biodiversitylibrary.org/pagetext/20013",
+                  "PageTypes": [{"PageTypeName": "Text"}],
+                  "PageNumbers": [{"Prefix": "Plate", "Number": "4"}]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

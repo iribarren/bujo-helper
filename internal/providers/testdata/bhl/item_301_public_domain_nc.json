@@ -1,0 +1,23 @@
+{
+  "Status": "ok",
+  "ErrorMessage": "",
+  "Result": [
+    {
+      "ItemID": 301,
+      "TitleID": "3001",
+      "Source": "Internet Archive",
+      "Volume": "v.1",
+      "Year": "1923",
+      "HoldingInstitution": "Smithsonian Libraries and Archives",
+      "Sponsor": "Smithsonian Libraries and Archives",
+      "Language": "English",
+      "LicenseUrl": "http://creativecommons.org/licenses/by-nc/3.0/",
+      "Rights": "",
+      "CopyrightStatus": "Public domain. The BHL considers that this work is no longer under copyright protection.",
+      "ItemUrl": "https://www.biodiversitylibrary.org/item/301",
+      "TitleUrl": "https://www.biodiversitylibrary.org/bibliography/3001",
+      "ItemThumbUrl": "https://www.biodiversitylibrary.org/pagethumb/3010",
+      "CreationDate": "2012/10/01 00:02:30"
+    }
+  ]
+}

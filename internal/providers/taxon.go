@@ -16,10 +16,13 @@ import (
 // Taxon is the Wikidata taxon a nature name (common or scientific)
 // resolves to.
 type Taxon struct {
-	ID       string // Wikidata Q-id
-	Label    string // English label, e.g. "European robin"
-	Name     string // taxon name (P225), e.g. "Erithacus rubecula"
-	Category string // Commons category (P373), or ""
+	ID    string // Wikidata Q-id
+	Label string // English label, e.g. "European robin"
+	Name  string // taxon name (P225), e.g. "Erithacus rubecula"
+	// HasTaxonName is false when the item has no P225 and Name is the
+	// label instead.
+	HasTaxonName bool
+	Category     string // Commons category (P373), or ""
 }
 
 // TaxonResolver resolves nature names to Wikidata taxa: a full-text search
@@ -178,6 +181,7 @@ func (r *TaxonResolver) lookup(ctx context.Context, name string) (Taxon, error) 
 	if t.Label == "" {
 		t.Label = best.name
 	}
+	t.HasTaxonName = t.Name != ""
 	if t.Name == "" {
 		t.Name = t.Label
 	}

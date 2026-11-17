@@ -174,7 +174,7 @@ Wikimedia asks every client for a User-Agent with contact information, also when
 
 ### Nature
 
-Nature downloads a vintage natural-history illustration of a plant or an animal, a plate from an old book rather than a photo, from [Wikimedia Commons](https://commons.wikimedia.org/) (no key). Write one name per line, common or scientific: `Robin`, `Barn owl`, `Monstera deliciosa`. There is no second column. Plates come in every shape, so a cover sheet gives landscape ones wide cells (see [Print sheet](#print-sheet)).
+Nature downloads a vintage natural-history illustration of a plant or an animal, a plate from an old book rather than a photo, from [Wikimedia Commons](https://commons.wikimedia.org/) (no key), then from the [Biodiversity Heritage Library](https://www.biodiversitylibrary.org/) (BHL) when you have set a free BHL API key. Write one name per line, common or scientific: `Robin`, `Barn owl`, `Monstera deliciosa`. There is no second column. Plates come in every shape, so a cover sheet gives landscape ones wide cells (see [Print sheet](#print-sheet)).
 
 1. **Wikidata** full-text search for the name among taxa (items that are an instance of taxon), up to 10 results. The result whose English name or alias (aliases hold other common names and the scientific name) is closest to the name you wrote is used; ties keep the search order, so `Robin` is the European robin (*Erithacus rubecula*). A name that matches no taxon closely enough fails with "no Wikidata taxon named …". Each name is looked up once while the app (or the `covers` command) runs.
 2. **Commons** search for files, in this order, until one search gives an openly licensed image:
@@ -200,6 +200,27 @@ Image from the Biodiversity Heritage Library
 
 Public domain images need no credit, but BHL asks for one and it is good practice; the print sheet's [Credits page](#credits-page) lists them. Requests go to Wikidata and Commons with the same contact User-Agent and spacing as places.
 
+**Biodiversity Heritage Library (with a key).** When Commons gives no open image and a BHL API key is set, BHL is searched next; without a key it is skipped. It uses the same Wikidata taxon (looked up once for both sources) and needs its scientific name (Wikidata P225); a taxon without one is not searched.
+
+1. **GetNameMetadata** lists the scanned pages that name the taxon (BHL finds names in the OCR text, so most are text pages). Only pages typed *Illustration* or numbered as a *Plate* are kept, grouped by volume, oldest publication first. A name with thousands of pages can make a large answer; one over 16 MB fails that item's BHL search with "response body too large".
+2. **GetItemMetadata** gives each volume's rights, for up to three volumes. The first volume that passes the rights check gives up to three of its plates: the full page scan (`https://www.biodiversitylibrary.org/pageimage/<page ID>`). BHL serves scans only as WebP; the app saves them as JPEG.
+
+**BHL rights check.** A volume is used when its copyright status is public domain, `NOT_IN_COPYRIGHT`, not specified (or blank), or "No known copyright restrictions", and it has no non-commercial (NC) or no-derivatives (ND) licence. Volumes "In copyright" (usually digitized with the rights holder's permission under CC BY-NC-SA) and any other status are skipped; when nothing is left the item fails and names the skipped volumes with the reason, for example `Bird notes (item 401): in copyright (In copyright. Digitized with the permission of the rights holder.)`.
+
+**BHL credit file.** It starts with the line BHL asks for, then the title and volume, the publication date, the page, the copyright status, the licence and rights links when BHL gives them, the volume page and the Wikidata taxon:
+
+```text
+Image from the Biodiversity Heritage Library. Contributed by Natural History Museum Library, London. | www.biodiversitylibrary.org
+Title: Coloured figures of the birds of the British Islands, v.1
+Date: 1885-1897
+Page: https://www.biodiversitylibrary.org/page/20013 (Plate 4)
+Copyright status: NOT_IN_COPYRIGHT
+Item: https://www.biodiversitylibrary.org/item/201
+Wikidata taxon: https://www.wikidata.org/wiki/Q25334
+```
+
+BHL metadata is CC0. API requests send the contact User-Agent; the key travels in the request URL and is never shown in error messages.
+
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
@@ -218,7 +239,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, and image downloads from Wikimedia Commons 500 ms apart. A nature item makes at most three Wikidata requests (once per name) and two Commons API requests per search, at most three searches. IGDB searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, image downloads from Wikimedia Commons 500 ms apart, and requests to the BHL API and its page scans 500 ms apart (BHL has IP rate limits but publishes no numbers). A nature item makes at most three Wikidata requests (once per name) and two Commons API requests per search, at most three searches; with a BHL key, BHL adds one name request and up to three volume requests. IGDB searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
 
 ## Local editions
 
