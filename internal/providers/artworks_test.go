@@ -446,3 +446,64 @@ func TestClevelandQueryKeepsBareFlag(t *testing.T) {
 		t.Errorf("query = %q", q)
 	}
 }
+
+func TestMetSearchReportsTransientObjectErrors(t *testing.T) {
+	// The first lookup fails with a server error and the last one is a 404:
+	// the outage must not be reported as "not found".
+	var rs routedServer
+	srv := rs.serve(t, func(r *http.Request) (int, []byte) {
+		switch r.URL.Path {
+		case metSearchPath:
+			return http.StatusOK, []byte(`{"total":2,"objectIDs":[1,2]}`)
+		case metObjectPath + "1":
+			return http.StatusServiceUnavailable, []byte(`{}`)
+		}
+		return http.StatusNotFound, []byte(`{"message":"ObjectID not found"}`)
+	})
+	p := NewMet(srv.Client())
+	p.BaseURL = srv.URL + "/public/collection"
+
+	_, err := p.Search(context.Background(), media.Item{Title: "Wheat Field with Cypresses"}, media.Options{})
+	if err == nil || errors.Is(err, media.ErrNotFound) {
+		t.Fatalf("err = %v, want the HTTP 503 error, not ErrNotFound", err)
+	}
+	var status *httpStatusError
+	if !errors.As(err, &status) || status.Status != http.StatusServiceUnavailable {
+		t.Errorf("err = %v, want HTTP 503", err)
+	}
+}
+
+func TestMetSearchKeepsTitleMatchesWhenTheFallbackFails(t *testing.T) {
+	ids := []string{"742412", "437397"}
+	for i := range metMaxObjects {
+		ids = append(ids, fmt.Sprint(100+i))
+	}
+	var rs routedServer
+	known := map[string][]byte{
+		"742412": fixture(t, "met_object_742412.json"),
+		"437397": fixture(t, "met_object_437397.json"),
+	}
+	srv := rs.serve(t, func(r *http.Request) (int, []byte) {
+		switch {
+		case r.URL.Path == metSearchPath && r.URL.Query().Get("title") == "true":
+			return http.StatusOK, []byte(`{"total":12,"objectIDs":[` + strings.Join(ids, ",") + `]}`)
+		case r.URL.Path == metSearchPath:
+			return http.StatusInternalServerError, []byte(`{}`)
+		case strings.HasPrefix(r.URL.Path, metObjectPath):
+			if body, ok := known[strings.TrimPrefix(r.URL.Path, metObjectPath)]; ok {
+				return http.StatusOK, body
+			}
+		}
+		return http.StatusNotFound, []byte(`{"message":"ObjectID not found"}`)
+	})
+	p := NewMet(srv.Client())
+	p.BaseURL = srv.URL + "/public/collection"
+
+	got, err := p.Search(context.Background(), media.Item{Title: "Self-Portrait", Creator: "Rembrandt"}, media.Options{})
+	if err != nil {
+		t.Fatalf("err = %v, want the title matches", err)
+	}
+	if len(got) != 1 || got[0].Title != "Self-Portrait" {
+		t.Errorf("candidates = %+v, want Rembrandt's Self-Portrait", got)
+	}
+}

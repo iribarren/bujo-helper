@@ -344,7 +344,9 @@ func (s *itemSearch) tryProvider(ctx context.Context, i int, keep func(media.Can
 			// image whose credit cannot be saved is not kept.
 			if c.Credit != "" {
 				if err := saveCredit(path, c.Credit); err != nil {
-					os.Remove(path)
+					if rmErr := os.Remove(path); rmErr != nil {
+						err = errors.Join(err, fmt.Errorf("remove uncredited image: %w", rmErr))
+					}
 					return "", "", err
 				}
 			}

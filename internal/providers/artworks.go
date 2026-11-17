@@ -148,10 +148,11 @@ func (p *Met) Search(ctx context.Context, item media.Item, _ media.Options) ([]m
 	// is tried instead.
 	if len(ids) == 0 || (strings.TrimSpace(item.Creator) != "" && len(ids) > metMaxObjects) {
 		more, err := p.search(ctx, searchTerm(item), false)
-		if err != nil {
+		if err != nil && len(ids) == 0 {
 			return nil, err
 		}
-		if len(more) > 0 {
+		// On a failed fallback, the title matches already found are used.
+		if err == nil && len(more) > 0 {
 			ids = more
 		}
 	}
@@ -163,24 +164,27 @@ func (p *Met) Search(ctx context.Context, item media.Item, _ media.Options) ([]m
 	}
 
 	var hits []artworkHit
-	var lastErr error
+	// failure is the first lookup error other than a 404: a listed object
+	// can be gone, but an outage must not read as "not found".
+	var failure error
 	for _, id := range ids {
 		var o metObject
 		err := getJSON(ctx, p.Client, p.BaseURL+"/v1/objects/"+strconv.Itoa(id), &o)
 		if err != nil {
-			// A listed object can be gone (404); skip it.
-			lastErr = err
 			if ctx.Err() != nil {
 				return nil, err
+			}
+			var status *httpStatusError
+			if failure == nil && !(errors.As(err, &status) && status.Status == http.StatusNotFound) {
+				failure = err
 			}
 			continue
 		}
 		hits = append(hits, p.hit(o))
 	}
 	if len(hits) == 0 {
-		var status *httpStatusError
-		if lastErr != nil && !(errors.As(lastErr, &status) && status.Status == http.StatusNotFound) {
-			return nil, lastErr
+		if failure != nil {
+			return nil, failure
 		}
 		return nil, fmt.Errorf("%w: no artworks with images", media.ErrNotFound)
 	}
