@@ -137,7 +137,7 @@ License: CC0 1.0 Universal (public domain), https://creativecommons.org/publicdo
 Object page: https://www.metmuseum.org/art/collection/search/436535
 ```
 
-Place images get one too (see [Places](#places)); other media types get no credit file. The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
+Place images get one too (see [Places](#places)); other media types get no credit file. The print sheet can list them on a [credits page](#credits-page). The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
 
 **Why not the Art Institute of Chicago.** Its API and public-domain images are CC0 too, but its image server (`www.artic.edu/iiif/2/…`) answers every request that does not come from a browser with a Cloudflare challenge (HTTP 403, checked in November 2026), so the app cannot download its images.
 
@@ -166,7 +166,7 @@ File page: https://commons.wikimedia.org/wiki/File:Centro_Hist%C3%B3rico,_16.9_-
 Wikidata item: https://www.wikidata.org/wiki/Q5818
 ```
 
-When you print or share a page with these images, credit each one with its author and licence.
+When you print or share a page with these images, credit each one with its author and licence. The print sheet's [Credits page](#credits-page) does this for you.
 
 Wikimedia asks every client for a User-Agent with contact information, also when downloading images. The app sends `bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )` to Wikidata, the Commons API and the Commons image servers, spaces Wikidata and Commons API requests 200 ms apart, and image downloads from Commons 500 ms apart.
 
@@ -247,8 +247,9 @@ The **Print sheet** tab turns downloaded covers into a PDF to cut out, for examp
 3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines, or polaroids) fit on that paper. On a cover sheet it follows the selection: when every selected image is square (albums), how many square covers fit; when every one gets a wide cell at that size (landscape artworks), how many images of the selection's middle shape fit, which is exact when they all share one shape; otherwise, and for mixed shapes, how many 2:3 covers fit.
 4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet, spines and polaroids, so it is disabled for review cards, ticket stubs, full pages and checklists.
 5. For a cover sheet, pick a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). It never changes how many covers fit on a page.
-6. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size (and, for a checklist, header). The page count is exact: it reads the size of each selected image, since square and landscape covers take more room on a cover sheet (an image that cannot be read counts as a 2:3 cover).
-7. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `spines_A4_Standard.pdf`, `polaroid_A4_Standard.pdf` or, for review cards, ticket stubs, full pages and checklists, `cards_A4.pdf`, `stubs_A4.pdf`, `fullpage_A4.pdf` and `checklist_A4.pdf`), then **Open PDF** to view it.
+6. Leave **Credits page** checked (the default) to end the PDF with the author and licence of every selected image that has a credit file, in every format (see [Credits page](#credits-page)). Uncheck it to print the images only.
+7. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size (and, for a checklist, header), including any credits pages. The page count is exact: it reads the size of each selected image, since square and landscape covers take more room on a cover sheet (an image that cannot be read counts as a 2:3 cover).
+8. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `spines_A4_Standard.pdf`, `polaroid_A4_Standard.pdf` or, for review cards, ticket stubs, full pages and checklists, `cards_A4.pdf`, `stubs_A4.pdf`, `fullpage_A4.pdf` and `checklist_A4.pdf`), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 
@@ -298,6 +299,14 @@ The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, s
 - The grid, the covers per page and the page count are the same in every cut mode. The suggested file name ends in `_bleed` or `_none` for those modes, for example `covers_A4_Standard_bleed.pdf`.
 
 **Print then cut:** Cricut Design Space and Silhouette Studio add their own registration marks when you import a page, so the app draws none. Import the **Bleed** or **None** PDF page into the machine's app and run its print-then-cut flow there. Cricut limits the Print Then Cut area to less than a full page (see Cricut's help article "How large can I Print Then Cut?"), so a full-page sheet may need scaling or fewer covers.
+
+### Credits page
+
+Wikimedia Commons images (see [Places](#places)) are often CC BY or CC BY-SA, which require the author and licence wherever the image is reproduced, printed sheets included; artworks are public domain, but credit is still good practice. With **Credits page** checked (the default), the PDF ends with one or more pages titled "Credits" ("Créditos" in Spanish), on the same paper, listing every selected image that has a credit file (`<image>.credit.txt`, see [Artworks](#artworks) and [Places](#places)): a number, the image's title and creator from its file name, and the credit text, wrapped to the page width, in the order the images appear in the sheet.
+
+- Images without a credit file (books, movies, TV series, albums, games) are not listed. When no selected image has one, or the box is unchecked, no page is added and the PDF is exactly what it would be without the option.
+- A credit file that exists but cannot be read stops the export, naming the file, like an unreadable image.
+- Credits print in the embedded Go font, which covers Latin, Greek and Cyrillic text; characters it lacks (for example Japanese) print as empty boxes, though they can still be copied from the PDF, and emoji print as "?".
 
 ### Review cards
 

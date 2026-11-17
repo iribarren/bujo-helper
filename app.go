@@ -749,6 +749,7 @@ type PrintPagesInfo struct {
 // PrintPages counts the pages the images at paths take with the print
 // settings opts, reading their image headers: on a cover sheet, square
 // and landscape images get square and wide cells, so fewer fit on a page.
+// With opts.Credits, the count includes the credits pages.
 // An image that cannot be read counts as a 2:3 cover, so the toolbar still
 // shows a count; ExportPDF reports the bad file.
 func (a *App) PrintPages(paths []string, opts sheet.Options) (PrintPagesInfo, error) {
@@ -770,6 +771,13 @@ func (a *App) PrintPages(paths []string, opts sheet.Options) (PrintPagesInfo, er
 	pages, err := opts.Pages(ratios)
 	if err != nil {
 		return PrintPagesInfo{}, err
+	}
+	// The credits pages follow the images; ExportPDF reports a sidecar
+	// that cannot be read.
+	if n, err := opts.CreditPages(paths); err != nil {
+		log.Printf("count credits pages: %v", err)
+	} else {
+		pages += n
 	}
 	allSquare := exact && len(ratios) > 0
 	for _, r := range ratios {
@@ -856,13 +864,15 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 	return path, nil
 }
 
-// withLabels returns opts with the stub and card labels in the UI language.
+// withLabels returns opts with the stub, card and credits page labels in
+// the UI language.
 func (a *App) withLabels(opts sheet.Options) sheet.Options {
 	opts.Labels = sheet.Labels{
 		Admit:    a.t("pdf.stubAdmit"),
 		Date:     a.t("pdf.stubDate"),
 		Where:    a.t("pdf.stubWhere"),
 		CardDate: a.t("pdf.cardDate"),
+		Credits:  a.t("pdf.credits"),
 	}
 	return opts
 }

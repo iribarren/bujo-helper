@@ -375,6 +375,37 @@ func TestListCoversIgnoresCreditSidecars(t *testing.T) {
 	}
 }
 
+// The page count includes the credits page when the box is checked and a
+// selected image has a credit sidecar.
+func TestPrintPagesCountsCreditsPages(t *testing.T) {
+	dir := t.TempDir()
+	book := writeCover(t, dir, "Dune - Frank Herbert.jpg", 66, 100)
+	tower := writeCover(t, dir, "Eiffel Tower - France.jpg", 100, 150)
+	if err := os.WriteFile(downloader.CreditPath(tower), []byte("Author: Benh LIEU SONG\nLicence: public domain\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name  string
+		paths []string
+		opts  sheet.Options
+		pages int
+	}{
+		{"credited image, box checked", []string{book, tower}, sheet.Options{Credits: true}, 2},
+		{"credited image, box unchecked", []string{book, tower}, sheet.Options{}, 1},
+		{"no sidecar, box checked", []string{book}, sheet.Options{Credits: true}, 1},
+		{"credited image on review cards", []string{tower}, sheet.Options{Format: "cards", Credits: true}, 2},
+	}
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := a.PrintPages(tt.paths, tt.opts)
+			if err != nil || got.Pages != tt.pages {
+				t.Errorf("PrintPages = %+v, %v; want %d pages", got, err, tt.pages)
+			}
+		})
+	}
+}
+
 func TestExportTo(t *testing.T) {
 	src := t.TempDir()
 	var files []string
@@ -1445,12 +1476,12 @@ func TestExportPDFDialogUsesTheUILanguage(t *testing.T) {
 func TestPDFLabelsFollowTheUILanguage(t *testing.T) {
 	a := newApp(media.NewRegistry(), http.DefaultClient)
 	opts := sheet.Options{Format: "stubs", DateLabel: "Leído el"}
-	if got := a.withLabels(opts); got.Labels != (sheet.Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date"}) {
+	if got := a.withLabels(opts); got.Labels != (sheet.Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date", Credits: "Credits"}) {
 		t.Errorf("English labels = %+v", got.Labels)
 	}
 	a.SetLanguage("es")
 	got := a.withLabels(opts)
-	if got.Labels != (sheet.Labels{Admit: "ENTRADA", Date: "Fecha:", Where: "Lugar:", CardDate: "Fecha"}) {
+	if got.Labels != (sheet.Labels{Admit: "ENTRADA", Date: "Fecha:", Where: "Lugar:", CardDate: "Fecha", Credits: "Créditos"}) {
 		t.Errorf("Spanish labels = %+v", got.Labels)
 	}
 	if got.Format != opts.Format || got.DateLabel != opts.DateLabel {

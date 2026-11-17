@@ -120,6 +120,8 @@ export const es: Messages = {
     'print.sizeTitle': 'Altura de cada portada, lomo o foto de polaroid impresos. Con tamaños más pequeños caben más por página.',
     'print.cut': 'Modo de corte',
     'print.cutTitle': 'Cómo se preparan las portadas para recortarlas. Borde: una fina línea gris sobre la línea de corte. Sangrado + marcas de corte: cada imagen sobresale 1 mm de su línea de corte, con marcas en las esquinas, para máquinas de impresión y corte o para recortar a mano sin bordes blancos. Ninguno: solo las imágenes.',
+    'print.credits': 'Página de créditos',
+    'print.creditsTitle': 'Añade al final una página con el autor y la licencia de cada imagen seleccionada que tenga créditos (fotos de lugares, banderas y obras de arte). Las imágenes sin créditos no aparecen.',
     'print.selectAll': 'Seleccionar todo',
     'print.selectNone': 'No seleccionar nada',
     'print.gallery': 'Portadas de la carpeta',

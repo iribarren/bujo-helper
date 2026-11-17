@@ -124,6 +124,8 @@ export const en = {
     'print.sizeTitle': 'Height of each printed cover, spine or polaroid picture. Smaller sizes fit more per page.',
     'print.cut': 'Cut mode',
     'print.cutTitle': 'How covers are prepared for cutting. Border: a thin grey line on the cut line. Bleed + crop marks: each image runs 1 mm past its cut line, with marks at the corners, for print-then-cut machines or hand cutting without white edges. None: the images only.',
+    'print.credits': 'Credits page',
+    'print.creditsTitle': 'Add a page at the end listing the author and licence of each selected image that came with a credit (place photos, flags and artworks). Images without a credit are not listed.',
     'print.selectAll': 'Select all',
     'print.selectNone': 'Select none',
     'print.gallery': 'Covers in the folder',

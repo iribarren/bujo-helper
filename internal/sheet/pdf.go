@@ -37,8 +37,9 @@ const (
 // Build writes a PDF of the images at paths, in the format and on the grid
 // of opts, to w: a cover sheet, a review card per image, a book spine per
 // image, a ticket stub per image, full pages of covers under a header, a
-// checklist row per image under a header, or a polaroid frame per image.
-// Images are downscaled to 300 dpi at their printed size and re-encoded as
+// checklist row per image under a header, or a polaroid frame per image;
+// with opts.Credits, followed by credits pages for the images that have a
+// credit sidecar. Images are downscaled to 300 dpi at their printed size and re-encoded as
 // JPEG to keep the file small. If any image cannot be read or opts are
 // invalid, Build returns an error (naming the file, if any) and writes
 // nothing.
@@ -78,22 +79,30 @@ func build(paths []string, opts Options) (*fpdf.Fpdf, error) {
 		return nil, err
 	}
 
+	var pdf *fpdf.Fpdf
 	switch format.ID {
 	case cardsFormat:
-		return buildCards(grid, paths, ratios, opts)
+		pdf, err = buildCards(grid, paths, ratios, opts)
 	case spinesFormat:
-		return buildSpines(grid, paths)
+		pdf, err = buildSpines(grid, paths)
 	case stubsFormat:
-		return buildStubs(grid, paths, ratios, opts.labels())
+		pdf, err = buildStubs(grid, paths, ratios, opts.labels())
 	case fullFormat:
-		return buildFullPage(grid.Page, paths, ratios, opts.header())
+		pdf, err = buildFullPage(grid.Page, paths, ratios, opts.header())
 	case checkFormat:
-		return buildChecklist(grid, paths, ratios, opts.header())
+		pdf, err = buildChecklist(grid, paths, ratios, opts.header())
 	case polaFormat:
-		return buildPolaroids(grid, paths, ratios)
+		pdf, err = buildPolaroids(grid, paths, ratios)
 	default:
-		return buildCovers(grid, paths, ratios, cut)
+		pdf, err = buildCovers(grid, paths, ratios, cut)
 	}
+	if err != nil {
+		return nil, err
+	}
+	if err := addCredits(pdf, grid.Page, paths, opts); err != nil {
+		return nil, err
+	}
+	return pdf, nil
 }
 
 // newPDF starts a document of page-sized pages, in mm, drawing cut borders.

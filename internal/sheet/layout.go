@@ -170,18 +170,24 @@ type Options struct {
 	// checklist, e.g. "Books of 2026" or "TBR 2026"; "" (or only spaces)
 	// means no header. Ignored by other formats.
 	Header string `json:"header"`
-	// Labels are the fixed words printed on stubs and cards, in the UI
-	// language. The app fills them in; the zero value prints English.
+	// Credits adds credits pages after the images: one entry per selected
+	// image with a credit sidecar (see media.CreditPath), in sheet order.
+	// Without such an image it adds nothing.
+	Credits bool `json:"credits"`
+	// Labels are the fixed words printed on stubs, cards and credits
+	// pages, in the UI language. The app fills them in; the zero value
+	// prints English.
 	Labels Labels `json:"-"`
 }
 
-// Labels are the fixed words printed on ticket stubs and review cards. An
-// empty (or blank) field keeps its English default.
+// Labels are the fixed words printed on ticket stubs, review cards and
+// credits pages. An empty (or blank) field keeps its English default.
 type Labels struct {
 	Admit    string // on the stub end; "ADMIT ONE"
 	Date     string // the stub's date field, with its colon; "Date:"
 	Where    string // the stub's where field, with its colon; "Where:"
 	CardDate string // a card's date field when DateLabel is "", without the colon; "Date"
+	Credits  string // the heading of credits pages; "Credits"
 }
 
 // labels returns o.Labels, trimmed, with every empty field set to its
@@ -199,6 +205,7 @@ func (o Options) labels() Labels {
 		Date:     or(l.Date, dateText),
 		Where:    or(l.Where, whereText),
 		CardDate: or(l.CardDate, cardDateText),
+		Credits:  or(l.Credits, creditsText),
 	}
 }
 

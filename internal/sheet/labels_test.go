@@ -7,15 +7,15 @@ import (
 )
 
 // spanishLabels are the labels the app prints for Spanish.
-var spanishLabels = Labels{Admit: "ENTRADA", Date: "Fecha:", Where: "Lugar:", CardDate: "Fecha"}
+var spanishLabels = Labels{Admit: "ENTRADA", Date: "Fecha:", Where: "Lugar:", CardDate: "Fecha", Credits: "Créditos"}
 
 func TestLabelsDefaultToEnglish(t *testing.T) {
-	english := Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date"}
+	english := Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date", Credits: "Credits"}
 	if got := (Options{}).labels(); got != english {
 		t.Errorf("zero labels = %+v, want %+v", got, english)
 	}
 	got := (Options{Labels: Labels{Admit: " ENTRADA ", Where: "  "}}).labels()
-	if want := (Labels{Admit: "ENTRADA", Date: "Date:", Where: "Where:", CardDate: "Date"}); got != want {
+	if want := (Labels{Admit: "ENTRADA", Date: "Date:", Where: "Where:", CardDate: "Date", Credits: "Credits"}); got != want {
 		t.Errorf("partial labels = %+v, want %+v", got, want)
 	}
 	if got := spanishLabels; (Options{Labels: got}).labels() != got {
@@ -77,7 +77,7 @@ func TestLabelsFitTheirBoxes(t *testing.T) {
 func TestStubLabels(t *testing.T) {
 	dir := t.TempDir()
 	paths := []string{writeImage(t, dir, "Dune - Denis Villeneuve.jpg", 66, 100, color.RGBA{200, 120, 40, 255})}
-	english := Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date"}
+	english := Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date", Credits: "Credits"}
 	for _, format := range []string{"stubs", "cards"} {
 		zero := render(t, paths, Options{Format: format})
 		if got := render(t, paths, Options{Format: format, Labels: english}); !bytes.Equal(got, zero) {
