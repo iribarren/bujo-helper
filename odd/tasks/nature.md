@@ -99,6 +99,7 @@ Bird-watching logs, plant and garden journals and nature journals use vintage na
 - T4 (inline): live CLI with no BHL key (`BHL_API_KEY` unset, empty config): `Robin` 1211×1956, `Monstera deliciosa` 1192×1531, `Barn owl` 1920×2528, all from `commons-nature` with `.credit.txt`; `Zzqxv nonexistent plant` → `FAIL … commons-nature: not found: no Wikidata taxon matches …` with no BHL reason. `wails build -tags webkit2_41` ok (no binding diff; 0644 modes restored). Full suite, vet, gofmt, tsc, vitest per T3 fix writer (1215 Go tests passed).
 - BHL is untested live (no key); its fixtures are hand-made from the API v3 docs except the live 401.
 - Follow-ups: Plant care card print format (roadmap optional extension); live BHL check once a key exists (BHL often marks public-domain scans CC BY-NC, which the rights rule skips); emoji in file-name titles (pre-existing, from item 15).
+- Manual GUI check passed (user, 2026-11-17). Merged to main and pushed.
 
 ## Next step
-User GUI check (build/bin/bujo-helper), then the merge decision (local `--no-ff` to main, mark ROADMAP item 17 done). Push and merge are the user's decision.
+Done.
