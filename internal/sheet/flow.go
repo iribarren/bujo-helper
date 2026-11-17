@@ -150,8 +150,8 @@ func checkRatios(ratios []float64) error {
 }
 
 // Pages is the number of pages images of the given aspect ratios take in
-// the format of o: on a cover sheet, as Flow lays them out; in any other
-// format, PerPage a page. No images take no pages.
+// the format of o: on a cover sheet with no crop mode, as Flow lays them
+// out; otherwise PerPage a page. No images take no pages.
 func (o Options) Pages(ratios []float64) (int, error) {
 	f, err := FormatByID(o.Format)
 	if err != nil {
@@ -164,11 +164,14 @@ func (o Options) Pages(ratios []float64) (int, error) {
 	if len(ratios) == 0 {
 		return 0, nil
 	}
-	if f.ShapedCells {
+	if o.shapedCells(f) {
 		pages, err := g.Flow(ratios)
 		return len(pages), err
 	}
-	per := g.PerPage()
+	per, err := o.PerPage()
+	if err != nil {
+		return 0, err
+	}
 	return (len(ratios) + per - 1) / per, nil
 }
 
@@ -180,8 +183,8 @@ func (o Options) SquarePerPage() (int, error) {
 }
 
 // PerPageFor is the number of images of aspect ratio r on a full page: on
-// a cover sheet, as Flow lays them out, so fewer when they get square or
-// wide cells; in any other format, PerPage.
+// a cover sheet with no crop mode, as Flow lays them out, so fewer when
+// they get square or wide cells; otherwise PerPage.
 func (o Options) PerPageFor(r float64) (int, error) {
 	f, err := FormatByID(o.Format)
 	if err != nil {
@@ -191,10 +194,10 @@ func (o Options) PerPageFor(r float64) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	per := g.PerPage()
-	if !f.ShapedCells {
-		return per, nil
+	if !o.shapedCells(f) {
+		return o.PerPage()
 	}
+	per := g.PerPage()
 	// A row never holds more cells than the grid has columns: a wide cell
 	// is wider than the column, and NewGrid fits as many 2:3 columns as it
 	// can, so a row of squares never holds more. One cover more than
@@ -227,4 +230,12 @@ func AspectRatios(paths []string) ([]float64, error) {
 		ratios[i] = r
 	}
 	return ratios, nil
+}
+
+// shapedCells reports whether cells follow the shape of each image with
+// the options o of format f: in a format with shaped cells, unless a crop
+// mode gives every photo the same shape.
+func (o Options) shapedCells(f Format) bool {
+	crop, err := o.cropMode()
+	return f.ShapedCells && err == nil && crop.ID == DefaultCrop
 }
