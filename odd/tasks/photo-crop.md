@@ -34,11 +34,19 @@ People print their own photos onto sticker paper. The print sheet already takes 
 - Branch `feat/photo-crop` from `2d82853`. Forecast ~800 authored lines (≈ 55 % tests). Strategy `single-pr` (user GUI-checks, then local `--no-ff` merge), as for earlier roadmap items. Push/merge are the user's decision.
 
 ## Tasks
-- [ ] T1 sheet: `CropMode` list, `Options.Crop`, `Format.UsesCrop`, crop geometry, centre-crop math, grids, PDF drawing, table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in `internal/sheet`).
+- [x] T1 sheet: `CropMode` list, `Options.Crop`, `Format.UsesCrop`, crop geometry, centre-crop math, grids, PDF drawing, table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in `internal/sheet`).
 - [ ] T2 app + UI + docs: `PrintCropModes` binding, export name, Print tab control + i18n, frontend tests, README. Route: same delegated writer, separate commit.
 
 ## Progress
 - Feature doc created; branch `feat/photo-crop` from `2d82853`. RDD on (global).
+- Review of 1095479..fc6a40c (anime-manga range on main + this plan; medium, 1237 lines): consent granted, reliability lens approved, acknowledged (authority burned). Advisory R3-001 SUGGESTION at `internal/providers/anilist_test.go:186` (pre-existing anime-manga test; follow-up only). Next reviewed boundary: fc6a40c.
+- T1 done — `e1f9107` feat(sheet): add crop to standard print sizes. Files: `internal/sheet/crop.go` (new, 261), `crop_test.go` (new, 671), `layout.go`, `flow.go`, `pdf.go`; +1028 / −31 (≈ 65 % tests; over the ~400 advisory heuristic because of the table-driven tests, not split).
+  - RED: first `go test ./internal/sheet/` failed to build (`undefined: DefaultCrop`, `CropModes`, `CropModeByID`…); with compiling stubs, TestCropModeByID, TestCropModesHaveFileSafeTags, TestFormatUsesCrop, TestCentreCrop (7 cases) and TestCropGeometry failed, then a panic (empty layout).
+  - GREEN: `go test -tags webkit2_41 ./...` 1314 passed in 15 packages; `go vet` clean; `gofmt -l .` empty.
+  - Defaults unchanged: page-stream SHA-256 of every format × paper × size × cut (189 combos, 6 mixed-shape fixtures) at `fc6a40c` vs after — identical (scratch test via `go test -overlay`, outside the repo). `TestBuildCropNoneKeepsTheCoverSheet` keeps `Crop: "none"` == `Crop: ""` for every paper × size × cut.
+  - As built: `CropMode{ID, Label, FileTag, UsesSize, UsesCut, Frames}`; `CropModeByID` errors on unknown IDs (validated in every format, like cut modes); `Options.cropMode()` is None for formats without `UsesCrop`. `NewCropGrid` uses `newFixedGrid`. Pieces: instax 54 × 86, window 46 × 62 at (4, 7); square = cover height; wallet 64 × 89 filled; strips 50.8 × 152.4 with 3 mm borders, frames 44.8 × 46.8 (3) / 44.8 × 34.35 (4). `centreCrop` keeps full height (wider image) or width, centred, ≥ 1 px; `printCroppedImage` crops via `SubImage` then the existing 300 dpi `fitImage`/JPEG path (`encodePrinted`). Square/wallet draw through the shared `drawCovers` (border / none / bleed + crop marks); instax and strips draw the grey frame border and ignore cut. `PerPage` = cells × frames; `Pages`/`PerPageFor` skip shaped cells when cropping.
+  - Photos per page (A4 / Letter / A5): instax 9 / 6 / 4; wallet 6 / 4 / 4; strip3 9 / 9 / 6 (3 / 3 / 2 strips); strip4 12 / 12 / 8; square mini 54 / 63 / 24, standard 15 / 12 / 6, large 6 / 6 / 2.
+  - Deviation: none.
 
 ## Next step
-T1.
+T2.
