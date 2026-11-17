@@ -203,7 +203,7 @@ Key files: `internal/sheet/layout.go` (grid and boxes), `internal/sheet/pdf.go` 
 
 There is a reliable image source, and the item fits how the app already works: a list in, images out, a print sheet.
 
-## 14. [ ] Museum artworks
+## 14. [x] Museum artworks (cd132dc)
 
 **Why:** museum-visit logs, "artwork of the month" pages and art history collections glue in mini prints of artworks. Museums sell "museum passport" journals built around this.
 

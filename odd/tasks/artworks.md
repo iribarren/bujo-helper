@@ -73,5 +73,7 @@ Museum-visit logs, "artwork of the month" pages and art history collections glue
   - The joined removal error in the downloader (R3-003 fix) is untested.
 - Follow-ups: the checklist nondeterminism with repeated landscape images (pre-existing); the two test gaps above; the PDF credits page (item 15).
 
+- Manual GUI check passed (user, 2026-11-17). Merged to main (`cd132dc`) and pushed.
+
 ## Next step
-Finish the T3 review, then the user's GUI check (`build/bin/bujo-helper`) and a local `--no-ff` merge.
+Done.
