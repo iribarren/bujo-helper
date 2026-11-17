@@ -1,0 +1,126 @@
+{
+  "query": {
+    "pages": {
+      "137218599": {
+        "pageid": 137218599,
+        "ns": 6,
+        "title": "File:Centro Histórico, 16.9 -- 2023 -- Córdoba, España.jpg",
+        "imageinfo": [
+          {
+            "size": 14922722,
+            "width": 5984,
+            "height": 3366,
+            "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Centro_Hist%C3%B3rico%2C_16.9_--_2023_--_C%C3%B3rdoba%2C_Espa%C3%B1a.jpg/1920px-Centro_Hist%C3%B3rico%2C_16.9_--_2023_--_C%C3%B3rdoba%2C_Espa%C3%B1a.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "thumbwidth": 1920,
+            "thumbheight": 1080,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Centro_Hist%C3%B3rico%2C_16.9_--_2023_--_C%C3%B3rdoba%2C_Espa%C3%B1a.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Centro_Hist%C3%B3rico,_16.9_--_2023_--_C%C3%B3rdoba,_Espa%C3%B1a.jpg",
+            "extmetadata": {
+              "ObjectName": {
+                "value": "Centro Histórico, 16.9 -- 2023 -- Córdoba, España"
+              },
+              "Credit": {
+                "value": "<span class=\"int-own-work\" lang=\"en\">Own work</span>"
+              },
+              "Artist": {
+                "value": "<a href=\"//commons.wikimedia.org/wiki/User:Se%C3%B1or_Aluminio\" title=\"User:Señor Aluminio\">Jose María Ligero Loarte</a>"
+              },
+              "LicenseShortName": {
+                "value": "CC BY-SA 4.0"
+              },
+              "AttributionRequired": {
+                "value": "true"
+              },
+              "LicenseUrl": {
+                "value": "https://creativecommons.org/licenses/by-sa/4.0"
+              },
+              "Copyrighted": {
+                "value": "True"
+              }
+            }
+          }
+        ]
+      },
+      "74271394": {
+        "pageid": 74271394,
+        "ns": 6,
+        "title": "File:Cordoba Capital - 013 (30621941971).jpg",
+        "imageinfo": [
+          {
+            "size": 5061395,
+            "width": 2848,
+            "height": 4288,
+            "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Cordoba_Capital_-_013_%2830621941971%29.jpg/1920px-Cordoba_Capital_-_013_%2830621941971%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "thumbwidth": 1920,
+            "thumbheight": 2891,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Cordoba_Capital_-_013_%2830621941971%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Cordoba_Capital_-_013_(30621941971).jpg",
+            "extmetadata": {
+              "ObjectName": {
+                "value": "Cordoba Capital - 013 (30621941971)"
+              },
+              "Credit": {
+                "value": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/photos/fototuris1/30621941971/\">Cordoba Capital - 013</a>"
+              },
+              "Artist": {
+                "value": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/140656059@N03\">Luis Rogelio HM</a>"
+              },
+              "LicenseShortName": {
+                "value": "CC BY-SA 2.0"
+              },
+              "AttributionRequired": {
+                "value": "true"
+              },
+              "LicenseUrl": {
+                "value": "https://creativecommons.org/licenses/by-sa/2.0"
+              },
+              "Copyrighted": {
+                "value": "True"
+              }
+            }
+          }
+        ]
+      },
+      "123079474": {
+        "pageid": 123079474,
+        "ns": 6,
+        "title": "File:Universidad de Córdoba (52018268584).jpg",
+        "imageinfo": [
+          {
+            "size": 10328211,
+            "width": 4360,
+            "height": 3488,
+            "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/28/Universidad_de_C%C3%B3rdoba_%2852018268584%29.jpg/1920px-Universidad_de_C%C3%B3rdoba_%2852018268584%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "thumbwidth": 1920,
+            "thumbheight": 1536,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/2/28/Universidad_de_C%C3%B3rdoba_%2852018268584%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Universidad_de_C%C3%B3rdoba_(52018268584).jpg",
+            "extmetadata": {
+              "ObjectName": {
+                "value": "Universidad de Córdoba (52018268584)"
+              },
+              "Credit": {
+                "value": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/photos/kentwang/52018268584/\">Universidad de Córdoba</a>"
+              },
+              "Artist": {
+                "value": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/27454212@N00\">Kent Wang</a> from Barcelona, Spain"
+              },
+              "LicenseShortName": {
+                "value": "CC BY-SA 2.0"
+              },
+              "AttributionRequired": {
+                "value": "true"
+              },
+              "LicenseUrl": {
+                "value": "https://creativecommons.org/licenses/by-sa/2.0"
+              },
+              "Copyrighted": {
+                "value": "True"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

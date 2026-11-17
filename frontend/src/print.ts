@@ -2,7 +2,8 @@
 // a format (a cover sheet, review cards, book spines, ticket stubs, a full
 // page, a checklist or polaroids), a paper, for a cover sheet, spines or
 // polaroids a cover size, for a cover sheet a cut mode and, for a full page
-// or a checklist, a header, and export them to a PDF on that paper (see
+// or a checklist, a header, and whether to end with a credits page for the
+// images that have a credit, and export them to a PDF on that paper (see
 // internal/sheet).
 
 import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
@@ -159,6 +160,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         cutField: byId<HTMLLabelElement>('print-cut-field'),
         header: byId<HTMLInputElement>('print-header'),
         headerField: byId<HTMLLabelElement>('print-header-field'),
+        credits: byId<HTMLInputElement>('print-credits'),
     };
 
     // The folder picked with Browse…; empty means "follow the output folder".
@@ -248,12 +250,13 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             // Translated here: Go prints the label as given.
             dateLabel: layout.format.id === REVIEW_CARDS && media ? dateLabelOf(media) : '',
             header: layout.format.usesHeader ? ui.header.value.trim() : '',
+            credits: ui.credits.checked,
         });
     }
 
     // requestKey identifies a page count request: what changes the count.
     function requestKey(paths: string[], opts: sheet.Options): string {
-        return JSON.stringify([paths, opts.format, opts.size, opts.paper, opts.header]);
+        return JSON.stringify([paths, opts.format, opts.size, opts.paper, opts.header, opts.credits]);
     }
 
     // pagesOf is the page count of paths with layout: exact once PrintPages
@@ -651,6 +654,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     ui.size.addEventListener('change', updateSelection);
     // A header may change the page count.
     ui.header.addEventListener('input', updateSelection);
+    // Credits pages follow the images when a selected image has a credit.
+    ui.credits.addEventListener('change', updateSelection);
     ui.paper.addEventListener('change', () => {
         updateSizeLabels();
         updateSelection();

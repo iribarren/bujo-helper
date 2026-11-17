@@ -14,9 +14,11 @@ import (
 const (
 	// APIUserAgent identifies the app to public APIs (Apple, Open Library).
 	APIUserAgent = "bujo-helper/1.0"
-	// MusicBrainzUserAgent identifies the app to MusicBrainz, which asks
-	// for a meaningful User-Agent with contact information.
-	MusicBrainzUserAgent = "bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )"
+	// ContactUserAgent identifies the app with contact information, as
+	// MusicBrainz and the Wikimedia User-Agent policy ask.
+	ContactUserAgent = "bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )"
+	// MusicBrainzUserAgent is the User-Agent sent to MusicBrainz.
+	MusicBrainzUserAgent = ContactUserAgent
 	// BrowserUserAgent is a desktop Chrome UA, needed for store pages and
 	// image CDNs that reject unknown clients.
 	BrowserUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
@@ -53,9 +55,29 @@ func SetMusicBrainzHeaders(req *http.Request) {
 	req.Header.Set("Accept", "application/json")
 }
 
-// SetBrowserHeaders makes a request look like a desktop browser.
+// SetWikimediaHeaders marks a request to a Wikimedia API (Wikidata,
+// Commons) as coming from this app, with the contact the Wikimedia
+// User-Agent policy requires.
+func SetWikimediaHeaders(req *http.Request) {
+	req.Header.Set("User-Agent", ContactUserAgent)
+}
+
+// wikimediaMediaHosts serve Wikimedia Commons files and thumbnails. Their
+// robot policy rejects generic and fake browser User-Agents.
+var wikimediaMediaHosts = map[string]bool{
+	"upload.wikimedia.org": true,
+	"thumb.wikimedia.org":  true,
+}
+
+// SetBrowserHeaders makes a request look like a desktop browser. Requests
+// to Wikimedia's media servers send the contact User-Agent instead, as
+// their policy requires.
 func SetBrowserHeaders(req *http.Request) {
-	req.Header.Set("User-Agent", BrowserUserAgent)
+	ua := BrowserUserAgent
+	if wikimediaMediaHosts[req.URL.Hostname()] {
+		ua = ContactUserAgent
+	}
+	req.Header.Set("User-Agent", ua)
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 }

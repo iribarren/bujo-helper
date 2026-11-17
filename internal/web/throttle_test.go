@@ -509,6 +509,11 @@ func TestNewClientUsesTheSharedThrottle(t *testing.T) {
 		"api.igdb.com": 250 * time.Millisecond,
 		// The Met asks for at most 80 requests per second.
 		"collectionapi.metmuseum.org": 25 * time.Millisecond,
+		// Wikimedia: the Commons API like Wikidata; media downloads spaced
+		// so that at most two run at once (robot policy).
+		"commons.wikimedia.org": 200 * time.Millisecond,
+		"upload.wikimedia.org":  500 * time.Millisecond,
+		"thumb.wikimedia.org":   500 * time.Millisecond,
 	} {
 		if got := DefaultThrottle.MinInterval[host]; got != want {
 			t.Errorf("DefaultThrottle.MinInterval[%q] = %v, want %v", host, got, want)

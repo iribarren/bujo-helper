@@ -148,7 +148,7 @@ func (p *WikidataITunes) search(ctx context.Context, title string) ([]string, er
 		"format":      {"json"},
 	}
 	var body wikidataSearchResponse
-	if err := getJSON(ctx, p.Client, p.WikidataURL+"?"+q.Encode(), &body); err != nil {
+	if err := getJSONWith(ctx, p.Client, p.WikidataURL+"?"+q.Encode(), web.SetWikimediaHeaders, &body); err != nil {
 		return nil, err
 	}
 	if err := body.Error.err(); err != nil {
@@ -176,7 +176,7 @@ func (p *WikidataITunes) films(ctx context.Context, ids []string) ([]wikidataFil
 		"format":           {"json"},
 	}
 	var body wikidataEntitiesResponse
-	if err := getJSON(ctx, p.Client, p.WikidataURL+"?"+q.Encode(), &body); err != nil {
+	if err := getJSONWith(ctx, p.Client, p.WikidataURL+"?"+q.Encode(), web.SetWikimediaHeaders, &body); err != nil {
 		return nil, err
 	}
 	if err := body.Error.err(); err != nil {

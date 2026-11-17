@@ -24,7 +24,7 @@ func TestDefault(t *testing.T) {
 	for _, mt := range reg.List() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games", "artworks"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "artworks", "places"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 
@@ -132,6 +132,25 @@ func TestDefault(t *testing.T) {
 	}
 	if !reflect.DeepEqual(artworks.Samples, wantArtworks) {
 		t.Errorf("artworks samples = %+v, want %+v", artworks.Samples, wantArtworks)
+	}
+
+	places, _ := reg.Get("places")
+	if places.Label != "Places" || places.CreatorLabel != "Country" || places.DateLabel != "Visited on" || places.LocalEditions {
+		t.Errorf("places = %+v", places)
+	}
+	if want := []string{"wikimedia"}; !reflect.DeepEqual(providerNames(places), want) {
+		t.Errorf("places providers = %q, want %q", providerNames(places), want)
+	}
+	wantPlaces := []media.Item{
+		{Title: "Eiffel Tower", Creator: "France"},
+		{Title: "Machu Picchu", Creator: "Peru"},
+		{Title: "Sydney Opera House", Creator: "Australia"},
+		{Title: "Colosseum", Creator: "Italy"},
+		// Flag mode: the country column is not used.
+		{Title: "Flag of Japan"},
+	}
+	if !reflect.DeepEqual(places.Samples, wantPlaces) {
+		t.Errorf("places samples = %+v, want %+v", places.Samples, wantPlaces)
 	}
 
 	if Default(nil, Keys{}) == nil {

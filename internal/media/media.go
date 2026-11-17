@@ -35,6 +35,18 @@ type Candidate struct {
 	Credit string
 }
 
+// CreditSuffix ends the name of an image's credit sidecar: the full image
+// file name plus this suffix, e.g. "Title - Artist.jpg.credit.txt". The
+// downloader writes it; the print sheet reads it for its credits page.
+const CreditSuffix = ".credit.txt"
+
+// CreditPath returns the path of the credit sidecar of the image at path.
+// Anything that deletes or renames a downloaded image must do the same to
+// this file.
+func CreditPath(imagePath string) string {
+	return imagePath + CreditSuffix
+}
+
 // Options tunes a search.
 type Options struct {
 	// Country is a lowercase ISO country code used by store-backed providers.

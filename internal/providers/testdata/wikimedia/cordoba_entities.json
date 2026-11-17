@@ -1,0 +1,433 @@
+{
+  "entities": {
+    "Q44210": {
+      "id": "Q44210",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Córdoba"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "city in Argentina, capital of its province"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q414"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Montaje CBA 9.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Bandera de la Ciudad de Córdoba.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q5818": {
+      "id": "Q5818",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Córdoba"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "municipality in the province of Córdoba, Spain"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q29"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Córdoba, Spain.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Centro Histórico, 16.9 -- 2023 -- Córdoba, España.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q989492": {
+      "id": "Q989492",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Córdoba"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "municipal seat of Córdoba, State of Veracruz, Mexico"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q96"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "CordobaPM.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q1570489": {
+      "id": "Q1570489",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "National University of Córdoba"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "institution of higher education in Córdoba, Argentina"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q414"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Patiocolonialcordoba.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q44759": {
+      "id": "Q44759",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Córdoba Province"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "province of Argentina"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q414"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Bandera de la Provincia de Córdoba 2014.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Cordoba Province Montage 2.png"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q81972": {
+      "id": "Q81972",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Córdoba Province"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "province in Spain"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q29"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Provincia de Córdoba - Bandera.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Cordoba Capital - 013 (30621941971).jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q1337854": {
+      "id": "Q1337854",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Emirate of Córdoba"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "independent emirate in the Iberian Peninsula (756–929)"
+        }
+      },
+      "claims": {
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Abd ar-Rahman I.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": null
+      }
+    },
+    "Q234912": {
+      "id": "Q234912",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Córdoba Department"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "department of Colombia"
+        }
+      },
+      "claims": {
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Córdoba.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q739"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Monteria1.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q734010": {
+      "id": "Q734010",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "University of Cordoba"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "Spanish university"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q29"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Universidad de Córdoba (52018268584).jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q301437": {
+      "id": "Q301437",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Priego de Córdoba"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "municipality of Spain"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q29"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Priego de Córdoba (25992045644) (cropped).jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    }
+  }
+}

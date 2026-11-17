@@ -153,8 +153,13 @@ func TestWikidataITunesRequests(t *testing.T) {
 				t.Errorf("request %d: %s = %q, want %q", i, key, q.Get(key), v)
 			}
 		}
-		if ua := reqs[i].Header.Get("User-Agent"); ua != web.APIUserAgent {
-			t.Errorf("request %d: User-Agent = %q", i, ua)
+		// Wikimedia asks for a contact User-Agent; iTunes gets the API one.
+		wantUA := web.ContactUserAgent
+		if i == 2 {
+			wantUA = web.APIUserAgent
+		}
+		if ua := reqs[i].Header.Get("User-Agent"); ua != wantUA {
+			t.Errorf("request %d: User-Agent = %q, want %q", i, ua, wantUA)
 		}
 	}
 }

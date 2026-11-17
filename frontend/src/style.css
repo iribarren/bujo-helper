@@ -332,6 +332,13 @@ textarea {
     opacity: 0.55;
 }
 
+/* A checkbox option (Credits page) sits at the start of its field, level
+   with the selects next to it. */
+.field.check-field input {
+    align-self: flex-start;
+    margin: 6px 0;
+}
+
 .field.grow {
     flex: 1;
     min-width: 0;

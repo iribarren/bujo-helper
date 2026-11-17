@@ -141,6 +141,26 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "The Burning of the Houses of Lords and Commons", Creator: "Joseph Mallord William Turner"},
 		},
 	})
+	// Landmark and city photos from Wikimedia Commons, found through
+	// Wikidata. Every Commons file keeps its own licence, so each image
+	// gets a credit sidecar (author, licence, file page). A title such as
+	// "Flag of Japan" or "Japan flag" downloads the country's flag instead.
+	mustRegister(reg, media.MediaType{
+		ID:           "places",
+		Label:        "Places",
+		CreatorLabel: "Country",
+		DateLabel:    "Visited on",
+		Providers: []media.Provider{
+			providers.NewWikimedia(client),
+		},
+		Samples: []media.Item{
+			{Title: "Eiffel Tower", Creator: "France"},
+			{Title: "Machu Picchu", Creator: "Peru"},
+			{Title: "Sydney Opera House", Creator: "Australia"},
+			{Title: "Colosseum", Creator: "Italy"},
+			{Title: "Flag of Japan"},
+		},
+	})
 	return reg
 }
 

@@ -85,6 +85,12 @@ var DefaultThrottle = &Throttle{
 		// The Met asks for at most 80 requests per second; a search makes
 		// up to 12, so this keeps well under it.
 		"collectionapi.metmuseum.org": 25 * time.Millisecond,
+		// Wikimedia asks for serial API requests well under five per
+		// second, and at most two concurrent media downloads; spacing the
+		// image hosts by half a second keeps downloads at about that.
+		"commons.wikimedia.org": 200 * time.Millisecond,
+		"upload.wikimedia.org":  500 * time.Millisecond,
+		"thumb.wikimedia.org":   500 * time.Millisecond,
 	},
 }
 

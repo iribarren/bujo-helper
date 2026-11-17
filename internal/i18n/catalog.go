@@ -39,6 +39,7 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.stubDate":  "Date:",
 		"pdf.stubWhere": "Where:",
 		"pdf.cardDate":  "Date",
+		"pdf.credits":   "Credits",
 	},
 	ES: {
 		"dialog.importCSV":          "Importar CSV",
@@ -70,5 +71,6 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.stubDate":  "Fecha:",
 		"pdf.stubWhere": "Lugar:",
 		"pdf.cardDate":  "Fecha",
+		"pdf.credits":   "Créditos",
 	},
 }

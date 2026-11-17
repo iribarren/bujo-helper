@@ -207,6 +207,7 @@ export namespace sheet {
 	    Date: string;
 	    Where: string;
 	    CardDate: string;
+	    Credits: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Labels(source);
@@ -218,6 +219,7 @@ export namespace sheet {
 	        this.Date = source["Date"];
 	        this.Where = source["Where"];
 	        this.CardDate = source["CardDate"];
+	        this.Credits = source["Credits"];
 	    }
 	}
 	export class Options {
@@ -227,6 +229,7 @@ export namespace sheet {
 	    cut: string;
 	    dateLabel: string;
 	    header: string;
+	    credits: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new Options(source);
@@ -240,6 +243,7 @@ export namespace sheet {
 	        this.cut = source["cut"];
 	        this.dateLabel = source["dateLabel"];
 	        this.header = source["header"];
+	        this.credits = source["credits"];
 	    }
 	}
 
