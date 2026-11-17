@@ -120,6 +120,27 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "The Legend of Zelda: Breath of the Wild", Creator: "2017"},
 		},
 	})
+	// Public-domain artworks from museum open-access APIs: the Met first,
+	// then Cleveland (the user's choice). Images come with a credit
+	// sidecar. The Art Institute of Chicago is not used: its image server
+	// rejects every non-browser request.
+	mustRegister(reg, media.MediaType{
+		ID:           "artworks",
+		Label:        "Artworks",
+		CreatorLabel: "Artist",
+		DateLabel:    "Seen on",
+		Providers: []media.Provider{
+			providers.NewMet(client),
+			providers.NewCleveland(client),
+		},
+		Samples: []media.Item{
+			{Title: "Wheat Field with Cypresses", Creator: "Vincent van Gogh"},
+			{Title: "The Harvesters", Creator: "Pieter Bruegel the Elder"},
+			{Title: "Washington Crossing the Delaware", Creator: "Emanuel Leutze"},
+			{Title: "Twilight in the Wilderness", Creator: "Frederic Edwin Church"},
+			{Title: "The Burning of the Houses of Lords and Commons", Creator: "Joseph Mallord William Turner"},
+		},
+	})
 	return reg
 }
 

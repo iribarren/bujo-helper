@@ -24,7 +24,7 @@ func TestDefault(t *testing.T) {
 	for _, mt := range reg.List() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "artworks"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 
@@ -114,6 +114,24 @@ func TestDefault(t *testing.T) {
 	}
 	if !reflect.DeepEqual(games.Samples, wantGames) {
 		t.Errorf("games samples = %+v, want %+v", games.Samples, wantGames)
+	}
+
+	artworks, _ := reg.Get("artworks")
+	if artworks.Label != "Artworks" || artworks.CreatorLabel != "Artist" || artworks.DateLabel != "Seen on" || artworks.LocalEditions {
+		t.Errorf("artworks = %+v", artworks)
+	}
+	if want := []string{"met", "cleveland"}; !reflect.DeepEqual(providerNames(artworks), want) {
+		t.Errorf("artworks providers = %q, want %q", providerNames(artworks), want)
+	}
+	wantArtworks := []media.Item{
+		{Title: "Wheat Field with Cypresses", Creator: "Vincent van Gogh"},
+		{Title: "The Harvesters", Creator: "Pieter Bruegel the Elder"},
+		{Title: "Washington Crossing the Delaware", Creator: "Emanuel Leutze"},
+		{Title: "Twilight in the Wilderness", Creator: "Frederic Edwin Church"},
+		{Title: "The Burning of the Houses of Lords and Commons", Creator: "Joseph Mallord William Turner"},
+	}
+	if !reflect.DeepEqual(artworks.Samples, wantArtworks) {
+		t.Errorf("artworks samples = %+v, want %+v", artworks.Samples, wantArtworks)
 	}
 
 	if Default(nil, Keys{}) == nil {

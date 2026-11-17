@@ -132,3 +132,23 @@ func saveUnique(dir, name string, data []byte) (string, error) {
 	}
 	return "", fmt.Errorf("too many files named %q", name)
 }
+
+// CreditSuffix ends the name of an image's credit sidecar: the full image
+// file name plus this suffix, e.g. "Title - Artist.jpg.credit.txt".
+const CreditSuffix = ".credit.txt"
+
+// CreditPath returns the path of the credit sidecar of the image at path.
+// Anything that deletes or renames a downloaded image must do the same to
+// this file.
+func CreditPath(imagePath string) string {
+	return imagePath + CreditSuffix
+}
+
+// saveCredit writes credit to the sidecar of the image at imagePath,
+// replacing a stale sidecar left by an image deleted outside the app.
+func saveCredit(imagePath, credit string) error {
+	if err := os.WriteFile(CreditPath(imagePath), []byte(credit+"\n"), 0o644); err != nil {
+		return fmt.Errorf("write credit: %w", err)
+	}
+	return nil
+}

@@ -67,16 +67,19 @@ export const es: Messages = {
     'media.tv': 'Series',
     'media.albums': 'Álbumes',
     'media.games': 'Videojuegos',
+    'media.artworks': 'Obras de arte',
     'creator.books': 'Autor',
     'creator.movies': 'Año',
     'creator.tv': 'Año',
     'creator.albums': 'Artista',
     'creator.games': 'Año',
+    'creator.artworks': 'Artista',
     'date.books': 'Leído el',
     'date.movies': 'Visto el',
     'date.tv': 'Visto el',
     'date.albums': 'Escuchado el',
     'date.games': 'Jugado el',
+    'date.artworks': 'Visto el',
 
     // The sample CSV button, per media type, and its fallbacks.
     'sample.button': 'CSV de ejemplo',
@@ -87,11 +90,13 @@ export const es: Messages = {
     'sample.button.tv': 'CSV de ejemplo de series',
     'sample.button.albums': 'CSV de ejemplo de álbumes',
     'sample.button.games': 'CSV de ejemplo de videojuegos',
+    'sample.button.artworks': 'CSV de ejemplo de obras de arte',
     'sample.title.books': 'Guarda un CSV de ejemplo de libros (Título, Autor) como referencia para Importar CSV',
     'sample.title.movies': 'Guarda un CSV de ejemplo de películas (Título, Año) como referencia para Importar CSV',
     'sample.title.tv': 'Guarda un CSV de ejemplo de series (Título, Año) como referencia para Importar CSV',
     'sample.title.albums': 'Guarda un CSV de ejemplo de álbumes (Título, Artista) como referencia para Importar CSV',
     'sample.title.games': 'Guarda un CSV de ejemplo de videojuegos (Título, Año) como referencia para Importar CSV',
+    'sample.title.artworks': 'Guarda un CSV de ejemplo de obras de arte (Título, Artista) como referencia para Importar CSV',
 
     // Print sheet tab.
     'print.coversFolder': 'Carpeta de portadas',

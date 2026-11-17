@@ -71,16 +71,19 @@ export const en = {
     'media.tv': 'TV series',
     'media.albums': 'Albums',
     'media.games': 'Games',
+    'media.artworks': 'Artworks',
     'creator.books': 'Author',
     'creator.movies': 'Year',
     'creator.tv': 'Year',
     'creator.albums': 'Artist',
     'creator.games': 'Year',
+    'creator.artworks': 'Artist',
     'date.books': 'Read on',
     'date.movies': 'Watched on',
     'date.tv': 'Watched on',
     'date.albums': 'Listened on',
     'date.games': 'Played on',
+    'date.artworks': 'Seen on',
 
     // The sample CSV button, per media type, and its fallbacks.
     'sample.button': 'Sample CSV',
@@ -91,11 +94,13 @@ export const en = {
     'sample.button.tv': 'Sample TV series CSV',
     'sample.button.albums': 'Sample albums CSV',
     'sample.button.games': 'Sample games CSV',
+    'sample.button.artworks': 'Sample artworks CSV',
     'sample.title.books': 'Save an example books CSV (Title, Author) to use as a reference for Import CSV',
     'sample.title.movies': 'Save an example movies CSV (Title, Year) to use as a reference for Import CSV',
     'sample.title.tv': 'Save an example TV series CSV (Title, Year) to use as a reference for Import CSV',
     'sample.title.albums': 'Save an example albums CSV (Title, Artist) to use as a reference for Import CSV',
     'sample.title.games': 'Save an example games CSV (Title, Year) to use as a reference for Import CSV',
+    'sample.title.artworks': 'Save an example artworks CSV (Title, Artist) to use as a reference for Import CSV',
 
     // Print sheet tab.
     'print.coversFolder': 'Covers folder',

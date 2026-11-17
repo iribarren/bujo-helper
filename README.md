@@ -9,13 +9,14 @@ Book covers, movie posters, TV series posters, album covers and game box art are
 
 ## Features
 
-- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series and games) or `Album, Artist` (albums) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series and games), `Album, Artist` (albums) or `Title, Artist` (artworks) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
 - Rate limits are respected: when a source answers "too many requests", the app waits as long as the source asks (or backs off) and retries. All downloads pause for that source, and the wait is shown in the app.
 - Placeholder images, error pages and non-images are rejected, so you never get a blank "no cover" file.
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
+- Public-domain artworks from museum open-access collections, each saved with a credit file, see [Artworks](#artworks).
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
 - **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. See [Print sheet](#print-sheet).
@@ -107,6 +108,40 @@ Game covers are about 3:4 (IGDB) or 2:3 (Steam). The print sheet fits them into 
 
 The IGDB API is free for non-commercial use under the [Twitch Developer Services Agreement](https://www.twitch.tv/p/legal/developer-agreement/); commercial use needs a partnership with IGDB. The Steam store search is undocumented, like the IMDb endpoint, and may change or stop working; Valve's terms grant no rights to its images. This app is not endorsed by Twitch, IGDB or Valve. Downloaded covers are for personal use.
 
+### Artworks
+
+Artworks download only public-domain images, from museum open-access collections. Sources are tried in this order (the artist is optional, but it helps):
+
+1. **The Metropolitan Museum of Art** (Collection API, no key): searches titles first. When that finds nothing, or a common title matches more than 10 works and an artist is given, it searches the title and artist together instead (ranked by relevance). It looks at up to 10 works and takes the original JPEG, falling back to the web-size one.
+2. **The Cleveland Museum of Art** (Open Access API, no key): searches CC0 works with images by title and artist, and again by title alone when the artist filter finds nothing. It takes the print image (about 3400 px), falling back to the web image (about 900 px).
+
+Only a work whose title matches (exactly, or as the start of the museum's title) and, when an artist is given, whose artist contains its surname is kept. A museum search matches any word of the title, so this stops a different work from being saved; the next source is tried instead.
+
+**Licence rules.** A work is downloaded only when the museum marks it as open access:
+
+| Museum    | Kept when                            | Licence of the image  |
+|-----------|--------------------------------------|-----------------------|
+| The Met   | `isPublicDomain` and a primary image | CC0 (Met Open Access) |
+| Cleveland | `share_license_status` is `CC0`      | CC0                   |
+
+A matching work that is not open access is skipped with a reason such as `met: not found: 1 match, none with a public-domain (CC0) image`. CC0 allows any use without attribution, but the app still records where each image comes from.
+
+**Credit file.** Each artwork image is saved with a credit file next to it: the image's file name plus `.credit.txt`, including any duplicate suffix (`Wheat Field with Cypresses - Vincent van Gogh-2.jpg.credit.txt`). For example:
+
+```text
+Title: Wheat Field with Cypresses (1889)
+Artist: Vincent van Gogh
+Museum: The Metropolitan Museum of Art
+License: CC0 1.0 Universal (public domain), https://creativecommons.org/publicdomain/zero/1.0/
+Object page: https://www.metmuseum.org/art/collection/search/436535
+```
+
+Other media types get no credit file. The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
+
+**Why not the Art Institute of Chicago.** Its API and public-domain images are CC0 too, but its image server (`www.artic.edu/iiif/2/…`) answers every request that does not come from a browser with a Cloudflare challenge (HTTP 403, checked in November 2026), so the app cannot download its images.
+
+The Met asks for at most 80 requests per second; a search makes up to 12 requests, which the app spaces 25 ms apart. Cleveland states no limit.
+
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
@@ -125,7 +160,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), and requests to MusicBrainz one second apart. IGDB searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to MusicBrainz one second apart, and requests to the Met 25 ms apart. IGDB searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
 
 ## Local editions
 
@@ -156,13 +191,13 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies, TV series and games, `album,artist` for albums. The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies, TV series and games, `album,artist` for albums, `title,artist` for artworks. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums or games).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games or artworks).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
@@ -402,13 +437,14 @@ go run ./cmd/covers -type tv -o posters "Breaking Bad, 2008" "Dark, 2017"
 go run ./cmd/covers -type albums -o albums "Abbey Road, The Beatles" "Rumours, Fleetwood Mac"
 go run ./cmd/covers -type games -o games "Hollow Knight, 2017" "Celeste, 2018"
 IGDB_CLIENT_ID=<id> IGDB_CLIENT_SECRET=<secret> go run ./cmd/covers -type games -o games "The Legend of Zelda: Breath of the Wild, 2017"
+go run ./cmd/covers -type artworks -o art "Wheat Field with Cypresses, Vincent van Gogh" "Twilight in the Wilderness, Frederic Edwin Church"
 ```
 
 Flags must come before the items:
 
 | Flag           | Default  | Meaning                                                    |
 |----------------|----------|------------------------------------------------------------|
-| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums` or `games`   |
+| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games` or `artworks` |
 | `-o`           | `covers` | Output folder                                              |
 | `-country`     | `es`     | Store country code; its editions are preferred             |
 | `-csv`         | (none)   | CSV file, added after the positional items                 |
@@ -498,10 +534,10 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; artworks: the Met, Cleveland
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
-  downloader/          concurrent batch downloads, local-edition preference, image validation, file naming
+  downloader/          concurrent batch downloads, local-edition preference, image validation, file naming, credit files
   locale/              country table: language and ISBN prefixes of local editions
   isbn/                ISBN-10/13 validation, conversion and extraction
   web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
@@ -514,7 +550,7 @@ legacy/                the original Python script
 
 ## Adding a new media type
 
-1. Implement `media.Provider` (`Name()` and `Search(ctx, item, opts)`) for each source, usually in `internal/providers`. Return candidates best-first with their image URLs ordered best-first. Return an error wrapping `media.ErrNotFound` when there is no match.
+1. Implement `media.Provider` (`Name()` and `Search(ctx, item, opts)`) for each source, usually in `internal/providers`. Return candidates best-first with their image URLs ordered best-first. Return an error wrapping `media.ErrNotFound` when there is no match. Set `Credit` on a candidate whose image needs an attribution file; the downloader saves it as `<image file>.credit.txt`.
 2. Register a `media.MediaType` in `internal/catalog` with an ID, a label, a creator label (for example `Year` or `Artist`) and its providers in fallback order. Set `LocalEditions` only for types whose candidates carry an ISBN (books).
 
 That's all. The UI lists media types from the registry and uses the creator label in its hints, so no frontend changes are needed.

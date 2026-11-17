@@ -55,6 +55,7 @@ const EXAMPLES: Record<string, string> = {
     tv: 'Breaking Bad, 2008',
     albums: 'Abbey Road, The Beatles',
     games: 'Hollow Knight, 2017',
+    artworks: 'Wheat Field with Cypresses, Vincent van Gogh',
 };
 
 // The tip shown above the list for media types whose best source needs a

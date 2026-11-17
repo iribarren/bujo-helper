@@ -356,6 +356,25 @@ func TestListCovers(t *testing.T) {
 	}
 }
 
+// The print sheet lists covers through ListCovers, so a credit sidecar
+// never reaches it as an image.
+func TestListCoversIgnoresCreditSidecars(t *testing.T) {
+	dir := t.TempDir()
+	img := writeCover(t, dir, "Twilight in the Wilderness - Frederic Edwin Church.jpg", 100, 62)
+	if err := os.WriteFile(downloader.CreditPath(img), []byte("Title: Twilight in the Wilderness\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+
+	views, err := a.ListCovers(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(views) != 1 || views[0].Path != img {
+		t.Fatalf("views = %+v, want only the image", views)
+	}
+}
+
 func TestExportTo(t *testing.T) {
 	src := t.TempDir()
 	var files []string
@@ -878,7 +897,7 @@ func TestDefaultAppMoviesUseTheSavedTMDBKey(t *testing.T) {
 	for _, mt := range a.MediaTypes() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "artworks"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 	movies, _ := a.registry.Get("movies")
