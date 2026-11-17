@@ -46,7 +46,7 @@ Bird-watching logs, plant and garden journals and nature journals use vintage na
 - [x] T1 Name resolver + provider `commons-nature`: Wikidata taxon search, Commons search strategies, licence filter, ranking, credit, fixtures and tests. Route: delegated writer (2+ non-trivial files).
 - [x] T2 Catalog `nature`, CLI, frontend example, sample CSV, README Sources. Route: same delegated writer, separate commit.
 - [x] T3 Provider `bhl` + key setting (settings, UI, CLI, key tip) + WebP conversion, fixtures and tests, README, plus the T1/T2 review follow-ups. Route: delegated writer (2+ non-trivial files).
-- [ ] T4 Live CLI smoke test and build. Route: inline.
+- [x] T4 Live CLI smoke test and build. Route: inline.
 
 ## Progress
 - Licensing research done (delegated read-only worker); user chose Commons then BHL with key.
@@ -95,5 +95,10 @@ Bird-watching logs, plant and garden journals and nature journals use vintage na
     - RED: 3 new `TestVisibleHTMLText` self-closing cases (e.g. `"A", want "A B C"`). The BHL ID, image URL and cap tests passed at once (they pin existing behaviour; no RED).
   - GREEN: `go test -tags webkit2_41 ./...` 1215 passed in 15 packages; `go vet` clean; `gofmt -l .` empty.
 
+- Whole-branch review attempts (stop hook, selectorless `4fa0a6b..HEAD`): the first failed preflight (`invalid_request`, untracked files of the in-progress T3 writer; not forced); the second went stale (`stale_target_identity`, the fix writer committed during consent); the third stopped `lens_context_budget_exceeded` (55 files, 4915 lines; no authority created). Reduced scope: slice `ad21cca..1a94061` assessed medium, 262 lines, `under_budget`: no review due; it stays pending in the slice.
+- T4 (inline): live CLI with no BHL key (`BHL_API_KEY` unset, empty config): `Robin` 1211×1956, `Monstera deliciosa` 1192×1531, `Barn owl` 1920×2528, all from `commons-nature` with `.credit.txt`; `Zzqxv nonexistent plant` → `FAIL … commons-nature: not found: no Wikidata taxon matches …` with no BHL reason. `wails build -tags webkit2_41` ok (no binding diff; 0644 modes restored). Full suite, vet, gofmt, tsc, vitest per T3 fix writer (1215 Go tests passed).
+- BHL is untested live (no key); its fixtures are hand-made from the API v3 docs except the live 401.
+- Follow-ups: Plant care card print format (roadmap optional extension); live BHL check once a key exists (BHL often marks public-domain scans CC BY-NC, which the rights rule skips); emoji in file-name titles (pre-existing, from item 15).
+
 ## Next step
-T4 live smoke + build (parent).
+User GUI check (build/bin/bujo-helper), then the merge decision (local `--no-ff` to main, mark ROADMAP item 17 done). Push and merge are the user's decision.
