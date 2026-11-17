@@ -35,7 +35,7 @@ People print their own photos onto sticker paper. The print sheet already takes 
 
 ## Tasks
 - [x] T1 sheet: `CropMode` list, `Options.Crop`, `Format.UsesCrop`, crop geometry, centre-crop math, grids, PDF drawing, table-driven tests. Route: delegated writer (writer trigger: several non-trivial files in `internal/sheet`).
-- [ ] T2 app + UI + docs: `PrintCropModes` binding, export name, Print tab control + i18n, frontend tests, README. Route: same delegated writer, separate commit.
+- [x] T2 app + UI + docs: `PrintCropModes` binding, export name, Print tab control + i18n, frontend tests, README. Route: same delegated writer, separate commit.
 
 ## Progress
 - Feature doc created; branch `feat/photo-crop` from `2d82853`. RDD on (global).
@@ -48,5 +48,11 @@ People print their own photos onto sticker paper. The print sheet already takes 
   - Photos per page (A4 / Letter / A5): instax 9 / 6 / 4; wallet 6 / 4 / 4; strip3 9 / 9 / 6 (3 / 3 / 2 strips); strip4 12 / 12 / 8; square mini 54 / 63 / 24, standard 15 / 12 / 6, large 6 / 6 / 2.
   - Deviation: none.
 
+- T2 done — `238172c` feat(ui): offer crop to option in the print sheet. Files: `app.go`, `app_test.go`, `frontend/index.html`, `frontend/src/print.ts`, `print.test.ts`, `i18n/en.ts`, `i18n/es.ts`, regenerated `frontend/wailsjs/go/main/App.{d.ts,js}` + `models.ts` (modes restored to 644), `README.md`; +434 / −68 (≈ 32 authored lines are generated bindings).
+  - RED: `go test .` failed to build (`unknown field UsesCrop`, `PrintCropModes undefined`, `undefined: PrintCropModeInfo`, `unknown field CropPerPage`); `vitest` failed on `main.PrintCropModeInfo` before the bindings existed and the helpers were exported.
+  - GREEN: `go test -tags webkit2_41 ./...` 1329 passed in 15 packages; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` no errors; `npx vitest run` 75 passed (3 files). `git diff --summary` shows no mode changes.
+  - As built: `PrintFormatInfo.usesCrop`; `PrintCropModes()` → `{id, label, usesSize, usesCut, frames, default}`; `PrintPaperInfo.cropPerPage[cropID][sizeID|""]` (every mode but None, from `sheet.Options.PerPage`); `widePerPage` is nil when cropping. File name: `<format>_<paper>[_<size> if the crop uses it]_[<crop> unless none][_<cut> if the crop uses it and it is not border]`, e.g. `covers_A4_instax.pdf`, `covers_A4_Large_square.pdf`, `covers_Letter_wallet_none.pdf`. UI: **Crop to** select between Paper and Cover size, shown only for `usesCrop` formats; Cover size hidden for instax/strips/wallet; Cut hidden for instax/strips; page count and size labels use `cropPerPage`; crop is part of the page-count request and shape keys. i18n `print.crop`, `print.cropTitle`, `print.errCrops`, `crop.<id>` in en + es. README: feature line, intro, steps 4, 5 and 8, new "Crop to" subsection with geometry and per-page tables.
+  - Deviations: the Cover size field is *hidden* (not disabled) for fixed-size crop modes, as the spec says; formats without sizes keep today's disabled field. If `PrintCropModes` fails to load, the cover sheet falls back to no crop and shows `print.errCrops`.
+
 ## Next step
-T2.
+Parent: RDD assessment of e1f9107..238172c, then the user GUI-checks the Crop to option before the local `--no-ff` merge.
