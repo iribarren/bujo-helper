@@ -286,7 +286,7 @@ Useful, but either demand is less proven or the item adds a new kind of printabl
 - Phase dates match a reference table, such as published new and full moon dates for a test year, within ±1 day. These checks are unit tests.
 - The PDF renders all three layouts.
 
-## 19. [ ] Anime and manga media type
+## 19. [x] Anime and manga media type (95235ea)
 
 **Why:** anime and manga trackers are popular among younger bujo users. This is my assumption; no search result confirmed it.
 
@@ -295,6 +295,7 @@ Useful, but either demand is less proven or the item adds a new kind of printabl
 - Source: AniList GraphQL API (no key for public queries), large cover image. Match on romaji, English and native titles.
 - Covers are copyrighted, the same situation as book covers today: personal use only, as the README already implies.
 - Media type selector, sample CSV and CLI support.
+- **Decision (2026-11-17):** two media types, **Anime** and **Manga**, served by one AniList provider. AniList's rate limit is currently 30 requests a minute, so the throttle spaces its requests 2 s apart.
 
 **Acceptance**
 - Provider tests with fixtures, and a well-known title downloads. Rate limits are handled through the existing throttle.
