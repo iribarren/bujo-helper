@@ -21,14 +21,33 @@ func IsSquare(r float64) bool {
 const flowTol = 1e-9
 
 // flowCellWidth is the width of the cell of a cover of aspect ratio r on a
-// cover sheet: CoverHeight (a square cell) for a square cover, never wider
-// than the usable width, and CellWidth (the 2:3 column) for any other.
-// Other cell shapes, such as landscape, would add a case here.
+// cover sheet (see Grid.Flow): CoverHeight (a square cell) for a square
+// cover; CellWidth (the 2:3 column) for a cover that fits it at full
+// height; and for any other cover, a wide cell as wide as the cover at full
+// height, which is wider than the column. No cell is wider than the usable
+// width; a cover too wide for it shrinks to fit.
 func (g Grid) flowCellWidth(r float64) float64 {
-	if IsSquare(r) {
+	switch {
+	case IsSquare(r):
 		return min(g.CoverHeight, g.usableWidth())
+	case g.Wide(r):
+		return min(g.CoverHeight*r, g.usableWidth())
 	}
 	return g.CellWidth
+}
+
+// Wide reports whether a cover of aspect ratio r gets a wide cell on a
+// cover sheet of this grid: it is not square, and at full height it is
+// wider than the 2:3 column. 4:5 portraits and landscape images are wide;
+// how wide a portrait must be depends on the grid's column.
+func (g Grid) Wide(r float64) bool {
+	return !IsSquare(r) && g.CoverHeight*r > g.CellWidth+flowTol
+}
+
+// inColumn reports whether a cover of aspect ratio r gets the 2:3 column
+// on a cover sheet: it is neither square nor wide.
+func (g Grid) inColumn(r float64) bool {
+	return !IsSquare(r) && !g.Wide(r)
 }
 
 // usableWidth is the page width inside the side margins.
@@ -38,15 +57,17 @@ func (g Grid) usableWidth() float64 {
 
 // Flow places covers with the given aspect ratios (width / height) on the
 // pages of a cover sheet. Each cover gets a cell CoverHeight tall whose
-// width follows its shape (see flowCellWidth). Cells flow left to right,
-// gap apart, and a row wraps when the next cell does not fit the usable
-// width; Rows rows fill a page, then a new page starts. Each row is
+// width follows its shape (see flowCellWidth): the 2:3 column, a square, or
+// a wide cell for 4:5 portraits and landscape images. Cells flow left to
+// right, gap apart, and a row wraps when the next cell does not fit the
+// usable width; Rows rows fill a page, then a new page starts. Each row is
 // centred as if padded with cells like its last one until no more fit, so
 // a short row lines up with full rows of its kind. Each cover keeps its
-// aspect ratio, shrunk to fit and centred in its cell.
+// aspect ratio, shrunk to fit and centred in its cell: a panorama wider
+// than the usable width is shorter than its row.
 //
-// Covers that are not square flow exactly as Layout places them: a row of
-// 2:3 cells, padded, is the grid's row.
+// Covers that fit the 2:3 column flow exactly as Layout places them: a row
+// of 2:3 cells, padded, is the grid's row.
 func (g Grid) Flow(ratios []float64) ([][]Box, error) {
 	if err := checkRatios(ratios); err != nil {
 		return nil, err
@@ -80,7 +101,7 @@ func (g Grid) Flow(ratios []float64) ([][]Box, error) {
 // a page; width is the width of their cells and the gaps between them.
 func (g Grid) flowRow(row int, rs []float64, width float64) []Box {
 	boxes := make([]Box, 0, len(rs))
-	if !hasSquare(rs) {
+	if g.allInColumn(rs) {
 		// 2:3 cells only: the grid's own row, for the same arithmetic.
 		for col, r := range rs {
 			boxes = append(boxes, g.place(row*g.Columns+col, r))
@@ -103,14 +124,15 @@ func (g Grid) flowRow(row int, rs []float64, width float64) []Box {
 	return boxes
 }
 
-// hasSquare reports whether any of the aspect ratios rs is square.
-func hasSquare(rs []float64) bool {
+// allInColumn reports whether every one of the aspect ratios rs gets the
+// 2:3 column (see inColumn).
+func (g Grid) allInColumn(rs []float64) bool {
 	for _, r := range rs {
-		if IsSquare(r) {
-			return true
+		if !g.inColumn(r) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // checkRatios returns an error if there are no aspect ratios or one is not
@@ -142,7 +164,7 @@ func (o Options) Pages(ratios []float64) (int, error) {
 	if len(ratios) == 0 {
 		return 0, nil
 	}
-	if f.SquareCells {
+	if f.ShapedCells {
 		pages, err := g.Flow(ratios)
 		return len(pages), err
 	}
@@ -154,6 +176,13 @@ func (o Options) Pages(ratios []float64) (int, error) {
 // PerPage on a cover sheet, where they get square cells, and PerPage in
 // any other format.
 func (o Options) SquarePerPage() (int, error) {
+	return o.PerPageFor(1)
+}
+
+// PerPageFor is the number of images of aspect ratio r on a full page: on
+// a cover sheet, as Flow lays them out, so fewer when they get square or
+// wide cells; in any other format, PerPage.
+func (o Options) PerPageFor(r float64) (int, error) {
 	f, err := FormatByID(o.Format)
 	if err != nil {
 		return 0, err
@@ -163,20 +192,27 @@ func (o Options) SquarePerPage() (int, error) {
 		return 0, err
 	}
 	per := g.PerPage()
-	if !f.SquareCells {
+	if !f.ShapedCells {
 		return per, nil
 	}
-	// A row never holds more squares than 2:3 covers (NewGrid fits as many
-	// 2:3 columns as it can), so a page holds at most PerPage squares.
-	square := make([]float64, per)
-	for i := range square {
-		square[i] = 1
-	}
-	pages, err := g.Flow(square)
+	// A row never holds more cells than the grid has columns: a wide cell
+	// is wider than the column, and NewGrid fits as many 2:3 columns as it
+	// can, so a row of squares never holds more. One cover more than
+	// PerPage therefore starts a second page.
+	pages, err := g.Flow(sameRatios(per+1, r))
 	if err != nil {
 		return 0, err
 	}
 	return len(pages[0]), nil
+}
+
+// sameRatios returns n copies of the aspect ratio r.
+func sameRatios(n int, r float64) []float64 {
+	out := make([]float64, n)
+	for i := range out {
+		out[i] = r
+	}
+	return out
 }
 
 // AspectRatios reads the image header of each path and returns its width /

@@ -508,16 +508,17 @@ func cutFixtures(t *testing.T) []string {
 
 // The default cover sheet, and the Border cut mode, draw exactly what they
 // drew before cut modes existed: each image, then its grey 0.2 mm border.
-// The square cover has a 50 mm square cell, so the row of a 2:3, a square
-// and a 2:3 cell is centred as if padded with another 2:3 cell: 20.6 mm in.
+// The square cover has a 50 mm square cell and the 3:2 cover a 75 mm wide
+// cell, so the row of a 2:3, a square and a 3:2 cell (168.6 mm) is centred:
+// 20.7 mm in.
 func TestBuildBorderCutKeepsTodaysCoverSheet(t *testing.T) {
 	const today = "0 J\n0 j\n0.57 w\n0.600 G\n0.000 g\n" +
-		"q 93.54331 0 0 141.73228 62.07874 656.22047 cm /I Do Q\n" +
-		"62.08 797.95 93.54 -141.73 re S\n" +
-		"q 141.73228 0 0 141.73228 170.64567 656.22047 cm /I Do Q\n" +
-		"170.65 797.95 141.73 -141.73 re S\n" +
-		"q 100.91339 0 0 67.27559 323.71654 693.44882 cm /I Do Q\n" +
-		"323.72 760.72 100.91 -67.28 re S\n\n"
+		"q 93.54331 0 0 141.73228 62.36220 656.22047 cm /I Do Q\n" +
+		"62.36 797.95 93.54 -141.73 re S\n" +
+		"q 141.73228 0 0 141.73228 170.92913 656.22047 cm /I Do Q\n" +
+		"170.93 797.95 141.73 -141.73 re S\n" +
+		"q 212.59843 0 0 141.73228 324.00000 656.22047 cm /I Do Q\n" +
+		"324.00 797.95 212.60 -141.73 re S\n\n"
 	paths := cutFixtures(t)
 	for _, cut := range []string{"", "border"} {
 		if got := pageStreams(render(t, paths, Options{Cut: cut})); got != today {

@@ -98,6 +98,7 @@ export namespace main {
 	    pages: number;
 	    allSquare: boolean;
 	    exact: boolean;
+	    widePerPage: Record<string, number>;
 	
 	    static createFrom(source: any = {}) {
 	        return new PrintPagesInfo(source);
@@ -108,6 +109,7 @@ export namespace main {
 	        this.pages = source["pages"];
 	        this.allSquare = source["allSquare"];
 	        this.exact = source["exact"];
+	        this.widePerPage = source["widePerPage"];
 	    }
 	}
 	export class PrintPaperInfo {

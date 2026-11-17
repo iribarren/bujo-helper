@@ -666,11 +666,11 @@ func TestPrintPapersMatchTheSheet(t *testing.T) {
 			}
 			// Formats with square cells also have their square count.
 			squares, ok := p.SquarePerPage[f.ID]
-			if ok != f.SquareCells {
-				t.Errorf("%s %s: square counts listed: %v, want %v", p.ID, f.ID, ok, f.SquareCells)
+			if ok != f.ShapedCells {
+				t.Errorf("%s %s: square counts listed: %v, want %v", p.ID, f.ID, ok, f.ShapedCells)
 			}
 			for _, size := range sizes {
-				if !f.SquareCells {
+				if !f.ShapedCells {
 					break
 				}
 				want, err := sheet.Options{Format: f.ID, Paper: p.ID, Size: size}.SquarePerPage()
@@ -689,6 +689,9 @@ func TestPrintPages(t *testing.T) {
 	dir := t.TempDir()
 	book := writeCover(t, dir, "Dune - Frank Herbert.jpg", 66, 100)
 	album := writeCover(t, dir, "Abbey Road - The Beatles.jpg", 120, 120)
+	painting := writeCover(t, dir, "Wheat Field with Cypresses - Vincent van Gogh.jpg", 150, 100)
+	portrait := writeCover(t, dir, "Portrait.jpg", 80, 100) // 4:5
+	panorama := writeCover(t, dir, "Panorama.jpg", 500, 100)
 	bad := filepath.Join(dir, "Broken.jpg")
 	if err := os.WriteFile(bad, []byte("not an image"), 0o644); err != nil {
 		t.Fatal(err)
@@ -721,12 +724,35 @@ func TestPrintPages(t *testing.T) {
 		// still get square cells (31 albums need 3 pages, not 32/25 → 2).
 		{"unreadable image", append(repeat(31, album), bad), sheet.Options{}, PrintPagesInfo{Pages: 3}},
 		{"missing image", []string{filepath.Join(dir, "missing.jpg")}, sheet.Options{}, PrintPagesInfo{Pages: 1}},
+		// 3:2 paintings get 75 mm wide cells on A4: 10 a page. The size
+		// labels show how many of them fit at each size.
+		{"10 paintings fill a page", repeat(10, painting), sheet.Options{},
+			PrintPagesInfo{Pages: 1, Exact: true, WidePerPage: map[string]int{"mini": 36, "standard": 10, "large": 3}}},
+		{"11 paintings", repeat(11, painting), sheet.Options{},
+			PrintPagesInfo{Pages: 2, Exact: true, WidePerPage: map[string]int{"mini": 36, "standard": 10, "large": 3}}},
+		{"paintings on Letter", repeat(9, painting), sheet.Options{Paper: "letter"},
+			PrintPagesInfo{Pages: 2, Exact: true, WidePerPage: map[string]int{"mini": 36, "standard": 8, "large": 3}}},
+		// The labels use the middle shape: 3 paintings and 2 panoramas
+		// count as paintings.
+		{"paintings and panoramas", append(repeat(3, painting), panorama, panorama), sheet.Options{},
+			PrintPagesInfo{Pages: 1, Exact: true, WidePerPage: map[string]int{"mini": 36, "standard": 10, "large": 3}}},
+		// A 4:5 portrait fits the 2:3 column of standard and large covers
+		// on A5, so only mini has a wide count.
+		{"4:5 portraits on A5", repeat(4, portrait), sheet.Options{Paper: "a5"},
+			PrintPagesInfo{Pages: 1, Exact: true, WidePerPage: map[string]int{"mini": 30}}},
+		// Mixed shapes keep the 2:3 labels, with an exact page count: a
+		// row holds an album and a painting (129 mm; a second album does
+		// not fit), 5 rows a page.
+		{"albums and paintings", repeat(6, album, painting), sheet.Options{}, PrintPagesInfo{Pages: 2, Exact: true}},
+		{"paintings on review cards", repeat(9, painting), sheet.Options{Format: "cards"}, PrintPagesInfo{Pages: 2, Exact: true}},
+		// The readable paintings keep their wide cells: 6 rows, 2 pages.
+		{"unreadable painting", append(repeat(12, painting), bad), sheet.Options{}, PrintPagesInfo{Pages: 2}},
 	}
 	a := newApp(media.NewRegistry(), http.DefaultClient)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := a.PrintPages(tt.paths, tt.opts)
-			if err != nil || got != tt.want {
+			if err != nil || !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("PrintPages = %+v, %v; want %+v", got, err, tt.want)
 			}
 		})

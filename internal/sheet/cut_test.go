@@ -145,6 +145,8 @@ func TestBleedGeometry(t *testing.T) {
 		"square":  {1.0},
 		"wide":    {1.5},
 		"mixed":   {2.0 / 3, 1, 0.5, 1.5, 0.656, 2.5, 0.3},
+		// Wide cells, up to the usable width.
+		"landscape": {1.5, 4.0 / 3, 3, 0.8, 5, 10},
 	}
 	for _, p := range Papers {
 		for _, s := range Sizes {

@@ -88,6 +88,32 @@ function squarePerPageOf(
     return paper.squarePerPage?.[format.id]?.[sizeId];
 }
 
+// SelectionShape is what PrintPages found about the shapes of the selected
+// images: whether every one is square, and how many images like them fit
+// on a page at each size where every one gets a wide cell (see
+// main.PrintPagesInfo.widePerPage).
+export interface SelectionShape {
+    allSquare: boolean;
+    widePerPage?: Record<string, number> | null;
+}
+
+// sizePerPageOf is how many of the selected images fit on a page of paper
+// in the size sizeId, for the size labels: on a cover sheet, the square
+// count when every image is square, the wide count when every image gets a
+// wide cell at that size (landscape images, 4:5 portraits), and the 2:3
+// count otherwise or until PrintPages answers. It is undefined for a
+// format without sizes, or until the counts load.
+export function sizePerPageOf(
+    paper: main.PrintPaperInfo | undefined,
+    format: main.PrintFormatInfo | undefined,
+    sizeId: string,
+    shape?: SelectionShape,
+): number | undefined {
+    if (!paper || !format?.usesSize) return undefined;
+    const shaped = shape?.allSquare ? squarePerPageOf(paper, format, sizeId) : shape?.widePerPage?.[sizeId];
+    return shaped ?? perPageOf(paper, format, sizeId);
+}
+
 // perPageOf is how many items of format fit on a page of paper, in the size
 // sizeId when the format uses one, and below a header when withHeader and
 // the format prints one, or undefined until they are known.
@@ -155,10 +181,11 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // then it follows the Download tab's media type.
     let mediaChosen = false;
     // The page count of the selection from PrintPages, for the request it
-    // answers (key: paths and settings; pathsKey: paths only); undefined
-    // until it arrives. pagesKey is the latest request; pagesSeq increases
-    // with every request, so a slow, older answer cannot overwrite a newer one.
-    let exact: {key: string; pathsKey: string; info: main.PrintPagesInfo} | undefined;
+    // answers (key: paths and settings; pathsKey: paths only; shapeKey:
+    // paths, format and paper, which set its wide counts); undefined until
+    // it arrives. pagesKey is the latest request; pagesSeq increases with
+    // every request, so a slow, older answer cannot overwrite a newer one.
+    let exact: {key: string; pathsKey: string; shapeKey: string; info: main.PrintPagesInfo} | undefined;
     let pagesKey = '';
     let pagesSeq = 0;
     // The message of the empty gallery, and the last saved PDF's status
@@ -236,9 +263,19 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         return exact?.key === key && exact.info.pages > 0 ? exact.info.pages : pageCount(paths.length, layout.perPage);
     }
 
-    // allSquare is whether PrintPages found every selected image square.
-    function allSquare(): boolean {
-        return exact?.pathsKey === JSON.stringify(selectedPaths()) && exact.info.allSquare;
+    // shapeKey identifies what the wide counts of PrintPages depend on.
+    function shapeKey(paths: string[], format: string, paper: string): string {
+        return JSON.stringify([paths, format, paper]);
+    }
+
+    // selectionShape is what PrintPages found about the shapes of the
+    // selected images, or undefined until it answers for them; its wide
+    // counts only for the chosen format and paper.
+    function selectionShape(): SelectionShape | undefined {
+        const paths = selectedPaths();
+        if (exact?.pathsKey !== JSON.stringify(paths)) return undefined;
+        const sameShape = exact.shapeKey === shapeKey(paths, ui.format.value, ui.paper.value);
+        return {allSquare: exact.info.allSquare, widePerPage: sameShape ? exact.info.widePerPage : undefined};
     }
 
     // countPages asks PrintPages for the exact page count of paths with
@@ -254,7 +291,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         try {
             const info = await PrintPages(paths, opts);
             if (seq !== pagesSeq) return;
-            exact = {key, pathsKey: JSON.stringify(paths), info};
+            exact = {key, pathsKey: JSON.stringify(paths), shapeKey: shapeKey(paths, opts.format, opts.paper), info};
             updateSizeLabels();
             updateSelection();
         } catch (err) {
@@ -451,17 +488,16 @@ export function initPrint(deps: PrintDeps): PrintSheet {
 
     // updateSizeLabels shows how many covers, spines or polaroids of each
     // size fit on the paper, in the chosen format: on a cover sheet, how
-    // many square covers when every selected image is square.
+    // many square covers when every selected image is square, and how many
+    // like the selection when every one gets a wide cell (see sizePerPageOf).
     function updateSizeLabels() {
         const paper = currentPaper();
         const format = currentFormat();
-        const square = allSquare();
+        const shape = selectionShape();
         for (const option of Array.from(ui.size.options)) {
             const size = sizes.find((s) => s.id === option.value);
             if (!size) continue;
-            const perPage = !format?.usesSize ? undefined
-                : (square ? squarePerPageOf(paper, format, size.id) : undefined) ?? perPageOf(paper, format, size.id);
-            option.textContent = sizeLabel(size, perPage);
+            option.textContent = sizeLabel(size, sizePerPageOf(paper, format, size.id, shape));
         }
     }
 

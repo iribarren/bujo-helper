@@ -6,9 +6,10 @@
 //
 // On a cover sheet, covers have a fixed height chosen by a size preset (50 mm by default) and
 // keep their aspect ratio, in a centred grid derived from the cover height
-// and the paper size (A4 by default). A square cover gets a square cell and
-// the cells flow in rows (see Grid.Flow); a cover too wide for its cell is
-// shrunk to the cell width. All sizes are in millimetres.
+// and the paper size (A4 by default). A square cover gets a square cell, a
+// landscape cover a wide cell, and the cells flow in rows (see Grid.Flow);
+// a cover too wide for its cell is shrunk to the cell width. All sizes are
+// in millimetres.
 package sheet
 
 import (
@@ -112,9 +113,10 @@ type Format struct {
 	UsesCut  bool   // whether the cut mode applies; other formats keep their borders
 	// UsesHeader is whether the format prints the header the user types.
 	UsesHeader bool
-	// SquareCells is whether square images get square cells (see
-	// Grid.Flow); in other formats they shrink to fit like any image.
-	SquareCells bool
+	// ShapedCells is whether cells follow the shape of the image: square
+	// images get square cells and landscape images wide cells (see
+	// Grid.Flow). In other formats they shrink to fit like any image.
+	ShapedCells bool
 }
 
 // DefaultFormat is the ID of the format used when none is chosen.
@@ -132,7 +134,7 @@ const (
 
 // Formats lists the print formats, the default first.
 var Formats = []Format{
-	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true, UsesCut: true, SquareCells: true},
+	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true, UsesCut: true, ShapedCells: true},
 	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", Noun: "card", UsesSize: false},
 	{ID: spinesFormat, Label: "Spines", FileTag: "spines", Noun: "spine", UsesSize: true},
 	{ID: stubsFormat, Label: "Ticket stubs", FileTag: "stubs", Noun: "stub", UsesSize: false},
