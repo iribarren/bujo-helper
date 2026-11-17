@@ -1,0 +1,111 @@
+{
+ "data": {
+  "Page": {
+   "media": [
+    {
+     "id": 30002,
+     "type": "MANGA",
+     "format": "MANGA",
+     "title": {
+      "romaji": "Berserk",
+      "english": "Berserk",
+      "native": "ベルセルク"
+     },
+     "synonyms": [
+      "بيرسيرك",
+      "Beruseruku",
+      "Берсерк",
+      "ברזרק",
+      "برزرک",
+      "เบอร์เซิร์ก"
+     ],
+     "startDate": {
+      "year": 1989
+     },
+     "seasonYear": null,
+     "coverImage": {
+      "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-Cul4OeN7bYtn.jpg",
+      "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30002-Cul4OeN7bYtn.jpg",
+      "color": "#d6861a"
+     },
+     "isAdult": false
+    },
+    {
+     "id": 101625,
+     "type": "MANGA",
+     "format": "MANGA",
+     "title": {
+      "romaji": "Boushoku no Berserk: Ore Dake Level to Iu Gainen wo Toppa Suru THE COMIC",
+      "english": "Berserk of Gluttony",
+      "native": "暴食のベルセルク～俺だけレベルという概念を突破する～ THE COMIC"
+     },
+     "synonyms": [
+      "Berserk of Gluttony: The One That Exceeds The Concept Of Levels",
+      "Boushoku no Berserk",
+      "จอมตะกละดาบคลั่ง -ข้านี่แหละจะทะลวงแนวความคิดที่เรียกว่าเลเวลเอง- The comic",
+      "Берсерк Ненажерливості",
+      "Berserk of Gluttony",
+      "暴食狂戰士 唯有我突破了所謂「等級」的概念"
+     ],
+     "startDate": {
+      "year": 2018
+     },
+     "seasonYear": null,
+     "coverImage": {
+      "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx101625-kmxzdK6xnkUU.jpg",
+      "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/nx101625-kmxzdK6xnkUU.jpg",
+      "color": "#fff11a"
+     },
+     "isAdult": false
+    },
+    {
+     "id": 36408,
+     "type": "MANGA",
+     "format": "ONE_SHOT",
+     "title": {
+      "romaji": "BERSERK THE PROTOTYPE",
+      "english": "Berserk: The Prototype",
+      "native": "BERSERK THE PROTOTYPE"
+     },
+     "synonyms": [
+      "ベルセルク・プロトタイプ"
+     ],
+     "startDate": {
+      "year": 1988
+     },
+     "seasonYear": null,
+     "coverImage": {
+      "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx36408-RXe0JkIEUDv8.jpg",
+      "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx36408-RXe0JkIEUDv8.jpg",
+      "color": null
+     },
+     "isAdult": false
+    },
+    {
+     "id": 100687,
+     "type": "MANGA",
+     "format": "NOVEL",
+     "title": {
+      "romaji": "Boushoku no Berserk: Ore dake Level to Iu Gainen wo Toppa Suru",
+      "english": "Berserk of Gluttony",
+      "native": "暴食のベルセルク　～俺だけレベルという概念を突破する～"
+     },
+     "synonyms": [
+      "Glutton Berserk: The One That Exceeds The Concept Of Levels",
+      "จอมตะกละดาบคลั่ง: ข้านี่แหละจะทะลวงแนวความคิดที่เรียกว่าเลเวลเอง"
+     ],
+     "startDate": {
+      "year": 2017
+     },
+     "seasonYear": null,
+     "coverImage": {
+      "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx100687-P42ISaAwGVw7.jpg",
+      "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/nx100687-P42ISaAwGVw7.jpg",
+      "color": "#e4506b"
+     },
+     "isAdult": false
+    }
+   ]
+  }
+ }
+}

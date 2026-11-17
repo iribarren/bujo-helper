@@ -507,6 +507,8 @@ func TestNewClientUsesTheSharedThrottle(t *testing.T) {
 		"musicbrainz.org": time.Second,
 		// IGDB allows four requests per second.
 		"api.igdb.com": 250 * time.Millisecond,
+		// AniList allows 30 requests per minute while degraded.
+		"graphql.anilist.co": 2 * time.Second,
 		// The Met asks for at most 80 requests per second.
 		"collectionapi.metmuseum.org": 25 * time.Millisecond,
 		// Wikimedia: the Commons API like Wikidata; media downloads spaced
