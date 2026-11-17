@@ -122,6 +122,41 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "The Legend of Zelda: Breath of the Wild", Creator: "2017"},
 		},
 	})
+	// Anime and manga covers from AniList (no key). Titles match on their
+	// romaji, English and native forms and synonyms; the year is the start
+	// year.
+	mustRegister(reg, media.MediaType{
+		ID:           "anime",
+		Label:        "Anime",
+		CreatorLabel: "Year",
+		DateLabel:    "Watched on",
+		Providers: []media.Provider{
+			providers.NewAniListAnime(client),
+		},
+		Samples: []media.Item{
+			{Title: "Frieren: Beyond Journey's End", Creator: "2023"},
+			{Title: "Cowboy Bebop", Creator: "1998"},
+			{Title: "Attack on Titan", Creator: "2013"},
+			{Title: "Fullmetal Alchemist: Brotherhood", Creator: "2009"},
+			{Title: "Your Name", Creator: "2016"},
+		},
+	})
+	mustRegister(reg, media.MediaType{
+		ID:           "manga",
+		Label:        "Manga",
+		CreatorLabel: "Year",
+		DateLabel:    "Read on",
+		Providers: []media.Provider{
+			providers.NewAniListManga(client),
+		},
+		Samples: []media.Item{
+			{Title: "Berserk", Creator: "1989"},
+			{Title: "One Piece", Creator: "1997"},
+			{Title: "Vagabond", Creator: "1998"},
+			{Title: "Monster", Creator: "1994"},
+			{Title: "Yotsuba&!", Creator: "2003"},
+		},
+	})
 	// Public-domain artworks from museum open-access APIs: the Met first,
 	// then Cleveland (the user's choice). Images come with a credit
 	// sidecar. The Art Institute of Chicago is not used: its image server

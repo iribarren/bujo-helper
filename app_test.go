@@ -954,7 +954,7 @@ func TestDefaultAppMoviesUseTheSavedTMDBKey(t *testing.T) {
 	for _, mt := range a.MediaTypes() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games", "artworks", "places", "nature"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "anime", "manga", "artworks", "places", "nature"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 	movies, _ := a.registry.Get("movies")
