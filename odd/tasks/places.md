@@ -1,0 +1,54 @@
+# Feature: places (roadmap item 15)
+
+## Objective
+Add a **Places** media type (input `Place, Country`, country optional) that downloads a landmark or city photo from Wikimedia Commons via Wikidata, or a country's flag in per-item flag mode, stores a credit sidecar next to each image, and offers a credits page in the print sheet PDF.
+
+## Problem / Why
+Travel logs and "places visited" spreads use landmark pictures, postcard-style images and flags.
+
+## Licensing check (read 2026-11-17)
+- **Wikidata** (https://www.wikidata.org/wiki/Wikidata:Licensing): structured data is CC0, so labels, Q-ids and P18/P41 values need no credit. CC0 does not cover the image files.
+- **Commons reuse** (https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia, https://commons.wikimedia.org/wiki/Commons:Credit_line): reuse "in print" is in scope. Credit the content creator (Author), not the uploader, and identify the licence ("stating or linking to the terms of the license"). Public domain: credit is not strictly required but "recommended". ShareAlike only matters for redistributed modifications. Personality rights and trademarks may apply to commercial use (not this app's use). The WMF gives no warranty on licence data, so the app stores it as given.
+- **User-Agent** (https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy): required, `<client>/<version> (<contact>)`; a website is valid contact. The app's existing MusicBrainz UA already carries the public repo URL.
+- **Rates** (https://www.mediawiki.org/wiki/API:Etiquette, https://wikitech.wikimedia.org/wiki/Robot_policy): API serial, below 5 requests/s; media (upload.wikimedia.org) concurrency at most 2; "Only use originals or one of our standard thumbnail sizes"; respect Retry-After on 429.
+- **Thumbnails** (https://www.mediawiki.org/wiki/Common_thumbnail_sizes): standard widths 20, 40, 60, 120, 250, 330, 500, 960, 1280, 1920, 3840; other widths are rejected. Get the URL from `prop=imageinfo&iiurlwidth=…`, never build it.
+- **Metadata** (https://www.mediawiki.org/wiki/API:Imageinfo, https://www.mediawiki.org/wiki/Extension:CommonsMetadata): `extmetadata` fields are HTML: `ObjectName`, `Artist`, `Credit`, `Attribution` (replaces Artist + Credit when set), `LicenseShortName`, `LicenseUrl`, `AttributionRequired` (string), `Copyrighted`.
+- **Verdict:** nothing forbids the intended use. Obligations: per-file credit (author + licence + link), a contact User-Agent, standard thumbnail widths, gentle rates.
+
+## Scope / constraints
+- Media type `places`: label "Places", creator label "Country", date label "Visited on". Files are `Place - Country.ext`.
+- Provider `wikimedia` (no key):
+  1. Wikidata full-text search `"<place> haswbstatement:P18"` (limit 10), then `wbgetentities` (labels, descriptions, claims; `languagefallback`).
+  2. When a country is given, resolve each hit's P17 (country) labels in one extra `wbgetentities` call and prefer hits in that country (also accepting a match on the description). A hit with no matching country is still allowed but ranked lower.
+  3. Rank by label against the place (`match.Rank` style). The image is the hit's first P18 file.
+  4. Commons `imageinfo` for that file: `iiprop=url|extmetadata|size`, `iiurlwidth=1920`. Image URLs: the 1920 thumbnail, then the same URL at 1280 (both standard widths).
+  5. **Flag mode (per item):** a title `Flag of X` or `X flag` (case-insensitive) looks up country X (`haswbstatement:P41`) and uses its P41 flag file. The country column is ignored. SVG flags come back as PNG thumbnails.
+  - Hits without a usable image are skipped with a clear reason (an error wrapping `media.ErrNotFound`).
+- **Credit sidecar:** reuse item 14's `media.Candidate.Credit` and `<file>.credit.txt`. Content: title (ObjectName or the Wikidata label), author (Artist or Attribution, HTML stripped), credit/source, licence name and URL (or "public domain"), the Commons file page URL and the Wikidata item URL.
+- **Headers and rates:** Wikimedia requests (Wikidata, Commons API, upload.wikimedia.org) send a contact User-Agent. Throttle: `commons.wikimedia.org` spaced like `www.wikidata.org` (200 ms); `upload.wikimedia.org` spaced so downloads stay gentle. The existing Wikidata → iTunes provider also switches to the contact User-Agent.
+- **PDF credits page (Attribution convention, second part, deferred from item 14):** a Print sheet checkbox **Credits page** (default on). When on and at least one selected image has a credit sidecar, the PDF ends with a page (or pages) listing each credited image: a number, the file name and its credit text. Without sidecars, output is unchanged (books, movies, TV, albums, games stay byte-identical).
+- **Non-2:3 images:** item 14's wide cells already place landscape photos and 3:2 flags; reuse them and add a test with a place-shaped image if one is missing.
+- Catalog: selector, sample CSV (for example Eiffel Tower, Machu Picchu, Sydney Opera House, Flag of Japan, Colosseum), placeholder example, CLI `-type places`.
+- README: Sources (places, flag mode, licence and credit handling, the User-Agent) and Print sheet (credits page).
+- Delivery: branch `feat/places` from `19f7cd2`. Forecast about 1400 authored lines (more than half tests and fixtures). Strategy `ask-on-risk`, applied as in earlier items: one feature branch reviewed in slices; the user GUI-checks; then a local `--no-ff` merge. Push and merge are the user's decision.
+
+## Acceptance criteria
+- Provider tests with recorded fixtures: a landmark with its credit, a country flag with its credit, the country preference, a hit with no image skipped, API errors.
+- Sheet tests: credits page present with sidecars, absent without them or with the box unchecked; default output unchanged.
+- Live CLI: a well-known landmark and a country flag both download with a `.credit.txt`.
+
+## Checks
+- `go test -tags webkit2_41 ./...`, `go vet -tags webkit2_41 ./...`, `gofmt -l .`
+- Frontend: `npx tsc --noEmit` and vitest in `frontend/`. If the bindings change, run `wails build -tags webkit2_41`, restore the 0644 modes on `frontend/wailsjs/go/main/*` and `models.ts`; the binary is `build/bin/bujo-helper`.
+
+## Tasks
+- [ ] T1 Provider `wikimedia`: Wikidata search, country preference, flag mode, Commons imageinfo, credit text, headers, throttle, fixtures and tests. Route: delegated writer (2+ non-trivial files).
+- [ ] T2 Catalog `places`, CLI, frontend example, sample CSV, README Sources. Route: the same delegated writer, separate commit.
+- [ ] T3 PDF credits page: sheet option, sidecar reading, Print sheet checkbox, bindings, tests, README Print sheet. Route: delegated writer.
+- [ ] T4 Live CLI smoke test and build. Route: inline.
+
+## Progress
+- Plan written; RDD on (global).
+
+## Next step
+T1.
