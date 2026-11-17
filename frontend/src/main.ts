@@ -55,6 +55,8 @@ const EXAMPLES: Record<string, string> = {
     tv: 'Breaking Bad, 2008',
     albums: 'Abbey Road, The Beatles',
     games: 'Hollow Knight, 2017',
+    anime: 'Frieren, 2023',
+    manga: 'Berserk, 1989',
     artworks: 'Wheat Field with Cypresses, Vincent van Gogh',
     places: 'Eiffel Tower, France',
     nature: 'Robin',

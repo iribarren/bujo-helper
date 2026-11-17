@@ -11,6 +11,8 @@ const {mediaTypes} = vi.hoisted(() => ({
     mediaTypes: [
         {id: 'books', label: 'Books', creatorLabel: 'Author'},
         {id: 'nature', label: 'Nature', creatorLabel: ''},
+        {id: 'anime', label: 'Anime', creatorLabel: 'Year'},
+        {id: 'manga', label: 'Manga', creatorLabel: 'Year'},
         // A label Go never sends (the json tag has no omitempty), or one
         // that is only blanks, still means "no creator column".
         {id: 'unlabelled', label: 'Unlabelled'},
@@ -68,6 +70,19 @@ describe('items placeholder', () => {
         it(name, () => {
             selectType(type);
             expect(el<HTMLTextAreaElement>('items').placeholder.slice(0, want.length)).toBe(want);
+        });
+    }
+
+    const examples: Array<[type: string, example: string]> = [
+        ['anime', 'Frieren, 2023'],
+        ['manga', 'Berserk, 1989'],
+    ];
+    for (const [type, example] of examples) {
+        it(`gives a "Title, Year" example for ${type}`, () => {
+            selectType(type);
+            const placeholder = el<HTMLTextAreaElement>('items').placeholder;
+            expect(placeholder.startsWith('Title, Year')).toBe(true);
+            expect(placeholder).toContain(example);
         });
     }
 });

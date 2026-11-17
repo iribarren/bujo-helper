@@ -24,7 +24,7 @@ func TestDefault(t *testing.T) {
 	for _, mt := range reg.List() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games", "artworks", "places", "nature"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "anime", "manga", "artworks", "places", "nature"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 
@@ -114,6 +114,33 @@ func TestDefault(t *testing.T) {
 	}
 	if !reflect.DeepEqual(games.Samples, wantGames) {
 		t.Errorf("games samples = %+v, want %+v", games.Samples, wantGames)
+	}
+
+	for _, tt := range []struct {
+		id, label, date, aniListType string
+	}{
+		{"anime", "Anime", "Watched on", "ANIME"},
+		{"manga", "Manga", "Read on", "MANGA"},
+	} {
+		mt, _ := reg.Get(tt.id)
+		if mt.Label != tt.label || mt.CreatorLabel != "Year" || mt.DateLabel != tt.date || mt.LocalEditions {
+			t.Errorf("%s = %+v", tt.id, mt)
+		}
+		if want := []string{"anilist"}; !reflect.DeepEqual(providerNames(mt), want) {
+			t.Errorf("%s providers = %q, want %q", tt.id, providerNames(mt), want)
+			continue
+		}
+		if p, ok := mt.Providers[0].(*providers.AniList); !ok || p.Type != tt.aniListType {
+			t.Errorf("%s provider = %+v, want AniList type %s", tt.id, mt.Providers[0], tt.aniListType)
+		}
+		if len(mt.Samples) != 5 {
+			t.Errorf("%s samples = %d, want 5", tt.id, len(mt.Samples))
+		}
+		for _, s := range mt.Samples {
+			if s.Title == "" || len(s.Creator) != 4 {
+				t.Errorf("%s sample %+v, want a title and a year", tt.id, s)
+			}
+		}
 	}
 
 	artworks, _ := reg.Get("artworks")

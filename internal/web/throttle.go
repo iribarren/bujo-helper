@@ -36,8 +36,8 @@ const drainLimit = 64 << 10
 // out. Bodiless GET and HEAD requests are retried, and so are requests
 // whose body can be sent again (GetBody is set, as http.NewRequest does
 // for in-memory bodies): a rate-limited request was refused, not
-// processed. IGDB's searches are such POSTs. A request with a one-shot body
-// gets the rate-limit response back at once.
+// processed. IGDB's and AniList's searches are such POSTs. A request with a
+// one-shot body gets the rate-limit response back at once.
 //
 // Each attempt gets its own AttemptTimeout, which covers reading the body
 // too; use a Client with no Timeout, since that would also count the waits.
@@ -82,6 +82,9 @@ var DefaultThrottle = &Throttle{
 		"musicbrainz.org": time.Second,
 		// IGDB allows four requests per second (and eight open ones).
 		"api.igdb.com": 250 * time.Millisecond,
+		// AniList allows 90 requests per minute, degraded to 30 for now;
+		// going over blocks the client for a minute.
+		"graphql.anilist.co": 2 * time.Second,
 		// The Met asks for at most 80 requests per second; a search makes
 		// up to 12, so this keeps well under it.
 		"collectionapi.metmuseum.org": 25 * time.Millisecond,

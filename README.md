@@ -5,11 +5,11 @@ Formerly "Cover Downloader".
 A desktop app for Windows, macOS and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
 
-Book covers, movie posters, TV series posters, album covers and game box art are supported. The core is media-agnostic, so other media can be added later as new providers.
+Book covers, movie posters, TV series posters, album covers, game box art and anime and manga covers are supported. The core is media-agnostic, so other media can be added later as new providers.
 
 ## Features
 
-- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series and games), `Album, Artist` (albums), `Title, Artist` (artworks), `Place, Country` (places) or a plant or animal `Name` (nature) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series, games, anime and manga), `Album, Artist` (albums), `Title, Artist` (artworks), `Place, Country` (places) or a plant or animal `Name` (nature) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
@@ -110,6 +110,17 @@ Sources are tried in this order for games (the year is the first release year, a
 Game covers are about 3:4 (IGDB) or 2:3 (Steam). The print sheet fits them into the same 2:3 cells as book covers.
 
 The IGDB API is free for non-commercial use under the [Twitch Developer Services Agreement](https://www.twitch.tv/p/legal/developer-agreement/); commercial use needs a partnership with IGDB. The Steam store search is undocumented, like the IMDb endpoint, and may change or stop working; Valve's terms grant no rights to its images. This app is not endorsed by Twitch, IGDB or Valve. Downloaded covers are for personal use.
+
+### Anime and Manga
+
+Anime and manga covers come from **AniList** (its GraphQL API, no key). The year is the start year (the first air or publication year), and it is optional.
+
+- One search per item asks for up to 10 non-adult results of the selected type (anime or manga), in AniList's relevance order. Results without a cover are skipped.
+- Titles match on every form AniList knows: romaji (`Shingeki no Kyojin`), English (`Attack on Titan`), native (`進撃の巨人`) and synonyms (`AoT`). Without a year, a result with an exact match on any of them comes first, then the closest title matches, in AniList's order on ties. A year picks among the matches, as for games: `Berserk, 2016` gives the 2016 anime instead of the 1997 one, and `Berserk, 2012` gives the 2012 Golden Age Arc film, whose main title matches.
+- The file is named after the title you typed, like other media types.
+- The cover is the extra-large image (about 460 × 657), falling back to the large one. Covers are about 2:3, like book covers.
+
+The [AniList API terms](https://anilist.gitbook.io/anilist-apiv2-docs/) make it free for non-commercial use and forbid using it as a backup or data store, or hoarding (mass collection of) its data. The app only searches the titles you ask for, one at a time. AniList allows 90 requests per minute, currently degraded to 30, and blocks a client that goes over for a minute; the app spaces its AniList requests 2 s apart (30 per minute). This app is not endorsed by AniList. Cover images are copyrighted by their publishers; downloaded covers are for personal use only.
 
 ### Artworks
 
@@ -249,7 +260,7 @@ While **Nature** is selected and no key is saved, a tip above the list suggests 
 
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, image downloads from Wikimedia Commons 500 ms apart, and requests to the BHL API and its page scans 500 ms apart (BHL has IP rate limits but publishes no numbers). A nature item makes at most three Wikidata requests (once per name) and two Commons API requests per search, at most three searches; with a BHL key, BHL adds one name request and up to three volume requests. IGDB searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to AniList 2 s apart (AniList allows 30 per minute while degraded), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, image downloads from Wikimedia Commons 500 ms apart, and requests to the BHL API and its page scans 500 ms apart (BHL has IP rate limits but publishes no numbers). A nature item makes at most three Wikidata requests (once per name) and two Commons API requests per search, at most three searches; with a BHL key, BHL adds one name request and up to three volume requests. IGDB and AniList searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
 
 ## Local editions
 
@@ -280,13 +291,13 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies, TV series and games, `album,artist` for albums, `title,artist` for artworks, `place,country` for places, and a single `name` column for nature. The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies, TV series, games, anime and manga, `album,artist` for albums, `title,artist` for artworks, `place,country` for places, and a single `name` column for nature. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, artworks, places or nature).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, anime, manga, artworks, places or nature).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
@@ -365,7 +376,7 @@ The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, s
 
 Wikimedia Commons images (see [Places](#places) and [Nature](#nature)) are often CC BY or CC BY-SA, which require the author and licence wherever the image is reproduced, printed sheets included; artworks are public domain, but credit is still good practice. With **Credits page** checked (the default), the PDF ends with one or more pages titled "Credits" ("Créditos" in Spanish), on the same paper, listing every selected image that has a credit file (`<image>.credit.txt`, see [Artworks](#artworks), [Places](#places) and [Nature](#nature)): a number, the image's title and creator from its file name, and the credit text, wrapped to the page width, in the order the images appear in the sheet.
 
-- Images without a credit file (books, movies, TV series, albums, games) are not listed. When no selected image has one, or the box is unchecked, no page is added and the PDF is exactly what it would be without the option.
+- Images without a credit file (books, movies, TV series, albums, games, anime, manga) are not listed. When no selected image has one, or the box is unchecked, no page is added and the PDF is exactly what it would be without the option.
 - A credit file that exists but cannot be read stops the export, naming the file, like an unreadable image.
 - Credits print in the embedded Go font, which covers Latin, Greek and Cyrillic text; characters it lacks (for example Japanese) print as empty boxes, though they can still be copied from the PDF, and emoji print as "?".
 
@@ -537,6 +548,8 @@ go run ./cmd/covers -type tv -o posters "Breaking Bad, 2008" "Dark, 2017"
 go run ./cmd/covers -type albums -o albums "Abbey Road, The Beatles" "Rumours, Fleetwood Mac"
 go run ./cmd/covers -type games -o games "Hollow Knight, 2017" "Celeste, 2018"
 IGDB_CLIENT_ID=<id> IGDB_CLIENT_SECRET=<secret> go run ./cmd/covers -type games -o games "The Legend of Zelda: Breath of the Wild, 2017"
+go run ./cmd/covers -type anime -o anime "Frieren, 2023" "Shingeki no Kyojin, 2013"
+go run ./cmd/covers -type manga -o manga "Berserk, 1989" "Vagabond, 1998"
 go run ./cmd/covers -type artworks -o art "Wheat Field with Cypresses, Vincent van Gogh" "Twilight in the Wilderness, Frederic Edwin Church"
 go run ./cmd/covers -type places -o places "Eiffel Tower, France" "Machu Picchu, Peru" "Flag of Japan"
 go run ./cmd/covers -type nature -o nature "Robin" "Monstera deliciosa" "Barn owl"
@@ -547,7 +560,7 @@ Flags must come before the items:
 
 | Flag           | Default  | Meaning                                                    |
 |----------------|----------|------------------------------------------------------------|
-| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `artworks`, `places` or `nature` |
+| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `anime`, `manga`, `artworks`, `places` or `nature` |
 | `-o`           | `covers` | Output folder                                              |
 | `-country`     | `es`     | Store country code; its editions are preferred             |
 | `-csv`         | (none)   | CSV file, added after the positional items                 |
@@ -638,7 +651,7 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons; nature: Wikidata taxa → Wikimedia Commons
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; anime and manga: AniList; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons; nature: Wikidata taxa → Wikimedia Commons
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming, credit files
