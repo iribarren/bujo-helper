@@ -9,7 +9,7 @@ Book covers, movie posters, TV series posters, album covers and game box art are
 
 ## Features
 
-- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series and games), `Album, Artist` (albums) or `Title, Artist` (artworks) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series and games), `Album, Artist` (albums), `Title, Artist` (artworks) or `Place, Country` (places) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
@@ -17,6 +17,7 @@ Book covers, movie posters, TV series posters, album covers and game box art are
 - Placeholder images, error pages and non-images are rejected, so you never get a blank "no cover" file.
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
 - Public-domain artworks from museum open-access collections, each saved with a credit file, see [Artworks](#artworks).
+- Landmark and city photos, and country flags, from Wikimedia Commons, each saved with a credit file, see [Places](#places).
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
 - **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. See [Print sheet](#print-sheet).
@@ -136,11 +137,38 @@ License: CC0 1.0 Universal (public domain), https://creativecommons.org/publicdo
 Object page: https://www.metmuseum.org/art/collection/search/436535
 ```
 
-Other media types get no credit file. The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
+Place images get one too (see [Places](#places)); other media types get no credit file. The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
 
 **Why not the Art Institute of Chicago.** Its API and public-domain images are CC0 too, but its image server (`www.artic.edu/iiif/2/…`) answers every request that does not come from a browser with a Cloudflare challenge (HTTP 403, checked in November 2026), so the app cannot download its images.
 
 The Met asks for at most 80 requests per second; a search makes up to 12 requests, which the app spaces 25 ms apart. Cleveland states no limit.
+
+### Places
+
+Places download a photo of a landmark, a monument or a city from [Wikimedia Commons](https://commons.wikimedia.org/), found through [Wikidata](https://www.wikidata.org/) (no key). The country is optional, but it helps when a name exists in several countries (`Córdoba, Spain` or `Córdoba, Argentina`). Photos come in every shape and flags are usually 3:2, so a cover sheet gives landscape ones wide cells (see [Print sheet](#print-sheet)).
+
+1. **Wikidata** full-text search for the place among items that have an image (property P18), up to 10 results.
+2. When a country is given, the results in that country (property P17, or a description that names it; `USA` and `UK` also work) come first; the others are kept after them. Within each group, the closest name comes first.
+3. **Commons** returns the item's image, up to three results: the 1920 px thumbnail, falling back to 1280 px. Both are standard Wikimedia thumbnail widths; an image narrower than 1920 px comes as the original.
+
+**Flag mode.** An item written `Flag of Japan` or `Japan flag` (any case) downloads the country's flag (property P41) instead of a photo, and its country column is ignored. Flags are SVG files on Commons, so they come as 1920 px PNG thumbnails.
+
+**Licences.** Wikidata's data is CC0, but that does not cover the images: every Commons file keeps its own licence, often CC BY or CC BY-SA, sometimes public domain. Commons allows reuse in print, as long as you credit the author (not the uploader) and name the licence. The app stores the licence as Commons gives it; Wikimedia gives no warranty that it is right, so check the file page before you publish.
+
+**Credit file.** Each place image is saved with a credit file next to it, the same way as artworks: the image's file name plus `.credit.txt`. It holds the image title, the author (as the author asks to be credited, when the file says so), the source, the licence (or "public domain"), the Commons file page and the Wikidata item. For example, for `Córdoba, Spain`:
+
+```text
+Title: Centro Histórico, 16.9 -- 2023 -- Córdoba, España
+Author: Jose María Ligero Loarte
+Source: Own work
+License: CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0
+File page: https://commons.wikimedia.org/wiki/File:Centro_Hist%C3%B3rico,_16.9_--_2023_--_C%C3%B3rdoba,_Espa%C3%B1a.jpg
+Wikidata item: https://www.wikidata.org/wiki/Q5818
+```
+
+When you print or share a page with these images, credit each one with its author and licence.
+
+Wikimedia asks every client for a User-Agent with contact information, also when downloading images. The app sends `bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )` to Wikidata, the Commons API and the Commons image servers, spaces Wikidata and Commons API requests 200 ms apart, and image downloads from Commons 500 ms apart.
 
 ### TMDB API key
 
@@ -160,7 +188,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB and Wikidata are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to MusicBrainz one second apart, and requests to the Met 25 ms apart. IGDB searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, and image downloads from Wikimedia Commons 500 ms apart. IGDB searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
 
 ## Local editions
 
@@ -191,13 +219,13 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies, TV series and games, `album,artist` for albums, `title,artist` for artworks. The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies, TV series and games, `album,artist` for albums, `title,artist` for artworks, `place,country` for places. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games or artworks).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, artworks or places).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
@@ -440,13 +468,14 @@ go run ./cmd/covers -type albums -o albums "Abbey Road, The Beatles" "Rumours, F
 go run ./cmd/covers -type games -o games "Hollow Knight, 2017" "Celeste, 2018"
 IGDB_CLIENT_ID=<id> IGDB_CLIENT_SECRET=<secret> go run ./cmd/covers -type games -o games "The Legend of Zelda: Breath of the Wild, 2017"
 go run ./cmd/covers -type artworks -o art "Wheat Field with Cypresses, Vincent van Gogh" "Twilight in the Wilderness, Frederic Edwin Church"
+go run ./cmd/covers -type places -o places "Eiffel Tower, France" "Machu Picchu, Peru" "Flag of Japan"
 ```
 
 Flags must come before the items:
 
 | Flag           | Default  | Meaning                                                    |
 |----------------|----------|------------------------------------------------------------|
-| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games` or `artworks` |
+| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `artworks` or `places` |
 | `-o`           | `covers` | Output folder                                              |
 | `-country`     | `es`     | Store country code; its editions are preferred             |
 | `-csv`         | (none)   | CSV file, added after the positional items                 |
@@ -536,7 +565,7 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; artworks: the Met, Cleveland
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming, credit files
