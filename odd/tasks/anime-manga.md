@@ -42,7 +42,7 @@ Anime and manga trackers are a common bujo spread among younger users (an assump
 ## Tasks
 - [x] T1 Provider: AniList (GraphQL search, ranking, year tie-break), throttle entry, fixtures and tests. Route: delegated writer (2+ non-trivial files).
 - [x] T2 Catalog `anime` and `manga`, CLI, frontend example, README. Route: the same delegated writer, in a separate commit.
-- [ ] T3 Live CLI smoke test and build. Route: inline.
+- [x] T3 Live CLI smoke test and build. Route: inline.
 
 ## Progress
 - Plan written.
@@ -59,5 +59,9 @@ Anime and manga trackers are a common bujo spread among younger users (an assump
   - GREEN: `go test -tags webkit2_41 ./...` 1241 passed in 15 packages; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` clean; `npx vitest run` 56 passed.
   - Not changed: `frontend/src/i18n/{en,es}.ts` (outside the edit surface). The UI falls back to Go's English labels for anime/manga, so the Spanish UI shows "Anime"/"Manga" (same word) but "Watched on"/"Read on" in English and the generic sample-CSV button text. No binding changes; `wails build` not run.
 
+- i18n follow-up (route: inline, mechanical) — commit 7e2beb4 `feat(i18n): anime and manga labels`: `media`, `creator`, `date`, `sample.button` and `sample.title` keys in `en.ts` and `es.ts` (es: "Visto el" / "Leído el"). `npx tsc --noEmit` clean; vitest 56 passed.
+- T3 (route: inline). Live CLI with an empty config, 2026-11-17: anime `Frieren, 2023`, `Shingeki no Kyojin, 2013`, `Kimetsu no Yaiba` and `Berserk, 2016`; manga `Berserk, 1989`, `One Piece, 1997` and `Chainsaw Man`. 7 of 7 OK from anilist, 460 px wide (636–717 tall). Checked visually: `Berserk, 2016` gets the 2016 anime, and `Kimetsu no Yaiba` gets Demon Slayer season 1. Chainsaw Man's cover is a PNG.
+- `wails build -tags webkit2_41` ok (`build/bin/bujo-helper`). Bindings changed only in file mode; the 0644 modes were restored.
+
 ## Next step
-Follow-up decision: add `media/creator/date/sample` i18n keys for anime and manga in `en.ts`/`es.ts`. Then T3 (live CLI smoke test and build).
+User GUI check, then a local `--no-ff` merge and ROADMAP item 19 marked done.
