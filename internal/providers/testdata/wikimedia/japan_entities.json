@@ -1,0 +1,506 @@
+{
+  "entities": {
+    "Q188712": {
+      "id": "Q188712",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Empire of Japan"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "empire in the Asia-Pacific region from 1868 to 1947"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q17"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Japan (1870–1999).svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q17": {
+      "id": "Q17",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Japan"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "island country in East Asia"
+        }
+      },
+      "claims": {
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Japan.svg"
+              }
+            },
+            "rank": "preferred"
+          },
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Japan (1870–1999).svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Satellite image of Japan in May 2003.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q17"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q170566": {
+      "id": "Q170566",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Japan men's national football team"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "men's national association football team representing Japan"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q17"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Japan.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q1490": {
+      "id": "Q1490",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Tokyo"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "capital and largest city of Japan"
+        }
+      },
+      "claims": {
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Tokyo Metropolis.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q17"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Skyscrapers of Shinjuku 2009 January (revised).jpg"
+              }
+            },
+            "rank": "preferred"
+          },
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Tokyo Japan taken by Hodoyoshi-3 Satellite.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q232595": {
+      "id": "Q232595",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Liberal Democratic Party"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "Japanese political party"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q17"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Presidential election speech of the Liberal Democratic Party in Nagano.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Liberal Democratic Party (Japan) Flag.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q388232": {
+      "id": "Q388232",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Japan women's national football team"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "women's national association football team representing Japan"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q17"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Japan.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q161652": {
+      "id": "Q161652",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Japanese people"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "East Asian ethnic group native to Japan"
+        }
+      },
+      "claims": {
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Japanese family 01.jpg"
+              }
+            },
+            "rank": "normal"
+          },
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Hosokawa family 1957.jpg"
+              }
+            },
+            "rank": "preferred"
+          },
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Sagawa-1.JPG"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Japan.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q17"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q35581": {
+      "id": "Q35581",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Hokkaidō"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "island of Japan"
+        }
+      },
+      "claims": {
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "140829 Ichiko of Shiretoko Goko Lakes Hokkaido Japan04s3.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q17"
+                }
+              }
+            },
+            "rank": "preferred"
+          },
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q188712"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Hokkaido Prefecture.svg"
+              }
+            },
+            "rank": "deprecated"
+          }
+        ]
+      }
+    },
+    "Q129499": {
+      "id": "Q129499",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Gunma Prefecture"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "prefecture of Japan"
+        }
+      },
+      "claims": {
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Gunma Prefecture.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q17"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "草津温泉の湯畑02.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q130290": {
+      "id": "Q130290",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Hyōgo Prefecture"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "prefecture of Japan"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q17"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P41": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Flag of Hyogo Prefecture.svg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Kobe Port Tower and Maritime Museum, November 2016.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    }
+  }
+}

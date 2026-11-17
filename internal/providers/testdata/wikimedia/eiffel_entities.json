@@ -1,0 +1,372 @@
+{
+  "entities": {
+    "Q243": {
+      "id": "Q243",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Eiffel Tower"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "tower located on the Champ de Mars in Paris, France"
+        }
+      },
+      "claims": {
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Tour Eiffel Wikimedia Commons.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q142"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q83667184": {
+      "id": "Q83667184",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Rosa 'Eiffel Tower'"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "rose cultivar"
+        }
+      },
+      "claims": {
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Eiffelturm Th 1963.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": null
+      }
+    },
+    "Q28061050": {
+      "id": "Q28061050",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Eiffel Tower"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "painting series by Robert Delaunay"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q142"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Robert Delaunay - Eiffel Tower - 1911 - Solomon R. Guggenheim Museum.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q133271195": {
+      "id": "Q133271195",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Eiffel Tower"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "Replica of the Eiffel Tower in Berlin-Wedding, Germany"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q183"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Berlin Eiffelturm lub 2025-02-24.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q162873": {
+      "id": "Q162873",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "72 names on the Eiffel Tower"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "72 names inscribed on the Eiffel Tower of scientists, engineers or industrialists who honored France from 1789 to 1889"
+        }
+      },
+      "claims": {
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Broca, tour Eiffel, Paris 1.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q142"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q25223034": {
+      "id": "Q25223034",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Eiffel Tower"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "landmark in the city of Paris, Texas"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q30"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Eiffel Tower Replica Paris Texas DSC 0602 ad.JPG"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q3522264": {
+      "id": "Q3522264",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "The Plot to Blow Up the Eiffel Tower"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "American punk rock/noise band"
+        }
+      },
+      "claims": {
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Plot to blow up.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": null
+      }
+    },
+    "Q5348880": {
+      "id": "Q5348880",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Eiffel Tower"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "replica in amusement park"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q30"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Kings Island International Street.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q5348879": {
+      "id": "Q5348879",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Eiffel Tower"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "landmark in the city of Paris, Tennessee"
+        }
+      },
+      "claims": {
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q30"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "ParisTNEiffel.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    },
+    "Q136523068": {
+      "id": "Q136523068",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Eiffel Tower (Vinnytsia)"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "Eiffel Tower replica in Vinnytsia"
+        }
+      },
+      "claims": {
+        "P18": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Репліка Ейфелевої вежі у Вінниці.jpg"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P17": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "id": "Q212"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    }
+  }
+}

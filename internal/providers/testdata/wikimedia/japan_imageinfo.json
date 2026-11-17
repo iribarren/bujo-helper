@@ -1,0 +1,43 @@
+{
+  "query": {
+    "pages": {
+      "343621": {
+        "pageid": 343621,
+        "ns": 6,
+        "title": "File:Flag of Japan.svg",
+        "imageinfo": [
+          {
+            "size": 209,
+            "width": 900,
+            "height": 600,
+            "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Flag_of_Japan.svg/1920px-Flag_of_Japan.svg.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+            "thumbwidth": 1920,
+            "thumbheight": 1280,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Flag_of_Japan.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Flag_of_Japan.svg",
+            "extmetadata": {
+              "ObjectName": {
+                "value": "Flag of Japan"
+              },
+              "Credit": {
+                "value": "<p><a href=\"https://en.wikipedia.org/wiki/Law_Concerning_the_National_Flag_and_Anthem\" class=\"extiw\" title=\"w:Law Concerning the National Flag and Anthem\">Law Concerning the National Flag and Anthem</a> (1999) <a rel=\"nofollow\" class=\"external text\" href=\"https://elaws.e-gov.go.jp/document?lawid=411AC0000000127\">(Japanese)</a> <a rel=\"nofollow\" class=\"external text\" href=\"https://www.cao.go.jp/en/flag_anthem.html\">(English)</a>; <a href=\"https://en.wikipedia.org/wiki/Ministry_of_Defense_(Japan)\" class=\"extiw\" title=\"w:Ministry of Defense (Japan)\">Ministry of Defense</a> <a rel=\"nofollow\" class=\"external text\" href=\"https://www.mod.go.jp/j/procurement/chotatsu/nds/pdf/z/z8701.pdf\">Defense Specification Z 8701C (DSPZ8701C)</a> (<a rel=\"nofollow\" class=\"external text\" href=\"https://web.archive.org/web/20120420171251/http://www.mod.go.jp/j/procurement/chotatsu/nds/pdf/z/z8701.pdf\">archived</a>)\n</p>\n<ul><li>Construction sheet:</li></ul>\n<ul class=\"gallery mw-gallery-traditional\">\n\t\t<li class=\"gallerybox\" style=\"width: 155px\">\n\t\t\t<div class=\"thumb\" style=\"width: 150px; height: 150px;\"><span typeof=\"mw:File\"><a href=\"//commons.wikimedia.org/wiki/File:Flag_of_Japan_(construction_sheet).svg\" class=\"mw-file-description\"><img src=\"https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/Flag_of_Japan_%28construction_sheet%29.svg/120px-Flag_of_Japan_%28construction_sheet%29.svg.png?utm_source=commons.wikimedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail\" decoding=\"async\" loading=\"lazy\" width=\"120\" height=\"83\" class=\"mw-file-element\" srcset=\"https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/Flag_of_Japan_%28construction_sheet%29.svg/250px-Flag_of_Japan_%28construction_sheet%29.svg.png?utm_source=commons.wikimedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail 2x\" data-file-width=\"1080\" data-file-height=\"750\"></a></span></div>\n\t\t\t<div class=\"gallerytext\"></div>\n\t\t</li>\n</ul>"
+              },
+              "Artist": {
+                "value": "Various"
+              },
+              "LicenseShortName": {
+                "value": "Public domain"
+              },
+              "AttributionRequired": {
+                "value": "false"
+              },
+              "Copyrighted": {
+                "value": "False"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

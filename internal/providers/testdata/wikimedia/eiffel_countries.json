@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "Q142": {
+      "id": "Q142",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "France"
+        }
+      }
+    },
+    "Q183": {
+      "id": "Q183",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Germany"
+        }
+      }
+    },
+    "Q212": {
+      "id": "Q212",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Ukraine"
+        }
+      }
+    },
+    "Q30": {
+      "id": "Q30",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "United States"
+        }
+      }
+    }
+  }
+}

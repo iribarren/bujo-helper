@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "Q29": {
+      "id": "Q29",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Spain"
+        }
+      }
+    },
+    "Q414": {
+      "id": "Q414",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Argentina"
+        }
+      }
+    },
+    "Q739": {
+      "id": "Q739",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Colombia"
+        }
+      }
+    },
+    "Q96": {
+      "id": "Q96",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Mexico"
+        }
+      }
+    }
+  }
+}
