@@ -40,12 +40,24 @@ Anime and manga trackers are a common bujo spread among younger users (an assump
 - Frontend: `npx tsc --noEmit` in `frontend/`. If the bindings change, run `wails build -tags webkit2_41`, restore the 0644 modes on `frontend/wailsjs/go/main/*` and `models.ts`, and rebuild `build/bin/` before the GUI check.
 
 ## Tasks
-- [ ] T1 Provider: AniList (GraphQL search, ranking, year tie-break), throttle entry, fixtures and tests. Route: delegated writer (2+ non-trivial files).
-- [ ] T2 Catalog `anime` and `manga`, CLI, frontend example, README. Route: the same delegated writer, in a separate commit.
+- [x] T1 Provider: AniList (GraphQL search, ranking, year tie-break), throttle entry, fixtures and tests. Route: delegated writer (2+ non-trivial files).
+- [x] T2 Catalog `anime` and `manga`, CLI, frontend example, README. Route: the same delegated writer, in a separate commit.
 - [ ] T3 Live CLI smoke test and build. Route: inline.
 
 ## Progress
 - Plan written.
+- T1 (route: delegated writer, 2+ non-trivial files) — commit 335b0f1 `feat(providers): AniList anime and manga search`. 8 files, +962/−2 (provider 226, tests 342, fixtures 387, throttle 9).
+  - Design: `AniList{Client, BaseURL, Type}`, `NewAniList(client, type)` plus `NewAniListAnime` / `NewAniListManga`; `isAdult` is sent as a GraphQL variable (`false`). Ranking reuses Steam's `rankGames` (exact first, then `match.Rank`, stable) on each result's best-matching title (`bestTitle`: an exact romaji/English/native/synonym match, else the top `match.Rank` title). Only a 4-digit `item.Creator` is passed as the tie-break year.
+  - Fixtures recorded live 2026-11-17 (4 requests, `x-ratelimit-limit: 30`) and trimmed: `anilist_frieren_anime.json`, `anilist_berserk_anime.json`, `anilist_berserk_manga.json`, `anilist_shingeki_anime.json`.
+  - RED: `go test ./internal/providers/ -run AniList` failed to build (`undefined: AniList`, `NewAniListAnime`, `NewAniListManga`).
+  - GREEN: 24 AniList tests and subtests pass (search anime/manga with request-body checks, romaji/native/synonym/English matching, year tie-break, cover/year fallbacks, NotFound, GraphQL error, 500, bad JSON, 429 retried with the same body); `go test -tags webkit2_41 ./...` 1239 passed.
+  - Throttle finding: `graphql.anilist.co` spaced 2 s. `postJSON` builds the request from a `strings.Reader`, so `http.NewRequest` sets `GetBody` and the throttle retries a 429 POST with the same body. `Retry-After` (seconds or HTTP-date) is honoured up to `MaxWait` (60 s): AniList's one-minute block (`Retry-After: 60`) is waited out and retried, and a longer one returns the 429 at once (an error, not NotFound).
+  - Deviation: one year rule shared with games: a year-matching main-title hit (e.g. "Berserk: The Golden Age Arc II", 2012, for `Berserk, 2012`) can outrank a non-year exact match; without a year, exact matches stay first.
+- T2 (route: same delegated writer) — commit 79dddc9 `feat(catalog): anime and manga media types`. 8 files, +112/−20.
+  - `anime` (Anime, Year, Watched on) and `manga` (Manga, Year, Read on) registered after `games`; 5 samples each. CLI usage/doc comment, frontend placeholder examples (`Frieren, 2023`, `Berserk, 1989`), README (features, Sources › Anime and Manga, rate limits, CSV, credits, CLI examples and `-type`, layout).
+  - RED: `TestDefault`, `TestDefaultAppMoviesUseTheSavedTMDBKey`, `TestUsageListsMediaTypes` failed (old ID lists/usage); vitest 2 new placeholder tests failed.
+  - GREEN: `go test -tags webkit2_41 ./...` 1241 passed in 15 packages; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` clean; `npx vitest run` 56 passed.
+  - Not changed: `frontend/src/i18n/{en,es}.ts` (outside the edit surface). The UI falls back to Go's English labels for anime/manga, so the Spanish UI shows "Anime"/"Manga" (same word) but "Watched on"/"Read on" in English and the generic sample-CSV button text. No binding changes; `wails build` not run.
 
 ## Next step
-T1.
+Follow-up decision: add `media/creator/date/sample` i18n keys for anime and manga in `en.ts`/`es.ts`. Then T3 (live CLI smoke test and build).
