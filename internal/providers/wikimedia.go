@@ -141,6 +141,11 @@ func (p *Wikimedia) searchFlag(ctx context.Context, country string) ([]media.Can
 	// Aliases such as "USA" rank by the country's Wikidata label.
 	query := normalizeCountry(country)
 	best := rankPlaces(places, query)[:1]
+	// The search returns any entity with a flag, so the best one must
+	// still be a plausible name match (exact or prefix).
+	if !match.Plausible(media.Item{Title: query}, best[0].label, "") {
+		return nil, fmt.Errorf("%w: no Wikidata country named %q with a flag", media.ErrNotFound, country)
+	}
 	return p.candidates(ctx, best, func(pl wikimediaPlace) (string, string) {
 		return "Flag of " + pl.label, ""
 	})

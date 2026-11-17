@@ -302,6 +302,26 @@ func TestWikimediaFlagMode(t *testing.T) {
 	}
 }
 
+// The flag search matches any entity with a flag, so a country name with
+// no plausible label match must not download an unrelated flag.
+func TestWikimediaFlagModeRejectsUnrelatedCountries(t *testing.T) {
+	for _, title := range []string{"Flag of Narnia", "Atlantis flag"} {
+		t.Run(title, func(t *testing.T) {
+			p, rs := newWikimediaTest(t, wikimediaRoute(loadWikimediaFixtures(t, "japan")))
+			got, err := p.Search(context.Background(), media.Item{Title: title}, media.Options{})
+			if !errors.Is(err, media.ErrNotFound) {
+				t.Fatalf("got %v, err = %v, want ErrNotFound", got, err)
+			}
+			if !strings.Contains(err.Error(), "no Wikidata country named") {
+				t.Errorf("err = %v", err)
+			}
+			if titles := imageinfoTitles(rs); len(titles) != 0 {
+				t.Errorf("imageinfo requested for %q", titles)
+			}
+		})
+	}
+}
+
 func TestWikimediaNotFound(t *testing.T) {
 	f := loadWikimediaFixtures(t, "eiffel")
 	tests := []struct {
