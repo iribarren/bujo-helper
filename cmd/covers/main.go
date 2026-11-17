@@ -2,7 +2,7 @@
 //
 // Usage:
 //
-//	covers [-type books|movies|tv|albums|games|artworks|places] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" ...]
+//	covers [-type books|movies|tv|albums|games|artworks|places|nature] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" | "Name" ...]
 //
 // The TMDB API key (used by -type movies and -type tv) comes from -tmdb-key, else the
 // TMDB_API_KEY environment variable, else the settings file the GUI writes.
@@ -14,8 +14,9 @@
 // comma): "Title, Author" for books, "Title, Year" for movies, TV series and
 // games, "Album, Artist" for albums, "Title, Artist" for artworks and
 // "Place, Country" (the country is optional) or "Flag of Country" for
-// places. Each artwork and place image gets a "<image file>.credit.txt"
-// sidecar with its credit.
+// places, and a plant or animal "Name" (common or scientific) alone for
+// nature. Each artwork, place and nature image gets a
+// "<image file>.credit.txt" sidecar with its credit.
 // Items from -csv are added after them. Flags must come before the items. The exit code is 1 when any item failed and 2 on usage errors.
 package main
 
@@ -67,7 +68,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 
 	fs := flag.NewFlagSet("covers", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie, TV and game items are "Title, Year", albums "Album, Artist", artworks "Title, Artist", places "Place, Country" or "Flag of Country"`)
+	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie, TV and game items are "Title, Year", albums "Album, Artist", artworks "Title, Artist", places "Place, Country" or "Flag of Country", nature "Name"`)
 	outDir := fs.String("o", "covers", "output directory")
 	country := fs.String("country", "es", "store country code (es, us, gb, de, ...); books prefer local editions")
 	csvPath := fs.String("csv", "", "CSV file with title and creator (author, year or artist) columns")
@@ -75,7 +76,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 	igdbIDFlag := fs.String("igdb-id", "", "IGDB (Twitch) Client ID (default: $IGDB_CLIENT_ID, then the saved settings)")
 	igdbSecretFlag := fs.String("igdb-secret", "", "IGDB (Twitch) Client Secret (default: $IGDB_CLIENT_SECRET, then the saved settings)")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" ...]`)
+		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" | "Name" ...]`)
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {

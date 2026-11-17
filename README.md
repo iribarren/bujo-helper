@@ -9,7 +9,7 @@ Book covers, movie posters, TV series posters, album covers and game box art are
 
 ## Features
 
-- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series and games), `Album, Artist` (albums), `Title, Artist` (artworks) or `Place, Country` (places) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series and games), `Album, Artist` (albums), `Title, Artist` (artworks), `Place, Country` (places) or a plant or animal `Name` (nature) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
@@ -18,6 +18,7 @@ Book covers, movie posters, TV series posters, album covers and game box art are
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
 - Public-domain artworks from museum open-access collections, each saved with a credit file, see [Artworks](#artworks).
 - Landmark and city photos, and country flags, from Wikimedia Commons, each saved with a credit file, see [Places](#places).
+- Vintage natural-history illustrations (plates) of plants and animals from Wikimedia Commons, each saved with a credit file, see [Nature](#nature).
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
 - **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. See [Print sheet](#print-sheet).
@@ -137,7 +138,7 @@ License: CC0 1.0 Universal (public domain), https://creativecommons.org/publicdo
 Object page: https://www.metmuseum.org/art/collection/search/436535
 ```
 
-Place images get one too (see [Places](#places)); other media types get no credit file. The print sheet can list them on a [credits page](#credits-page). The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
+Place and nature images get one too (see [Places](#places) and [Nature](#nature)); other media types get no credit file. The print sheet can list them on a [credits page](#credits-page). The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
 
 **Why not the Art Institute of Chicago.** Its API and public-domain images are CC0 too, but its image server (`www.artic.edu/iiif/2/…`) answers every request that does not come from a browser with a Cloudflare challenge (HTTP 403, checked in November 2026), so the app cannot download its images.
 
@@ -170,6 +171,34 @@ When you print or share a page with these images, credit each one with its autho
 
 Wikimedia asks every client for a User-Agent with contact information, also when downloading images. The app sends `bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )` to Wikidata, the Commons API and the Commons image servers, spaces Wikidata and Commons API requests 200 ms apart, and image downloads from Commons 500 ms apart.
 
+### Nature
+
+Nature downloads a vintage natural-history illustration of a plant or an animal, a plate from an old book rather than a photo, from [Wikimedia Commons](https://commons.wikimedia.org/) (no key). Write one name per line, common or scientific: `Robin`, `Barn owl`, `Monstera deliciosa`. There is no second column. Plates come in every shape, so a cover sheet gives landscape ones wide cells (see [Print sheet](#print-sheet)).
+
+1. **Wikidata** full-text search for the name among taxa (items that are an instance of taxon), up to 10 results. The result whose English name or alias (aliases hold other common names and the scientific name) is closest to the name you wrote is used; ties keep the search order, so `Robin` is the European robin (*Erithacus rubecula*). A name that matches no taxon closely enough fails with "no Wikidata taxon named …". Each name is looked up once while the app (or the `covers` command) runs.
+2. **Commons** search for files, in this order, until one search gives an openly licensed image:
+   1. files that depict the taxon and are marked public domain (structured data: depicts P180, copyright status P6216);
+   2. the taxon's Commons category followed by ` - botanical illustrations` (plants);
+   3. files that mention the scientific name and the word "plate".
+3. Of each search's first files (those with "Plate" in the name first), Commons returns up to five with their licence. Files with "Plate" in the name or scanned by the [Biodiversity Heritage Library](https://www.biodiversitylibrary.org/) (BHL) come first, the rest keep the search order, up to three results: the 1920 px thumbnail, falling back to 1280 px; an image narrower than 1920 px comes as the original.
+
+**Rights check.** Only public domain, CC0, CC BY and CC BY-SA files are used, since they allow printing with a credit. Files under a non-commercial (NC) or no-derivatives (ND) licence, or with no licence information, are skipped; when nothing is left the item fails and names the skipped files with the reason, for example `Monstera deliciosa.png: no-derivatives licence (CC BY-ND 4.0)`. As for places, the app stores the licence as Commons gives it and Wikimedia gives no warranty that it is right, so check the file page before you publish.
+
+**Credit file.** Each nature image is saved with a credit file next to it, the same way as places: the image title, the author, the date, the source, the licence, the Commons file page and the Wikidata taxon, plus the line BHL asks for when the scan comes from BHL. For example, for `Robin`:
+
+```text
+Title: Coloured figures of the birds of the British Islands - issued by Lord Lilford (10036178774)
+Author: Keulemans, J. G.; Lilford, Thomas Littleton Powys; Newton, Alfred; Salvin, Osbert; Thorburn, Archibald
+Date: between 1885 and 1897
+Source: https://www.flickr.com/photos/biodivlibrary/10036178774
+License: Public domain
+File page: https://commons.wikimedia.org/wiki/File:Coloured_figures_of_the_birds_of_the_British_Islands_-_issued_by_Lord_Lilford_(10036178774).jpg
+Wikidata taxon: https://www.wikidata.org/wiki/Q25334
+Image from the Biodiversity Heritage Library
+```
+
+Public domain images need no credit, but BHL asks for one and it is good practice; the print sheet's [Credits page](#credits-page) lists them. Requests go to Wikidata and Commons with the same contact User-Agent and spacing as places.
+
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
@@ -188,7 +217,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, and image downloads from Wikimedia Commons 500 ms apart. IGDB searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, and image downloads from Wikimedia Commons 500 ms apart. A nature item makes at most three Wikidata requests (once per name) and two Commons API requests per search, at most three searches. IGDB searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
 
 ## Local editions
 
@@ -219,13 +248,13 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies, TV series and games, `album,artist` for albums, `title,artist` for artworks, `place,country` for places. The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies, TV series and games, `album,artist` for albums, `title,artist` for artworks, `place,country` for places, and a single `name` column for nature. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, artworks or places).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, artworks, places or nature).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
@@ -302,7 +331,7 @@ The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, s
 
 ### Credits page
 
-Wikimedia Commons images (see [Places](#places)) are often CC BY or CC BY-SA, which require the author and licence wherever the image is reproduced, printed sheets included; artworks are public domain, but credit is still good practice. With **Credits page** checked (the default), the PDF ends with one or more pages titled "Credits" ("Créditos" in Spanish), on the same paper, listing every selected image that has a credit file (`<image>.credit.txt`, see [Artworks](#artworks) and [Places](#places)): a number, the image's title and creator from its file name, and the credit text, wrapped to the page width, in the order the images appear in the sheet.
+Wikimedia Commons images (see [Places](#places) and [Nature](#nature)) are often CC BY or CC BY-SA, which require the author and licence wherever the image is reproduced, printed sheets included; artworks are public domain, but credit is still good practice. With **Credits page** checked (the default), the PDF ends with one or more pages titled "Credits" ("Créditos" in Spanish), on the same paper, listing every selected image that has a credit file (`<image>.credit.txt`, see [Artworks](#artworks), [Places](#places) and [Nature](#nature)): a number, the image's title and creator from its file name, and the credit text, wrapped to the page width, in the order the images appear in the sheet.
 
 - Images without a credit file (books, movies, TV series, albums, games) are not listed. When no selected image has one, or the box is unchecked, no page is added and the PDF is exactly what it would be without the option.
 - A credit file that exists but cannot be read stops the export, naming the file, like an unreadable image.
@@ -478,13 +507,14 @@ go run ./cmd/covers -type games -o games "Hollow Knight, 2017" "Celeste, 2018"
 IGDB_CLIENT_ID=<id> IGDB_CLIENT_SECRET=<secret> go run ./cmd/covers -type games -o games "The Legend of Zelda: Breath of the Wild, 2017"
 go run ./cmd/covers -type artworks -o art "Wheat Field with Cypresses, Vincent van Gogh" "Twilight in the Wilderness, Frederic Edwin Church"
 go run ./cmd/covers -type places -o places "Eiffel Tower, France" "Machu Picchu, Peru" "Flag of Japan"
+go run ./cmd/covers -type nature -o nature "Robin" "Monstera deliciosa" "Barn owl"
 ```
 
 Flags must come before the items:
 
 | Flag           | Default  | Meaning                                                    |
 |----------------|----------|------------------------------------------------------------|
-| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `artworks` or `places` |
+| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `artworks`, `places` or `nature` |
 | `-o`           | `covers` | Output folder                                              |
 | `-country`     | `es`     | Store country code; its editions are preferred             |
 | `-csv`         | (none)   | CSV file, added after the positional items                 |
@@ -574,7 +604,7 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons; nature: Wikidata taxa → Wikimedia Commons
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming, credit files

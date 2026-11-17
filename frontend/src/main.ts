@@ -57,6 +57,7 @@ const EXAMPLES: Record<string, string> = {
     games: 'Hollow Knight, 2017',
     artworks: 'Wheat Field with Cypresses, Vincent van Gogh',
     places: 'Eiffel Tower, France',
+    nature: 'Robin',
 };
 
 // The tip shown above the list for media types whose best source needs a
@@ -207,8 +208,21 @@ function creatorLabel(): string {
     return type ? label('creator', type.id, type.creatorLabel || t('download.creator')) : t('download.creator');
 }
 
+// hasCreator reports whether the selected media type has a creator column;
+// nature items are a name alone.
+function hasCreator(): boolean {
+    const type = currentMediaType();
+    return !type || type.creatorLabel !== '';
+}
+
 function updatePlaceholder() {
     const example = EXAMPLES[ui.mediaType.value];
+    if (!hasCreator()) {
+        ui.items.placeholder = example
+            ? t('download.placeholderNameExample', {example})
+            : t('download.placeholderName');
+        return;
+    }
     const creator = creatorLabel();
     ui.items.placeholder = example
         ? t('download.placeholderExample', {creator, example})
@@ -400,7 +414,7 @@ async function startDownload() {
         return;
     }
     if (countItems(ui.items.value) === 0) {
-        showError(t('download.errNoItems', {creator: creatorLabel()}));
+        showError(hasCreator() ? t('download.errNoItems', {creator: creatorLabel()}) : t('download.errNoNames'));
         ui.items.focus();
         return;
     }

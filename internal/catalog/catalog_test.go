@@ -24,7 +24,7 @@ func TestDefault(t *testing.T) {
 	for _, mt := range reg.List() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games", "artworks", "places"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "artworks", "places", "nature"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 
@@ -151,6 +151,25 @@ func TestDefault(t *testing.T) {
 	}
 	if !reflect.DeepEqual(places.Samples, wantPlaces) {
 		t.Errorf("places samples = %+v, want %+v", places.Samples, wantPlaces)
+	}
+
+	nature, _ := reg.Get("nature")
+	// One column: the name, common or scientific.
+	if nature.Label != "Nature" || nature.CreatorLabel != "" || nature.DateLabel != "Seen on" || nature.LocalEditions {
+		t.Errorf("nature = %+v", nature)
+	}
+	if want := []string{"commons-nature"}; !reflect.DeepEqual(providerNames(nature), want) {
+		t.Errorf("nature providers = %q, want %q", providerNames(nature), want)
+	}
+	wantNature := []media.Item{
+		{Title: "Robin"},
+		{Title: "Monstera deliciosa"},
+		{Title: "Barn owl"},
+		{Title: "Common sunflower"},
+		{Title: "Monarch butterfly"},
+	}
+	if !reflect.DeepEqual(nature.Samples, wantNature) {
+		t.Errorf("nature samples = %+v, want %+v", nature.Samples, wantNature)
 	}
 
 	if Default(nil, Keys{}) == nil {

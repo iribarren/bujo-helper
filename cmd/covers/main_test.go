@@ -285,12 +285,13 @@ func TestUsageListsMediaTypes(t *testing.T) {
 		t.Fatalf("exit code = %d, want 2", code)
 	}
 	for _, want := range []string{
-		"books, movies, tv, albums, games, artworks, places",
-		"books|movies|tv|albums|games|artworks|places",
+		"books, movies, tv, albums, games, artworks, places, nature",
+		"books|movies|tv|albums|games|artworks|places|nature",
 		`movie, TV and game items are "Title, Year"`,
 		`albums "Album, Artist"`,
 		`artworks "Title, Artist"`,
-		`places "Place, Country" or "Flag of Country"`,
+		`places "Place, Country" or "Flag of Country", nature "Name"`,
+		`| "Place, Country" | "Name" ...]`,
 		"-igdb-id", "-igdb-secret", "$IGDB_CLIENT_ID", "$IGDB_CLIENT_SECRET",
 	} {
 		if !strings.Contains(stderr.String(), want) {

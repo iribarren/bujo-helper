@@ -161,6 +161,27 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "Flag of Japan"},
 		},
 	})
+	// Vintage natural-history illustrations (plates) of plants and animals
+	// from Wikimedia Commons, found through the Wikidata taxon of a name
+	// (common or scientific; there is no creator column). Only openly
+	// licensed files are used, each with a credit sidecar. The resolver
+	// caches taxa per name, so later nature providers can share it.
+	taxa := providers.NewTaxonResolver(client)
+	mustRegister(reg, media.MediaType{
+		ID:        "nature",
+		Label:     "Nature",
+		DateLabel: "Seen on",
+		Providers: []media.Provider{
+			providers.NewCommonsNature(client, taxa),
+		},
+		Samples: []media.Item{
+			{Title: "Robin"},
+			{Title: "Monstera deliciosa"},
+			{Title: "Barn owl"},
+			{Title: "Common sunflower"},
+			{Title: "Monarch butterfly"},
+		},
+	})
 	return reg
 }
 
