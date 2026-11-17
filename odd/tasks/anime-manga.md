@@ -63,5 +63,8 @@ Anime and manga trackers are a common bujo spread among younger users (an assump
 - T3 (route: inline). Live CLI with an empty config, 2026-11-17: anime `Frieren, 2023`, `Shingeki no Kyojin, 2013`, `Kimetsu no Yaiba` and `Berserk, 2016`; manga `Berserk, 1989`, `One Piece, 1997` and `Chainsaw Man`. 7 of 7 OK from anilist, 460 px wide (636–717 tall). Checked visually: `Berserk, 2016` gets the 2016 anime, and `Kimetsu no Yaiba` gets Demon Slayer season 1. Chainsaw Man's cover is a PNG.
 - `wails build -tags webkit2_41` ok (`build/bin/bujo-helper`). Bindings changed only in file mode; the 0644 modes were restored.
 
+- Review `685d5e2..f8bbed4` (19 files, 1140 lines, medium, `slice_budget_reached`): consent granted. The review-reliability lens approved it, and it was acknowledged (authority burned). Advisory R3-readme-ranking-contract (WARNING): the README said exact matches always come first, but a year only a main-title match has (`Berserk, 2012`) lifts the 2012 film above them, and no test pinned it.
+- Fix `4126165`: the README describes the year rule as for games and says the file is named after the typed title (it wrongly said the English title; the live T3 run shows the typed title). The `2012` case was added to `TestAniListYearBreaksTies`. Route: inline (one test case and doc text). GREEN: `go test ./internal/providers/ -run AniList` ok; `gofmt` clean.
+
 ## Next step
 User GUI check, then a local `--no-ff` merge and ROADMAP item 19 marked done.
