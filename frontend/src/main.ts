@@ -57,6 +57,7 @@ const EXAMPLES: Record<string, string> = {
     games: 'Hollow Knight, 2017',
     artworks: 'Wheat Field with Cypresses, Vincent van Gogh',
     places: 'Eiffel Tower, France',
+    nature: 'Robin',
 };
 
 // The tip shown above the list for media types whose best source needs a
@@ -81,6 +82,11 @@ const KEY_TIPS: Record<string, KeyTip> = {
         what: 'tip.igdbWhat',
         why: 'tip.igdbWhy',
         saved: () => settingsDialog?.hasIGDBCredentials() ?? false,
+    },
+    nature: {
+        what: 'tip.bhlWhat',
+        why: 'tip.bhlWhy',
+        saved: () => settingsDialog?.hasBHLKey() ?? false,
     },
 };
 
@@ -207,8 +213,21 @@ function creatorLabel(): string {
     return type ? label('creator', type.id, type.creatorLabel || t('download.creator')) : t('download.creator');
 }
 
+// hasCreator reports whether the selected media type has a creator column;
+// nature items are a name alone. A missing or blank label means none.
+function hasCreator(): boolean {
+    const type = currentMediaType();
+    return !type || (type.creatorLabel ?? '').trim() !== '';
+}
+
 function updatePlaceholder() {
     const example = EXAMPLES[ui.mediaType.value];
+    if (!hasCreator()) {
+        ui.items.placeholder = example
+            ? t('download.placeholderNameExample', {example})
+            : t('download.placeholderName');
+        return;
+    }
     const creator = creatorLabel();
     ui.items.placeholder = example
         ? t('download.placeholderExample', {creator, example})
@@ -217,7 +236,7 @@ function updatePlaceholder() {
 
 // updateKeyTip suggests a key while a media type whose best source needs
 // one is selected and none is saved: TMDB for movies and TV series, IGDB
-// for games.
+// for games, BHL for nature.
 function updateKeyTip() {
     const tip = KEY_TIPS[ui.mediaType.value];
     ui.keyTip.hidden = !tip || tip.saved();
@@ -400,7 +419,7 @@ async function startDownload() {
         return;
     }
     if (countItems(ui.items.value) === 0) {
-        showError(t('download.errNoItems', {creator: creatorLabel()}));
+        showError(hasCreator() ? t('download.errNoItems', {creator: creatorLabel()}) : t('download.errNoNames'));
         ui.items.focus();
         return;
     }

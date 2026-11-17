@@ -17,6 +17,8 @@ type Keys struct {
 	TMDB func() string
 	// IGDB returns the Twitch Client ID and Client Secret.
 	IGDB func() (clientID, clientSecret string)
+	// BHL returns the Biodiversity Heritage Library API key.
+	BHL func() string
 }
 
 // Default returns the registry of built-in media types. A nil client gets
@@ -159,6 +161,30 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "Sydney Opera House", Creator: "Australia"},
 			{Title: "Colosseum", Creator: "Italy"},
 			{Title: "Flag of Japan"},
+		},
+	})
+	// Vintage natural-history illustrations (plates) of plants and animals
+	// from Wikimedia Commons, found through the Wikidata taxon of a name
+	// (common or scientific; there is no creator column), then from the
+	// Biodiversity Heritage Library when the user has a BHL key (the user's
+	// choice). Only openly licensed or public-domain images are used, each
+	// with a credit sidecar. Both providers share one resolver, which caches
+	// taxa per name.
+	taxa := providers.NewTaxonResolver(client)
+	mustRegister(reg, media.MediaType{
+		ID:        "nature",
+		Label:     "Nature",
+		DateLabel: "Seen on",
+		Providers: []media.Provider{
+			providers.NewCommonsNature(client, taxa),
+			providers.NewBHL(client, keys.BHL, taxa),
+		},
+		Samples: []media.Item{
+			{Title: "Robin"},
+			{Title: "Monstera deliciosa"},
+			{Title: "Barn owl"},
+			{Title: "Common sunflower"},
+			{Title: "Monarch butterfly"},
 		},
 	})
 	return reg

@@ -183,6 +183,7 @@ export namespace settings {
 	    tmdbApiKey: string;
 	    igdbClientId: string;
 	    igdbClientSecret: string;
+	    bhlApiKey: string;
 	    language: string;
 	
 	    static createFrom(source: any = {}) {
@@ -194,6 +195,7 @@ export namespace settings {
 	        this.tmdbApiKey = source["tmdbApiKey"];
 	        this.igdbClientId = source["igdbClientId"];
 	        this.igdbClientSecret = source["igdbClientSecret"];
+	        this.bhlApiKey = source["bhlApiKey"];
 	        this.language = source["language"];
 	    }
 	}

@@ -3,7 +3,8 @@
 // saves the first good one. When the country has known ISBN prefixes, local
 // editions are tried first and any edition is the silent fallback. When
 // the chosen candidate has a credit (artworks), it is saved in a sidecar
-// next to the image (see CreditPath).
+// next to the image (see CreditPath). WebP images are saved as JPEG (PNG
+// when transparent).
 package downloader
 
 import (
@@ -245,9 +246,12 @@ func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResul
 		})
 	}
 	passes = append(passes, nil) // nil keeps every candidate
-	var reasons []string
-	// allNotFound stays true while every provider of the last pass reported
-	// media.ErrNotFound.
+	var reasons, skips []string
+	var skipErrs []error
+	// allNotFound stays true while every provider of the last pass that
+	// searched reported media.ErrNotFound. A skipped optional provider
+	// (media.ErrSkipped, e.g. BHL without a key) is neutral: it neither
+	// prevents not found nor is listed among the reasons.
 	allNotFound := true
 	for pass, keep := range passes {
 		last := pass == len(passes)-1
@@ -260,7 +264,12 @@ func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResul
 				res.Status, res.Path, res.Source, res.Matched = StatusOK, path, p.Name(), matched
 				return res
 			}
-			if last {
+			switch {
+			case !last:
+			case errors.Is(err, media.ErrSkipped):
+				skips = append(skips, p.Name()+": "+err.Error())
+				skipErrs = append(skipErrs, err)
+			default:
 				reasons = append(reasons, p.Name()+": "+err.Error())
 				allNotFound = allNotFound && errors.Is(err, media.ErrNotFound)
 			}
@@ -269,8 +278,12 @@ func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResul
 	if ctx.Err() != nil {
 		return cancelled()
 	}
-	if len(reasons) == 0 {
+	if len(reasons) == 0 && len(skips) == 0 {
 		return fail(res, StatusFailed, &itemError{"no providers for media type " + j.mt.ID, ErrNoProviders})
+	}
+	if len(reasons) == 0 {
+		// Every provider was skipped: the skips are the failure.
+		return fail(res, StatusFailed, &itemError{strings.Join(skips, "; "), errors.Join(skipErrs...)})
 	}
 	var cause error
 	if allNotFound {
@@ -331,12 +344,12 @@ func (s *itemSearch) tryProvider(ctx context.Context, i int, keep func(media.Can
 	var last error
 	for _, c := range cands {
 		for _, u := range c.ImageURLs {
-			data, contentType, err := s.fetch(ctx, u)
+			data, ext, err := s.fetch(ctx, u)
 			if err != nil {
 				last = err
 				continue
 			}
-			path, err := saveUnique(s.job.outDir, fileName(s.item, imageExt(u, contentType)), data)
+			path, err := saveUnique(s.job.outDir, fileName(s.item, ext), data)
 			if err != nil {
 				return "", "", err
 			}
@@ -359,17 +372,24 @@ func (s *itemSearch) tryProvider(ctx context.Context, i int, keep func(media.Can
 	return "", "", errors.New("no downloadable cover image")
 }
 
-// fetch downloads an image URL, remembering failures so the second pass
-// does not request a rejected URL again.
+// fetch downloads an image URL and returns the bytes to save and their
+// file extension. A WebP image becomes a JPEG (or a PNG when it has
+// transparency), whatever the provider. Failures are remembered so the
+// second pass does not request a rejected URL again.
 func (s *itemSearch) fetch(ctx context.Context, u string) ([]byte, string, error) {
 	if err, ok := s.failed[u]; ok {
 		return nil, "", err
 	}
 	data, contentType, err := fetchImage(ctx, s.job.client, u)
+	ext := imageExt(u, contentType)
+	if err == nil && isWebP(data) {
+		data, ext, err = convertWebP(data)
+	}
 	if err != nil {
 		s.failed[u] = err
+		return nil, "", err
 	}
-	return data, contentType, err
+	return data, ext, nil
 }
 
 // fetchImage downloads url and returns its body and content type when it is

@@ -1,0 +1,211 @@
+{
+  "entities": {
+    "Q25334": {
+      "id": "Q25334",
+      "labels": {
+        "en": {
+          "value": "European robin"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "robin"
+          },
+          {
+            "value": "robin redbreast"
+          },
+          {
+            "value": "redbreast"
+          },
+          {
+            "value": "Erithacus rubecula"
+          }
+        ]
+      }
+    },
+    "Q460967": {
+      "id": "Q460967",
+      "labels": {
+        "en": {
+          "value": "American Robin"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "Turdus migratorius"
+          },
+          {
+            "value": "robin"
+          },
+          {
+            "value": "robin redbreast"
+          },
+          {
+            "value": "robin red-breast"
+          }
+        ]
+      }
+    },
+    "Q266761": {
+      "id": "Q266761",
+      "labels": {
+        "en": {
+          "value": "Copsychus saularis"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "Oriental magpie-robin"
+          },
+          {
+            "value": "Oriental magpie robin"
+          }
+        ]
+      }
+    },
+    "Q218448": {
+      "id": "Q218448",
+      "labels": {
+        "en": {
+          "value": "Black robin"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "Petroica traversi"
+          },
+          {
+            "value": "Chatham Island black robin"
+          },
+          {
+            "value": "Chatham Island robin"
+          }
+        ]
+      }
+    },
+    "Q1061885": {
+      "id": "Q1061885",
+      "labels": {
+        "en": {
+          "value": "Rose Robin"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "Petroica rosea"
+          },
+          {
+            "value": "rose-breasted wood robin"
+          },
+          {
+            "value": "rose breasted wood robin"
+          },
+          {
+            "value": "rose robin"
+          },
+          {
+            "value": "rose breasted robin"
+          },
+          {
+            "value": "Petroica (Erythrodryas) rosea"
+          }
+        ]
+      }
+    },
+    "Q855800": {
+      "id": "Q855800",
+      "labels": {
+        "en": {
+          "value": "Erithacus"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "robins"
+          },
+          {
+            "value": "robin"
+          }
+        ]
+      }
+    },
+    "Q607027": {
+      "id": "Q607027",
+      "labels": {
+        "en": {
+          "value": "Cercotrichas galactotes"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "Rufous Scrub Robin"
+          },
+          {
+            "value": "Rufous-tailed Scrub Robin"
+          }
+        ]
+      }
+    },
+    "Q1051396": {
+      "id": "Q1051396",
+      "labels": {
+        "en": {
+          "value": "South Island robin"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "Petroica australis"
+          },
+          {
+            "value": "New Zealand robin"
+          }
+        ]
+      }
+    },
+    "Q578756": {
+      "id": "Q578756",
+      "labels": {
+        "en": {
+          "value": "Copsychus"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "shamas"
+          },
+          {
+            "value": "magpie-robin"
+          }
+        ]
+      }
+    },
+    "Q27075670": {
+      "id": "Q27075670",
+      "labels": {
+        "en": {
+          "value": "Siberian Blue Robin"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "Siberian blue robin"
+          },
+          {
+            "value": "Larvivora cyane"
+          }
+        ]
+      }
+    }
+  }
+}

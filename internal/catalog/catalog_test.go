@@ -24,7 +24,7 @@ func TestDefault(t *testing.T) {
 	for _, mt := range reg.List() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games", "artworks", "places"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "artworks", "places", "nature"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 
@@ -153,6 +153,26 @@ func TestDefault(t *testing.T) {
 		t.Errorf("places samples = %+v, want %+v", places.Samples, wantPlaces)
 	}
 
+	nature, _ := reg.Get("nature")
+	// One column: the name, common or scientific.
+	if nature.Label != "Nature" || nature.CreatorLabel != "" || nature.DateLabel != "Seen on" || nature.LocalEditions {
+		t.Errorf("nature = %+v", nature)
+	}
+	// Commons first (no key), then BHL when a key is set.
+	if want := []string{"commons-nature", "bhl"}; !reflect.DeepEqual(providerNames(nature), want) {
+		t.Errorf("nature providers = %q, want %q", providerNames(nature), want)
+	}
+	wantNature := []media.Item{
+		{Title: "Robin"},
+		{Title: "Monstera deliciosa"},
+		{Title: "Barn owl"},
+		{Title: "Common sunflower"},
+		{Title: "Monarch butterfly"},
+	}
+	if !reflect.DeepEqual(nature.Samples, wantNature) {
+		t.Errorf("nature samples = %+v, want %+v", nature.Samples, wantNature)
+	}
+
 	if Default(nil, Keys{}) == nil {
 		t.Error("Default(nil) should fall back to a default client")
 	}
@@ -191,5 +211,26 @@ func TestDefaultPassesTheIGDBCredentials(t *testing.T) {
 	id, secret = "id-2", "secret-2"
 	if gotID, gotSecret := igdb.Credentials(); gotID != "id-2" || gotSecret != "secret-2" {
 		t.Errorf("IGDB credentials = %q, %q, want them read live", gotID, gotSecret)
+	}
+}
+
+func TestDefaultNatureProvidersShareTheResolverAndReadTheBHLKey(t *testing.T) {
+	key := "first"
+	reg := Default(http.DefaultClient, Keys{BHL: func() string { return key }})
+	nature, _ := reg.Get("nature")
+	commons, ok := nature.Providers[0].(*providers.CommonsNature)
+	if !ok {
+		t.Fatalf("first nature provider is %T, want *providers.CommonsNature", nature.Providers[0])
+	}
+	bhl, ok := nature.Providers[1].(*providers.BHL)
+	if !ok {
+		t.Fatalf("second nature provider is %T, want *providers.BHL", nature.Providers[1])
+	}
+	if commons.Taxa == nil || commons.Taxa != bhl.Taxa {
+		t.Error("the nature providers do not share one taxon resolver")
+	}
+	key = "second"
+	if got := bhl.Key(); got != "second" {
+		t.Errorf("BHL key = %q, want it read live", got)
 	}
 }

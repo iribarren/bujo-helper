@@ -78,6 +78,7 @@ type wikimediaEntitiesResponse struct {
 	Error    *wikidataError `json:"error"`
 	Entities map[string]struct {
 		Labels       map[string]wikimediaText    `json:"labels"`
+		Aliases      map[string][]wikimediaText  `json:"aliases"`
 		Descriptions map[string]wikimediaText    `json:"descriptions"`
 		Claims       map[string][]wikimediaClaim `json:"claims"`
 	} `json:"entities"`
@@ -168,7 +169,7 @@ func (p *Wikimedia) places(ctx context.Context, q, prop string) ([]wikimediaPlac
 		if !ok {
 			continue
 		}
-		file := firstFile(e.Claims[prop])
+		file := firstString(e.Claims[prop])
 		if file == "" {
 			continue
 		}
@@ -193,9 +194,10 @@ func (p *Wikimedia) places(ctx context.Context, q, prop string) ([]wikimediaPlac
 	return places, nil
 }
 
-// firstFile returns the file of the first preferred statement, else of
-// the first normal one. Deprecated statements are never used.
-func firstFile(claims []wikimediaClaim) string {
+// firstString returns the string value (a file name, a taxon name) of the
+// first preferred statement, else of the first normal one. Deprecated
+// statements are never used.
+func firstString(claims []wikimediaClaim) string {
 	var normal string
 	for _, c := range claims {
 		v, ok := c.Mainsnak.Datavalue.Value.(string)
@@ -217,32 +219,59 @@ func firstFile(claims []wikimediaClaim) string {
 
 // search returns the Q-ids the Wikidata full-text search finds for q.
 func (p *Wikimedia) search(ctx context.Context, q string) ([]string, error) {
-	v := url.Values{
-		"action":      {"query"},
-		"list":        {"search"},
-		"srsearch":    {q},
-		"srnamespace": {"0"},
-		"srlimit":     {strconv.Itoa(wikidataSearchLimit)},
-		"srprop":      {""},
-		"format":      {"json"},
-	}
-	var body wikidataSearchResponse
-	if err := getJSONWith(ctx, p.Client, p.WikidataURL+"?"+v.Encode(), web.SetWikimediaHeaders, &body); err != nil {
-		return nil, err
-	}
-	if err := body.Error.err(); err != nil {
+	return wikidataItemSearch(ctx, p.Client, p.WikidataURL, q)
+}
+
+// wikidataItemSearch returns the Q-ids the Wikidata full-text search at
+// apiURL finds for q.
+func wikidataItemSearch(ctx context.Context, client *http.Client, apiURL, q string) ([]string, error) {
+	titles, err := mediawikiSearch(ctx, client, apiURL, q, "0")
+	if err != nil {
 		return nil, err
 	}
 	var ids []string
-	for _, s := range body.Query.Search {
-		if strings.HasPrefix(s.Title, "Q") {
-			ids = append(ids, s.Title)
+	for _, t := range titles {
+		if strings.HasPrefix(t, "Q") {
+			ids = append(ids, t)
 		}
 	}
 	return ids, nil
 }
 
+// mediawikiSearch returns the page titles the full-text search of the
+// MediaWiki API at apiURL (Wikidata or Commons) finds for q in namespace,
+// best first.
+func mediawikiSearch(ctx context.Context, client *http.Client, apiURL, q, namespace string) ([]string, error) {
+	v := url.Values{
+		"action":      {"query"},
+		"list":        {"search"},
+		"srsearch":    {q},
+		"srnamespace": {namespace},
+		"srlimit":     {strconv.Itoa(wikidataSearchLimit)},
+		"srprop":      {""},
+		"format":      {"json"},
+	}
+	var body wikidataSearchResponse
+	if err := getJSONWith(ctx, client, apiURL+"?"+v.Encode(), web.SetWikimediaHeaders, &body); err != nil {
+		return nil, err
+	}
+	if err := body.Error.err(); err != nil {
+		return nil, err
+	}
+	var titles []string
+	for _, s := range body.Query.Search {
+		titles = append(titles, s.Title)
+	}
+	return titles, nil
+}
+
 func (p *Wikimedia) entities(ctx context.Context, ids []string, props string) (*wikimediaEntitiesResponse, error) {
+	return wikidataEntities(ctx, p.Client, p.WikidataURL, ids, props)
+}
+
+// wikidataEntities fetches props (e.g. "labels|claims") of the entities
+// ids, with English labels.
+func wikidataEntities(ctx context.Context, client *http.Client, apiURL string, ids []string, props string) (*wikimediaEntitiesResponse, error) {
 	v := url.Values{
 		"action":    {"wbgetentities"},
 		"ids":       {strings.Join(ids, "|")},
@@ -253,7 +282,7 @@ func (p *Wikimedia) entities(ctx context.Context, ids []string, props string) (*
 		"format":           {"json"},
 	}
 	var body wikimediaEntitiesResponse
-	if err := getJSONWith(ctx, p.Client, p.WikidataURL+"?"+v.Encode(), web.SetWikimediaHeaders, &body); err != nil {
+	if err := getJSONWith(ctx, client, apiURL+"?"+v.Encode(), web.SetWikimediaHeaders, &body); err != nil {
 		return nil, err
 	}
 	if err := body.Error.err(); err != nil {
@@ -405,13 +434,25 @@ type commonsImage struct {
 
 // metadata returns the extmetadata field name as plain text.
 func (img commonsImage) metadata(name string) string {
+	return htmlText(img.rawMetadata(name))
+}
+
+// visibleMetadata is metadata without the text of hidden elements (the
+// machine-readable "date QS:…" of dates, duplicated author names).
+func (img commonsImage) visibleMetadata(name string) string {
+	return visibleHTMLText(img.rawMetadata(name))
+}
+
+// rawMetadata returns the extmetadata field name as Commons sends it
+// (HTML).
+func (img commonsImage) rawMetadata(name string) string {
 	switch v := img.ExtMetadata[name].Value.(type) {
 	case string:
-		return htmlText(v)
+		return v
 	case nil:
 		return ""
 	default:
-		return htmlText(fmt.Sprint(v))
+		return fmt.Sprint(v)
 	}
 }
 
@@ -437,7 +478,7 @@ func (p *Wikimedia) candidates(ctx context.Context, places []wikimediaPlace, nam
 	for i, pl := range places {
 		titles[i] = "File:" + pl.file
 	}
-	images, err := p.imageInfo(ctx, titles)
+	images, err := commonsImageInfo(ctx, p.Client, p.CommonsURL, titles, commonsMetadataNames)
 	if err != nil {
 		return nil, err
 	}
@@ -466,20 +507,21 @@ func (p *Wikimedia) candidates(ctx context.Context, places []wikimediaPlace, nam
 	return out, nil
 }
 
-// imageInfo returns the image info of the files titles (as requested,
-// "File:…"), leaving out missing files.
-func (p *Wikimedia) imageInfo(ctx context.Context, titles []string) (map[string]commonsImage, error) {
+// commonsImageInfo returns the image info, with the extmetadata fields
+// metadata, of the files titles (as requested, "File:…") from the Commons
+// API at apiURL, leaving out missing files.
+func commonsImageInfo(ctx context.Context, client *http.Client, apiURL string, titles []string, metadata string) (map[string]commonsImage, error) {
 	v := url.Values{
 		"action":              {"query"},
 		"prop":                {"imageinfo"},
 		"titles":              {strings.Join(titles, "|")},
 		"iiprop":              {"url|size|extmetadata"},
 		"iiurlwidth":          {commonsThumbWidth},
-		"iiextmetadatafilter": {commonsMetadataNames},
+		"iiextmetadatafilter": {metadata},
 		"format":              {"json"},
 	}
 	var body commonsImageInfoResponse
-	if err := getJSONWith(ctx, p.Client, p.CommonsURL+"?"+v.Encode(), web.SetWikimediaHeaders, &body); err != nil {
+	if err := getJSONWith(ctx, client, apiURL+"?"+v.Encode(), web.SetWikimediaHeaders, &body); err != nil {
 		return nil, err
 	}
 	if err := body.Error.err(); err != nil {
@@ -533,28 +575,39 @@ const commonsFieldLimit = 300
 // source, licence, file page and Wikidata item. label is the title when
 // the file has no object name.
 func commonsCredit(img commonsImage, label, qid string) string {
-	title := img.metadata("ObjectName")
+	lines := commonsCreditLines(img, label, img.metadata, false)
+	lines = append(lines, "Wikidata item: https://www.wikidata.org/wiki/"+qid)
+	return strings.Join(lines, "\n")
+}
+
+// commonsCreditLines returns the credit lines of a Commons file from its
+// title to its file page. field reads an extmetadata field as plain text;
+// withDate adds the file's date, when known.
+func commonsCreditLines(img commonsImage, label string, field func(string) string, withDate bool) []string {
+	title := field("ObjectName")
 	if title == "" {
 		title = label
 	}
 	lines := []string{"Title: " + capField(title)}
 	// Attribution, when set, is the credit line the author asks for.
-	author := img.metadata("Attribution")
+	author := field("Attribution")
 	if author == "" {
-		author = img.metadata("Artist")
+		author = field("Artist")
 	}
 	if author != "" {
 		lines = append(lines, "Author: "+capField(author))
 	}
-	if source := img.metadata("Credit"); source != "" && source != author {
+	if date := field("DateTimeOriginal"); withDate && date != "" {
+		lines = append(lines, "Date: "+capField(date))
+	}
+	if source := field("Credit"); source != "" && source != author {
 		lines = append(lines, "Source: "+capField(source))
 	}
-	lines = append(lines, "License: "+commonsLicense(img.metadata("LicenseShortName"), img.metadata("LicenseUrl"), img.metadata("Copyrighted")))
+	lines = append(lines, "License: "+commonsLicense(field("LicenseShortName"), field("LicenseUrl"), field("Copyrighted")))
 	if img.DescriptionURL != "" {
 		lines = append(lines, "File page: "+img.DescriptionURL)
 	}
-	lines = append(lines, "Wikidata item: https://www.wikidata.org/wiki/"+qid)
-	return strings.Join(lines, "\n")
+	return lines
 }
 
 // commonsLicense describes a file's licence: its short name and URL,
@@ -587,6 +640,13 @@ func capField(s string) string {
 }
 
 var (
+	// htmlHiddenStart matches the start tag of a span or div hidden with
+	// "display: none" (Commons hides machine-readable data this way).
+	htmlHiddenStart = regexp.MustCompile(`(?i)<\s*(span|div)\b[^>]*display\s*:\s*none[^>]*>`)
+	// htmlSpanTag and htmlDivTag match a start or end tag (group 1 holds
+	// the slash of an end tag) named like a hidden element.
+	htmlSpanTag = regexp.MustCompile(`(?i)<\s*(/?)\s*span\b[^>]*>`)
+	htmlDivTag  = regexp.MustCompile(`(?i)<\s*(/?)\s*div\b[^>]*>`)
 	// htmlBlockTag matches tags that separate words (line breaks, blocks,
 	// list items, table cells).
 	htmlBlockTag = regexp.MustCompile(`(?i)<\s*/?\s*(br|p|div|li|ul|ol|dl|dt|dd|td|th|tr|table|tbody|thead|h[1-6])\b[^>]*>`)
@@ -600,4 +660,57 @@ func htmlText(s string) string {
 	s = htmlBlockTag.ReplaceAllString(s, " ")
 	s = htmlTag.ReplaceAllString(s, "")
 	return strings.Join(strings.Fields(html.UnescapeString(s)), " ")
+}
+
+// visibleHTMLText is htmlText without the text of hidden elements.
+func visibleHTMLText(s string) string {
+	return htmlText(stripHidden(s))
+}
+
+// isSelfClosing reports whether the tag ends with "/>", as in "<span/>".
+func isSelfClosing(tag string) bool {
+	return strings.HasSuffix(strings.TrimRight(tag[:len(tag)-1], " \t\n"), "/")
+}
+
+// stripHidden replaces each span or div hidden with "display: none", nested
+// tags and all, with a space. The element ends at the end tag that balances
+// its start tag (same-name tags are counted); an unclosed one runs to the
+// end of s, and a self-closing one is only its tag.
+func stripHidden(s string) string {
+	var b strings.Builder
+	for {
+		loc := htmlHiddenStart.FindStringSubmatchIndex(s)
+		if loc == nil {
+			b.WriteString(s)
+			return b.String()
+		}
+		b.WriteString(s[:loc[0]])
+		b.WriteByte(' ')
+		if isSelfClosing(s[loc[0]:loc[1]]) {
+			// An empty hidden element: only the tag goes.
+			s = s[loc[1]:]
+			continue
+		}
+		same := htmlSpanTag
+		if strings.EqualFold(s[loc[2]:loc[3]], "div") {
+			same = htmlDivTag
+		}
+		rest := s[loc[1]:]
+		end := len(rest)
+		depth := 1
+		for _, m := range same.FindAllStringSubmatchIndex(rest, -1) {
+			tag := rest[m[0]:m[1]]
+			switch {
+			case m[3] > m[2]: // end tag
+				depth--
+			case !isSelfClosing(tag):
+				depth++ // a start tag that is not self-closing
+			}
+			if depth == 0 {
+				end = m[1]
+				break
+			}
+		}
+		s = rest[end:]
+	}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
@@ -123,7 +124,8 @@ type App struct {
 
 	// settingsPath is the settings file; "" means it is unknown and
 	// SaveSettings fails. settings is the current copy, read live by
-	// tmdbKey and igdbCredentials so saved keys are used without a restart.
+	// tmdbKey, igdbCredentials and bhlKey so saved keys are used without a
+	// restart.
 	settingsMu   sync.Mutex
 	settingsPath string
 	settings     settings.Settings
@@ -190,8 +192,8 @@ func migrateSettings(path string) {
 }
 
 // newDefaultApp returns an App with the built-in media types and the
-// settings file at path. The movie, TV and game sources read their keys
-// from the App's live settings.
+// settings file at path. The movie, TV, game and nature sources read their
+// keys from the App's live settings.
 func newDefaultApp(client *http.Client, path string) *App {
 	var a *App
 	// The catalog is built before the App exists; a is set before any
@@ -199,6 +201,7 @@ func newDefaultApp(client *http.Client, path string) *App {
 	reg := catalog.Default(client, catalog.Keys{
 		TMDB: func() string { return a.tmdbKey() },
 		IGDB: func() (string, string) { return a.igdbCredentials() },
+		BHL:  func() string { return a.bhlKey() },
 	})
 	a = newApp(reg, client)
 	a.loadSettings(path)
@@ -266,6 +269,14 @@ func (a *App) igdbCredentials() (clientID, clientSecret string) {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
 	return a.settings.IGDBClientID, a.settings.IGDBClientSecret
+}
+
+// bhlKey returns the current Biodiversity Heritage Library API key, read
+// live like tmdbKey.
+func (a *App) bhlKey() string {
+	a.settingsMu.Lock()
+	defer a.settingsMu.Unlock()
+	return a.settings.BHLAPIKey
 }
 
 // startup is called when the app starts. The context is kept for the
@@ -397,8 +408,10 @@ func (a *App) SaveSampleCSV(mediaType string) (string, error) {
 }
 
 // sampleCSV returns the file name and contents of the sample CSV for a
-// media type: a "title,<creator>" header and its sample items. It starts
-// with a UTF-8 BOM so Excel on Windows reads accented names correctly.
+// media type: a "title,<creator>" header and its sample items, or a
+// "title" column alone for a type without a creator column (nature). It
+// starts with a UTF-8 BOM so Excel on Windows reads accented names
+// correctly.
 func (a *App) sampleCSV(mediaType string) (string, []byte, error) {
 	t, ok := a.registry.Get(mediaType)
 	if !ok {
@@ -406,11 +419,36 @@ func (a *App) sampleCSV(mediaType string) (string, []byte, error) {
 	}
 	var b bytes.Buffer
 	b.WriteString("\xef\xbb\xbf")
+	if t.CreatorLabel == "" {
+		if err := writeTitlesCSV(&b, t.Samples); err != nil {
+			return "", nil, err
+		}
+		return "sample_" + t.ID + ".csv", b.Bytes(), nil
+	}
 	header := []string{"title", strings.ToLower(t.CreatorLabel)}
 	if err := batch.WriteCSV(&b, header, t.Samples); err != nil {
 		return "", nil, err
 	}
 	return "sample_" + t.ID + ".csv", b.Bytes(), nil
+}
+
+// writeTitlesCSV writes a one-column CSV: a "title" header and each item's
+// title. It reads back with batch.ReadCSV like a two-column one.
+func writeTitlesCSV(w io.Writer, items []media.Item) error {
+	cw := csv.NewWriter(w)
+	if err := cw.Write([]string{"title"}); err != nil {
+		return fmt.Errorf("write csv: %w", err)
+	}
+	for _, it := range items {
+		if err := cw.Write([]string{it.Title}); err != nil {
+			return fmt.Errorf("write csv: %w", err)
+		}
+	}
+	cw.Flush()
+	if err := cw.Error(); err != nil {
+		return fmt.Errorf("write csv: %w", err)
+	}
+	return nil
 }
 
 // ChooseFolder asks for an output folder, starting at current. It returns

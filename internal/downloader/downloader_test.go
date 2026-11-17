@@ -74,6 +74,13 @@ func notFound(name string) *fakeProvider {
 	}}
 }
 
+// skipped builds an optional provider that is not configured (no key).
+func skipped(name string) *fakeProvider {
+	return &fakeProvider{name: name, search: func(context.Context, media.Item) ([]media.Candidate, error) {
+		return nil, fmt.Errorf("no key: %w", media.ErrSkipped)
+	}}
+}
+
 func newDownloader(srv *httptest.Server, providers ...media.Provider) *Downloader {
 	reg := media.NewRegistry()
 	if err := reg.Register(media.MediaType{ID: "books", Providers: providers, LocalEditions: true}); err != nil {
@@ -464,6 +471,13 @@ func TestItemResultCodes(t *testing.T) {
 		{name: "every provider not found", providers: []media.Provider{notFound("a"), notFound("b")}, wantCode: CodeNotFound, wantError: "a: not found: nothing; b: not found: nothing"},
 		{name: "not found and another failure", providers: []media.Provider{notFound("a"), boom}, wantCode: "", wantError: "a: not found: nothing; boom: boom"},
 		{name: "generic failure", providers: []media.Provider{boom}, wantCode: "", wantError: "boom: boom"},
+		// A skipped optional provider (no key) neither prevents not found
+		// nor appears among the reasons, unless every provider was skipped.
+		{name: "not found and an optional provider skipped", providers: []media.Provider{notFound("commons-nature"), skipped("bhl")}, wantCode: CodeNotFound, wantError: "commons-nature: not found: nothing"},
+		{name: "skipped before not found", providers: []media.Provider{skipped("a"), notFound("b")}, wantCode: CodeNotFound, wantError: "b: not found: nothing"},
+		{name: "another failure and a skipped provider", providers: []media.Provider{boom, skipped("bhl")}, wantCode: "", wantError: "boom: boom"},
+		{name: "not found, skipped and another failure", providers: []media.Provider{notFound("a"), skipped("bhl"), boom}, wantCode: "", wantError: "a: not found: nothing; boom: boom"},
+		{name: "every provider skipped", providers: []media.Provider{skipped("a"), skipped("b")}, wantCode: "", wantError: "a: no key: provider skipped; b: no key: provider skipped"},
 		{name: "empty title", providers: []media.Provider{boom}, title: "  ", wantCode: CodeEmptyTitle, wantError: "empty title"},
 		{name: "no providers", wantCode: CodeNoProviders, wantError: "no providers for media type books"},
 		{name: "cancelled", providers: []media.Provider{boom}, ctx: cancelled, wantCode: CodeCancelled, wantError: "cancelled"},
@@ -491,6 +505,15 @@ func TestItemResultCodes(t *testing.T) {
 				t.Errorf("Err = %v, want it set only for a failure", r.Err)
 			}
 		})
+	}
+}
+
+func TestEverySkippedProviderIsTheCause(t *testing.T) {
+	srv := imageServer(t)
+	d := newDownloader(srv, skipped("bhl"))
+	res, _ := run(t, d, context.Background(), Request{MediaType: "books", Items: []media.Item{{Title: "Robin"}}, OutputDir: t.TempDir()})
+	if r := res[0]; r.Status != StatusFailed || !errors.Is(r.Err, media.ErrSkipped) || errors.Is(r.Err, media.ErrNotFound) {
+		t.Errorf("result = %+v, want a failure caused by the skip, not not found", r)
 	}
 }
 

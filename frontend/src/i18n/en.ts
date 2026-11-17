@@ -22,6 +22,8 @@ export const en = {
     'tip.tmdbWhy': 'for better movie and TV posters.',
     'tip.igdbWhat': 'IGDB credentials',
     'tip.igdbWhy': 'for box art of all games; without them, Steam covers PC games only.',
+    'tip.bhlWhat': 'a BHL API key',
+    'tip.bhlWhy': 'for more natural-history plates.',
 
     // Download tab.
     'download.import': 'Import CSV…',
@@ -30,6 +32,9 @@ export const en = {
     'download.itemsLabel': 'Items, one per line',
     'download.placeholder': 'Title, {creator}\nOne per line',
     'download.placeholderExample': 'Title, {creator}\nOne per line, e.g.\n{example}',
+    // Media types without a creator column (nature): a name per line.
+    'download.placeholderName': 'Name\nOne per line',
+    'download.placeholderNameExample': 'Name\nOne per line, e.g.\n{example}',
     'download.creator': 'Creator',
     'download.outputFolder': 'Output folder',
     'download.browse': 'Browse…',
@@ -52,6 +57,7 @@ export const en = {
     'download.cancelled_other': '{n} cancelled',
     'download.errCountry': 'Country must be a two-letter code, e.g. es, us, gb.',
     'download.errNoItems': 'Add at least one "Title, {creator}" line or import a CSV file.',
+    'download.errNoNames': 'Add at least one name or import a CSV file.',
     'download.errImport': 'Could not import CSV: {error}',
     'download.errSample': 'Could not save the sample CSV: {error}',
 
@@ -73,6 +79,7 @@ export const en = {
     'media.games': 'Games',
     'media.artworks': 'Artworks',
     'media.places': 'Places',
+    'media.nature': 'Nature',
     'creator.books': 'Author',
     'creator.movies': 'Year',
     'creator.tv': 'Year',
@@ -87,6 +94,7 @@ export const en = {
     'date.games': 'Played on',
     'date.artworks': 'Seen on',
     'date.places': 'Visited on',
+    'date.nature': 'Seen on',
 
     // The sample CSV button, per media type, and its fallbacks.
     'sample.button': 'Sample CSV',
@@ -99,6 +107,7 @@ export const en = {
     'sample.button.games': 'Sample games CSV',
     'sample.button.artworks': 'Sample artworks CSV',
     'sample.button.places': 'Sample places CSV',
+    'sample.button.nature': 'Sample nature CSV',
     'sample.title.books': 'Save an example books CSV (Title, Author) to use as a reference for Import CSV',
     'sample.title.movies': 'Save an example movies CSV (Title, Year) to use as a reference for Import CSV',
     'sample.title.tv': 'Save an example TV series CSV (Title, Year) to use as a reference for Import CSV',
@@ -106,6 +115,7 @@ export const en = {
     'sample.title.games': 'Save an example games CSV (Title, Year) to use as a reference for Import CSV',
     'sample.title.artworks': 'Save an example artworks CSV (Title, Artist) to use as a reference for Import CSV',
     'sample.title.places': 'Save an example places CSV (Place, Country) to use as a reference for Import CSV',
+    'sample.title.nature': 'Save an example nature CSV (Name) to use as a reference for Import CSV',
 
     // Print sheet tab.
     'print.coversFolder': 'Covers folder',
@@ -198,6 +208,8 @@ export const en = {
     'settings.igdbHintType': '(Client Type',
     'settings.igdbHintRedirect': ', OAuth Redirect URL',
     'settings.igdbHintCopy': '), then copy its Client ID and a new Client Secret.',
+    'settings.bhlKey': 'BHL API key',
+    'settings.bhlHint': 'Optional. Adds natural-history plates from the Biodiversity Heritage Library when Wikimedia Commons has none. Get a free key at',
     'settings.show': 'Show',
     'settings.hide': 'Hide',
     'settings.close': 'Close',

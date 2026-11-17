@@ -18,6 +18,8 @@ export const es: Messages = {
     'tip.tmdbWhy': 'para obtener mejores carteles de películas y series.',
     'tip.igdbWhat': 'credenciales de IGDB',
     'tip.igdbWhy': 'para obtener carátulas de todos los juegos; sin ellas, Steam solo tiene portadas de juegos de PC.',
+    'tip.bhlWhat': 'una clave de API de BHL',
+    'tip.bhlWhy': 'para obtener más láminas de historia natural.',
 
     // Download tab.
     'download.import': 'Importar CSV…',
@@ -26,6 +28,8 @@ export const es: Messages = {
     'download.itemsLabel': 'Elementos, uno por línea',
     'download.placeholder': 'Título, {creator}\nUno por línea',
     'download.placeholderExample': 'Título, {creator}\nUno por línea, p. ej.:\n{example}',
+    'download.placeholderName': 'Nombre\nUno por línea',
+    'download.placeholderNameExample': 'Nombre\nUno por línea, p. ej.:\n{example}',
     'download.creator': 'Autor',
     'download.outputFolder': 'Carpeta de destino',
     'download.browse': 'Examinar…',
@@ -48,6 +52,7 @@ export const es: Messages = {
     'download.cancelled_other': '{n} canceladas',
     'download.errCountry': 'El país debe ser un código de dos letras, p. ej. es, us, gb.',
     'download.errNoItems': 'Añade al menos una línea «Título, {creator}» o importa un archivo CSV.',
+    'download.errNoNames': 'Añade al menos un nombre o importa un archivo CSV.',
     'download.errImport': 'No se ha podido importar el CSV: {error}',
     'download.errSample': 'No se ha podido guardar el CSV de ejemplo: {error}',
 
@@ -69,6 +74,7 @@ export const es: Messages = {
     'media.games': 'Videojuegos',
     'media.artworks': 'Obras de arte',
     'media.places': 'Lugares',
+    'media.nature': 'Naturaleza',
     'creator.books': 'Autor',
     'creator.movies': 'Año',
     'creator.tv': 'Año',
@@ -83,6 +89,7 @@ export const es: Messages = {
     'date.games': 'Jugado el',
     'date.artworks': 'Visto el',
     'date.places': 'Visitado el',
+    'date.nature': 'Visto el',
 
     // The sample CSV button, per media type, and its fallbacks.
     'sample.button': 'CSV de ejemplo',
@@ -95,6 +102,7 @@ export const es: Messages = {
     'sample.button.games': 'CSV de ejemplo de videojuegos',
     'sample.button.artworks': 'CSV de ejemplo de obras de arte',
     'sample.button.places': 'CSV de ejemplo de lugares',
+    'sample.button.nature': 'CSV de ejemplo de naturaleza',
     'sample.title.books': 'Guarda un CSV de ejemplo de libros (Título, Autor) como referencia para Importar CSV',
     'sample.title.movies': 'Guarda un CSV de ejemplo de películas (Título, Año) como referencia para Importar CSV',
     'sample.title.tv': 'Guarda un CSV de ejemplo de series (Título, Año) como referencia para Importar CSV',
@@ -102,6 +110,7 @@ export const es: Messages = {
     'sample.title.games': 'Guarda un CSV de ejemplo de videojuegos (Título, Año) como referencia para Importar CSV',
     'sample.title.artworks': 'Guarda un CSV de ejemplo de obras de arte (Título, Artista) como referencia para Importar CSV',
     'sample.title.places': 'Guarda un CSV de ejemplo de lugares (Lugar, País) como referencia para Importar CSV',
+    'sample.title.nature': 'Guarda un CSV de ejemplo de naturaleza (Nombre) como referencia para Importar CSV',
 
     // Print sheet tab.
     'print.coversFolder': 'Carpeta de portadas',
@@ -194,6 +203,8 @@ export const es: Messages = {
     'settings.igdbHintType': '(tipo de cliente',
     'settings.igdbHintRedirect': ', URL de redirección de OAuth',
     'settings.igdbHintCopy': ') y, después, copia su Client ID y un Client Secret nuevo.',
+    'settings.bhlKey': 'Clave de API de BHL',
+    'settings.bhlHint': 'Opcional. Añade láminas de historia natural de la Biodiversity Heritage Library cuando Wikimedia Commons no tiene ninguna. Consigue una clave gratuita en',
     'settings.show': 'Mostrar',
     'settings.hide': 'Ocultar',
     'settings.close': 'Cerrar',

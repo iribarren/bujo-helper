@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "Q161077": {
+      "id": "Q161077",
+      "labels": {
+        "en": {
+          "value": "Monstera deliciosa"
+        }
+      },
+      "aliases": {
+        "en": [
+          {
+            "value": "Fruit Salad Plant"
+          },
+          {
+            "value": "Swiss Cheese Plant"
+          },
+          {
+            "value": "split-leaf philodendron"
+          }
+        ]
+      }
+    },
+    "Q110756115": {
+      "id": "Q110756115",
+      "labels": {
+        "en": {
+          "value": "Monstera deliciosa var. sierrana"
+        }
+      },
+      "aliases": {
+        "en": []
+      }
+    },
+    "Q110756114": {
+      "id": "Q110756114",
+      "labels": {
+        "en": {
+          "value": "Monstera deliciosa var. borsigiana"
+        }
+      },
+      "aliases": {
+        "en": []
+      }
+    }
+  }
+}

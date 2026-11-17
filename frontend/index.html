@@ -184,6 +184,15 @@
                 data-i18n="settings.igdbHintRedirect">, OAuth Redirect URL</span> <code>http://localhost</code><span
                 data-i18n="settings.igdbHintCopy">), then copy its Client ID and a new Client Secret.</span></p>
     </div>
+    <div class="field settings-section">
+        <label for="bhl-key" data-i18n="settings.bhlKey">BHL API key</label>
+        <div class="row">
+            <input id="bhl-key" type="password" autocomplete="off" spellcheck="false"/>
+            <button id="bhl-key-toggle" type="button" aria-controls="bhl-key">Show</button>
+        </div>
+        <p class="hint"><span data-i18n="settings.bhlHint">Optional. Adds natural-history plates from the Biodiversity Heritage Library when Wikimedia Commons has none. Get a free key at</span>
+            <a id="bhl-link" href="https://www.biodiversitylibrary.org/getapikey.aspx">biodiversitylibrary.org</a></p>
+    </div>
     <div class="dialog-actions">
         <span id="settings-status" class="settings-status" aria-live="polite"></span>
         <div class="row">

@@ -1,0 +1,23 @@
+{
+  "Status": "ok",
+  "ErrorMessage": "",
+  "Result": [
+    {
+      "ItemID": 201,
+      "TitleID": "2001",
+      "Source": "Internet Archive",
+      "Volume": "v.1",
+      "Year": "1885",
+      "HoldingInstitution": "Natural History Museum Library, London",
+      "Sponsor": "Natural History Museum Library, London",
+      "Language": "English",
+      "LicenseUrl": "",
+      "Rights": "",
+      "CopyrightStatus": "NOT_IN_COPYRIGHT",
+      "ItemUrl": "https://www.biodiversitylibrary.org/item/201",
+      "TitleUrl": "https://www.biodiversitylibrary.org/bibliography/2001",
+      "ItemThumbUrl": "https://www.biodiversitylibrary.org/pagethumb/2010",
+      "CreationDate": "2012/10/01 00:02:30"
+    }
+  ]
+}

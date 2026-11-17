@@ -954,7 +954,7 @@ func TestDefaultAppMoviesUseTheSavedTMDBKey(t *testing.T) {
 	for _, mt := range a.MediaTypes() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games", "artworks", "places"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "artworks", "places", "nature"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 	movies, _ := a.registry.Get("movies")
@@ -1075,7 +1075,15 @@ func TestSampleCSVForEachBuiltInType(t *testing.T) {
 				t.Errorf("name = %q, want %q", name, want)
 			}
 			// A UTF-8 BOM makes Excel read the accented names correctly.
+			// A type without a creator column (nature) has a title column
+			// alone.
 			header := "\xef\xbb\xbftitle," + strings.ToLower(mt.CreatorLabel) + "\n"
+			if mt.CreatorLabel == "" {
+				header = "\xef\xbb\xbftitle\n"
+				if strings.Contains(string(data), ",\n") {
+					t.Errorf("sample %q has an empty creator column", data)
+				}
+			}
 			if !strings.HasPrefix(string(data), header) {
 				t.Errorf("sample %q does not start with %q", data, header)
 			}
@@ -1510,5 +1518,35 @@ func TestItemEventCodes(t *testing.T) {
 		if ev.Code != want[ev.Title] || ev.Error == "" {
 			t.Errorf("%s: code %q (error %q), want code %q and the English detail", ev.Title, ev.Code, ev.Error, want[ev.Title])
 		}
+	}
+}
+
+func TestDefaultAppNatureUsesTheSavedBHLKey(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := settings.Save(path, settings.Settings{BHLAPIKey: " saved-bhl "}); err != nil {
+		t.Fatal(err)
+	}
+	a := newDefaultApp(http.DefaultClient, path)
+	nature, _ := a.registry.Get("nature")
+	var bhl *providers.BHL
+	for _, p := range nature.Providers {
+		if b, ok := p.(*providers.BHL); ok {
+			bhl = b
+		}
+	}
+	if bhl == nil {
+		t.Fatal("no BHL provider for nature")
+	}
+	if got := bhl.Key(); got != "saved-bhl" {
+		t.Errorf("BHL key = %q, want the saved key", got)
+	}
+	if err := a.SaveSettings(settings.Settings{BHLAPIKey: "new-bhl"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := bhl.Key(); got != "new-bhl" {
+		t.Errorf("BHL key after saving = %q, want new-bhl without a restart", got)
+	}
+	if got := a.GetSettings().BHLAPIKey; got != "new-bhl" {
+		t.Errorf("GetSettings BHL key = %q", got)
 	}
 }

@@ -77,3 +77,14 @@ func TestSetBrowserHeadersUsesTheContactUAForWikimediaMedia(t *testing.T) {
 		}
 	}
 }
+
+func TestSetBHLHeaders(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "https://www.biodiversitylibrary.org/api3", nil)
+	SetBHLHeaders(req)
+	if got := req.Header.Get("User-Agent"); got != ContactUserAgent {
+		t.Errorf("User-Agent = %q, want the contact UA", got)
+	}
+	if got := req.Header.Get("Accept"); got != "application/json" {
+		t.Errorf("Accept = %q, want application/json", got)
+	}
+}

@@ -62,6 +62,13 @@ func SetWikimediaHeaders(req *http.Request) {
 	req.Header.Set("User-Agent", ContactUserAgent)
 }
 
+// SetBHLHeaders marks a request to the Biodiversity Heritage Library API
+// as coming from this app, with contact information, and asks for JSON.
+func SetBHLHeaders(req *http.Request) {
+	req.Header.Set("User-Agent", ContactUserAgent)
+	req.Header.Set("Accept", "application/json")
+}
+
 // wikimediaMediaHosts serve Wikimedia Commons files and thumbnails. Their
 // robot policy rejects generic and fake browser User-Agents.
 var wikimediaMediaHosts = map[string]bool{
