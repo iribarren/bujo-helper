@@ -213,6 +213,7 @@ There is a reliable image source, and the item fits how the app already works: a
   1. Art Institute of Chicago API (no key, IIIF images).
   2. The Met Collection API (no key).
   3. Cleveland Museum of Art Open Access API (no key).
+- **Decision (2026-11-17):** the Art Institute of Chicago is not used. Its image server answers every non-browser download with a Cloudflare challenge (HTTP 403). Sources are the Met, then Cleveland. Credits are stored as a `<file>.credit.txt` sidecar; the PDF credits page is left to item 15.
 - Only public-domain / CC0 images are used. Use each API's own licence field and skip anything that isn't open access.
 - Match on title and artist name. Prefer the work's primary image over detail shots.
 - Artworks are often landscape: follow the **Non-2:3 images** convention.
