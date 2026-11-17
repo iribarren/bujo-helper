@@ -223,7 +223,7 @@ There is a reliable image source, and the item fits how the app already works: a
 - Provider tests with recorded fixtures. A famous public-domain painting downloads from at least one source, and a work that isn't open access is skipped with a clear reason.
 - Landscape artworks print uncropped and correctly placed. The README Sources section lists the licence rules.
 
-## 15. [ ] Travel places (landmark photos and flags)
+## 15. [x] Travel places (landmark photos and flags) (1cb6785)
 
 **Why:** travel logs and "places visited" spreads use landmark pictures, postcard-style images and flags.
 
@@ -233,6 +233,7 @@ There is a reliable image source, and the item fits how the app already works: a
 - Optional per-item **flag** mode: when the item is a country, download its flag. Use a public-domain flag source, such as the Commons flag file linked from Wikidata.
 - Commons images have their own licences: follow the **Attribution** convention.
 - Media type selector, sample CSV and CLI support.
+- **Decision (2026-11-17):** flag mode is per item through the title (`Flag of Japan` or `Japan flag`) and needs a plausible country name match. Item 14's deferred PDF credits page is built here: a **Credits page** checkbox in the Print sheet tab (on by default) lists every image that has a credit sidecar.
 
 **Acceptance**
 - Provider tests with fixtures. A well-known landmark and a country flag both download, and their credit is stored.

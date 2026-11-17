@@ -76,5 +76,7 @@ Travel logs and "places visited" spreads use landmark pictures, postcard-style i
 - Follow-ups: emoji (non-BMP) in file-name titles likely panics non-credits formats (pre-existing, fpdf); "X flag" suffix false positives (documented limitation); some Commons author fields are odd ("FeaturedPics", "No machine-readable author provided") and are stored as given; the credits checkbox isn't remembered across restarts (no Print option is).
 - `d08d973` (review follow-up tests) assessed medium, `under_budget`: no review due; it stays in the pending slice.
 
+- Manual GUI check passed (user, 2026-11-17). Merged to main (`1cb6785`) and pushed.
+
 ## Next step
-Manual GUI check by the user, then a local `--no-ff` merge to main (user decision).
+Done.
