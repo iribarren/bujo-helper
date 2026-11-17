@@ -254,7 +254,7 @@ There is a reliable image source, and the item fits how the app already works: a
 
 **Out of scope:** regional maps (US states, provinces). Note them as a follow-up.
 
-## 17. [ ] Vintage nature illustrations
+## 17. [x] Vintage nature illustrations (9de3a30)
 
 **Why:** bird-watching logs, plant and garden journals and nature journals use vintage natural-history plates. Collage sheets of them are very popular.
 
@@ -263,6 +263,7 @@ There is a reliable image source, and the item fits how the app already works: a
 - Sources: Biodiversity Heritage Library (check the API key requirement in the licensing step), with Wikimedia Commons as a fallback via the species' Wikidata entity. Prefer illustrations (plates) over photos.
 - Rights are checked per item: only public-domain or clearly open images. Follow the **Attribution** convention, since BHL asks for credit with the contributing institution.
 - Optional extension, in the same session if time allows: a **Plant care card** print format (illustration, name, watering, light and a note field).
+- **Decision (2026-11-17):** Commons is the primary source (no key): Wikidata resolves the name to a taxon, then Commons finds public-domain or openly licensed plates (many are BHL scans). BHL is a fallback used only when the user sets a BHL API key; its WebP page images are saved as JPEG. BHL's name index is OCR-based (mostly text pages), so it came second. The Plant care card is left as a follow-up.
 
 **Acceptance**
 - Provider tests with fixtures. A common bird and a common houseplant each return an illustration, and their credit is stored.
