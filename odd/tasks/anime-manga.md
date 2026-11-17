@@ -66,5 +66,7 @@ Anime and manga trackers are a common bujo spread among younger users (an assump
 - Review `685d5e2..f8bbed4` (19 files, 1140 lines, medium, `slice_budget_reached`): consent granted. The review-reliability lens approved it, and it was acknowledged (authority burned). Advisory R3-readme-ranking-contract (WARNING): the README said exact matches always come first, but a year only a main-title match has (`Berserk, 2012`) lifts the 2012 film above them, and no test pinned it.
 - Fix `4126165`: the README describes the year rule as for games and says the file is named after the typed title (it wrongly said the English title; the live T3 run shows the typed title). The `2012` case was added to `TestAniListYearBreaksTies`. Route: inline (one test case and doc text). GREEN: `go test ./internal/providers/ -run AniList` ok; `gofmt` clean.
 
+- Manual GUI check passed (user, 2026-11-17). Merged to main with a local `--no-ff` merge.
+
 ## Next step
-User GUI check, then a local `--no-ff` merge and ROADMAP item 19 marked done.
+Done.
