@@ -116,8 +116,8 @@ The IGDB API is free for non-commercial use under the [Twitch Developer Services
 Anime and manga covers come from **AniList** (its GraphQL API, no key). The year is the start year (the first air or publication year), and it is optional.
 
 - One search per item asks for up to 10 non-adult results of the selected type (anime or manga), in AniList's relevance order. Results without a cover are skipped.
-- Titles match on every form AniList knows: romaji (`Shingeki no Kyojin`), English (`Attack on Titan`), native (`進撃の巨人`) and synonyms (`AoT`). A result with an exact match on any of them comes first, then the closest title matches, in AniList's order on ties. A year breaks ties, for example `Berserk, 2016` for the 2016 anime instead of the 1997 one.
-- The file is named after the English title, or the romaji one when there is none.
+- Titles match on every form AniList knows: romaji (`Shingeki no Kyojin`), English (`Attack on Titan`), native (`進撃の巨人`) and synonyms (`AoT`). Without a year, a result with an exact match on any of them comes first, then the closest title matches, in AniList's order on ties. A year picks among the matches, as for games: `Berserk, 2016` gives the 2016 anime instead of the 1997 one, and `Berserk, 2012` gives the 2012 Golden Age Arc film, whose main title matches.
+- The file is named after the title you typed, like other media types.
 - The cover is the extra-large image (about 460 × 657), falling back to the large one. Covers are about 2:3, like book covers.
 
 The [AniList API terms](https://anilist.gitbook.io/anilist-apiv2-docs/) make it free for non-commercial use and forbid using it as a backup or data store, or hoarding (mass collection of) its data. The app only searches the titles you ask for, one at a time. AniList allows 90 requests per minute, currently degraded to 30, and blocks a client that goes over for a minute; the app spaces its AniList requests 2 s apart (30 per minute). This app is not endorsed by AniList. Cover images are copyrighted by their publishers; downloaded covers are for personal use only.

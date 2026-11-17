@@ -202,7 +202,8 @@ func TestAniListMatchesAnyTitle(t *testing.T) {
 // Two anime are titled Berserk: the 1997 series (English "Berserk") and the
 // 2016 one (romaji "Berserk"). The year picks one; without it AniList's
 // order stands. The Golden Age Arc film (2012) matches on its main title
-// and so outranks "Berserk 2", a prefix match.
+// and so outranks "Berserk 2", a prefix match. A year only that film has
+// lifts it above the exact matches, as for games.
 func TestAniListYearBreaksTies(t *testing.T) {
 	for _, tt := range []struct {
 		creator string
@@ -210,6 +211,7 @@ func TestAniListYearBreaksTies(t *testing.T) {
 	}{
 		{"2016", []string{"2016", "1997", "2012", "2017"}},
 		{"1997", []string{"1997", "2016", "2012", "2017"}},
+		{"2012", []string{"2012", "1997", "2016", "2017"}},
 		{"", []string{"1997", "2016", "2012", "2017"}},
 		// Not a year: ignored, although its last word is one.
 		{"c. 2016", []string{"1997", "2016", "2012", "2017"}},
