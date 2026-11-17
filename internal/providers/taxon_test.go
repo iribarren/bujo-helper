@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"bujo-helper/internal/media"
 	"bujo-helper/internal/web"
@@ -254,5 +255,80 @@ func TestTaxonResolveErrors(t *testing.T) {
 				t.Error("a failed lookup was cached")
 			}
 		})
+	}
+}
+
+// Concurrent lookups of one name share a single lookup: while the first
+// lookup waits on Wikidata, the others wait for it instead of asking too.
+func TestTaxonResolveSharesConcurrentLookups(t *testing.T) {
+	f := loadTaxonFixtures(t, "robin")
+	first := make(chan struct{})
+	release := make(chan struct{})
+	var once sync.Once
+	rs := &routedServer{}
+	srv := rs.serve(t, func(r *http.Request) (int, []byte) {
+		if r.URL.Query().Get("list") == "search" {
+			once.Do(func() { close(first) })
+			<-release
+		}
+		status, body, _ := f.route(r)
+		return status, body
+	})
+	tr := NewTaxonResolver(srv.Client())
+	tr.WikidataURL = srv.URL + wikidataTestPath
+
+	const callers = 8
+	var wg sync.WaitGroup
+	results := make([]Taxon, callers)
+	errs := make([]error, callers)
+	for i := range callers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			results[i], errs[i] = tr.Resolve(context.Background(), "Robin")
+		}()
+	}
+	<-first
+	// Give the other callers time to reach Resolve (and, without sharing,
+	// to send their own searches) before the first search answers.
+	time.Sleep(100 * time.Millisecond)
+	close(release)
+	wg.Wait()
+	for i := range callers {
+		if errs[i] != nil || results[i].ID != "Q25334" {
+			t.Errorf("caller %d: %+v, %v", i, results[i], errs[i])
+		}
+	}
+	// One lookup: search, labels and aliases, claims.
+	if n := len(rs.requests()); n != 3 {
+		t.Errorf("requests = %d, want 3 (one shared lookup)", n)
+	}
+}
+
+// A caller waiting on another's lookup stops when its own context ends.
+func TestTaxonResolveWaitHonorsContext(t *testing.T) {
+	f := loadTaxonFixtures(t, "robin")
+	first := make(chan struct{})
+	release := make(chan struct{})
+	var once sync.Once
+	rs := &routedServer{}
+	srv := rs.serve(t, func(r *http.Request) (int, []byte) {
+		if r.URL.Query().Get("list") == "search" {
+			once.Do(func() { close(first) })
+			<-release
+		}
+		status, body, _ := f.route(r)
+		return status, body
+	})
+	defer close(release)
+	tr := NewTaxonResolver(srv.Client())
+	tr.WikidataURL = srv.URL + wikidataTestPath
+
+	go tr.Resolve(context.Background(), "Robin")
+	<-first
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if _, err := tr.Resolve(ctx, "Robin"); !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("waiting Resolve err = %v, want context.DeadlineExceeded", err)
 	}
 }

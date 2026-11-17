@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
@@ -576,11 +577,45 @@ func TestVisibleHTMLText(t *testing.T) {
 		{"hidden date data", `between 1885 and 1897<div style="display: none;">date QS:P,+1850-00-00T00:00:00Z/7</div>`, "between 1885 and 1897"},
 		{"hidden duplicate", `Unknown author<span style="display: none;">Unknown author</span>`, "Unknown author"},
 		{"visible tags kept", `<bdi><a href="x">May Rivers</a></bdi>`, "May Rivers"},
+		{"hidden span with nested tags", `Lilford<span style="display:none"><a href="x">Q123</a> <b>data</b></span> 1897`, "Lilford 1897"},
+		{"hidden div with a nested div", `Plate 4<div class="x" style="display: none;"><div>inner</div>tail</div> end`, "Plate 4 end"},
+		{"hidden span with a nested span", `A<span style="DISPLAY: NONE"><span>B</span>C</span>D`, "A D"},
+		{"two hidden elements", `A<span style="display:none">x</span>B<div style="display:none"><i>y</i></div>C`, "A B C"},
+		{"unclosed hidden element drops the rest", `A<span style="display:none"><b>x</b> y`, "A"},
+		{"visible element after hidden one kept", `<span style="display:none"><span>x</span></span><span>Shown</span>`, "Shown"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := visibleHTMLText(tt.in); got != tt.want {
 				t.Errorf("visibleHTMLText(%q) = %q, want %q", tt.in, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNatureNotFoundNamesAtMostFiveFiles(t *testing.T) {
+	taxon := Taxon{ID: "Q25334", Label: "European robin"}
+	skipped := make([]string, 7)
+	for i := range skipped {
+		skipped[i] = fmt.Sprintf("File %d.jpg: non-commercial licence (CC BY-NC 4.0)", i+1)
+	}
+	tests := []struct {
+		name    string
+		skipped []string
+		want    string
+	}{
+		{"nothing skipped", nil, "no openly licensed Commons illustration of European robin (Q25334)"},
+		{"five named in full", skipped[:5], "no openly licensed Commons illustration of European robin (Q25334); skipped " + strings.Join(skipped[:5], "; ")},
+		{"two more counted", skipped, "no openly licensed Commons illustration of European robin (Q25334); skipped " + strings.Join(skipped[:5], "; ") + "; and 2 more"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := natureNotFound(taxon, tt.skipped)
+			if !errors.Is(err, media.ErrNotFound) {
+				t.Fatalf("err = %v, want ErrNotFound", err)
+			}
+			if got := strings.TrimPrefix(err.Error(), media.ErrNotFound.Error()+": "); got != tt.want {
+				t.Errorf("message =\n%s\nwant\n%s", got, tt.want)
 			}
 		})
 	}

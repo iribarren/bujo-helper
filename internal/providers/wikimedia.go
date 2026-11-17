@@ -640,9 +640,13 @@ func capField(s string) string {
 }
 
 var (
-	// htmlHidden matches an element hidden with "display: none" and its
-	// text (Commons hides machine-readable data this way).
-	htmlHidden = regexp.MustCompile(`(?i)<\s*(?:span|div)\b[^>]*display\s*:\s*none[^>]*>[^<]*<\s*/\s*(?:span|div)\s*>`)
+	// htmlHiddenStart matches the start tag of a span or div hidden with
+	// "display: none" (Commons hides machine-readable data this way).
+	htmlHiddenStart = regexp.MustCompile(`(?i)<\s*(span|div)\b[^>]*display\s*:\s*none[^>]*>`)
+	// htmlSpanTag and htmlDivTag match a start or end tag (group 1 holds
+	// the slash of an end tag) named like a hidden element.
+	htmlSpanTag = regexp.MustCompile(`(?i)<\s*(/?)\s*span\b[^>]*>`)
+	htmlDivTag  = regexp.MustCompile(`(?i)<\s*(/?)\s*div\b[^>]*>`)
 	// htmlBlockTag matches tags that separate words (line breaks, blocks,
 	// list items, table cells).
 	htmlBlockTag = regexp.MustCompile(`(?i)<\s*/?\s*(br|p|div|li|ul|ol|dl|dt|dd|td|th|tr|table|tbody|thead|h[1-6])\b[^>]*>`)
@@ -660,5 +664,43 @@ func htmlText(s string) string {
 
 // visibleHTMLText is htmlText without the text of hidden elements.
 func visibleHTMLText(s string) string {
-	return htmlText(htmlHidden.ReplaceAllString(s, " "))
+	return htmlText(stripHidden(s))
+}
+
+// stripHidden replaces each span or div hidden with "display: none", nested
+// tags and all, with a space. The element ends at the end tag that balances
+// its start tag (same-name tags are counted); an unclosed one runs to the
+// end of s.
+func stripHidden(s string) string {
+	var b strings.Builder
+	for {
+		loc := htmlHiddenStart.FindStringSubmatchIndex(s)
+		if loc == nil {
+			b.WriteString(s)
+			return b.String()
+		}
+		b.WriteString(s[:loc[0]])
+		b.WriteByte(' ')
+		same := htmlSpanTag
+		if strings.EqualFold(s[loc[2]:loc[3]], "div") {
+			same = htmlDivTag
+		}
+		rest := s[loc[1]:]
+		end := len(rest)
+		depth := 1
+		for _, m := range same.FindAllStringSubmatchIndex(rest, -1) {
+			tag := rest[m[0]:m[1]]
+			switch {
+			case m[3] > m[2]: // end tag
+				depth--
+			case !strings.HasSuffix(strings.TrimRight(tag[:len(tag)-1], " \t\n"), "/"):
+				depth++ // a start tag that is not self-closing
+			}
+			if depth == 0 {
+				end = m[1]
+				break
+			}
+		}
+		s = rest[end:]
+	}
 }

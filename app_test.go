@@ -1075,7 +1075,15 @@ func TestSampleCSVForEachBuiltInType(t *testing.T) {
 				t.Errorf("name = %q, want %q", name, want)
 			}
 			// A UTF-8 BOM makes Excel read the accented names correctly.
+			// A type without a creator column (nature) has a title column
+			// alone.
 			header := "\xef\xbb\xbftitle," + strings.ToLower(mt.CreatorLabel) + "\n"
+			if mt.CreatorLabel == "" {
+				header = "\xef\xbb\xbftitle\n"
+				if strings.Contains(string(data), ",\n") {
+					t.Errorf("sample %q has an empty creator column", data)
+				}
+			}
 			if !strings.HasPrefix(string(data), header) {
 				t.Errorf("sample %q does not start with %q", data, header)
 			}

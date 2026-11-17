@@ -26,18 +26,26 @@ type Taxon struct {
 // among taxa (P31 = Q16521), the hits ranked by label and aliases (which
 // hold common and scientific names), then the best hit's claims. Results
 // and not-found answers are cached per name, so providers that share a
-// resolver look each name up once. It is safe for concurrent use.
+// resolver look each name up once; concurrent calls for one name share a
+// single lookup. It is safe for concurrent use.
 type TaxonResolver struct {
 	Client      *http.Client
 	WikidataURL string
 
-	mu    sync.Mutex
-	cache map[string]taxonResult
+	mu       sync.Mutex
+	cache    map[string]taxonResult
+	inflight map[string]*taxonCall
 }
 
 type taxonResult struct {
 	taxon Taxon
 	err   error // nil or an ErrNotFound error
+}
+
+// taxonCall is a lookup in progress; done is closed when res is set.
+type taxonCall struct {
+	done chan struct{}
+	res  taxonResult
 }
 
 // NewTaxonResolver returns a resolver using client (or a default one).
@@ -62,23 +70,55 @@ func (r *TaxonResolver) Resolve(ctx context.Context, name string) (Taxon, error)
 		return Taxon{}, fmt.Errorf("%w: empty name", media.ErrNotFound)
 	}
 	key := match.Normalize(name)
-	r.mu.Lock()
-	res, ok := r.cache[key]
-	r.mu.Unlock()
-	if ok {
-		return res.taxon, res.err
-	}
+	for {
+		r.mu.Lock()
+		if res, ok := r.cache[key]; ok {
+			r.mu.Unlock()
+			return res.taxon, res.err
+		}
+		call, waiting := r.inflight[key]
+		if !waiting {
+			call = &taxonCall{done: make(chan struct{})}
+			if r.inflight == nil {
+				r.inflight = map[string]*taxonCall{}
+			}
+			r.inflight[key] = call
+		}
+		r.mu.Unlock()
 
+		if !waiting {
+			return r.run(ctx, key, name, call)
+		}
+		select {
+		case <-call.done:
+		case <-ctx.Done():
+			return Taxon{}, ctx.Err()
+		}
+		// The lookup ended for its own caller (cancelled, say), not for
+		// this one: look again.
+		if err := call.res.err; err != nil && ctx.Err() == nil &&
+			(errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) {
+			continue
+		}
+		return call.res.taxon, call.res.err
+	}
+}
+
+// run looks name up for call and shares the result with its waiters.
+func (r *TaxonResolver) run(ctx context.Context, key, name string, call *taxonCall) (Taxon, error) {
 	taxon, err := r.lookup(ctx, name)
+	r.mu.Lock()
 	// Network and API failures are not cached: the next lookup retries.
 	if err == nil || errors.Is(err, media.ErrNotFound) {
-		r.mu.Lock()
 		if r.cache == nil {
 			r.cache = map[string]taxonResult{}
 		}
 		r.cache[key] = taxonResult{taxon, err}
-		r.mu.Unlock()
 	}
+	delete(r.inflight, key)
+	call.res = taxonResult{taxon, err}
+	r.mu.Unlock()
+	close(call.done)
 	return taxon, err
 }
 

@@ -209,10 +209,10 @@ function creatorLabel(): string {
 }
 
 // hasCreator reports whether the selected media type has a creator column;
-// nature items are a name alone.
+// nature items are a name alone. A missing or blank label means none.
 function hasCreator(): boolean {
     const type = currentMediaType();
-    return !type || type.creatorLabel !== '';
+    return !type || (type.creatorLabel ?? '').trim() !== '';
 }
 
 function updatePlaceholder() {
