@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "Q161077": {
+      "id": "Q161077",
+      "claims": {
+        "P31": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 16521,
+                  "id": "Q16521"
+                }
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P225": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Monstera deliciosa"
+              }
+            },
+            "rank": "normal"
+          }
+        ],
+        "P373": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": "Monstera deliciosa"
+              }
+            },
+            "rank": "normal"
+          }
+        ]
+      }
+    }
+  }
+}
