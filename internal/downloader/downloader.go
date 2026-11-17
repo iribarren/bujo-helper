@@ -3,7 +3,8 @@
 // saves the first good one. When the country has known ISBN prefixes, local
 // editions are tried first and any edition is the silent fallback. When
 // the chosen candidate has a credit (artworks), it is saved in a sidecar
-// next to the image (see CreditPath).
+// next to the image (see CreditPath). WebP images are saved as JPEG (PNG
+// when transparent).
 package downloader
 
 import (
@@ -331,12 +332,12 @@ func (s *itemSearch) tryProvider(ctx context.Context, i int, keep func(media.Can
 	var last error
 	for _, c := range cands {
 		for _, u := range c.ImageURLs {
-			data, contentType, err := s.fetch(ctx, u)
+			data, ext, err := s.fetch(ctx, u)
 			if err != nil {
 				last = err
 				continue
 			}
-			path, err := saveUnique(s.job.outDir, fileName(s.item, imageExt(u, contentType)), data)
+			path, err := saveUnique(s.job.outDir, fileName(s.item, ext), data)
 			if err != nil {
 				return "", "", err
 			}
@@ -359,17 +360,24 @@ func (s *itemSearch) tryProvider(ctx context.Context, i int, keep func(media.Can
 	return "", "", errors.New("no downloadable cover image")
 }
 
-// fetch downloads an image URL, remembering failures so the second pass
-// does not request a rejected URL again.
+// fetch downloads an image URL and returns the bytes to save and their
+// file extension. A WebP image becomes a JPEG (or a PNG when it has
+// transparency), whatever the provider. Failures are remembered so the
+// second pass does not request a rejected URL again.
 func (s *itemSearch) fetch(ctx context.Context, u string) ([]byte, string, error) {
 	if err, ok := s.failed[u]; ok {
 		return nil, "", err
 	}
 	data, contentType, err := fetchImage(ctx, s.job.client, u)
+	ext := imageExt(u, contentType)
+	if err == nil && isWebP(data) {
+		data, ext, err = convertWebP(data)
+	}
 	if err != nil {
 		s.failed[u] = err
+		return nil, "", err
 	}
-	return data, contentType, err
+	return data, ext, nil
 }
 
 // fetchImage downloads url and returns its body and content type when it is

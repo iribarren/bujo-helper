@@ -16,6 +16,7 @@ Book covers, movie posters, TV series posters, album covers and game box art are
 - Rate limits are respected: when a source answers "too many requests", the app waits as long as the source asks (or backs off) and retries. All downloads pause for that source, and the wait is shown in the app.
 - Placeholder images, error pages and non-images are rejected, so you never get a blank "no cover" file.
 - File names are safe on Windows and Linux (`Title - Author.jpg`). Duplicates get `-2`, `-3`, … and existing files are never overwritten.
+- WebP images (some sources serve only WebP) are saved as JPEG, or as PNG when they have transparent parts, so every file opens in common viewers and print tools.
 - Public-domain artworks from museum open-access collections, each saved with a credit file, see [Artworks](#artworks).
 - Landmark and city photos, and country flags, from Wikimedia Commons, each saved with a credit file, see [Places](#places).
 - Vintage natural-history illustrations (plates) of plants and animals from Wikimedia Commons, each saved with a credit file, see [Nature](#nature).
