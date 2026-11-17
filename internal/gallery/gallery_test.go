@@ -199,6 +199,28 @@ func TestThumbsRejectsUnlistedPaths(t *testing.T) {
 	}
 }
 
+// Artworks get a "<image>.credit.txt" sidecar from the downloader; it is
+// never listed or served as an image.
+func TestCreditSidecarsAreNotImages(t *testing.T) {
+	dir := t.TempDir()
+	img := writeImage(t, dir, "Wheat Field with Cypresses - Vincent van Gogh.jpg", 30, 24)
+	credit := writeFile(t, dir, "Wheat Field with Cypresses - Vincent van Gogh.jpg.credit.txt", "Title: Wheat Field with Cypresses\n")
+
+	covers, err := List(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(covers) != 1 || covers[0].Path != img {
+		t.Fatalf("covers = %+v, want only the image", covers)
+	}
+
+	th := NewThumbs()
+	th.Allow(append(covers, Cover{Name: filepath.Base(credit), Path: credit}))
+	if rec := get(th, credit); rec.Code != http.StatusNotFound {
+		t.Errorf("sidecar thumbnail: status %d, want 404", rec.Code)
+	}
+}
+
 func TestThumbsAllowKeepsEarlierListings(t *testing.T) {
 	// A slower, older listing can reach the UI after a newer one, so paths
 	// allowed by any listing in the session keep being served.

@@ -1,7 +1,9 @@
 // Package downloader runs a batch of cover downloads: for each item it asks
 // the media type's providers in order, validates the candidate images and
 // saves the first good one. When the country has known ISBN prefixes, local
-// editions are tried first and any edition is the silent fallback.
+// editions are tried first and any edition is the silent fallback. When
+// the chosen candidate has a credit (artworks), it is saved in a sidecar
+// next to the image (see CreditPath).
 package downloader
 
 import (
@@ -337,6 +339,16 @@ func (s *itemSearch) tryProvider(ctx context.Context, i int, keep func(media.Can
 			path, err := saveUnique(s.job.outDir, fileName(s.item, imageExt(u, contentType)), data)
 			if err != nil {
 				return "", "", err
+			}
+			// The sidecar takes the image's final name, "-N" included. An
+			// image whose credit cannot be saved is not kept.
+			if c.Credit != "" {
+				if err := saveCredit(path, c.Credit); err != nil {
+					if rmErr := os.Remove(path); rmErr != nil {
+						err = errors.Join(err, fmt.Errorf("remove uncredited image: %w", rmErr))
+					}
+					return "", "", err
+				}
 			}
 			return path, describe(c), nil
 		}

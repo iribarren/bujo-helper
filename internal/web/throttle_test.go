@@ -507,6 +507,8 @@ func TestNewClientUsesTheSharedThrottle(t *testing.T) {
 		"musicbrainz.org": time.Second,
 		// IGDB allows four requests per second.
 		"api.igdb.com": 250 * time.Millisecond,
+		// The Met asks for at most 80 requests per second.
+		"collectionapi.metmuseum.org": 25 * time.Millisecond,
 	} {
 		if got := DefaultThrottle.MinInterval[host]; got != want {
 			t.Errorf("DefaultThrottle.MinInterval[%q] = %v, want %v", host, got, want)

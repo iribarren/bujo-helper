@@ -29,6 +29,10 @@ type Candidate struct {
 	// ISBN is the ISBN-13 of the edition the cover belongs to, or "" when
 	// the provider does not know it.
 	ISBN string
+	// Credit is the attribution text saved next to the image (title, date,
+	// artist, museum, licence and source page), or "" when the image needs
+	// none. Only artwork providers set it.
+	Credit string
 }
 
 // Options tunes a search.

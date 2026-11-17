@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	goruntime "runtime"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -698,7 +699,7 @@ func (a *App) PrintPapers() []PrintPaperInfo {
 					continue
 				}
 				counts[size] = n
-				if f.SquareCells {
+				if f.ShapedCells {
 					if n, err := opts.SquarePerPage(); err != nil {
 						log.Printf("square images in print format %s, size %q on %s: %v", f.ID, size, p.ID, err)
 					} else {
@@ -707,7 +708,7 @@ func (a *App) PrintPapers() []PrintPaperInfo {
 				}
 			}
 			perPage[f.ID] = counts
-			if f.SquareCells {
+			if f.ShapedCells {
 				squarePerPage[f.ID] = squares
 			}
 		}
@@ -733,15 +734,23 @@ type PrintPagesInfo struct {
 	// cover sheet gives each a square cell (see PrintPaperInfo.SquarePerPage).
 	AllSquare bool `json:"allSquare"`
 	// Exact is false when an image could not be read: Pages then counts it
-	// as a 2:3 cover, and AllSquare is false.
+	// as a 2:3 cover, AllSquare is false and WidePerPage is empty.
 	Exact bool `json:"exact"`
+	// WidePerPage is how many images shaped like the selection fit on a
+	// full page of the chosen paper, by size ID, for each size at which
+	// every image gets a wide cell on the cover sheet (landscape images and
+	// 4:5 portraits; see sheet.Grid.Wide). The shape is the selection's
+	// middle aspect ratio, so for one shape the count is exact. Other sizes,
+	// other formats, and selections with a square or 2:3 image are not
+	// listed: the UI shows the square or 2:3 count instead.
+	WidePerPage map[string]int `json:"widePerPage"`
 }
 
 // PrintPages counts the pages the images at paths take with the print
 // settings opts, reading their image headers: on a cover sheet, square
-// images get square cells, so fewer fit on a page. An image that cannot be
-// read counts as a 2:3 cover, so the toolbar still shows a count;
-// ExportPDF reports the bad file.
+// and landscape images get square and wide cells, so fewer fit on a page.
+// An image that cannot be read counts as a 2:3 cover, so the toolbar still
+// shows a count; ExportPDF reports the bad file.
 func (a *App) PrintPages(paths []string, opts sheet.Options) (PrintPagesInfo, error) {
 	if _, err := opts.Grid(); err != nil {
 		return PrintPagesInfo{}, err
@@ -766,7 +775,46 @@ func (a *App) PrintPages(paths []string, opts sheet.Options) (PrintPagesInfo, er
 	for _, r := range ratios {
 		allSquare = allSquare && sheet.IsSquare(r)
 	}
-	return PrintPagesInfo{Pages: pages, AllSquare: allSquare, Exact: exact}, nil
+	info := PrintPagesInfo{Pages: pages, AllSquare: allSquare, Exact: exact}
+	if exact {
+		info.WidePerPage = widePerPage(ratios, opts)
+	}
+	return info, nil
+}
+
+// widePerPage is PrintPagesInfo.WidePerPage for images of the given aspect
+// ratios with the print settings opts; nil when no size is listed.
+func widePerPage(ratios []float64, opts sheet.Options) map[string]int {
+	f, err := sheet.FormatByID(opts.Format)
+	if err != nil || !f.ShapedCells || len(ratios) == 0 {
+		return nil
+	}
+	sorted := slices.Clone(ratios)
+	slices.Sort(sorted)
+	middle := sorted[len(sorted)/2]
+	var out map[string]int
+	for _, s := range sheet.Sizes {
+		o := opts
+		o.Size = s.ID
+		// Every size fits every paper (sheet tests guard this), so an
+		// error only leaves the size out.
+		g, err := o.Grid()
+		if err != nil {
+			continue
+		}
+		if slices.ContainsFunc(ratios, func(r float64) bool { return !g.Wide(r) }) {
+			continue
+		}
+		n, err := o.PerPageFor(middle)
+		if err != nil {
+			continue
+		}
+		if out == nil {
+			out = make(map[string]int, len(sheet.Sizes))
+		}
+		out[s.ID] = n
+	}
+	return out
 }
 
 // ExportPDF asks where to save, then writes the print sheet PDF of the
