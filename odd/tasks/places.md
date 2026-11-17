@@ -74,6 +74,7 @@ Travel logs and "places visited" spreads use landmark pictures, postcard-style i
   - R3-credit-line-cap-silent: `TestLayoutCreditsMarksAnOverlongLine`, a line past `maxCreditLines` (only possible in a hand-edited sidecar) is cut with an ellipsis, not silently.
 - T4 (inline): `go test -tags webkit2_41 ./...` 1065 passed in 15 packages; `go vet` clean; `gofmt -l .` empty; `tsc` clean; vitest 48/48; `wails build` ok (T3 writer). Live CLI: Eiffel Tower, Machu Picchu, Sydney Opera House, Colosseum and Flag of Japan all OK, 5 `.credit.txt` sidecars. Smoke PDF (T3): credits page lists both items with every credit line.
 - Follow-ups: emoji (non-BMP) in file-name titles likely panics non-credits formats (pre-existing, fpdf); "X flag" suffix false positives (documented limitation); some Commons author fields are odd ("FeaturedPics", "No machine-readable author provided") and are stored as given; the credits checkbox isn't remembered across restarts (no Print option is).
+- `d08d973` (review follow-up tests) assessed medium, `under_budget`: no review due; it stays in the pending slice.
 
 ## Next step
 Manual GUI check by the user, then a local `--no-ff` merge to main (user decision).
