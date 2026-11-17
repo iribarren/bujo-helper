@@ -11,6 +11,20 @@ import (
 // ErrNotFound reports that a provider found no usable match for an item.
 var ErrNotFound = errors.New("not found")
 
+// ErrSkipped reports that an optional provider is not configured (for
+// example it needs an API key the user has not set), so it did not search.
+// The downloader treats a skipped provider as neutral: an item is not found
+// when every provider that did search reported ErrNotFound.
+var ErrSkipped = errors.New("provider skipped")
+
+// Skipped returns an error with message msg that wraps ErrSkipped.
+func Skipped(msg string) error { return skippedError(msg) }
+
+type skippedError string
+
+func (e skippedError) Error() string        { return string(e) }
+func (e skippedError) Is(target error) bool { return target == ErrSkipped }
+
 // Item is one thing to find a cover for, e.g. a book title and its author.
 type Item struct {
 	Title   string
@@ -60,7 +74,8 @@ type Options struct {
 type Provider interface {
 	Name() string
 	// Search returns candidates ranked best-first. It returns an error
-	// wrapping ErrNotFound when there are no usable results.
+	// wrapping ErrNotFound when there are no usable results, and one
+	// wrapping ErrSkipped when an optional provider is not configured.
 	Search(ctx context.Context, item Item, opts Options) ([]Candidate, error)
 }
 

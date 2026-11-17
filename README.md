@@ -200,7 +200,7 @@ Image from the Biodiversity Heritage Library
 
 Public domain images need no credit, but BHL asks for one and it is good practice; the print sheet's [Credits page](#credits-page) lists them. Requests go to Wikidata and Commons with the same contact User-Agent and spacing as places.
 
-**Biodiversity Heritage Library (with a key).** When Commons gives no open image and a BHL API key is set, BHL is searched next; without a key it is skipped. It uses the same Wikidata taxon (looked up once for both sources) and needs its scientific name (Wikidata P225); a taxon without one is not searched.
+**Biodiversity Heritage Library (with a key).** When Commons gives no open image and a BHL API key is set, BHL is searched next; without a key it is skipped, and a name Commons cannot illustrate is still reported as not found (the skipped BHL search is not listed as a reason). It uses the same Wikidata taxon (looked up once for both sources) and needs its scientific name (Wikidata P225); a taxon without one is not searched.
 
 1. **GetNameMetadata** lists the scanned pages that name the taxon (BHL finds names in the OCR text, so most are text pages). Only pages typed *Illustration* or numbered as a *Plate* are kept, grouped by volume, oldest publication first. A name with thousands of pages can make a large answer; one over 16 MB fails that item's BHL search with "response body too large".
 2. **GetItemMetadata** gives each volume's rights, for up to three volumes. The first volume that passes the rights check gives up to three of its plates: the full page scan (`https://www.biodiversitylibrary.org/pageimage/<page ID>`). BHL serves scans only as WebP; the app saves them as JPEG.

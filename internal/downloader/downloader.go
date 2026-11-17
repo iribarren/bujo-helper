@@ -246,9 +246,12 @@ func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResul
 		})
 	}
 	passes = append(passes, nil) // nil keeps every candidate
-	var reasons []string
-	// allNotFound stays true while every provider of the last pass reported
-	// media.ErrNotFound.
+	var reasons, skips []string
+	var skipErrs []error
+	// allNotFound stays true while every provider of the last pass that
+	// searched reported media.ErrNotFound. A skipped optional provider
+	// (media.ErrSkipped, e.g. BHL without a key) is neutral: it neither
+	// prevents not found nor is listed among the reasons.
 	allNotFound := true
 	for pass, keep := range passes {
 		last := pass == len(passes)-1
@@ -261,7 +264,12 @@ func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResul
 				res.Status, res.Path, res.Source, res.Matched = StatusOK, path, p.Name(), matched
 				return res
 			}
-			if last {
+			switch {
+			case !last:
+			case errors.Is(err, media.ErrSkipped):
+				skips = append(skips, p.Name()+": "+err.Error())
+				skipErrs = append(skipErrs, err)
+			default:
 				reasons = append(reasons, p.Name()+": "+err.Error())
 				allNotFound = allNotFound && errors.Is(err, media.ErrNotFound)
 			}
@@ -270,8 +278,12 @@ func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResul
 	if ctx.Err() != nil {
 		return cancelled()
 	}
-	if len(reasons) == 0 {
+	if len(reasons) == 0 && len(skips) == 0 {
 		return fail(res, StatusFailed, &itemError{"no providers for media type " + j.mt.ID, ErrNoProviders})
+	}
+	if len(reasons) == 0 {
+		// Every provider was skipped: the skips are the failure.
+		return fail(res, StatusFailed, &itemError{strings.Join(skips, "; "), errors.Join(skipErrs...)})
 	}
 	var cause error
 	if allNotFound {

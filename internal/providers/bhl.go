@@ -19,9 +19,12 @@ import (
 )
 
 // ErrNoBHLKey reports that no Biodiversity Heritage Library API key is
-// configured. It does not wrap media.ErrNotFound: the provider is skipped,
-// not searched.
-var ErrNoBHLKey = errors.New("no BHL API key (set it in Settings)")
+// configured. BHL is optional (Commons serves nature without a key), so it
+// wraps media.ErrSkipped, not media.ErrNotFound: the downloader still
+// reports a name Commons cannot illustrate as not found. The TMDB and IGDB
+// key errors do not wrap ErrSkipped: those are primary sources and their
+// message tells the user to set a key.
+var ErrNoBHLKey = media.Skipped("no BHL API key (set it in Settings)")
 
 // errBHLKeyRejected is returned when BHL refuses the key.
 var errBHLKeyRejected = errors.New("BHL rejected the API key (HTTP 401)")

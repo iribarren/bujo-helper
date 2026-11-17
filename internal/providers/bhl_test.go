@@ -110,13 +110,26 @@ func TestBHLWithoutAKeyMakesNoRequest(t *testing.T) {
 			p, rs := newBHLTest(t, loadBHLFixtures(t))
 			p.Key = key
 			_, err := p.Search(context.Background(), media.Item{Title: "Robin"}, media.Options{})
-			if !errors.Is(err, ErrNoBHLKey) || errors.Is(err, media.ErrNotFound) {
-				t.Errorf("err = %v, want ErrNoBHLKey", err)
+			if !errors.Is(err, ErrNoBHLKey) || !errors.Is(err, media.ErrSkipped) || errors.Is(err, media.ErrNotFound) {
+				t.Errorf("err = %v, want ErrNoBHLKey (skipped, not not found)", err)
 			}
 			if n := len(rs.requests()); n != 0 {
 				t.Errorf("requests = %d, want none", n)
 			}
 		})
+	}
+}
+
+func TestOnlyOptionalProvidersAreSkipped(t *testing.T) {
+	// BHL is optional for nature; TMDB and IGDB are primary sources whose
+	// missing key must stay a failure the user sees.
+	if !errors.Is(ErrNoBHLKey, media.ErrSkipped) {
+		t.Error("ErrNoBHLKey does not wrap media.ErrSkipped")
+	}
+	for _, err := range []error{ErrNoTMDBKey, ErrNoIGDBCredentials} {
+		if errors.Is(err, media.ErrSkipped) || errors.Is(err, media.ErrNotFound) {
+			t.Errorf("%v wraps ErrSkipped or ErrNotFound", err)
+		}
 	}
 }
 

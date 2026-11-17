@@ -1,6 +1,9 @@
 package media
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestRegistry(t *testing.T) {
 	r := NewRegistry()
@@ -37,5 +40,15 @@ func TestRegistry(t *testing.T) {
 	list[0].ID = "mutated"
 	if r.List()[0].ID != "books" {
 		t.Error("List() must return a copy")
+	}
+}
+
+func TestSkipped(t *testing.T) {
+	err := Skipped("no key (set it in Settings)")
+	if err.Error() != "no key (set it in Settings)" {
+		t.Errorf("Error = %q, want the message unchanged", err.Error())
+	}
+	if !errors.Is(err, ErrSkipped) || errors.Is(err, ErrNotFound) {
+		t.Errorf("Skipped error = %v, want it to wrap ErrSkipped only", err)
 	}
 }
