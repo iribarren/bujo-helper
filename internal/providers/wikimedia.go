@@ -667,10 +667,15 @@ func visibleHTMLText(s string) string {
 	return htmlText(stripHidden(s))
 }
 
+// isSelfClosing reports whether the tag ends with "/>", as in "<span/>".
+func isSelfClosing(tag string) bool {
+	return strings.HasSuffix(strings.TrimRight(tag[:len(tag)-1], " \t\n"), "/")
+}
+
 // stripHidden replaces each span or div hidden with "display: none", nested
 // tags and all, with a space. The element ends at the end tag that balances
 // its start tag (same-name tags are counted); an unclosed one runs to the
-// end of s.
+// end of s, and a self-closing one is only its tag.
 func stripHidden(s string) string {
 	var b strings.Builder
 	for {
@@ -681,6 +686,11 @@ func stripHidden(s string) string {
 		}
 		b.WriteString(s[:loc[0]])
 		b.WriteByte(' ')
+		if isSelfClosing(s[loc[0]:loc[1]]) {
+			// An empty hidden element: only the tag goes.
+			s = s[loc[1]:]
+			continue
+		}
 		same := htmlSpanTag
 		if strings.EqualFold(s[loc[2]:loc[3]], "div") {
 			same = htmlDivTag
@@ -693,7 +703,7 @@ func stripHidden(s string) string {
 			switch {
 			case m[3] > m[2]: // end tag
 				depth--
-			case !strings.HasSuffix(strings.TrimRight(tag[:len(tag)-1], " \t\n"), "/"):
+			case !isSelfClosing(tag):
 				depth++ // a start tag that is not self-closing
 			}
 			if depth == 0 {

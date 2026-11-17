@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -130,6 +131,135 @@ func TestOnlyOptionalProvidersAreSkipped(t *testing.T) {
 		if errors.Is(err, media.ErrSkipped) || errors.Is(err, media.ErrNotFound) {
 			t.Errorf("%v wraps ErrSkipped or ErrNotFound", err)
 		}
+	}
+}
+
+// bhlNameBody is a GetNameMetadata answer naming Erithacus rubecula in the
+// given titles (raw JSON objects).
+func bhlNameBody(titles ...string) []byte {
+	return []byte(`{"Status":"ok","ErrorMessage":"","Result":[{"NameCanonical":"Erithacus rubecula","Titles":[` + strings.Join(titles, ",") + `]}]}`)
+}
+
+// bhlTitle is a title with one item holding the given pages (raw JSON).
+func bhlTitle(titleID, itemID, date string, pages ...string) string {
+	return `{"TitleID":` + titleID + `,"ShortTitle":"Title ` + date + `","PublicationDate":"` + date + `","Items":[{"ItemID":` + itemID + `,"Volume":"","HoldingInstitution":"Some Library","Pages":[` + strings.Join(pages, ",") + `]}]}`
+}
+
+// bhlPlate is an illustration page with the given page ID (raw JSON) and
+// full-size image URL.
+func bhlPlate(pageID, fullSize string) string {
+	return `{"PageID":` + pageID + `,"PageUrl":"","FullSizeImageUrl":"` + fullSize + `","PageTypes":[{"PageTypeName":"Illustration"}]}`
+}
+
+func TestBHLIDsFromNumbersOrStrings(t *testing.T) {
+	tests := []struct {
+		name      string
+		title     string
+		wantImage string
+		wantReqs  []string
+	}{
+		{"numbers", bhlTitle(`2001`, `201`, "1885", bhlPlate(`20012`, "")),
+			"https://www.biodiversitylibrary.org/pageimage/20012", []string{"GetNameMetadata", "GetItemMetadata 201"}},
+		{"strings", bhlTitle(`"2001"`, `"201"`, "1885", bhlPlate(`"20012"`, "")),
+			"https://www.biodiversitylibrary.org/pageimage/20012", []string{"GetNameMetadata", "GetItemMetadata 201"}},
+		// An ID that is not a number is passed on as text.
+		{"non-numeric string", bhlTitle(`"t"`, `"201"`, "1885", bhlPlate(`"abc"`, "")),
+			"https://www.biodiversitylibrary.org/pageimage/abc", []string{"GetNameMetadata", "GetItemMetadata 201"}},
+		// Pages and volumes without an ID are dropped.
+		{"null and empty page IDs dropped", bhlTitle(`1`, `"201"`, "1885", bhlPlate(`null`, ""), bhlPlate(`""`, ""), bhlPlate(`20013`, "")),
+			"https://www.biodiversitylibrary.org/pageimage/20013", []string{"GetNameMetadata", "GetItemMetadata 201"}},
+		{"volume with a null ID dropped", bhlTitle(`1`, `null`, "1800", bhlPlate(`10011`, "")) + "," + bhlTitle(`2`, `201`, "1885", bhlPlate(`20012`, "")),
+			"https://www.biodiversitylibrary.org/pageimage/20012", []string{"GetNameMetadata", "GetItemMetadata 201"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := loadBHLFixtures(t)
+			f.name = bhlNameBody(tt.title)
+			p, rs := newBHLTest(t, f)
+			got, err := p.Search(context.Background(), media.Item{Title: "Robin"}, media.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(got) == 0 || !reflect.DeepEqual(got[0].ImageURLs, []string{tt.wantImage}) {
+				t.Errorf("Search = %+v, want image %s", got, tt.wantImage)
+			}
+			if reqs := bhlRequests(rs); !reflect.DeepEqual(reqs, tt.wantReqs) {
+				t.Errorf("BHL requests = %q, want %q", reqs, tt.wantReqs)
+			}
+		})
+	}
+}
+
+func TestBHLIDUnmarshal(t *testing.T) {
+	tests := []struct {
+		in, want string
+		wantErr  bool
+	}{
+		{`123`, "123", false},
+		{`"123"`, "123", false},
+		{`"abc"`, "abc", false},
+		{`""`, "", false},
+		{`null`, "", false},
+		{`true`, "", true},
+		{`{}`, "", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			id := bhlID("old")
+			err := id.UnmarshalJSON([]byte(tt.in))
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("UnmarshalJSON(%s) err = %v, want error %v", tt.in, err, tt.wantErr)
+			}
+			if !tt.wantErr && string(id) != tt.want {
+				t.Errorf("UnmarshalJSON(%s) = %q, want %q", tt.in, id, tt.want)
+			}
+		})
+	}
+}
+
+func TestBHLImageURL(t *testing.T) {
+	f := loadBHLFixtures(t)
+	f.name = bhlNameBody(bhlTitle(`2001`, `201`, "1885",
+		bhlPlate(`20012`, "https://example.org/scan/20012.webp"),
+		bhlPlate(`20013`, "  ")))
+	p, _ := newBHLTest(t, f)
+	got, err := p.Search(context.Background(), media.Item{Title: "Robin"}, media.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var images []string
+	for _, c := range got {
+		images = append(images, c.ImageURLs...)
+	}
+	// FullSizeImageUrl when given, else the /pageimage/<PageID> scan.
+	want := []string{"https://example.org/scan/20012.webp", "https://www.biodiversitylibrary.org/pageimage/20013"}
+	if !reflect.DeepEqual(images, want) {
+		t.Errorf("images = %q, want %q", images, want)
+	}
+}
+
+func TestBHLChecksAtMostThreeVolumes(t *testing.T) {
+	f := loadBHLFixtures(t)
+	var titles []string
+	for i := 1; i <= 5; i++ {
+		id := strconv.Itoa(900 + i)
+		titles = append(titles, bhlTitle(id, id, strconv.Itoa(1800+i), bhlPlate(id+"1", "")))
+	}
+	f.name = bhlNameBody(titles...)
+	// No item metadata for any volume.
+	p, rs := newBHLTest(t, f)
+	_, err := p.Search(context.Background(), media.Item{Title: "Robin"}, media.Options{})
+	if !errors.Is(err, media.ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+	want := "no public-domain BHL illustration of Erithacus rubecula; skipped " +
+		"Title 1801 (item 901): no item metadata; Title 1802 (item 902): no item metadata; " +
+		"Title 1803 (item 903): no item metadata; and 2 more volumes not checked"
+	if !strings.Contains(err.Error(), want) {
+		t.Errorf("err = %v\nwant it to contain %q", err, want)
+	}
+	if reqs, want := bhlRequests(rs), []string{"GetNameMetadata", "GetItemMetadata 901", "GetItemMetadata 902", "GetItemMetadata 903"}; !reflect.DeepEqual(reqs, want) {
+		t.Errorf("BHL requests = %q, want %q", reqs, want)
 	}
 }
 

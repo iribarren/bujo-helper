@@ -583,6 +583,9 @@ func TestVisibleHTMLText(t *testing.T) {
 		{"two hidden elements", `A<span style="display:none">x</span>B<div style="display:none"><i>y</i></div>C`, "A B C"},
 		{"unclosed hidden element drops the rest", `A<span style="display:none"><b>x</b> y`, "A"},
 		{"visible element after hidden one kept", `<span style="display:none"><span>x</span></span><span>Shown</span>`, "Shown"},
+		{"self-closing hidden span keeps the rest", `A<span style="display:none"/>B <b>C</b>`, "A B C"},
+		{"self-closing hidden div with a space keeps the rest", `A<div style="display: none;" />B</div>C`, "A B C"},
+		{"self-closing hidden span before a hidden element", `A<span style="display:none"/>B<span style="display:none">x</span>C`, "A B C"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
