@@ -315,3 +315,31 @@ func TestSaveAndLoadTheLanguage(t *testing.T) {
 		t.Errorf("Load = %+v (err %v), want language es", got, err)
 	}
 }
+
+func TestSaveTrimsAndKeepsTheBHLKey(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := Save(path, Settings{TMDBAPIKey: "tmdb", BHLAPIKey: " bhl-key\n"}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (Settings{TMDBAPIKey: "tmdb", BHLAPIKey: "bhl-key"}); got != want {
+		t.Errorf("Load = %+v, want %+v", got, want)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `"bhlApiKey": "bhl-key"`; !strings.Contains(string(b), want) {
+		t.Errorf("file = %s, want it to contain %s", b, want)
+	}
+	// Files saved before the BHL key existed still load.
+	if err := os.WriteFile(path, []byte(`{"tmdbApiKey": "k"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := Load(path); err != nil || got != (Settings{TMDBAPIKey: "k"}) {
+		t.Errorf("Load(old file) = %+v, %v", got, err)
+	}
+}

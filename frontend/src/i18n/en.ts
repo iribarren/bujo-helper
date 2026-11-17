@@ -22,6 +22,8 @@ export const en = {
     'tip.tmdbWhy': 'for better movie and TV posters.',
     'tip.igdbWhat': 'IGDB credentials',
     'tip.igdbWhy': 'for box art of all games; without them, Steam covers PC games only.',
+    'tip.bhlWhat': 'a BHL API key',
+    'tip.bhlWhy': 'for more natural-history plates.',
 
     // Download tab.
     'download.import': 'Import CSV…',
@@ -206,6 +208,8 @@ export const en = {
     'settings.igdbHintType': '(Client Type',
     'settings.igdbHintRedirect': ', OAuth Redirect URL',
     'settings.igdbHintCopy': '), then copy its Client ID and a new Client Secret.',
+    'settings.bhlKey': 'BHL API key',
+    'settings.bhlHint': 'Optional. Adds natural-history plates from the Biodiversity Heritage Library when Wikimedia Commons has none. Get a free key at',
     'settings.show': 'Show',
     'settings.hide': 'Hide',
     'settings.close': 'Close',

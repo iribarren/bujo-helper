@@ -124,7 +124,8 @@ type App struct {
 
 	// settingsPath is the settings file; "" means it is unknown and
 	// SaveSettings fails. settings is the current copy, read live by
-	// tmdbKey and igdbCredentials so saved keys are used without a restart.
+	// tmdbKey, igdbCredentials and bhlKey so saved keys are used without a
+	// restart.
 	settingsMu   sync.Mutex
 	settingsPath string
 	settings     settings.Settings
@@ -191,8 +192,8 @@ func migrateSettings(path string) {
 }
 
 // newDefaultApp returns an App with the built-in media types and the
-// settings file at path. The movie, TV and game sources read their keys
-// from the App's live settings.
+// settings file at path. The movie, TV, game and nature sources read their
+// keys from the App's live settings.
 func newDefaultApp(client *http.Client, path string) *App {
 	var a *App
 	// The catalog is built before the App exists; a is set before any
@@ -200,6 +201,7 @@ func newDefaultApp(client *http.Client, path string) *App {
 	reg := catalog.Default(client, catalog.Keys{
 		TMDB: func() string { return a.tmdbKey() },
 		IGDB: func() (string, string) { return a.igdbCredentials() },
+		BHL:  func() string { return a.bhlKey() },
 	})
 	a = newApp(reg, client)
 	a.loadSettings(path)
@@ -267,6 +269,14 @@ func (a *App) igdbCredentials() (clientID, clientSecret string) {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
 	return a.settings.IGDBClientID, a.settings.IGDBClientSecret
+}
+
+// bhlKey returns the current Biodiversity Heritage Library API key, read
+// live like tmdbKey.
+func (a *App) bhlKey() string {
+	a.settingsMu.Lock()
+	defer a.settingsMu.Unlock()
+	return a.settings.BHLAPIKey
 }
 
 // startup is called when the app starts. The context is kept for the

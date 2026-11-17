@@ -18,6 +18,8 @@ export const es: Messages = {
     'tip.tmdbWhy': 'para obtener mejores carteles de películas y series.',
     'tip.igdbWhat': 'credenciales de IGDB',
     'tip.igdbWhy': 'para obtener carátulas de todos los juegos; sin ellas, Steam solo tiene portadas de juegos de PC.',
+    'tip.bhlWhat': 'una clave de API de BHL',
+    'tip.bhlWhy': 'para obtener más láminas de historia natural.',
 
     // Download tab.
     'download.import': 'Importar CSV…',
@@ -201,6 +203,8 @@ export const es: Messages = {
     'settings.igdbHintType': '(tipo de cliente',
     'settings.igdbHintRedirect': ', URL de redirección de OAuth',
     'settings.igdbHintCopy': ') y, después, copia su Client ID y un Client Secret nuevo.',
+    'settings.bhlKey': 'Clave de API de BHL',
+    'settings.bhlHint': 'Opcional. Añade láminas de historia natural de la Biodiversity Heritage Library cuando Wikimedia Commons no tiene ninguna. Consigue una clave gratuita en',
     'settings.show': 'Mostrar',
     'settings.hide': 'Ocultar',
     'settings.close': 'Cerrar',

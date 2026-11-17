@@ -71,3 +71,17 @@ describe('items placeholder', () => {
         });
     }
 });
+
+describe('key tip', () => {
+    it('suggests a BHL key for nature while none is saved', () => {
+        selectType('nature');
+        expect(el('key-tip').hidden).toBe(false);
+        expect(el('key-tip-what').textContent).toBe('a BHL API key');
+        expect(el('key-tip-why').textContent).toBe('for more natural-history plates.');
+    });
+
+    it('is hidden for a type whose sources need no key', () => {
+        selectType('books');
+        expect(el('key-tip').hidden).toBe(true);
+    });
+});

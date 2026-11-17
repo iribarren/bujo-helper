@@ -174,7 +174,7 @@ Wikimedia asks every client for a User-Agent with contact information, also when
 
 ### Nature
 
-Nature downloads a vintage natural-history illustration of a plant or an animal, a plate from an old book rather than a photo, from [Wikimedia Commons](https://commons.wikimedia.org/) (no key), then from the [Biodiversity Heritage Library](https://www.biodiversitylibrary.org/) (BHL) when you have set a free BHL API key. Write one name per line, common or scientific: `Robin`, `Barn owl`, `Monstera deliciosa`. There is no second column. Plates come in every shape, so a cover sheet gives landscape ones wide cells (see [Print sheet](#print-sheet)).
+Nature downloads a vintage natural-history illustration of a plant or an animal, a plate from an old book rather than a photo, from [Wikimedia Commons](https://commons.wikimedia.org/) (no key), then from the [Biodiversity Heritage Library](https://www.biodiversitylibrary.org/) (BHL) when you have set a free BHL API key (see [BHL API key](#bhl-api-key)). Write one name per line, common or scientific: `Robin`, `Barn owl`, `Monstera deliciosa`. There is no second column. Plates come in every shape, so a cover sheet gives landscape ones wide cells (see [Print sheet](#print-sheet)).
 
 1. **Wikidata** full-text search for the name among taxa (items that are an instance of taxon), up to 10 results. The result whose English name or alias (aliases hold other common names and the scientific name) is closest to the name you wrote is used; ties keep the search order, so `Robin` is the European robin (*Erithacus rubecula*). A name that matches no taxon closely enough fails with "no Wikidata taxon named …". Each name is looked up once while the app (or the `covers` command) runs.
 2. **Commons** search for files, in this order, until one search gives an openly licensed image:
@@ -207,7 +207,7 @@ Public domain images need no credit, but BHL asks for one and it is good practic
 
 **BHL rights check.** A volume is used when its copyright status is public domain, `NOT_IN_COPYRIGHT`, not specified (or blank), or "No known copyright restrictions", and it has no non-commercial (NC) or no-derivatives (ND) licence. Volumes "In copyright" (usually digitized with the rights holder's permission under CC BY-NC-SA) and any other status are skipped; when nothing is left the item fails and names the skipped volumes with the reason, for example `Bird notes (item 401): in copyright (In copyright. Digitized with the permission of the rights holder.)`.
 
-**BHL credit file.** It starts with the line BHL asks for, then the title and volume, the publication date, the page, the copyright status, the licence and rights links when BHL gives them, the volume page and the Wikidata taxon:
+**BHL credit file.** It starts with the line BHL asks for, then the title and volume, the publication date, the page, the copyright status, the licence and rights links when BHL gives them, the volume page and the Wikidata taxon. For example (illustrative item and page IDs):
 
 ```text
 Image from the Biodiversity Heritage Library. Contributed by Natural History Museum Library, London. | www.biodiversitylibrary.org
@@ -236,6 +236,16 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 3. Open the app with **Manage**, copy its **Client ID**, and click **New Secret** to get a **Client Secret**.
 4. In the app, click **Settings** and paste both into **IGDB Client ID** and **IGDB Client Secret**. They are saved next to the TMDB key, readable only by you. The app exchanges them for an access token (valid for about two months), which it keeps in memory only.
 5. For the command line, use `-igdb-id` and `-igdb-secret`, or the `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` environment variables; otherwise the credentials saved by the app are used.
+
+### BHL API key
+
+The Biodiversity Heritage Library key is optional: nature images come from Wikimedia Commons without it, and BHL adds plates when Commons has none.
+
+1. Request a free key at [biodiversitylibrary.org/getapikey.aspx](https://www.biodiversitylibrary.org/getapikey.aspx) (a name and an email address); BHL emails it to you.
+2. In the app, click **Settings** and paste it into **BHL API key**. It is saved next to the TMDB key, readable only by you, and sent only to the BHL API (in the request URL, as BHL requires).
+3. For the command line, use `-bhl-key`, or the `BHL_API_KEY` environment variable; otherwise the key saved by the app is used.
+
+While **Nature** is selected and no key is saved, a tip above the list suggests adding one. A key BHL rejects fails the item's BHL search with "BHL rejected the API key (HTTP 401)".
 
 ### Rate limits
 
@@ -282,7 +292,7 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 
 ## Using the app
 
-1. Choose the media type: **Books**, **Movies**, **TV series**, **Albums** or **Games**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters; for games, add IGDB credentials for box art beyond PC games.
+1. Choose the media type: **Books**, **Movies**, **TV series**, **Albums** or **Games**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters; for games, add IGDB credentials for box art beyond PC games; for nature, a BHL API key adds plates when Commons has none.
 2. Type or paste items, one per line, or click **Import CSV…**.
 3. Check the output folder (default: `~/Pictures/Covers`, or `%USERPROFILE%\Pictures\Covers` on Windows), and change it with **Browse…** if needed.
 4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
@@ -530,6 +540,7 @@ IGDB_CLIENT_ID=<id> IGDB_CLIENT_SECRET=<secret> go run ./cmd/covers -type games 
 go run ./cmd/covers -type artworks -o art "Wheat Field with Cypresses, Vincent van Gogh" "Twilight in the Wilderness, Frederic Edwin Church"
 go run ./cmd/covers -type places -o places "Eiffel Tower, France" "Machu Picchu, Peru" "Flag of Japan"
 go run ./cmd/covers -type nature -o nature "Robin" "Monstera deliciosa" "Barn owl"
+BHL_API_KEY=<key> go run ./cmd/covers -type nature -o nature "Barn owl"
 ```
 
 Flags must come before the items:
@@ -543,6 +554,7 @@ Flags must come before the items:
 | `-tmdb-key`    | (none)   | TMDB API key; overrides `TMDB_API_KEY` and the saved key   |
 | `-igdb-id`     | (none)   | IGDB (Twitch) Client ID; overrides `IGDB_CLIENT_ID` and the saved one |
 | `-igdb-secret` | (none)   | IGDB (Twitch) Client Secret; overrides `IGDB_CLIENT_SECRET` and the saved one |
+| `-bhl-key`     | (none)   | Biodiversity Heritage Library API key, for nature; overrides `BHL_API_KEY` and the saved key |
 
 The exit code is `0` when every item succeeded, `1` when any item failed or was cancelled, and `2` for usage errors.
 

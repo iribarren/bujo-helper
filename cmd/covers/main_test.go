@@ -528,3 +528,68 @@ func TestLoadUserSettingsWarnsAboutASkippedLegacyFile(t *testing.T) {
 		t.Errorf("warnings = %q, want one naming the skipped legacy file", out)
 	}
 }
+
+func TestResolveBHLKey(t *testing.T) {
+	fromFile := func(key string, err error) func() (settings.Settings, error) {
+		return func() (settings.Settings, error) { return settings.Settings{BHLAPIKey: key}, err }
+	}
+	env := func(vals map[string]string) func(string) string {
+		return func(k string) string { return vals[k] }
+	}
+	tests := []struct {
+		name string
+		flag string
+		env  map[string]string
+		load func() (settings.Settings, error)
+		want string
+	}{
+		{"flag wins", "flag-key", map[string]string{"BHL_API_KEY": "env-key"}, fromFile("file-key", nil), "flag-key"},
+		{"env beats file", "", map[string]string{"BHL_API_KEY": "env-key"}, fromFile("file-key", nil), "env-key"},
+		{"file when no flag or env", "", nil, fromFile("file-key", nil), "file-key"},
+		{"blank flag and env fall through", "  ", map[string]string{"BHL_API_KEY": " "}, fromFile(" file-key ", nil), "file-key"},
+		{"settings error gives no key", "", nil, fromFile("", errors.New("unreadable")), ""},
+		{"nothing set", "", nil, fromFile("", nil), ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := resolveBHLKey(tt.flag, env(tt.env), tt.load); got != tt.want {
+				t.Errorf("resolveBHLKey = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRunPassesTheBHLKey(t *testing.T) {
+	got := make(chan string, 1)
+	e := env{
+		getenv: func(name string) string {
+			if name == "BHL_API_KEY" {
+				return "env-key"
+			}
+			return ""
+		},
+		loadSettings: func() (settings.Settings, error) { return settings.Settings{BHLAPIKey: "file-key"}, nil },
+		registry: func(keys catalog.Keys) *media.Registry {
+			reg := media.NewRegistry()
+			if err := reg.Register(media.MediaType{ID: "nature", Providers: []media.Provider{keyProvider{keys.BHL, got}}}); err != nil {
+				t.Fatal(err)
+			}
+			return reg
+		},
+	}
+	var stdout, stderr bytes.Buffer
+	run(context.Background(), []string{"-type", "nature", "-o", t.TempDir(), "-bhl-key", "flag-key", "Robin"}, &stdout, &stderr, e)
+	if k := received(t, got); k != "flag-key" {
+		t.Errorf("key = %q, want flag-key", k)
+	}
+}
+
+func TestUsageShowsTheBHLKeyFlag(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, testEnv(testRegistry(t)))
+	for _, want := range []string{"[-bhl-key key]", "BHL_API_KEY"} {
+		if !strings.Contains(stderr.String(), want) {
+			t.Errorf("usage lacks %q:\n%s", want, &stderr)
+		}
+	}
+}

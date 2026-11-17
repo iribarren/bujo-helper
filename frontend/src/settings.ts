@@ -5,7 +5,8 @@ import {onLangChange, t} from './i18n';
 import {useLanguage} from './language';
 
 // The Settings dialog: the UI language, the TMDB API key and the TMDB
-// attribution notice, and the IGDB (Twitch) Client ID and Client Secret.
+// attribution notice, the IGDB (Twitch) Client ID and Client Secret, and the
+// Biodiversity Heritage Library (BHL) API key.
 
 export interface SettingsDialog {
     // open shows the dialog, prefilled with the saved settings.
@@ -17,6 +18,8 @@ export interface SettingsDialog {
     // hasIGDBCredentials reports whether an IGDB Client ID and Client
     // Secret are both saved.
     hasIGDBCredentials(): boolean;
+    // hasBHLKey reports whether a BHL API key is saved.
+    hasBHLKey(): boolean;
 }
 
 export interface SettingsOptions {
@@ -44,13 +47,25 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         igdbId: byId<HTMLInputElement>('igdb-id'),
         igdbSecret: byId<HTMLInputElement>('igdb-secret'),
         igdbToggle: byId<HTMLButtonElement>('igdb-secret-toggle'),
-        links: [byId<HTMLAnchorElement>('tmdb-link'), byId<HTMLAnchorElement>('twitch-link')],
+        bhlKey: byId<HTMLInputElement>('bhl-key'),
+        bhlToggle: byId<HTMLButtonElement>('bhl-key-toggle'),
+        links: [
+            byId<HTMLAnchorElement>('tmdb-link'),
+            byId<HTMLAnchorElement>('twitch-link'),
+            byId<HTMLAnchorElement>('bhl-link'),
+        ],
         status: byId<HTMLSpanElement>('settings-status'),
         save: byId<HTMLButtonElement>('settings-save'),
         close: byId<HTMLButtonElement>('settings-close'),
     };
 
-    let current = new settings.Settings({tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', language: ''});
+    let current = new settings.Settings({
+        tmdbApiKey: '',
+        igdbClientId: '',
+        igdbClientSecret: '',
+        bhlApiKey: '',
+        language: '',
+    });
 
     function setStatus(text: string, kind: '' | 'ok' | 'error' = '') {
         ui.status.textContent = text;
@@ -67,6 +82,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     function labelToggles() {
         showSecret(ui.key, ui.toggle, ui.key.type === 'text');
         showSecret(ui.igdbSecret, ui.igdbToggle, ui.igdbSecret.type === 'text');
+        showSecret(ui.bhlKey, ui.bhlToggle, ui.bhlKey.type === 'text');
     }
 
     // fill shows the current settings in the inputs.
@@ -75,6 +91,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         ui.key.value = current.tmdbApiKey || '';
         ui.igdbId.value = current.igdbClientId || '';
         ui.igdbSecret.value = current.igdbClientSecret || '';
+        ui.bhlKey.value = current.bhlApiKey || '';
     }
 
     async function load(): Promise<void> {
@@ -86,6 +103,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         setStatus('');
         showSecret(ui.key, ui.toggle, false);
         showSecret(ui.igdbSecret, ui.igdbToggle, false);
+        showSecret(ui.bhlKey, ui.bhlToggle, false);
         try {
             await load();
         } catch (err) {
@@ -109,6 +127,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
                 tmdbApiKey: ui.key.value,
                 igdbClientId: ui.igdbId.value,
                 igdbClientSecret: ui.igdbSecret.value,
+                bhlApiKey: ui.bhlKey.value,
                 language: ui.language.value,
             }));
         } catch (err) {
@@ -132,6 +151,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     ui.toggle.addEventListener('click', () => showSecret(ui.key, ui.toggle, ui.key.type === 'password'));
     ui.igdbToggle.addEventListener('click', () =>
         showSecret(ui.igdbSecret, ui.igdbToggle, ui.igdbSecret.type === 'password'));
+    ui.bhlToggle.addEventListener('click', () => showSecret(ui.bhlKey, ui.bhlToggle, ui.bhlKey.type === 'password'));
     for (const link of ui.links) {
         link.addEventListener('click', (e) => {
             // Open the page in the system browser; never navigate the webview.
@@ -141,7 +161,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     }
     ui.save.addEventListener('click', save);
     ui.language.addEventListener('change', () => setStatus(''));
-    for (const input of [ui.key, ui.igdbId, ui.igdbSecret]) {
+    for (const input of [ui.key, ui.igdbId, ui.igdbSecret, ui.bhlKey]) {
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
@@ -171,5 +191,6 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         hasTMDBKey: () => (current.tmdbApiKey || '').trim() !== '',
         hasIGDBCredentials: () =>
             (current.igdbClientId || '').trim() !== '' && (current.igdbClientSecret || '').trim() !== '',
+        hasBHLKey: () => (current.bhlApiKey || '').trim() !== '',
     };
 }

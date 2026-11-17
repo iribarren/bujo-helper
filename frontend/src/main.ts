@@ -83,6 +83,11 @@ const KEY_TIPS: Record<string, KeyTip> = {
         why: 'tip.igdbWhy',
         saved: () => settingsDialog?.hasIGDBCredentials() ?? false,
     },
+    nature: {
+        what: 'tip.bhlWhat',
+        why: 'tip.bhlWhy',
+        saved: () => settingsDialog?.hasBHLKey() ?? false,
+    },
 };
 
 const STATUS_ICONS: Record<string, string> = {
@@ -231,7 +236,7 @@ function updatePlaceholder() {
 
 // updateKeyTip suggests a key while a media type whose best source needs
 // one is selected and none is saved: TMDB for movies and TV series, IGDB
-// for games.
+// for games, BHL for nature.
 function updateKeyTip() {
     const tip = KEY_TIPS[ui.mediaType.value];
     ui.keyTip.hidden = !tip || tip.saved();

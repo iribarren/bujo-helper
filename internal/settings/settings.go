@@ -21,6 +21,9 @@ type Settings struct {
 	// credentials, used for the IGDB games API.
 	IGDBClientID     string `json:"igdbClientId"`
 	IGDBClientSecret string `json:"igdbClientSecret"`
+	// BHLAPIKey is the user's Biodiversity Heritage Library API key, used
+	// for nature plates.
+	BHLAPIKey string `json:"bhlApiKey"`
 	// Language is the UI language: "" follows the system, "en" or "es".
 	Language string `json:"language"`
 }
@@ -32,6 +35,7 @@ func (s Settings) Trimmed() Settings {
 	s.TMDBAPIKey = strings.TrimSpace(s.TMDBAPIKey)
 	s.IGDBClientID = strings.TrimSpace(s.IGDBClientID)
 	s.IGDBClientSecret = strings.TrimSpace(s.IGDBClientSecret)
+	s.BHLAPIKey = strings.TrimSpace(s.BHLAPIKey)
 	switch lang := strings.ToLower(strings.TrimSpace(s.Language)); lang {
 	case "en", "es":
 		s.Language = lang

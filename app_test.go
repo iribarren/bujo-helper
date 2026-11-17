@@ -1520,3 +1520,33 @@ func TestItemEventCodes(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultAppNatureUsesTheSavedBHLKey(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := settings.Save(path, settings.Settings{BHLAPIKey: " saved-bhl "}); err != nil {
+		t.Fatal(err)
+	}
+	a := newDefaultApp(http.DefaultClient, path)
+	nature, _ := a.registry.Get("nature")
+	var bhl *providers.BHL
+	for _, p := range nature.Providers {
+		if b, ok := p.(*providers.BHL); ok {
+			bhl = b
+		}
+	}
+	if bhl == nil {
+		t.Fatal("no BHL provider for nature")
+	}
+	if got := bhl.Key(); got != "saved-bhl" {
+		t.Errorf("BHL key = %q, want the saved key", got)
+	}
+	if err := a.SaveSettings(settings.Settings{BHLAPIKey: "new-bhl"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := bhl.Key(); got != "new-bhl" {
+		t.Errorf("BHL key after saving = %q, want new-bhl without a restart", got)
+	}
+	if got := a.GetSettings().BHLAPIKey; got != "new-bhl" {
+		t.Errorf("GetSettings BHL key = %q", got)
+	}
+}
