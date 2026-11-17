@@ -42,13 +42,21 @@ Travel logs and "places visited" spreads use landmark pictures, postcard-style i
 - Frontend: `npx tsc --noEmit` and vitest in `frontend/`. If the bindings change, run `wails build -tags webkit2_41`, restore the 0644 modes on `frontend/wailsjs/go/main/*` and `models.ts`; the binary is `build/bin/bujo-helper`.
 
 ## Tasks
-- [ ] T1 Provider `wikimedia`: Wikidata search, country preference, flag mode, Commons imageinfo, credit text, headers, throttle, fixtures and tests. Route: delegated writer (2+ non-trivial files).
-- [ ] T2 Catalog `places`, CLI, frontend example, sample CSV, README Sources. Route: the same delegated writer, separate commit.
+- [x] T1 Provider `wikimedia`: Wikidata search, country preference, flag mode, Commons imageinfo, credit text, headers, throttle, fixtures and tests. Route: delegated writer (2+ non-trivial files).
+- [x] T2 Catalog `places`, CLI, frontend example, sample CSV, README Sources. Route: the same delegated writer, separate commit.
 - [ ] T3 PDF credits page: sheet option, sidecar reading, Print sheet checkbox, bindings, tests, README Print sheet. Route: delegated writer.
 - [ ] T4 Live CLI smoke test and build. Route: inline.
 
 ## Progress
 - Plan written; RDD on (global).
+- T1 done in `304e85f` feat(providers): Wikidata/Commons place and flag search. 19 files, +3011/-9: `wikimedia.go` 598, `wikimedia_test.go` 508, 11 trimmed live fixtures under `testdata/wikimedia/` (about 1860 lines of JSON: Eiffel Tower, Córdoba, Japan flag), `web.go` +32/-5, `web_test.go` +37, throttle +6/+5, `wikidata.go`/`wikidata_test.go` UA switch. Authored code and tests about 1150 lines, over the 400 heuristic: one provider with its ranking, flag mode, credit and tests is one unit.
+  - RED: `go test ./internal/web/ ./internal/providers/` failed to build (undefined `Wikimedia`, `NewWikimedia`, `web.ContactUserAgent`, `flagCountry`, `placeInCountry`, `htmlText`, `commonsLicense`, ...).
+  - GREEN: `go test -tags webkit2_41 ./...` all 15 packages ok; `go vet` clean; `gofmt -l .` empty.
+  - Deviations: Commons now serves thumbnails from `thumb.wikimedia.org` (originals from `upload.wikimedia.org`), so both hosts get the contact UA and spacing. The contact UA for image downloads is set in `web.SetBrowserHeaders` by host, without touching the downloader. Image hosts are spaced 500 ms (not 250 ms) to stay near the two-concurrent-downloads rule. Wikidata statements: the first preferred one wins, deprecated ones are skipped (Japan's P41 has the historical flag second). Flag mode returns only the best label match, maps `USA`/`UK` style aliases for ranking, and drops a leading "the". Credit fields are capped at 300 characters (some Commons Credit/Artist fields hold whole tables or galleries); Attribution replaces Artist when set.
+- T2 done in `5dcc48a` feat(catalog): places media type. 9 files, +98/-16: catalog registration and samples, catalog/app/CLI tests, CLI usage, frontend example and en/es labels, README (Features, Sources → Places, Rate limits, CSV format, CLI, layout).
+  - RED: `go test . ./cmd/... ./internal/catalog/` failed: media types lacked `places`; usage lacked `places`.
+  - GREEN: `go test -tags webkit2_41 ./...` all ok; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` clean; `npx vitest run` 48/48.
+  - Live CLI: `Eiffel Tower, France` → `Eiffel Tower - France.jpg` 1920×3553 + credit (Benh LIEU SONG, public domain); `Flag of Japan` → `Flag of Japan.png` 1920×1280 + credit. Also Machu Picchu, Sydney Opera House, Colosseum, `Córdoba, Argentina`, `USA flag`, `Flag of the United Kingdom`: all ok with credits.
 
 ## Next step
-T1.
+T3.
