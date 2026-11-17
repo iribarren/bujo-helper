@@ -63,5 +63,12 @@ Bird-watching logs, plant and garden journals and nature journals use vintage na
   - GREEN: `go test -tags webkit2_41 ./...` 15 packages ok (1125 passed); `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` clean; `npx vitest run` 48/48 (no `.vitest/` left).
   - Live CLI (scratchpad `nature-smoke`): `Robin` → `Robin.jpg` 1211×1956 (Lilford, *Coloured figures of the birds of the British Islands*, 1885–1897, BHL Flickr, public domain) + credit with the BHL line; `Monstera deliciosa` → `Monstera deliciosa.jpg` 1192×1531 (*Berliner allgemeine Gartenzeitung*, 1857, BHL Flickr, public domain) + credit. Also `Barn owl` 1920×2528 (*Der naturen bloeme*, KB), `Common sunflower` 1204×1987 (*Illustratio systematis sexualis Linnaeani* Tab. 68), `Monarch butterfly` 1920×1272 ("Painted caterpillar"): all OK with credits.
 
+- Review `7147585..9482325` (T1+T2; 27 files, 2675 lines, medium, `slice_budget_reached`): consent granted; lens review-reliability approved; acknowledged (authority burned). Advisory findings, carried into T3 as follow-ups:
+  - R3-frontend-hascreator-untested WARNING (`frontend/src/main.ts:213`): the name-only branch tests `creatorLabel === ""` only and has no test; an omitted/undefined label would fall back to the creator placeholder.
+  - R3-taxon-cache-concurrent-duplicate-lookups SUGGESTION (`taxon.go:64`): concurrent `Resolve` of the same name each run the full lookup; the README says once per name.
+  - R3-notfound-truncation-unasserted SUGGESTION (`nature.go:235`): the "; and N more" cap is exercised but not asserted.
+  - R3-hidden-regex-nested SUGGESTION (`wikimedia.go:645`): a hidden element with nested tags leaks into credit text.
+  - Open question from T2: sample CSV header `title,` for a type without a creator label (app.go).
+
 ## Next step
-Native review assessment of `6223b72..34b71d4` (parent), then T3 (BHL provider + key) via delegated writer. Open question: the sample CSV header for a type without a creator label is `title,` (app.go); consider writing `name` alone.
+T3 (BHL provider + key setting + WebP, plus the T1/T2 review follow-ups) via delegated writer.
