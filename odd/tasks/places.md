@@ -44,7 +44,7 @@ Travel logs and "places visited" spreads use landmark pictures, postcard-style i
 ## Tasks
 - [x] T1 Provider `wikimedia`: Wikidata search, country preference, flag mode, Commons imageinfo, credit text, headers, throttle, fixtures and tests. Route: delegated writer (2+ non-trivial files).
 - [x] T2 Catalog `places`, CLI, frontend example, sample CSV, README Sources. Route: the same delegated writer, separate commit.
-- [ ] T3 PDF credits page: sheet option, sidecar reading, Print sheet checkbox, bindings, tests, README Print sheet. Route: delegated writer.
+- [x] T3 PDF credits page: sheet option, sidecar reading, Print sheet checkbox, bindings, tests, README Print sheet. Route: delegated writer.
 - [ ] T4 Live CLI smoke test and build. Route: inline.
 
 ## Progress
@@ -57,6 +57,14 @@ Travel logs and "places visited" spreads use landmark pictures, postcard-style i
   - RED: `go test . ./cmd/... ./internal/catalog/` failed: media types lacked `places`; usage lacked `places`.
   - GREEN: `go test -tags webkit2_41 ./...` all ok; `go vet` clean; `gofmt -l .` empty; `npx tsc --noEmit` clean; `npx vitest run` 48/48.
   - Live CLI: `Eiffel Tower, France` → `Eiffel Tower - France.jpg` 1920×3553 + credit (Benh LIEU SONG, public domain); `Flag of Japan` → `Flag of Japan.png` 1920×1280 + credit. Also Machu Picchu, Sydney Opera House, Colosseum, `Córdoba, Argentina`, `USA flag`, `Flag of the United Kingdom`: all ok with credits.
+- T3 done in `80dc910` feat(sheet): credits page for images with credit sidecars. Route: delegated writer. 17 files, +588/-33: `internal/sheet/credits.go` 216 (new), `credits_test.go` 234 (new), `pdf.go` +18/-9, `layout.go` +15, `labels_test.go`, `media.go` +12, `downloader/files.go`, `app.go` +12, `app_test.go` +35, `i18n/catalog.go` +2, frontend `index.html` +6, `print.ts`, `style.css`, en/es, regenerated `models.ts` +4, README +17. Authored about 380 lines, more than half tests.
+  - Design: `media.CreditSuffix`/`media.CreditPath` moved from the downloader into `internal/media` (no dependencies); `downloader.CreditSuffix`/`CreditPath` stay as thin wrappers. `sheet` reads the sidecars itself (it already reads images by path) and imports `media`, not `downloader`. `Options.Credits` (`json:"credits"`, zero = off; the UI box defaults on) and `Labels.Credits` (default "Credits"; the app sets `pdf.credits`, "Créditos" in Spanish). `build()` appends credits pages after any format; when off or no sidecar it never touches the PDF. Entries: "N. Title — Creator" (`ParseName`) bold, then the sidecar lines indented, wrapped with `fitLines`; an entry that does not fit moves to the next page, one taller than a page splits; every page starts with the heading. `Options.CreditPages` counts them and `PrintPages` adds them (cheap, no deviation). A sidecar that exists but cannot be read fails the export naming it.
+  - RED: `go test ./internal/sheet/ .` failed to build (undefined `media.CreditPath`, `credit`, `readCredits`, unknown field `Credits` in `sheet.Options`/`sheet.Labels`); then the non-Latin test panicked in fpdf `generateCIDFontMap` on U+1F600, and `labels_test`/`TestPDFLabelsFollowTheUILanguage` failed until the label and catalog key existed.
+  - GREEN: `go test -tags webkit2_41 ./...` 15 packages ok; `go vet` clean; `gofmt -l .` empty; `wails build -tags webkit2_41` ok (only `models.ts` +4; 0644 modes kept); `npx tsc --noEmit` clean; `npx vitest run` 48/48.
+  - Byte identity: `TestBuildWithoutCreditsIsUnchanged` compares on/off renders of sidecar-free images for all 7 formats with `bytes.Equal`. One-off check: with `opts.Credits = true` forced in the `render` test helper, every existing golden/content sheet test still passed (only the new on/off page-count test failed, by construction); helper restored.
+  - Smoke render (scratchpad `places-smoke`, Eiffel Tower + Flag of Japan with sidecars): covers and cards PDFs 2 pages with the box on, 1 off; `pdftotext` of the last page shows "Credits", "1. Eiffel Tower — France" and "2. Flag of Japan" with all credit lines, the long Japan Source line wrapped. With Japanese/Greek/Cyrillic/emoji appended to a copy: Greek, Cyrillic and Łódź print; Japanese prints as empty boxes (text still extractable); emoji prints as "?". README says so.
+  - Deviations: credits text maps invalid UTF-8 and runes above U+FFFF to "?" because fpdf v0.9.0 indexes UTF-8 glyph widths in a 65536-entry table and panics on output otherwise. The checkbox state is not persisted across restarts (no print option is).
+  - Follow-up (pre-existing, not fixed): titles parsed from file names go through the same fpdf path in cards, spines, stubs, full page header, checklist and polaroids, so a file name with an emoji (non-BMP rune) likely panics those exports today.
 
 ## Next step
-T3.
+T4.
