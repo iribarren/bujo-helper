@@ -57,4 +57,4 @@ People print their own photos onto sticker paper. The print sheet already takes 
 - Assess fc6a40c..794bcd9: medium, 1581 lines, `review_due` (`slice_budget_reached`). Consent granted; reliability lens approved, acknowledged (authority burned). Advisory R3-001 WARNING at `internal/sheet/crop.go:186-192` (`printCroppedImage`; informational, no detail text; follow-up only). Next reviewed boundary: 794bcd9.
 
 ## Next step
-User GUI-checks the Crop to option (rebuild `build/bin/cover-downloader` first), then local `--no-ff` merge to main and mark roadmap item 21 done.
+Done. GUI check passed (user, 2026-11-18); merged to main in daac236 and pushed.

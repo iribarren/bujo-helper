@@ -313,7 +313,7 @@ Useful, but either demand is less proven or the item adds a new kind of printabl
 **Acceptance**
 - Provider tests with fixtures. Square artwork prints in square cells.
 
-## 21. [ ] Photo crop to standard print sizes
+## 21. [x] Photo crop to standard print sizes (daac236)
 
 **Why:** people print their own photos onto sticker paper. The print sheet already takes any folder, but photos need fixed shapes.
 
