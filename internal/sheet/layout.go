@@ -8,8 +8,9 @@
 // keep their aspect ratio, in a centred grid derived from the cover height
 // and the paper size (A4 by default). A square cover gets a square cell, a
 // landscape cover a wide cell, and the cells flow in rows (see Grid.Flow);
-// a cover too wide for its cell is shrunk to the cell width. All sizes are
-// in millimetres.
+// a cover too wide for its cell is shrunk to the cell width. A crop mode
+// instead centre-crops photos to a standard print shape (see CropMode).
+// All sizes are in millimetres.
 package sheet
 
 import (
@@ -111,6 +112,7 @@ type Format struct {
 	Noun     string // what one printed item is called, e.g. "card"
 	UsesSize bool   // whether the cover size preset applies
 	UsesCut  bool   // whether the cut mode applies; other formats keep their borders
+	UsesCrop bool   // whether the crop mode applies
 	// UsesHeader is whether the format prints the header the user types.
 	UsesHeader bool
 	// ShapedCells is whether cells follow the shape of the image: square
@@ -134,7 +136,7 @@ const (
 
 // Formats lists the print formats, the default first.
 var Formats = []Format{
-	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true, UsesCut: true, ShapedCells: true},
+	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true, UsesCut: true, UsesCrop: true, ShapedCells: true},
 	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", Noun: "card", UsesSize: false},
 	{ID: spinesFormat, Label: "Spines", FileTag: "spines", Noun: "spine", UsesSize: true},
 	{ID: stubsFormat, Label: "Ticket stubs", FileTag: "stubs", Noun: "stub", UsesSize: false},
@@ -163,6 +165,9 @@ type Options struct {
 	Size   string `json:"size"`   // a Size ID; "" means DefaultSize. Ignored by formats that do not use it.
 	Paper  string `json:"paper"`  // a Paper ID; "" means DefaultPaper
 	Cut    string `json:"cut"`    // a CutMode ID; "" means DefaultCut. Ignored by formats that do not use it.
+	// Crop is a CropMode ID; "" means DefaultCrop (no cropping). Ignored by
+	// formats that do not use it.
+	Crop string `json:"crop"`
 	// DateLabel labels the date field of review cards, e.g. "Read on";
 	// "" means Labels.CardDate ("Date" by default).
 	DateLabel string `json:"dateLabel"`
@@ -213,17 +218,22 @@ func (o Options) labels() Labels {
 // preset for a cover sheet, the card grid for review cards, the stub grid
 // for ticket stubs, the spine grid of the size preset (its cover height)
 // for spines, the polaroid frame grid of the size preset for polaroids,
-// for a full page the grid of a page of FullPageMax covers,
+// for a cover sheet with a crop mode the grid of its printed pieces (see
+// NewCropGrid), for a full page the grid of a page of FullPageMax covers,
 // below a header band if there is a header, and for a checklist its rows,
 // below the header band if there is a header (so PerPage counts the rows
 // that fit with or without one). The cut mode never changes the grid, but
-// an unknown one is an error.
+// an unknown one is an error; so is an unknown crop mode, in any format.
 func (o Options) Grid() (Grid, error) {
 	f, err := FormatByID(o.Format)
 	if err != nil {
 		return Grid{}, err
 	}
 	if _, err := CutModeByID(o.Cut); err != nil {
+		return Grid{}, err
+	}
+	crop, err := o.cropMode()
+	if err != nil {
 		return Grid{}, err
 	}
 	// Cards and stubs have a fixed size: only the paper applies.
@@ -262,17 +272,42 @@ func (o Options) Grid() (Grid, error) {
 	case polaFormat:
 		return NewPolaroidGrid(p.Page, s.CoverHeight)
 	}
+	if crop.ID != DefaultCrop {
+		return NewCropGrid(p.Page, crop, s.CoverHeight)
+	}
 	return NewGrid(p.Page, s.CoverHeight)
 }
 
-// PerPage is the number of covers, cards, spines, stubs, checklist rows or
-// polaroids on a full page.
+// cropMode is the crop mode that applies: that of Crop for a format that
+// uses one, else DefaultCrop. An unknown Crop is an error in any format.
+func (o Options) cropMode() (CropMode, error) {
+	c, err := CropModeByID(o.Crop)
+	if err != nil {
+		return CropMode{}, err
+	}
+	f, err := FormatByID(o.Format)
+	if err != nil {
+		return CropMode{}, err
+	}
+	if !f.UsesCrop {
+		return CropModeByID(DefaultCrop)
+	}
+	return c, nil
+}
+
+// PerPage is the number of covers, cards, spines, stubs, checklist rows,
+// polaroids or cropped photos on a full page: for a photo strip, the
+// strips times their frames.
 func (o Options) PerPage() (int, error) {
 	g, err := o.Grid()
 	if err != nil {
 		return 0, err
 	}
-	return g.PerPage(), nil
+	crop, err := o.cropMode()
+	if err != nil {
+		return 0, err
+	}
+	return g.PerPage() * crop.Frames, nil
 }
 
 // header is the header of a full page or checklist, its runs of spaces

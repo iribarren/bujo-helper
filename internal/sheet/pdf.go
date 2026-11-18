@@ -38,6 +38,7 @@ const (
 // of opts, to w: a cover sheet, a review card per image, a book spine per
 // image, a ticket stub per image, full pages of covers under a header, a
 // checklist row per image under a header, or a polaroid frame per image;
+// on a cover sheet with a crop mode, photos centre-cropped to its shape;
 // with opts.Credits, followed by credits pages for the images that have a
 // credit sidecar. Images are downscaled to 300 dpi at their printed size and re-encoded as
 // JPEG to keep the file small. If any image cannot be read or opts are
@@ -94,7 +95,15 @@ func build(paths []string, opts Options) (*fpdf.Fpdf, error) {
 	case polaFormat:
 		pdf, err = buildPolaroids(grid, paths, ratios)
 	default:
-		pdf, err = buildCovers(grid, paths, ratios, cut)
+		var crop CropMode
+		if crop, err = opts.cropMode(); err != nil {
+			return nil, err
+		}
+		if crop.ID != DefaultCrop {
+			pdf, err = buildCrops(grid, paths, crop, cut)
+		} else {
+			pdf, err = buildCovers(grid, paths, ratios, cut)
+		}
 	}
 	if err != nil {
 		return nil, err
@@ -120,31 +129,35 @@ func newPDF(page Page) *fpdf.Fpdf {
 }
 
 // buildCovers draws a cover sheet: each image in its cell as grid.Flow
-// lays them out, prepared for cutting as cut says. Border outlines each image with a grey line on its
-// cut box; None draws the image alone; Bleed runs the image Bleed past its
-// cut box, by repeating its edge pixels, and adds crop marks.
+// lays them out, prepared for cutting as cut says (see drawCovers).
 func buildCovers(grid Grid, paths []string, ratios []float64, cut CutMode) (*fpdf.Fpdf, error) {
 	pages, err := grid.Flow(ratios)
 	if err != nil {
 		return nil, err
 	}
-
-	pdf := newPDF(grid.Page)
-	bleed := cut.ID == bleedCut
-	if bleed {
-		pdf.SetDrawColor(0, 0, 0)
-		pdf.SetLineWidth(cropMarkWidth)
-	}
-	imgOpts := fpdf.ImageOptions{ImageType: "JPG"}
-
 	var boxes []Box
 	for _, page := range pages {
 		boxes = append(boxes, page...)
 	}
-	images, err := printImages(paths, boxes, bleed)
+	images, err := printImages(paths, boxes, cut.ID == bleedCut)
 	if err != nil {
 		return nil, err
 	}
+	return drawCovers(grid.Page, paths, pages, images, cut)
+}
+
+// drawCovers draws the prepared images, one per box, on pages of page
+// size, prepared for cutting as cut says. Border outlines each image with a
+// grey line on its cut box; None draws the image alone; Bleed runs the
+// image Bleed past its cut box, by repeating its edge pixels, and adds crop
+// marks.
+func drawCovers(page Page, paths []string, pages [][]Box, images []printed, cut CutMode) (*fpdf.Fpdf, error) {
+	pdf := newPDF(page)
+	if cut.ID == bleedCut {
+		pdf.SetDrawColor(0, 0, 0)
+		pdf.SetLineWidth(cropMarkWidth)
+	}
+	imgOpts := fpdf.ImageOptions{ImageType: "JPG"}
 
 	i := 0
 	for _, page := range pages {
@@ -271,6 +284,12 @@ func printImage(path string, heightMM float64, bleed bool) (printed, error) {
 	if err != nil {
 		return printed{}, err
 	}
+	return encodePrinted(path, src, heightMM, bleed)
+}
+
+// encodePrinted returns src, decoded from path, as a JPEG sized for a
+// printed height of heightMM, as printImage describes.
+func encodePrinted(path string, src image.Image, heightMM float64, bleed bool) (printed, error) {
 	img := fitImage(src, heightMM)
 	p := printed{w: img.Bounds().Dx(), h: img.Bounds().Dy()}
 	if bleed {

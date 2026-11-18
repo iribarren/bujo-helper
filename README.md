@@ -22,7 +22,7 @@ Book covers, movie posters, TV series posters, album covers, game box art and an
 - Vintage natural-history illustrations (plates) of plants and animals from Wikimedia Commons, each saved with a credit file, see [Nature](#nature).
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
-- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. See [Print sheet](#print-sheet).
+- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, with your own photos centre-cropped to standard print shapes (instant mini, square, 2 × 6 in photo strips or wallet), as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
 - English and Spanish interface. It follows the system language and can be changed in **Settings**, see [Language](#language).
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
@@ -312,16 +312,16 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 
 ## Print sheet
 
-The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers, [review cards](#review-cards), [spines](#spines), [ticket stubs](#ticket-stubs), a [full page](#full-page) of covers under a header, with nothing to cut, a [checklist](#checklist) to tick off as you read or watch, or [polaroids](#polaroid) with the title as a caption.
+The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers (or of photos [cropped](#crop-to) to standard print shapes), [review cards](#review-cards), [spines](#spines), [ticket stubs](#ticket-stubs), a [full page](#full-page) of covers under a header, with nothing to cut, a [checklist](#checklist) to tick off as you read or watch, or [polaroids](#polaroid) with the title as a caption.
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
 2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page**, **Checklist** or **Polaroid**. For review cards, pick what they are **Cards for** (Books, Movies, TV series or Albums); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** (for example "Books of 2026" or "TBR 2026"), or leave it empty.
 3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines, or polaroids) fit on that paper. On a cover sheet it follows the selection: when every selected image is square (albums), how many square covers fit; when every one gets a wide cell at that size (landscape artworks), how many images of the selection's middle shape fit, which is exact when they all share one shape; otherwise, and for mixed shapes, how many 2:3 covers fit.
-4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet, spines and polaroids, so it is disabled for review cards, ticket stubs, full pages and checklists.
-5. For a cover sheet, pick a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). It never changes how many covers fit on a page.
+4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet, spines and polaroids, so it is disabled for review cards, ticket stubs, full pages and checklists. On a cover sheet it is hidden for the crop modes with a fixed size (Instant mini, Photo strip and Wallet).
+5. For a cover sheet, pick what to **Crop to**: **None** (the default, whole images), **Instant mini**, **Square**, **Photo strip (3 frames)**, **Photo strip (4 frames)** or **Wallet** (see [Crop to](#crop-to)), and a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). The cut mode never changes how many covers fit on a page; it is hidden for Instant mini and photo strips, which always keep their frame border.
 6. Leave **Credits page** checked (the default) to end the PDF with the author and licence of every selected image that has a credit file, in every format (see [Credits page](#credits-page)). Uncheck it to print the images only.
 7. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size (and, for a checklist, header), including any credits pages. The page count is exact: it reads the size of each selected image, since square and landscape covers take more room on a cover sheet (an image that cannot be read counts as a 2:3 cover).
-8. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `spines_A4_Standard.pdf`, `polaroid_A4_Standard.pdf` or, for review cards, ticket stubs, full pages and checklists, `cards_A4.pdf`, `stubs_A4.pdf`, `fullpage_A4.pdf` and `checklist_A4.pdf`), then **Open PDF** to view it.
+8. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `covers_A4_instax.pdf`, `covers_A4_Large_square.pdf`, `spines_A4_Standard.pdf`, `polaroid_A4_Standard.pdf` or, for review cards, ticket stubs, full pages and checklists, `cards_A4.pdf`, `stubs_A4.pdf`, `fullpage_A4.pdf` and `checklist_A4.pdf`), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 
@@ -371,6 +371,33 @@ The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, s
 - The grid, the covers per page and the page count are the same in every cut mode. The suggested file name ends in `_bleed` or `_none` for those modes, for example `covers_A4_Standard_bleed.pdf`.
 
 **Print then cut:** Cricut Design Space and Silhouette Studio add their own registration marks when you import a page, so the app draws none. Import the **Bleed** or **None** PDF page into the machine's app and run its print-then-cut flow there. Cricut limits the Print Then Cut area to less than a full page (see Cricut's help article "How large can I Print Then Cut?"), so a full-page sheet may need scaling or fewer covers.
+
+### Crop to
+
+**Crop to** prints the photos of a cover sheet in a standard print shape, for example your own photos on sticker paper. Each photo is centre-cropped to fill its window exactly, with no distortion: a photo wider than the window loses equal strips at the left and right, a taller one at the top and bottom. The image files are never changed; cropping happens when the PDF is built, before the usual 300 dpi downscale.
+
+| Crop to                | Printed piece (mm)                       | Photo window (mm)                                       | Size / cut mode |
+|------------------------|------------------------------------------|---------------------------------------------------------|-----------------|
+| **None** (default)     | the cover sheet above                    | whole images, not cropped                               | both apply      |
+| Instant mini           | 54 × 86 white frame, grey cut border     | 46 × 62, 4 mm from the sides and 7 mm from the top (17 mm empty band below) | neither         |
+| Square                 | *h* × *h*, filled by the photo           | the whole piece; *h* is the **Cover size** (25, 50 or 80 mm) | both apply |
+| Photo strip (3 frames) | 50.8 × 152.4 (2 × 6 in) strip, grey cut border | 3 frames of 44.8 × 46.8, 3 mm from the edges and apart | neither  |
+| Photo strip (4 frames) | 50.8 × 152.4 (2 × 6 in) strip, grey cut border | 4 frames of 44.8 × 34.35, 3 mm from the edges and apart | neither |
+| Wallet                 | 64 × 89, filled by the photo             | the whole piece                                         | cut mode only   |
+
+- A photo strip takes consecutive photos, top to bottom; the last strip may have empty frames.
+- Square and wallet photos follow the [cut mode](#cut-mode) like covers, bleed and crop marks included (the bleed repeats the cropped photo's edge pixels).
+- Pieces are centred on the page with 4 mm gaps and at least 8 mm margins. Photos per page (pieces for strips × their frames):
+
+| Paper     | Instant mini | Square Mini / **Standard** / Large | Photo strip (3) | Photo strip (4) | Wallet    |
+|-----------|--------------|------------------------------------|-----------------|-----------------|-----------|
+| **A4**    | 3 × 3 = 9    | 54 / 15 / 6                        | 3 strips = 9    | 3 strips = 12   | 2 × 3 = 6 |
+| US Letter | 3 × 2 = 6    | 63 / 12 / 6                        | 3 strips = 9    | 3 strips = 12   | 2 × 2 = 4 |
+| A5        | 2 × 2 = 4    | 24 / 6 / 2                         | 2 strips = 6    | 2 strips = 8    | 2 × 2 = 4 |
+
+- The page count and size labels count photos, whatever their shape.
+- The suggested file name adds the crop mode after the cover size (only for Square), for example `covers_A4_instax.pdf`, `covers_A4_Large_square.pdf`, `covers_Letter_wallet_bleed.pdf` or `covers_A4_strip4.pdf`.
+- Only the cover sheet crops; the other formats ignore **Crop to**.
 
 ### Credits page
 

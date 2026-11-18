@@ -137,6 +137,8 @@ export const es: Messages = {
     'print.paperTitle': 'Papel en el que imprimes. La cuadrícula se recalcula para llenarlo.',
     'print.size': 'Tamaño de portada',
     'print.sizeTitle': 'Altura de cada portada, lomo o foto de polaroid impresos. Con tamaños más pequeños caben más por página.',
+    'print.crop': 'Recortar a',
+    'print.cropTitle': 'Recorta cada foto a un formato de impresión estándar. Las fotos se recortan por el centro para llenar exactamente su ventana; los archivos de imagen no se modifican. Ninguno: imágenes completas al tamaño de portada. Instantánea mini: un marco blanco de 54 × 86 mm alrededor de una foto de 46 × 62 mm. Cuadrado: fotos cuadradas al tamaño de portada. Tira de fotos: tiras de 2 × 6 in con 3 o 4 fotos seguidas. Cartera: fotos de 64 × 89 mm.',
     'print.cut': 'Modo de corte',
     'print.cutTitle': 'Cómo se preparan las portadas para recortarlas. Borde: una fina línea gris sobre la línea de corte. Sangrado + marcas de corte: cada imagen sobresale 1 mm de su línea de corte, con marcas en las esquinas, para máquinas de impresión y corte o para recortar a mano sin bordes blancos. Ninguno: solo las imágenes.',
     'print.credits': 'Página de créditos',
@@ -163,6 +165,7 @@ export const es: Messages = {
     'print.errSizes': 'No se han podido cargar los tamaños de portada: {error}',
     'print.errPapers': 'No se han podido cargar los tamaños de papel: {error}',
     'print.errCuts': 'No se han podido cargar los modos de corte: {error}',
+    'print.errCrops': 'No se han podido cargar los modos de recorte: {error}',
 
     // Print formats (Go: sheet.Formats), by ID, and what each prints.
     'format.covers': 'Hoja de portadas',
@@ -189,7 +192,8 @@ export const es: Messages = {
     'noun.polaroid_one': '{n} polaroid',
     'noun.polaroid_other': '{n} polaroids',
 
-    // Cover sizes, papers and cut modes (Go: sheet.Sizes, Papers, CutModes).
+    // Cover sizes, papers, cut and crop modes (Go: sheet.Sizes, Papers,
+    // CutModes, CropModes).
     'size.mini': 'Mini',
     'size.standard': 'Estándar',
     'size.large': 'Grande',
@@ -199,6 +203,12 @@ export const es: Messages = {
     'cut.border': 'Borde',
     'cut.bleed': 'Sangrado + marcas de corte',
     'cut.none': 'Ninguno',
+    'crop.none': 'Ninguno',
+    'crop.instax': 'Instantánea mini',
+    'crop.square': 'Cuadrado',
+    'crop.strip3': 'Tira de fotos (3 fotos)',
+    'crop.strip4': 'Tira de fotos (4 fotos)',
+    'crop.wallet': 'Cartera',
 
     // Settings dialog.
     'settings.title': 'Ajustes',

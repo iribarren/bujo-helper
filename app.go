@@ -611,6 +611,7 @@ type PrintFormatInfo struct {
 	Noun       string `json:"noun"`       // what one printed item is called, e.g. "card"
 	UsesSize   bool   `json:"usesSize"`   // whether the cover size preset applies
 	UsesCut    bool   `json:"usesCut"`    // whether the cut mode applies
+	UsesCrop   bool   `json:"usesCrop"`   // whether the crop mode applies
 	UsesHeader bool   `json:"usesHeader"` // whether the format prints the header the user types
 	Default    bool   `json:"default"`
 }
@@ -625,6 +626,7 @@ func (a *App) PrintFormats() []PrintFormatInfo {
 			Noun:       f.Noun,
 			UsesSize:   f.UsesSize,
 			UsesCut:    f.UsesCut,
+			UsesCrop:   f.UsesCrop,
 			UsesHeader: f.UsesHeader,
 			Default:    f.ID == sheet.DefaultFormat,
 		})
@@ -648,6 +650,33 @@ func (a *App) PrintCutModes() []PrintCutModeInfo {
 			ID:      c.ID,
 			Label:   c.Label,
 			Default: c.ID == sheet.DefaultCut,
+		})
+	}
+	return out
+}
+
+// PrintCropModeInfo describes a crop mode for the Print sheet tab.
+type PrintCropModeInfo struct {
+	ID       string `json:"id"`
+	Label    string `json:"label"`
+	UsesSize bool   `json:"usesSize"` // whether the cover size preset applies
+	UsesCut  bool   `json:"usesCut"`  // whether the cut mode applies
+	Frames   int    `json:"frames"`   // photos per printed piece: a strip's frames, else 1
+	Default  bool   `json:"default"`
+}
+
+// PrintCropModes lists the crop modes of a cover sheet, the default (no
+// cropping) first. PrintPapers has how many photos each fits on a page.
+func (a *App) PrintCropModes() []PrintCropModeInfo {
+	out := make([]PrintCropModeInfo, 0, len(sheet.CropModes))
+	for _, c := range sheet.CropModes {
+		out = append(out, PrintCropModeInfo{
+			ID:       c.ID,
+			Label:    c.Label,
+			UsesSize: c.UsesSize,
+			UsesCut:  c.UsesCut,
+			Frames:   c.Frames,
+			Default:  c.ID == sheet.DefaultCrop,
 		})
 	}
 	return out
@@ -696,6 +725,12 @@ type PrintPaperInfo struct {
 	// (the cover sheet); in other formats they fit PerPage. For example 15
 	// standard album covers on A4, against 25 book covers.
 	SquarePerPage map[string]map[string]int `json:"squarePerPage"`
+	// CropPerPage is how many photos fit on a full page of a cover sheet
+	// cropped to a standard print shape, by crop mode ID, then size ID for
+	// a mode that uses one (else ""), for every crop mode but None (which
+	// is PerPage). For example 9 instant minis, or 12 photos in strips of
+	// 4, on A4.
+	CropPerPage map[string]map[string]int `json:"cropPerPage"`
 }
 
 // PrintPapers lists the paper size presets, the default first, with how many
@@ -759,7 +794,38 @@ func (a *App) PrintPapers() []PrintPaperInfo {
 			PerPage:       perPage,
 			HeaderPerPage: headerPerPage,
 			SquarePerPage: squarePerPage,
+			CropPerPage:   cropPerPage(p.ID),
 		})
+	}
+	return out
+}
+
+// cropPerPage is PrintPaperInfo.CropPerPage for the paper paperID.
+func cropPerPage(paperID string) map[string]map[string]int {
+	out := make(map[string]map[string]int, len(sheet.CropModes))
+	for _, c := range sheet.CropModes {
+		if c.ID == sheet.DefaultCrop {
+			continue
+		}
+		sizes := []string{""}
+		if c.UsesSize {
+			sizes = make([]string, 0, len(sheet.Sizes))
+			for _, s := range sheet.Sizes {
+				sizes = append(sizes, s.ID)
+			}
+		}
+		counts := make(map[string]int, len(sizes))
+		for _, size := range sizes {
+			n, err := sheet.Options{Paper: paperID, Size: size, Crop: c.ID}.PerPage()
+			if err != nil {
+				// Every crop mode fits every paper; sheet tests guard
+				// this.
+				log.Printf("crop mode %s, size %q on %s: %v", c.ID, size, paperID, err)
+				continue
+			}
+			counts[size] = n
+		}
+		out[c.ID] = counts
 	}
 	return out
 }
@@ -833,6 +899,10 @@ func (a *App) PrintPages(paths []string, opts sheet.Options) (PrintPagesInfo, er
 func widePerPage(ratios []float64, opts sheet.Options) map[string]int {
 	f, err := sheet.FormatByID(opts.Format)
 	if err != nil || !f.ShapedCells || len(ratios) == 0 {
+		return nil
+	}
+	// Cropped photos all take the same piece.
+	if c, err := sheet.CropModeByID(opts.Crop); err != nil || f.UsesCrop && c.ID != sheet.DefaultCrop {
 		return nil
 	}
 	sorted := slices.Clone(ratios)
@@ -916,11 +986,13 @@ func (a *App) withLabels(opts sheet.Options) sheet.Options {
 }
 
 // pdfFileName is the default name of the PDF opts describe, e.g.
-// "covers_A4_Standard.pdf", "covers_A4_Standard_bleed.pdf", "cards_A4.pdf",
+// "covers_A4_Standard.pdf", "covers_A4_Standard_bleed.pdf",
+// "covers_A4_instax.pdf", "covers_A4_Large_square.pdf", "cards_A4.pdf",
 // "spines_A4_Mini.pdf", "stubs_A4.pdf", "fullpage_A4.pdf",
 // "checklist_A4.pdf" or "polaroid_A4_Standard.pdf".
-// The format, paper and, when the format uses them, size and a cut mode
-// other than the default tell sheets with other settings apart.
+// The format, paper and, when they apply, size, a crop mode other than
+// None and a cut mode other than the default tell sheets with other
+// settings apart.
 func pdfFileName(opts sheet.Options) (string, error) {
 	format, err := sheet.FormatByID(opts.Format)
 	if err != nil {
@@ -930,15 +1002,25 @@ func pdfFileName(opts sheet.Options) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	crop, err := sheet.CropModeByID(opts.Crop)
+	if err != nil {
+		return "", err
+	}
+	if !format.UsesCrop {
+		crop, _ = sheet.CropModeByID(sheet.DefaultCrop)
+	}
 	name := format.FileTag + "_" + paper.FileTag
-	if format.UsesSize {
+	if format.UsesSize && crop.UsesSize {
 		size, err := sheet.SizeByID(opts.Size)
 		if err != nil {
 			return "", err
 		}
 		name += "_" + size.FileTag
 	}
-	if format.UsesCut {
+	if crop.ID != sheet.DefaultCrop {
+		name += "_" + crop.FileTag
+	}
+	if format.UsesCut && crop.UsesCut {
 		cut, err := sheet.CutModeByID(opts.Cut)
 		if err != nil {
 			return "", err

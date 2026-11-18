@@ -54,6 +54,28 @@ export namespace main {
 	        this.dateLabel = source["dateLabel"];
 	    }
 	}
+	export class PrintCropModeInfo {
+	    id: string;
+	    label: string;
+	    usesSize: boolean;
+	    usesCut: boolean;
+	    frames: number;
+	    default: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrintCropModeInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.usesSize = source["usesSize"];
+	        this.usesCut = source["usesCut"];
+	        this.frames = source["frames"];
+	        this.default = source["default"];
+	    }
+	}
 	export class PrintCutModeInfo {
 	    id: string;
 	    label: string;
@@ -76,6 +98,7 @@ export namespace main {
 	    noun: string;
 	    usesSize: boolean;
 	    usesCut: boolean;
+	    usesCrop: boolean;
 	    usesHeader: boolean;
 	    default: boolean;
 	
@@ -90,6 +113,7 @@ export namespace main {
 	        this.noun = source["noun"];
 	        this.usesSize = source["usesSize"];
 	        this.usesCut = source["usesCut"];
+	        this.usesCrop = source["usesCrop"];
 	        this.usesHeader = source["usesHeader"];
 	        this.default = source["default"];
 	    }
@@ -121,6 +145,7 @@ export namespace main {
 	    perPage: Record<string, any>;
 	    headerPerPage: Record<string, number>;
 	    squarePerPage: Record<string, any>;
+	    cropPerPage: Record<string, any>;
 	
 	    static createFrom(source: any = {}) {
 	        return new PrintPaperInfo(source);
@@ -136,6 +161,7 @@ export namespace main {
 	        this.perPage = source["perPage"];
 	        this.headerPerPage = source["headerPerPage"];
 	        this.squarePerPage = source["squarePerPage"];
+	        this.cropPerPage = source["cropPerPage"];
 	    }
 	}
 	export class PrintSizeInfo {
@@ -229,6 +255,7 @@ export namespace sheet {
 	    size: string;
 	    paper: string;
 	    cut: string;
+	    crop: string;
 	    dateLabel: string;
 	    header: string;
 	    credits: boolean;
@@ -243,6 +270,7 @@ export namespace sheet {
 	        this.size = source["size"];
 	        this.paper = source["paper"];
 	        this.cut = source["cut"];
+	        this.crop = source["crop"];
 	        this.dateLabel = source["dateLabel"];
 	        this.header = source["header"];
 	        this.credits = source["credits"];
