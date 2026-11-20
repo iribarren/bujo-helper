@@ -517,6 +517,18 @@ Order: 29 → 30 → 31, then the generated printables.
 
 **Why:** generated pages have no thumbnails, so without a preview the user exports blind. A real preview also helps Print covers (spines, stubs and polaroids are hard to imagine from the gallery).
 
+**Done in branch `feat/live-preview`** (see `odd/tasks/live-preview.md`):
+- Backend: `internal/preview` keeps the last 4 renders in memory and serves them at `/preview?id=N` next to `/thumbs`; the `PreviewPDF` and `PreviewPage` bindings render through the same functions as `ExportPDF` and `ExportPage` and answer the URL and page count (9657cae).
+- **Make pages** shows the live preview by default, with ‹ › and "Page X of N"; requests are debounced (300 ms) and numbered so only the newest is drawn (e72af35).
+- **Print covers** gets a **Gallery | Preview** switch; Preview shows the selected covers with the export's options, and renders again after a language change (stub, card and credits labels) (65f18dd).
+- Review follow-up: a page that cannot be drawn shows the error, and the old page stays, dimmed, until the next one is drawn (9ece906). README documents the preview and the pdf.js licence (the `docs:` commit after 9ece906).
+- Decisions:
+  - pdf.js on a `<canvas>` on every platform: WebKitGTK's built-in PDF.js viewer is behind a setting Wails doesn't expose (and older builds lack it), and the native viewers show their own chrome.
+  - The **legacy** pdf.js build: the modern one calls `Map.prototype.getOrInsertComputed` and `Math.sumPrecise` unguarded, which only the newest engines have.
+  - The frontend fetches the PDF bytes and passes them to `getDocument({data})`, because pdf.js streams only http(s) URLs and Linux serves the app from `wails://`.
+  - fpdf stamps `CreationDate` with the current time, so the tests that compare preview and export bytes pin the dates and set the catalog sort.
+  - On an option change the preview stays on the page shown, clamped to the new page count.
+
 **Scope**
 - Go renders the current options to PDF bytes in memory and serves them through the existing asset handler (the one behind `thumbUrl`). No temp file is left behind.
 - The frontend draws page 1, with next/previous for more pages, onto a `<canvas>` using **pdf.js** (`pdfjs-dist`, Apache 2.0, bundled by Vite and not loaded from a CDN). Verify first whether WebKitGTK, WebView2 and WKWebView render PDFs natively in an `<iframe>`. Assumption: WebKitGTK does not, so pdf.js is needed on Linux.
