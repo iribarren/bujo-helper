@@ -40,6 +40,9 @@ func NewIMDbTV(client *http.Client) *IMDb {
 // Name implements media.Provider.
 func (p *IMDb) Name() string { return "imdb" }
 
+// Label implements media.Labeler.
+func (*IMDb) Label() string { return "IMDb" }
+
 // imdbMovieTypes are the suggestion kinds (qid) kept as movies.
 var imdbMovieTypes = map[string]bool{"movie": true, "tvMovie": true, "short": true, "video": true}
 

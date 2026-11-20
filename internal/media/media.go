@@ -79,6 +79,22 @@ type Provider interface {
 	Search(ctx context.Context, item Item, opts Options) ([]Candidate, error)
 }
 
+// Labeler is implemented by providers that have a display name for the
+// UI, such as "Open Library" for the "openlibrary" provider.
+type Labeler interface {
+	Label() string
+}
+
+// ProviderLabel returns p's display name, or its Name when it has none.
+func ProviderLabel(p Provider) string {
+	if l, ok := p.(Labeler); ok {
+		if label := l.Label(); label != "" {
+			return label
+		}
+	}
+	return p.Name()
+}
+
 // MediaType describes a kind of media and the providers that serve it,
 // tried in order.
 type MediaType struct {

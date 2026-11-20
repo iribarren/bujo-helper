@@ -41,6 +41,7 @@ export namespace main {
 	    label: string;
 	    creatorLabel: string;
 	    dateLabel: string;
+	    sources: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new MediaTypeInfo(source);
@@ -52,6 +53,7 @@ export namespace main {
 	        this.label = source["label"];
 	        this.creatorLabel = source["creatorLabel"];
 	        this.dateLabel = source["dateLabel"];
+	        this.sources = source["sources"];
 	    }
 	}
 	export class PrintCropModeInfo {

@@ -134,6 +134,8 @@ const ui = {
     results: byId<HTMLUListElement>('results'),
     summary: byId<HTMLSpanElement>('summary'),
     openFolder: byId<HTMLButtonElement>('open-folder'),
+    printThese: byId<HTMLButtonElement>('print-these'),
+    sources: byId<HTMLParagraphElement>('sources'),
 };
 
 let mediaTypes: main.MediaTypeInfo[] = [];
@@ -268,7 +270,16 @@ function updateSampleButton() {
     }
 }
 
+// updateSources lists the sources tried for the selected media type, in
+// order, under the media type buttons.
+function updateSources() {
+    const sources = currentMediaType()?.sources ?? [];
+    ui.sources.hidden = sources.length === 0;
+    ui.sources.textContent = sources.length ? t('download.sources', {sources: sources.join(', ')}) : '';
+}
+
 function updateMediaType() {
+    updateSources();
     updatePlaceholder();
     updateKeyTip();
     updateSampleButton();
@@ -390,7 +401,14 @@ function applyResult(ev: ItemEvent) {
     renderResult(row, ev);
     finished++;
     updateProgress();
-    ui.openFolder.hidden = false;
+    showFolderActions(true);
+}
+
+// showFolderActions shows or hides the footer actions on the job's folder:
+// Open folder and Print these covers.
+function showFolderActions(show: boolean) {
+    ui.openFolder.hidden = !show;
+    ui.printThese.hidden = !show;
 }
 
 function renderSummary(done: DoneEvent) {
@@ -406,7 +424,7 @@ function finishJob(done: DoneEvent) {
     hideRateLimit();
     lastDone = done;
     renderSummary(done);
-    ui.openFolder.hidden = false;
+    showFolderActions(true);
     if (done.error) showError(done.error);
 }
 
@@ -433,7 +451,7 @@ async function startDownload() {
     earlyDone = null;
     ui.summary.textContent = '';
     lastDone = null;
-    ui.openFolder.hidden = true;
+    showFolderActions(false);
     jobFolder = ui.outputDir.value;
     try {
         const views = await Start(new main.StartRequest({
@@ -540,6 +558,7 @@ async function openFolder() {
 // keeping the selections, the typed list and the results.
 function relabel() {
     fillMediaTypes();
+    updateSources();
     updatePlaceholder();
     updateKeyTip();
     updateSampleButton();
@@ -602,10 +621,14 @@ export function outputFolder(): string {
 }
 
 const appRoot = byId<HTMLDivElement>('app');
-initTabs(byId<HTMLDivElement>('tabs'), (name) => {
+const tabs = initTabs(byId<HTMLDivElement>('tabs'), (name) => {
     appRoot.dataset.tab = name;
     if (name === 'print') printSheet?.activate();
 });
+
+// Print these covers opens Print covers like its tab does; with no folder
+// chosen there, it shows the download output folder.
+ui.printThese.addEventListener('click', () => tabs.select('print', true));
 
 // Ctrl+Enter starts a download; it does nothing while the print sheet or
 // the Settings dialog is shown. This capture listener runs before the

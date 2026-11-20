@@ -45,6 +45,9 @@ func NewWikimedia(client *http.Client) *Wikimedia {
 // Name implements media.Provider.
 func (p *Wikimedia) Name() string { return "wikimedia" }
 
+// Label implements media.Labeler.
+func (*Wikimedia) Label() string { return "Wikimedia Commons" }
+
 // wikimediaMaxImages caps the hits whose Commons image info is fetched,
 // and so the candidates of a place search.
 const wikimediaMaxImages = 3

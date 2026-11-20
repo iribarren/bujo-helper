@@ -54,6 +54,9 @@ type MediaTypeInfo struct {
 	Label        string `json:"label"`
 	CreatorLabel string `json:"creatorLabel"`
 	DateLabel    string `json:"dateLabel"` // date field label on review cards
+	// Sources are the display names of the type's providers, in the order
+	// they are tried.
+	Sources []string `json:"sources"`
 }
 
 // defaultCountry is used when the UI sends no country: Spain, so covers of
@@ -320,7 +323,17 @@ func (a *App) MediaTypes() []MediaTypeInfo {
 			Label:        t.Label,
 			CreatorLabel: t.CreatorLabel,
 			DateLabel:    t.DateLabel,
+			Sources:      sources(t.Providers),
 		})
+	}
+	return out
+}
+
+// sources returns the display names of providers, in order.
+func sources(providers []media.Provider) []string {
+	out := make([]string, 0, len(providers))
+	for _, p := range providers {
+		out = append(out, media.ProviderLabel(p))
 	}
 	return out
 }

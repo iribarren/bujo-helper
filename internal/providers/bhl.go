@@ -74,6 +74,9 @@ func NewBHL(client *http.Client, key func() string, taxa *TaxonResolver) *BHL {
 // Name implements media.Provider.
 func (p *BHL) Name() string { return "bhl" }
 
+// Label implements media.Labeler.
+func (*BHL) Label() string { return "Biodiversity Heritage Library" }
+
 const (
 	// bhlMaxItems caps the volumes whose rights are looked up.
 	bhlMaxItems = 3

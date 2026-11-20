@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"bujo-helper/internal/batch"
+	"bujo-helper/internal/catalog"
 	"bujo-helper/internal/downloader"
 	"bujo-helper/internal/i18n"
 	"bujo-helper/internal/media"
@@ -224,8 +225,47 @@ func TestCancel(t *testing.T) {
 func TestMediaTypes(t *testing.T) {
 	a, _ := testApp(t, &fakeProvider{})
 	got := a.MediaTypes()
-	if len(got) != 1 || got[0] != (MediaTypeInfo{ID: "books", Label: "Books", CreatorLabel: "Author", DateLabel: "Read on"}) {
-		t.Errorf("MediaTypes = %+v", got)
+	want := []MediaTypeInfo{{ID: "books", Label: "Books", CreatorLabel: "Author", DateLabel: "Read on",
+		// The fake provider has no display name, so its Name stands in.
+		Sources: []string{"fake"}}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("MediaTypes = %+v, want %+v", got, want)
+	}
+}
+
+// The sources line lists each media type's providers by display name, in
+// the order they are tried.
+func TestMediaTypesListSourcesInOrder(t *testing.T) {
+	a := newApp(catalog.Default(http.DefaultClient, catalog.Keys{}), http.DefaultClient)
+	got := map[string][]string{}
+	for _, mt := range a.MediaTypes() {
+		got[mt.ID] = mt.Sources
+	}
+	want := map[string][]string{
+		"books":  {"Apple Books", "Open Library", "Amazon"},
+		"movies": {"TMDB", "IMDb", "Wikidata/iTunes"},
+		"albums": {"MusicBrainz", "Apple Music"},
+	}
+	for id, w := range want {
+		if !reflect.DeepEqual(got[id], w) {
+			t.Errorf("%s sources = %q, want %q", id, got[id], w)
+		}
+	}
+}
+
+// Every provider in the catalog has its own display name, so the sources
+// line never shows an internal provider id.
+func TestCatalogProvidersHaveDisplayNames(t *testing.T) {
+	for _, mt := range catalog.Default(http.DefaultClient, catalog.Keys{}).List() {
+		if len(mt.Providers) == 0 {
+			t.Errorf("%s: no providers", mt.ID)
+		}
+		for _, p := range mt.Providers {
+			l, ok := p.(media.Labeler)
+			if !ok || strings.TrimSpace(l.Label()) == "" {
+				t.Errorf("%s: provider %q has no display name", mt.ID, p.Name())
+			}
+		}
 	}
 }
 

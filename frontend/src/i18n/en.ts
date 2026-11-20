@@ -44,6 +44,8 @@ export const en = {
     'download.start': 'Download covers',
     'download.cancel': 'Cancel',
     'download.openFolder': 'Open folder',
+'download.printThese': 'Print these covers',
+'download.sources': 'Sources tried in order: {sources}',
     'download.waiting': 'Waiting…',
     'download.matched': 'Matched: {matched}',
     'download.rateLimit': 'Waiting {seconds}s — rate limit at {host}',

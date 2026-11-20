@@ -303,12 +303,12 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 
 ## Using the app
 
-1. Choose the media type: **Books**, **Movies**, **TV series**, **Albums** or **Games**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters; for games, add IGDB credentials for box art beyond PC games; for nature, a BHL API key adds plates when Commons has none.
+1. Choose the media type: **Books**, **Movies**, **TV series**, **Albums** or **Games**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters; for games, add IGDB credentials for box art beyond PC games; for nature, a BHL API key adds plates when Commons has none. The line under the media type buttons lists the sources tried for that type, in order (for books: Apple Books, Open Library, Amazon).
 2. Type or paste items, one per line, or click **Import CSV…**.
 3. Check the output folder (default: `~/Pictures/Covers`, or `%USERPROFILE%\Pictures\Covers` on Windows), and change it with **Browse…** if needed.
 4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
 5. Click **Download covers** or press **Ctrl+Enter**.
-6. When items finish, click **Open folder** to see the images.
+6. When items finish, click **Open folder** to see the images, or **Print these covers** to switch to the [print sheet](#print-sheet) tab, which shows the output folder unless you chose another folder there.
 
 ## Print sheet
 
@@ -701,7 +701,7 @@ legacy/                the original Python script
 
 ## Adding a new media type
 
-1. Implement `media.Provider` (`Name()` and `Search(ctx, item, opts)`) for each source, usually in `internal/providers`. Return candidates best-first with their image URLs ordered best-first. Return an error wrapping `media.ErrNotFound` when there is no match. Set `Credit` on a candidate whose image needs an attribution file; the downloader saves it as `<image file>.credit.txt`.
+1. Implement `media.Provider` (`Name()` and `Search(ctx, item, opts)`) for each source, usually in `internal/providers`, plus `Label()` with the source's display name (for example `Open Library`), which the Download tab lists under the media types; a test checks every catalog provider has one. Return candidates best-first with their image URLs ordered best-first. Return an error wrapping `media.ErrNotFound` when there is no match. Set `Credit` on a candidate whose image needs an attribution file; the downloader saves it as `<image file>.credit.txt`.
 2. Register a `media.MediaType` in `internal/catalog` with an ID, a label, a creator label (for example `Year` or `Artist`) and its providers in fallback order. Set `LocalEditions` only for types whose candidates carry an ISBN (books).
 
 That's all. The UI lists media types from the registry and uses the creator label in its hints, so no frontend changes are needed.

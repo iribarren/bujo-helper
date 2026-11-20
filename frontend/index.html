@@ -37,6 +37,7 @@
         <div class="field">
             <span id="media-type-label" data-i18n="app.mediaType">Media type</span>
             <div id="media-type" class="radio-grid" role="radiogroup" aria-labelledby="media-type-label"></div>
+            <p id="sources" class="sources muted" hidden></p>
         </div>
 
         <div class="toolbar">
@@ -83,7 +84,10 @@
 
         <footer class="footer">
             <span id="summary" class="muted"></span>
-            <button id="open-folder" type="button" hidden data-i18n="download.openFolder">Open folder</button>
+            <div class="row">
+                <button id="open-folder" type="button" hidden data-i18n="download.openFolder">Open folder</button>
+                <button id="print-these" class="accent-outline" type="button" hidden data-i18n="download.printThese">Print these covers</button>
+            </div>
         </footer>
     </section>
     </div>

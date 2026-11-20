@@ -1,7 +1,9 @@
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 
-import {beforeAll, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
+
+import {useLanguage} from './language';
 
 // main.ts wires the whole page when imported, so these tests load the real
 // markup, stub the Go bindings and the Wails runtime, and drive the page
@@ -9,8 +11,8 @@ import {beforeAll, describe, expect, it, vi} from 'vitest';
 
 const {mediaTypes} = vi.hoisted(() => ({
     mediaTypes: [
-        {id: 'books', label: 'Books', creatorLabel: 'Author'},
-        {id: 'nature', label: 'Nature', creatorLabel: ''},
+        {id: 'books', label: 'Books', creatorLabel: 'Author', sources: ['Apple Books', 'Open Library', 'Amazon']},
+        {id: 'nature', label: 'Nature', creatorLabel: '', sources: ['Wikimedia Commons', 'Biodiversity Heritage Library']},
         {id: 'anime', label: 'Anime', creatorLabel: 'Year'},
         {id: 'manga', label: 'Manga', creatorLabel: 'Year'},
         // A label Go never sends (the json tag has no omitempty), or one
@@ -170,5 +172,55 @@ describe('media type', () => {
         el('tab-print').click();
         expect(el<HTMLSelectElement>('print-media').value).toBe('manga');
         el('tab-download').click();
+    });
+});
+
+describe('sources line', () => {
+    afterEach(async () => {
+        await useLanguage('en');
+    });
+
+    const cases: Array<[type: string, want: string]> = [
+        ['books', 'Sources tried in order: Apple Books, Open Library, Amazon'],
+        ['nature', 'Sources tried in order: Wikimedia Commons, Biodiversity Heritage Library'],
+    ];
+    for (const [type, want] of cases) {
+        it(`lists the ${type} sources under the media types`, () => {
+            selectType(type);
+            expect(el('sources').hidden).toBe(false);
+            expect(el('sources').textContent).toBe(want);
+        });
+    }
+
+    it('is hidden for a type without sources', () => {
+        selectType('anime');
+        expect(el('sources').hidden).toBe(true);
+    });
+
+    it('follows the language', async () => {
+        selectType('books');
+        await useLanguage('es');
+        expect(el('sources').textContent).toBe('Fuentes consultadas por orden: Apple Books, Open Library, Amazon');
+    });
+});
+
+describe('print these covers', () => {
+    afterEach(() => {
+        el('tab-download').click();
+    });
+
+    it('sits in the download footer after Open folder', () => {
+        const link = el('print-these');
+        expect(link.closest('footer')).toBe(el('open-folder').closest('footer'));
+        expect(el('open-folder').compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(link.textContent).toBe('Print these covers');
+    });
+
+    it('switches to the Print covers tab', () => {
+        el('print-these').click();
+        expect(el('app').dataset.tab).toBe('print');
+        expect(el('panel-print').hidden).toBe(false);
+        expect(el('panel-download').hidden).toBe(true);
+        expect(el('tab-print').getAttribute('aria-selected')).toBe('true');
     });
 });

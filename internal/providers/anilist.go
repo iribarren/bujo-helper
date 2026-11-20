@@ -70,6 +70,9 @@ func NewAniListManga(client *http.Client) *AniList { return NewAniList(client, A
 // Name implements media.Provider.
 func (p *AniList) Name() string { return "anilist" }
 
+// Label implements media.Labeler.
+func (*AniList) Label() string { return "AniList" }
+
 type aniListResponse struct {
 	Data struct {
 		Page struct {

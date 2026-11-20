@@ -124,6 +124,13 @@ button.primary:hover:not(:disabled) {
     background: var(--accent-hover);
 }
 
+/* A secondary action that leads elsewhere, such as "Print these covers". */
+button.accent-outline {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+
 button:disabled,
 input:disabled,
 select:disabled,
@@ -582,6 +589,12 @@ textarea {
     border-color: var(--accent);
     background: var(--accent-soft);
     font-weight: 600;
+}
+
+/* The sources tried for the selected media type, under its buttons. */
+.sources {
+    margin: 0;
+    font-size: 12px;
 }
 
 #count {

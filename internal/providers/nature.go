@@ -53,6 +53,9 @@ func NewCommonsNature(client *http.Client, taxa *TaxonResolver) *CommonsNature {
 // Name implements media.Provider.
 func (p *CommonsNature) Name() string { return "commons-nature" }
 
+// Label implements media.Labeler.
+func (*CommonsNature) Label() string { return "Wikimedia Commons" }
+
 const (
 	// natureMaxImages caps the files of a search whose image info is
 	// fetched.

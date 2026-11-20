@@ -38,6 +38,8 @@ export const es: Messages = {
     'download.start': 'Descargar portadas',
     'download.cancel': 'Cancelar',
     'download.openFolder': 'Abrir carpeta',
+'download.printThese': 'Imprimir estas portadas',
+'download.sources': 'Fuentes consultadas por orden: {sources}',
     'download.waiting': 'En espera…',
     'download.matched': 'Coincidencia: {matched}',
     'download.rateLimit': 'Esperando {seconds} s: límite de peticiones en {host}',

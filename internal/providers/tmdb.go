@@ -53,6 +53,9 @@ func NewTMDBTV(client *http.Client, key func() string) *TMDB {
 // Name implements media.Provider.
 func (p *TMDB) Name() string { return "tmdb" }
 
+// Label implements media.Labeler.
+func (*TMDB) Label() string { return "TMDB" }
+
 // tmdbResponse holds movie (title, release_date) and TV (name,
 // first_air_date) results; each search fills one pair.
 type tmdbResponse struct {
