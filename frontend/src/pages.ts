@@ -33,8 +33,9 @@ function baseName(path: string): string {
     return path.split(/[\\/]/).pop() || path;
 }
 
-// parseDefaults reads a kind's default options, a JSON object.
-function parseDefaults(json: string): Record<string, unknown> {
+// parseDefaults reads a kind's default options, a JSON object; malformed
+// JSON reads as no options.
+export function parseDefaults(json: string): Record<string, unknown> {
     try {
         const value: unknown = JSON.parse(json || '{}');
         return value && typeof value === 'object' ? value as Record<string, unknown> : {};
@@ -144,8 +145,8 @@ export function initPages(deps: PagesDeps): void {
     }
 
     // countPages asks PagePages how many pages the request makes, unless
-    // that is the latest request already. On failure the count stays until
-    // the next request.
+    // that is the latest request already. On failure no count is shown, as
+    // the last one counted other settings.
     async function countPages() {
         const req = request();
         if (!req || req.key === countKey) return;
@@ -160,6 +161,8 @@ export function initPages(deps: PagesDeps): void {
             if (seq !== countSeq) return;
             // Forget the key so the same request can be retried.
             countKey = '';
+            count = undefined;
+            renderCount();
             console.warn(`Could not count pages: ${errorText(err)}`);
         }
     }

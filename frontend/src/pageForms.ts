@@ -22,8 +22,10 @@ export type PageFormBuilder = (
     onChange: () => void,
 ) => PageForm;
 
-// The dot spacings a dot grid offers, in mm (Go: sheet.DotSpacings).
+// The dot spacings a dot grid offers, in mm (Go: sheet.DotSpacings), and
+// the one it starts with when Go's default is not one of them.
 const DOT_SPACINGS = [4, 5, 6];
+const DEFAULT_DOT_SPACING = 5;
 
 // dotGridForm is the dot grid's form: Dot spacing, a segmented group.
 const dotGridForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
@@ -42,7 +44,7 @@ const dotGridForm: PageFormBuilder = (container, idPrefix, defaults, onChange) =
     const spacing = initRadioGroup(box, onChange);
     spacing.replaceOptions(DOT_SPACINGS.map((mm) => ({value: String(mm), label: `${mm} mm`})));
     const preset = Number(defaults.spacing);
-    if (DOT_SPACINGS.includes(preset)) spacing.value = String(preset);
+    spacing.value = String(DOT_SPACINGS.includes(preset) ? preset : DEFAULT_DOT_SPACING);
     return {
         options: () => ({spacing: Number(spacing.value)}),
     };

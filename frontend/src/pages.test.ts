@@ -5,7 +5,8 @@ import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 
 import {ExportPage, OpenFile, PagePages} from '../wailsjs/go/main/App';
 import {useLanguage} from './language';
-import {initPages} from './pages';
+import {pageForms} from './pageForms';
+import {initPages, parseDefaults} from './pages';
 
 // The page kinds as PageKinds sends them (see app.go), plus a made-up kind
 // that uses the cut mode and prints no title, to cover the shared Page and
@@ -144,6 +145,33 @@ describe('dot grid form', () => {
         radio('pages-dotgrid-spacing', '5').click();
         await vi.waitFor(() => expect(lastPagePages()[2]).toBe('{"spacing":5}'));
     });
+
+    // spacingOf builds a dot grid form from defaults, as the tab does, and
+    // returns the checked spacing and the spacing it sends.
+    function spacingOf(defaults: Record<string, unknown>): {checked: string; sent: unknown} {
+        const box = document.createElement('div');
+        const form = pageForms.dotgrid(box, 'test-dotgrid', defaults, () => {});
+        return {
+            checked: box.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.dataset.value ?? '',
+            sent: form.options().spacing,
+        };
+    }
+
+    const fallbacks: Array<[name: string, defaults: Record<string, unknown>]> = [
+        ['a default spacing it does not offer', {spacing: 7}],
+        ['a default spacing that is not a number', {spacing: 'wide'}],
+        ['no default spacing', {}],
+        ['malformed defaults JSON', parseDefaults('{"spacing":')],
+    ];
+    for (const [name, defaults] of fallbacks) {
+        it(`checks and sends 5 mm for ${name}`, () => {
+            expect(spacingOf(defaults)).toEqual({checked: '5', sent: 5});
+        });
+    }
+
+    it('checks and sends an offered default spacing', () => {
+        expect(spacingOf({spacing: 4})).toEqual({checked: '4', sent: 4});
+    });
 });
 
 describe('Page fieldset', () => {
@@ -228,6 +256,21 @@ describe('page count', () => {
         await Promise.resolve();
         await Promise.resolve();
         expect(el('pages-count').textContent).toBe('Page 1 of 2');
+    });
+
+    it('shows no count for settings PagePages could not count', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            vi.mocked(PagePages).mockResolvedValueOnce(3);
+            radio('pages-paper', 'letter').click();
+            await vi.waitFor(() => expect(el('pages-count').textContent).toBe('Page 1 of 3'));
+            vi.mocked(PagePages).mockRejectedValueOnce(new Error('boom'));
+            radio('pages-paper', 'a4').click();
+            await vi.waitFor(() => expect(warn).toHaveBeenCalledWith('Could not count pages: boom'));
+            expect(el('pages-count').textContent).toBe('');
+        } finally {
+            warn.mockRestore();
+        }
     });
 });
 

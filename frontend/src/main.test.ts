@@ -3,7 +3,7 @@ import {resolve} from 'node:path';
 
 import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 
-import {ChooseFolder, ListCovers, Start} from '../wailsjs/go/main/App';
+import {ChooseFolder, ExportPage, ListCovers, Start} from '../wailsjs/go/main/App';
 import {EventsOn} from '../wailsjs/runtime/runtime';
 import {useLanguage} from './language';
 
@@ -36,6 +36,11 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     for (const name of ['PrintPapers', 'PrintFormats', 'PrintSizes', 'PrintCutModes']) {
         stubs[name] = vi.fn(async () => []);
     }
+    // One page kind on one paper, so Make pages can export.
+    stubs.PageKinds = vi.fn(async () => [
+        {id: 'dotgrid', label: 'Dot grid', usesCut: false, usesTitle: true, defaults: '{"spacing":5}', default: true},
+    ]);
+    stubs.PrintPapers = vi.fn(async () => [{id: 'a5', label: 'A5', width: 148, height: 210, default: true}]);
     return stubs;
 });
 
@@ -62,6 +67,38 @@ function selectType(id: string) {
 }
 
 const handlers = new Map<string, (payload: unknown) => void>();
+
+// handler is the Wails event handler main.ts registered for name.
+function handler(name: string): (payload: unknown) => void {
+    const found = handlers.get(name);
+    if (!found) throw new Error(`no ${name} handler`);
+    return found;
+}
+
+// finishJob runs a download into outputDir to its end.
+async function finishJob(outputDir: string) {
+    el<HTMLInputElement>('output-dir').value = outputDir;
+    el<HTMLTextAreaElement>('items').value = 'Dune, Frank Herbert';
+    vi.mocked(Start).mockResolvedValueOnce([]);
+    el('start').click();
+    await vi.waitFor(() => expect(el('cancel').hidden).toBe(false));
+    handler('job:done')({ok: 1, failed: 0, cancelled: 0});
+    await vi.waitFor(() => expect(el('start').hidden).toBe(false));
+}
+
+// resetFolders undoes a test's folder changes, which main.ts (imported once)
+// would keep: a job into no folder clears the job folder, Print these
+// covers then unpins the Print covers folder (it follows the output folder
+// again), and the output folder and the mocks are as they started.
+async function resetFolders() {
+    await finishJob('');
+    vi.mocked(ListCovers).mockResolvedValueOnce([]);
+    el('print-these').click();
+    el('tab-download').click();
+    el<HTMLTextAreaElement>('items').value = '';
+    el<HTMLInputElement>('output-dir').value = '/covers';
+    for (const mock of [Start, ListCovers, ChooseFolder, ExportPage]) vi.mocked(mock).mockReset();
+}
 
 beforeAll(async () => {
     const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
@@ -254,9 +291,7 @@ describe('sources line', () => {
 });
 
 describe('print these covers', () => {
-    afterEach(() => {
-        el('tab-download').click();
-    });
+    afterEach(resetFolders);
 
     it('sits in the download footer after Open folder', () => {
         const link = el('print-these');
@@ -264,13 +299,6 @@ describe('print these covers', () => {
         expect(el('open-folder').compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(link.textContent).toBe('Print these covers');
     });
-
-    // handler is the Wails event handler main.ts registered for name.
-    function handler(name: string): (payload: unknown) => void {
-        const found = handlers.get(name);
-        if (!found) throw new Error(`no ${name} handler`);
-        return found;
-    }
 
     it('shows the finished job\'s folder in Print covers', async () => {
         // A folder picked in Print covers earlier.
@@ -281,23 +309,14 @@ describe('print these covers', () => {
         el('tab-download').click();
 
         // A download into /job, whose output folder is changed afterwards.
-        el<HTMLInputElement>('output-dir').value = '/job';
-        el<HTMLTextAreaElement>('items').value = 'Dune, Frank Herbert';
-        vi.mocked(Start).mockResolvedValueOnce([]);
-        el('start').click();
-        await vi.waitFor(() => expect(Start).toHaveBeenCalled());
-        await vi.waitFor(() => expect(el('cancel').hidden).toBe(false));
-        handler('job:done')({ok: 1, failed: 0, cancelled: 0});
-        await vi.waitFor(() => expect(el('start').hidden).toBe(false));
+        await finishJob('/job');
         el<HTMLInputElement>('output-dir').value = '/other';
-        el<HTMLTextAreaElement>('items').value = '';
 
         vi.mocked(ListCovers).mockClear();
         el('print-these').click();
         expect(el('app').dataset.tab).toBe('print');
         expect(el<HTMLInputElement>('print-dir').value).toBe('/job');
         expect(ListCovers).toHaveBeenCalledWith('/job');
-        el<HTMLInputElement>('output-dir').value = '/covers';
     });
 
     it('switches to the Print covers tab', () => {
@@ -306,5 +325,35 @@ describe('print these covers', () => {
         expect(el('panel-print').hidden).toBe(false);
         expect(el('panel-download').hidden).toBe(true);
         expect(el('tab-print').getAttribute('aria-selected')).toBe('true');
+    });
+});
+
+describe('make pages', () => {
+    afterEach(resetFolders);
+
+    // exportDir exports from Make pages, cancelling the save dialog, and
+    // returns the folder the dialog starts in.
+    async function exportDir(): Promise<string> {
+        vi.mocked(ExportPage).mockClear();
+        vi.mocked(ExportPage).mockResolvedValueOnce('');
+        el('tab-pages').click();
+        await vi.waitFor(() => expect(el<HTMLButtonElement>('pages-export').disabled).toBe(false));
+        el('pages-export').click();
+        await vi.waitFor(() => expect(ExportPage).toHaveBeenCalledTimes(1));
+        await vi.waitFor(() => expect(el<HTMLButtonElement>('pages-export').disabled).toBe(false));
+        return vi.mocked(ExportPage).mock.calls[0][1];
+    }
+
+    it('starts the save dialog in the folder Print covers shows', async () => {
+        vi.mocked(ChooseFolder).mockResolvedValueOnce('/prints');
+        el('tab-print').click();
+        el('print-browse').click();
+        await vi.waitFor(() => expect(el<HTMLInputElement>('print-dir').value).toBe('/prints'));
+        expect(await exportDir()).toBe('/prints');
+    });
+
+    it('starts the save dialog in the output folder when Print covers shows that', async () => {
+        el<HTMLInputElement>('output-dir').value = '/out';
+        expect(await exportDir()).toBe('/out');
     });
 });
