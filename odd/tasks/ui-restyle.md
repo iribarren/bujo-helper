@@ -53,4 +53,4 @@ The Print options are one long flex row, and the media type sits in the global h
 - "Sources tried" line skipped: `MediaTypeInfo` has no provider names (Go change needed).
 
 ## Next step
-User GUI check of both tabs (light and dark), then local `--no-ff` merge to `main`. Do not merge before that.
+Done. GUI check passed (user, 2026-11-20); merged to main in 5e7d2d3 and pushed.
