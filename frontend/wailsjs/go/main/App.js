@@ -18,6 +18,10 @@ export function ExportPDF(arg1, arg2, arg3) {
   return window['go']['main']['App']['ExportPDF'](arg1, arg2, arg3);
 }
 
+export function ExportPage(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['ExportPage'](arg1, arg2, arg3, arg4);
+}
+
 export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }
@@ -40,6 +44,14 @@ export function OpenFile(arg1) {
 
 export function OpenFolder(arg1) {
   return window['go']['main']['App']['OpenFolder'](arg1);
+}
+
+export function PageKinds() {
+  return window['go']['main']['App']['PageKinds']();
+}
+
+export function PagePages(arg1, arg2, arg3) {
+  return window['go']['main']['App']['PagePages'](arg1, arg2, arg3);
 }
 
 export function PrintCropModes() {

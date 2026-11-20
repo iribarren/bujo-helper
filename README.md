@@ -569,6 +569,23 @@ Frames are centred on the page with 4 mm gaps and at least 8 mm margins. Polaroi
 - The paper and cover size apply; the cut mode and header do not (the border always stays).
 - The suggested file name is `polaroid_<paper>_<size>.pdf`, for example `polaroid_A4_Standard.pdf`.
 
+## Generated pages
+
+Some printables need no downloaded images. Each one is a **page kind** with its own options, on any paper, built by `internal/sheet` (`PageKinds`, `BuildPage`) and exported through the `PageKinds`, `PagePages` and `ExportPage` bindings. The suggested file name gives the kind and the paper, for example `dotgrid_A5.pdf`.
+
+### Dot grid
+
+A plain grid of small grey dots, the basic bullet journal page, on one page.
+
+| Setting | Rule                                                                                                   |
+|---------|--------------------------------------------------------------------------------------------------------|
+| Spacing | 4, **5** or 6 mm between dot centres                                                                   |
+| Dots    | 0.25 mm radius, mid grey (#808080)                                                                     |
+| Area    | as many dots as fit a whole number of spacings apart within 8 mm margins, centred both ways            |
+| Title   | optional, bold, in a 12 mm band at the top margin like a [full page](#full-page) header; the dots start below it |
+
+On A4 at 5 mm that is 39 × 57 dots (39 × 54 with a title). The cut mode does not apply.
+
 ## Using the command line
 
 The `covers` CLI runs the same downloader without a window:
@@ -694,7 +711,7 @@ internal/
   web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
   settings/            user settings file (TMDB API key)
   gallery/             print sheet: folder listing and thumbnails for the UI
-  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export
+  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid)
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
 legacy/                the original Python script
 ```

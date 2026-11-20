@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -1076,6 +1077,113 @@ func exportTo(path string, files []string, opts sheet.Options) error {
 	return writeFileAtomic(path, "PDF", func(w io.Writer) error {
 		return sheet.Build(w, files, opts)
 	})
+}
+
+// PageKindInfo describes a page kind for the Make pages list.
+type PageKindInfo struct {
+	ID        string `json:"id"`
+	Label     string `json:"label"`
+	UsesCut   bool   `json:"usesCut"`   // whether the shared cut mode applies
+	UsesTitle bool   `json:"usesTitle"` // whether the shared title is printed
+	// Defaults is the JSON object of the kind's options with their default
+	// values, e.g. {"spacing":5}; the UI sends its options back in that
+	// shape.
+	Defaults string `json:"defaults"`
+	Default  bool   `json:"default"`
+}
+
+// PageKinds lists the page kinds, the default first.
+func (a *App) PageKinds() []PageKindInfo {
+	out := make([]PageKindInfo, 0, len(sheet.PageKinds))
+	for i, k := range sheet.PageKinds {
+		defaults, err := json.Marshal(k.Defaults)
+		if err != nil {
+			// Options are plain structs; this would be a programming error.
+			log.Printf("page kind %s: defaults: %v", k.ID, err)
+			defaults = []byte("{}")
+		}
+		out = append(out, PageKindInfo{
+			ID:        k.ID,
+			Label:     k.Label,
+			UsesCut:   k.UsesCut,
+			UsesTitle: k.UsesTitle,
+			Defaults:  string(defaults),
+			Default:   i == 0,
+		})
+	}
+	return out
+}
+
+// PagePages counts the pages of the page kind with the shared settings page
+// and options, the kind's options as a JSON object ("" for the defaults).
+// Options travel as JSON so new kinds never change the bindings.
+func (a *App) PagePages(kind string, page sheet.PageSettings, options string) (int, error) {
+	return sheet.PageCount(kind, page, json.RawMessage(options))
+}
+
+// ExportPage asks where to save a PDF of the page kind, with the shared
+// settings page and options (as for PagePages), starting in defaultDir if
+// it is a folder, and writes it. It returns the saved path, or "" with no
+// error when the dialog is cancelled. Bad settings are reported before the
+// dialog opens.
+func (a *App) ExportPage(kind, defaultDir string, page sheet.PageSettings, options string) (string, error) {
+	if _, err := sheet.PageCount(kind, page, json.RawMessage(options)); err != nil {
+		return "", err
+	}
+	name, err := pageFileName(kind, page)
+	if err != nil {
+		return "", err
+	}
+	dialog := runtime.SaveDialogOptions{
+		Title:                a.t("dialog.exportPDF"),
+		DefaultFilename:      name,
+		CanCreateDirectories: true,
+		Filters: []runtime.FileFilter{
+			{DisplayName: a.t("filter.pdf"), Pattern: "*.pdf"},
+		},
+	}
+	if info, err := os.Stat(defaultDir); err == nil && info.IsDir() {
+		dialog.DefaultDirectory = defaultDir
+	}
+	path, err := saveFileDialog(a.ctx, dialog)
+	if err != nil || path == "" {
+		return "", err
+	}
+	if path, err = a.withExtension(path, ".pdf"); err != nil || path == "" {
+		return "", err
+	}
+	err = writeFileAtomic(path, "PDF", func(w io.Writer) error {
+		return sheet.BuildPage(w, kind, page, json.RawMessage(options))
+	})
+	if err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// pageFileName is the default name of a generated page's PDF, like
+// pdfFileName: the kind, the paper and, for kinds that use it, a cut mode
+// other than the default, e.g. "dotgrid_A5.pdf".
+func pageFileName(kind string, page sheet.PageSettings) (string, error) {
+	k, err := sheet.PageKindByID(kind)
+	if err != nil {
+		return "", err
+	}
+	paper, err := sheet.PaperByID(page.Paper)
+	if err != nil {
+		return "", err
+	}
+	name := k.FileTag + "_" + paper.FileTag
+	if k.UsesCut {
+		cut, err := sheet.CutModeByID(page.Cut)
+		if err != nil {
+			return "", err
+		}
+		if cut.ID != sheet.DefaultCut {
+			name += "_" + cut.FileTag
+		}
+	}
+	return name + ".pdf", nil
 }
 
 // writeFileAtomic writes a file with write. It writes a temporary file next
