@@ -32,13 +32,15 @@ The Print options are one long flex row, and the media type sits in the global h
 - RDD on (global). First reviewed boundary: `c774745`.
 
 ## Tasks
-- [ ] T1 Tabs: data-driven tab list, rename, keyboard-nav tests. Route: delegated writer (writer trigger: index.html, main.ts, i18n, tests).
+- [x] T1 Tabs: data-driven tab list, rename, keyboard-nav tests. Route: delegated writer (writer trigger: index.html, main.ts, i18n, tests).
 - [ ] T2 Download tab: media type radio group in the panel, two-column layout, CSS, tests. Route: same delegated writer, own commit.
 - [ ] T3 Print covers tab: fieldsets, fieldset visibility, gallery cards, CSS, tests. Route: same delegated writer, own commit.
 - [ ] T4 Verify: PDF page-stream hashes vs `main`, Go tests, `wails build`; ROADMAP item 29 notes the done layout bullets. Route: inline (state checks) + delegated hash check.
 
 ## Progress
 - Feature doc created; branch `feat/ui-restyle` from `c774745`.
+
+- T1 done in `12513cb`: new `frontend/src/tabs.ts` (`initTabs` reads `[role=tab]` with `data-tab` + `aria-controls` from the markup; adding a tab is markup only, labels stay `data-i18n`), `main.ts` wires it, tab renamed (EN "Print covers", ES "Imprimir portadas"). Tests: `tabs.test.ts` (click, arrows wrap, Home/End, focus, missing panel), `main.test.ts` tabs block. RED: `tabs.test.ts` (module missing), `main.test.ts > tabs > are named Download and Print covers`; GREEN: 85/85. Deviation: tabs discovered from markup instead of a TS `TABS` array (keeps static markup + i18n as is).
 
 ## Next step
 T1–T3 via one delegated writer.
