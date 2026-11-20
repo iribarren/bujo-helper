@@ -34,7 +34,7 @@ The Print options are one long flex row, and the media type sits in the global h
 ## Tasks
 - [x] T1 Tabs: data-driven tab list, rename, keyboard-nav tests. Route: delegated writer (writer trigger: index.html, main.ts, i18n, tests).
 - [x] T2 Download tab: media type radio group in the panel, two-column layout, CSS, tests. Route: same delegated writer, own commit.
-- [ ] T3 Print covers tab: fieldsets, fieldset visibility, gallery cards, CSS, tests. Route: same delegated writer, own commit.
+- [x] T3 Print covers tab: fieldsets, fieldset visibility, gallery cards, CSS, tests. Route: same delegated writer, own commit.
 - [ ] T4 Verify: PDF page-stream hashes vs `main`, Go tests, `wails build`; ROADMAP item 29 notes the done layout bullets. Route: inline (state checks) + delegated hash check.
 
 ## Progress
@@ -44,5 +44,8 @@ The Print options are one long flex row, and the media type sits in the global h
 
 - T2 done in `6c92f1f`: new `frontend/src/radioGroup.ts` (select-like `value`/`disabled`/`replaceOptions`, roving tab stop, arrows move + select with wrap, Home/End; setting `value` does not fire onChange), `#media-type` is now the radiogroup (labelled by the visible "Media type" label via `aria-labelledby`) at the top of the Download input column; `ui.mediaType.value` readers unchanged. Two-column `#panel-download` (`.panel.split`, input column on a surface, progress/results/footer right), `--accent-soft` (light + dark), `#app[data-tab="print"] #media-type` removed, narrow-window block moved to the end of `style.css` so it overrides the new rules. Tests: `radioGroup.test.ts`; `main.test.ts` media type block (click, arrows, "Cards for" follows). RED: `main.test.ts` beforeAll (no radios), `radioGroup.test.ts` (module missing); GREEN: 97/97.
 
+- T3 done in `20e2c1b`: `#panel-print` split into a 300 px `#print-options` column (fieldsets `print-group-covers|layout|page|lettering`, legends `print.groupCovers|Layout|Page|Lettering` EN + ES) and the toolbar + gallery + footer column; every element id and `title`/`data-i18n-*` kept. `print.ts`: `syncFieldsets()` at the end of `updateFormat`'s visibility rules hides a fieldset whose `.field`s are all hidden (Lettering shows only for Full page / Checklist); `updateFormat` rules unchanged. Gallery: `repeat(auto-fill, minmax(min(140px, (100% - 5 gaps) / 6), 1fr))` (fallback `repeat(6, …)`) gives 6 a row at the 900 px default window width and more columns when wider (the app starts maximised); cards: 2 px accent ring when selected, CSS-only round check badge (`--badge-ring`, `--badge-off`, light + dark), 2:3 thumbnail box, checkbox kept but visually hidden (focus shown by the card outline). Credits page is now box-then-label. Tests: `print.test.ts` "option groups" (legend/field grouping, Lettering per format for all 7 formats with full fixtures, generic all-hidden group). RED: 9 `print.test.ts > option groups` tests; GREEN: 106/106. Headless Chrome renders of static copies checked at 900, 1000/1400 and 680 px, light and dark; badge needed `z-index: 1` (the image's drop-shadow filter painted over it).
+- Checks after T3: `tsc --noEmit` clean; vitest 106/106; `go test -tags webkit2_41 ./...` 1329 passed; `git diff c774745 --stat -- '*.go' frontend/wailsjs` empty.
+
 ## Next step
-T1–T3 via one delegated writer.
+T4: PDF page-stream hashes vs `main`, `wails build`, GUI check by the user, ROADMAP note.
