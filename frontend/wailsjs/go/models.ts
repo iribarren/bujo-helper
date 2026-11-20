@@ -78,6 +78,20 @@ export namespace main {
 	        this.default = source["default"];
 	    }
 	}
+	export class PreviewInfo {
+	    url: string;
+	    pages: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PreviewInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.url = source["url"];
+	        this.pages = source["pages"];
+	    }
+	}
 	export class PrintCropModeInfo {
 	    id: string;
 	    label: string;

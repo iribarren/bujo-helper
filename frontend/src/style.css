@@ -307,8 +307,9 @@ input[readonly] {
 
 .toolbar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    gap: 8px 12px;
 }
 
 textarea {
@@ -938,9 +939,36 @@ textarea {
     color: var(--muted);
 }
 
+/* Gallery | Preview, at the start of the Print covers toolbar. */
+.view-switch {
+    flex: none;
+}
+
+/* Pushed to the end of a toolbar. */
+.toolbar-end {
+    margin-left: auto;
+}
+
+/* Previous page, "Page X of N", next page. */
+.pager {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pager-button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 16px;
+    line-height: 1;
+}
+
 /* A grey well with the page centred in it, as large as fits, in the
-   paper's proportions (--page-ratio, width / height, set by pages.ts). */
+   paper's proportions (--page-ratio, width / height, set by pages.ts and
+   preview.ts). */
 .page-well {
+    position: relative;
     flex: 1 1 auto;
     min-height: 240px;
     display: flex;
@@ -957,6 +985,95 @@ textarea {
     aspect-ratio: var(--page-ratio);
     background: var(--page);
     box-shadow: 0 2px 10px var(--page-shadow);
+    overflow: hidden;
+}
+
+/* The drawn page; drawn at the sheet's size in device pixels. */
+.preview-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: opacity 0.15s;
+}
+
+/* Dim the page while a newer one renders. */
+.page-sheet[aria-busy="true"] .preview-canvas {
+    opacity: 0.6;
+}
+
+/* An error, or why there is nothing to preview, over the well. */
+.preview-message {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 2px 10px var(--page-shadow);
+    font-size: 13px;
+    text-align: center;
+}
+
+/* "Loading preview…" centred over the well, on the dimmed old page or the
+   empty well, while a render or a page draw is on its way (preview.ts). It
+   stays in the accessibility tree with no text at rest, so its status text
+   is announced when it arrives. It fades in after 150 ms, so quick page
+   draws do not flash it, and hides at once. */
+.preview-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: calc(100% - 32px);
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 2px 10px var(--page-shadow);
+    font-size: 13px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.preview-loading[data-active="true"] {
+    opacity: 1;
+    transition: opacity 0.15s ease 0.15s;
+}
+
+.preview-spinner {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    box-sizing: border-box;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+}
+
+.preview-loading[data-active="true"] .preview-spinner {
+    animation: preview-spin 0.8s linear infinite;
+}
+
+@keyframes preview-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* With reduced motion (e.g. GNOME's animations off, which WebKitGTK reports
+   as prefers-reduced-motion), the spinner still turns, slower: a small
+   spinner is the feedback that the preview is on its way. */
+@media (prefers-reduced-motion: reduce) {
+    .preview-loading[data-active="true"] .preview-spinner {
+        animation-duration: 1.6s;
+    }
 }
 
 /* --- narrow windows --- */

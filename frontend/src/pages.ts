@@ -1,14 +1,16 @@
 // The "Make pages" tab: generated pages that need no images. Pick a page
 // kind (from PageKinds), set its own options (its form, see pageForms.ts)
 // and the shared Page and Lettering options, see how many pages it makes,
-// and export it to a PDF (see internal/sheet.BuildPage). The preview is a
-// page-shaped placeholder in the paper's proportions.
+// and export it to a PDF (see internal/sheet.BuildPage). A live preview
+// (preview.ts) draws the PDF PreviewPage renders for the current options,
+// the same one Export PDF saves.
 
-import {ExportPage, OpenFile, PageKinds, PagePages, PrintCutModes, PrintPapers} from '../wailsjs/go/main/App';
+import {ExportPage, OpenFile, PageKinds, PreviewPage, PrintCutModes, PrintPapers} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
 import {renderSharedFieldsets, syncFieldsets} from './fieldsets';
 import {label, onLangChange, t, tn} from './i18n';
 import {pageForms, type PageForm} from './pageForms';
+import {initPreview} from './preview';
 import {initRadioGroup} from './radioGroup';
 
 export interface PagesDeps {
@@ -16,6 +18,9 @@ export interface PagesDeps {
     defaultDir: () => string;
     showError: (message: string) => void;
     hideError: () => void;
+    // The preview's debounce delay in milliseconds; preview.ts's default
+    // when unset.
+    previewDelay?: number;
 }
 
 function byId<T extends HTMLElement>(id: string): T {
@@ -51,10 +56,17 @@ export function initPages(deps: PagesDeps): void {
         options: byId<HTMLElement>('pages-options'),
         count: byId<HTMLSpanElement>('pages-count'),
         sheet: byId<HTMLDivElement>('pages-sheet'),
+        prev: byId<HTMLButtonElement>('pages-prev'),
+        next: byId<HTMLButtonElement>('pages-next'),
+        message: byId<HTMLParagraphElement>('pages-preview-message'),
         status: byId<HTMLSpanElement>('pages-status'),
         openPdf: byId<HTMLButtonElement>('pages-open-pdf'),
         exportPdf: byId<HTMLButtonElement>('pages-export'),
     };
+    const preview = initPreview(
+        {sheet: ui.sheet, prev: ui.prev, next: ui.next, pageLabel: ui.count, message: ui.message},
+        {delay: deps.previewDelay},
+    );
     // The page kinds, a radio group; the user's choice calls update.
     const kindGroup = initRadioGroup(byId<HTMLDivElement>('pages-kinds'), () => update());
     // Page (paper, cut mode) and Lettering (the title), as in Print covers,
@@ -79,12 +91,6 @@ export function initPages(deps: PagesDeps): void {
     let lastPdf = '';
     // The last saved PDF's status, to show it again in another language.
     let lastExport: {file: string; pages?: number} | undefined;
-    // The page count from PagePages for the request it answers; countKey is
-    // the latest request and countSeq increases with every request, so a
-    // slow, older answer cannot overwrite a newer one.
-    let count: {key: string; pages: number} | undefined;
-    let countKey = '';
-    let countSeq = 0;
 
     function currentKind(): main.PageKindInfo | undefined {
         return kinds.find((k) => k.id === kindGroup.value);
@@ -111,7 +117,7 @@ export function initPages(deps: PagesDeps): void {
         return entry;
     }
 
-    // request is what PagePages and ExportPage get for the chosen kind and
+    // request is what PreviewPage and ExportPage get for the chosen kind and
     // paper: the shared settings that apply to the kind and its options
     // (its defaults when it has no form), or undefined until they load.
     function request() {
@@ -129,7 +135,7 @@ export function initPages(deps: PagesDeps): void {
     }
 
     // update shows the chosen kind's form and the shared fields it uses,
-    // shapes the preview like the paper and counts the pages.
+    // shapes the preview like the paper and previews the options.
     function update() {
         const kind = currentKind();
         ui.kindTitle.textContent = kind ? label('pageKind', kind.id, kind.label) : '';
@@ -140,36 +146,10 @@ export function initPages(deps: PagesDeps): void {
         syncFieldsets(ui.options);
         const paper = currentPaper();
         if (paper) ui.sheet.style.setProperty('--page-ratio', String(paper.width / paper.height));
-        countPages();
-        ui.exportPdf.disabled = exporting || !request();
-    }
-
-    // countPages asks PagePages how many pages the request makes, unless
-    // that is the latest request already. On failure no count is shown, as
-    // the last one counted other settings.
-    async function countPages() {
         const req = request();
-        if (!req || req.key === countKey) return;
-        countKey = req.key;
-        const seq = ++countSeq;
-        try {
-            const pages = await PagePages(req.kind.id, req.settings, req.options);
-            if (seq !== countSeq) return;
-            count = {key: req.key, pages};
-            renderCount();
-        } catch (err) {
-            if (seq !== countSeq) return;
-            // Forget the key so the same request can be retried.
-            countKey = '';
-            count = undefined;
-            renderCount();
-            console.warn(`Could not count pages: ${errorText(err)}`);
-        }
-    }
-
-    // renderCount shows "Page 1 of N" (the preview shows the first page).
-    function renderCount() {
-        ui.count.textContent = count ? t('pages.pageOf', {page: 1, total: count.pages}) : '';
+        // The preview ignores options it already shows or is rendering.
+        if (req) preview.schedule({key: req.key, render: () => PreviewPage(req.kind.id, req.settings, req.options)});
+        ui.exportPdf.disabled = exporting || !req;
     }
 
     async function exportPage() {
@@ -200,7 +180,9 @@ export function initPages(deps: PagesDeps): void {
                 return;
             }
             lastPdf = saved;
-            lastExport = {file: baseName(saved), pages: count?.key === req.key ? count.pages : undefined};
+            // The page count of the preview, if it shows these options.
+            const shown = preview.result();
+            lastExport = {file: baseName(saved), pages: shown?.key === req.key ? shown.pages : undefined};
             renderExportStatus();
             ui.status.title = saved;
             ui.openPdf.hidden = false;
@@ -244,7 +226,7 @@ export function initPages(deps: PagesDeps): void {
         shared.relabel();
         const kind = currentKind();
         ui.kindTitle.textContent = kind ? label('pageKind', kind.id, kind.label) : '';
-        renderCount();
+        preview.relabel();
         if (exporting) ui.status.textContent = t('print.exporting');
         else renderExportStatus();
     }

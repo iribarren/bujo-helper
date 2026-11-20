@@ -153,6 +153,9 @@ export const es: Messages = {
     'print.creditsTitle': 'Añade al final una página con el autor y la licencia de cada imagen seleccionada que tenga créditos (fotos de lugares, banderas y obras de arte). Las imágenes sin créditos no aparecen.',
     'print.selectAll': 'Seleccionar todo',
     'print.selectNone': 'No seleccionar nada',
+    'print.view': 'Vista',
+    'print.viewGallery': 'Galería',
+    'print.viewPreview': 'Vista previa',
     'print.gallery': 'Portadas de la carpeta',
     'print.openPdf': 'Abrir PDF',
     'print.exportPdf': 'Exportar PDF…',
@@ -178,7 +181,6 @@ export const es: Messages = {
     // Make pages tab.
     'pages.kinds': 'Página',
     'pages.preview': 'Vista previa',
-    'pages.pageOf': 'Página {page} de {total}',
     'pages.paperTitle': 'Papel en el que imprimes. La página se ajusta para llenarlo.',
     'pages.cutTitle': 'Cómo se prepara la página para recortarla. Borde: una fina línea gris sobre la línea de corte. Sangrado + marcas de corte: marcas en las esquinas. Ninguno: sin líneas de corte.',
     'pages.title': 'Título (opcional)',
@@ -189,6 +191,14 @@ export const es: Messages = {
     'pages.saved': 'Guardado {file}: {pages}',
     'pages.savedFile': 'Guardado {file}',
     'pages.errKinds': 'No se han podido cargar los tipos de página: {error}',
+
+    // Vista previa del PDF (Crear páginas, Imprimir portadas).
+    'preview.pageOf': 'Página {page} de {total}',
+    'preview.prev': 'Página anterior',
+    'preview.next': 'Página siguiente',
+    'preview.error': 'No se ha podido mostrar la vista previa: {error}',
+    'preview.noSelection': 'Seleccione portadas para previsualizarlas.',
+    'preview.loading': 'Cargando vista previa…',
 
     // Page kinds (Go: sheet.PageKinds), by ID.
     'pageKind.dotgrid': 'Cuadrícula de puntos',

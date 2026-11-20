@@ -3,10 +3,14 @@ import {resolve} from 'node:path';
 
 import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 
-import {ExportPage, OpenFile, PagePages} from '../wailsjs/go/main/App';
+import {ExportPage, OpenFile, PreviewPage} from '../wailsjs/go/main/App';
 import {useLanguage} from './language';
 import {pageForms} from './pageForms';
 import {initPages, parseDefaults} from './pages';
+import {fakePdf, renders, resetFakePdfs} from './previewMock';
+
+vi.mock('pdfjs-dist/legacy/build/pdf.mjs', async () => (await import('./previewMock')).pdfjsMock);
+vi.mock('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url', () => ({default: '/pdf.worker.min.mjs'}));
 
 // The page kinds as PageKinds sends them (see app.go), plus a made-up kind
 // that uses the cut mode and prints no title, to cover the shared Page and
@@ -39,6 +43,7 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     stubs.PrintPapers = vi.fn(async () => papers);
     stubs.PrintCutModes = vi.fn(async () => cuts);
     stubs.PagePages = vi.fn(async () => 1);
+    stubs.PreviewPage = vi.fn(async () => ({url: '/preview?id=1', pages: 1}));
     return stubs;
 });
 
@@ -46,6 +51,8 @@ const deps = {
     defaultDir: () => '/covers',
     showError: vi.fn(),
     hideError: vi.fn(),
+    // No debounce: the preview tests cover it.
+    previewDelay: 0,
 };
 
 function el<T extends HTMLElement>(id: string): T {
@@ -65,10 +72,15 @@ function checked(groupId: string): string {
     return el(groupId).querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.dataset.value ?? '';
 }
 
-function lastPagePages(): [string, {paper: string; cut: string; title: string}, string] {
-    const calls = vi.mocked(PagePages).mock.calls;
+function lastPreviewPage(): [string, {paper: string; cut: string; title: string}, string] {
+    const calls = vi.mocked(PreviewPage).mock.calls;
     expect(calls.length).toBeGreaterThan(0);
     return calls[calls.length - 1] as never;
+}
+
+// previewDone waits until the preview has drawn the latest options.
+async function previewDone() {
+    await vi.waitFor(() => expect(el('pages-sheet').getAttribute('aria-busy')).toBe('false'));
 }
 
 function setTitle(text: string) {
@@ -78,6 +90,8 @@ function setTitle(text: string) {
 }
 
 beforeAll(async () => {
+    resetFakePdfs();
+    fakePdf('/preview?id=1', 1);
     const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
     document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
     initPages(deps);
@@ -112,8 +126,8 @@ describe('page kinds', () => {
 
     it('send the chosen kind and its defaults when it has no form', async () => {
         radio('pages-kinds', 'cutout').click();
-        await vi.waitFor(() => expect(lastPagePages()[0]).toBe('cutout'));
-        expect(lastPagePages()[2]).toBe('{}');
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('cutout'));
+        expect(lastPreviewPage()[2]).toBe('{}');
     });
 
     it('follow the language', async () => {
@@ -140,10 +154,10 @@ describe('dot grid form', () => {
 
     it('sends the chosen spacing as the options JSON', async () => {
         radio('pages-dotgrid-spacing', '6').click();
-        await vi.waitFor(() => expect(lastPagePages()[2]).toBe('{"spacing":6}'));
-        expect(lastPagePages()[0]).toBe('dotgrid');
+        await vi.waitFor(() => expect(lastPreviewPage()[2]).toBe('{"spacing":6}'));
+        expect(lastPreviewPage()[0]).toBe('dotgrid');
         radio('pages-dotgrid-spacing', '5').click();
-        await vi.waitFor(() => expect(lastPagePages()[2]).toBe('{"spacing":5}'));
+        await vi.waitFor(() => expect(lastPreviewPage()[2]).toBe('{"spacing":5}'));
     });
 
     // spacingOf builds a dot grid form from defaults, as the tab does, and
@@ -185,7 +199,18 @@ describe('Page fieldset', () => {
 
     it('sends the chosen paper', async () => {
         radio('pages-paper', 'b5').click();
-        await vi.waitFor(() => expect(lastPagePages()[1].paper).toBe('b5'));
+        await vi.waitFor(() => expect(lastPreviewPage()[1].paper).toBe('b5'));
+    });
+
+    it('shows "Loading preview…" over the preview well until the page is drawn', async () => {
+        const indicator = document.querySelector<HTMLElement>('.pages-preview .page-well .preview-loading');
+        expect(indicator).not.toBeNull();
+        radio('pages-paper', 'b5').click();
+        expect(indicator?.dataset.active).toBe('true');
+        expect(indicator?.textContent).toBe('Loading preview…');
+        await previewDone();
+        expect(indicator?.dataset.active).toBe('false');
+        expect(indicator?.textContent).toBe('');
     });
 
     it('shapes the preview page like the paper', () => {
@@ -198,7 +223,7 @@ describe('Page fieldset', () => {
     it('hides the cut mode for a kind that does not use it, and sends none', async () => {
         expect(el('pages-cut-field').hidden).toBe(true);
         radio('pages-paper', 'a4').click();
-        await vi.waitFor(() => expect(lastPagePages()[1]).toEqual(expect.objectContaining({paper: 'a4', cut: ''})));
+        await vi.waitFor(() => expect(lastPreviewPage()[1]).toEqual(expect.objectContaining({paper: 'a4', cut: ''})));
     });
 
     it('shows the cut mode for a kind that uses it, and sends it', async () => {
@@ -207,7 +232,7 @@ describe('Page fieldset', () => {
         const cut = el<HTMLSelectElement>('pages-cut');
         cut.value = 'bleed';
         cut.dispatchEvent(new Event('change'));
-        await vi.waitFor(() => expect(lastPagePages()[1].cut).toBe('bleed'));
+        await vi.waitFor(() => expect(lastPreviewPage()[1].cut).toBe('bleed'));
     });
 
     it('has no credits page option', () => {
@@ -223,7 +248,7 @@ describe('Lettering fieldset', () => {
         expect(el('pages-lettering-hint').hidden).toBe(true);
         expect(el('pages-title-field').textContent).toContain('Title (optional)');
         setTitle('  Ideas  ');
-        await vi.waitFor(() => expect(lastPagePages()[1].title).toBe('Ideas'));
+        await vi.waitFor(() => expect(lastPreviewPage()[1].title).toBe('Ideas'));
     });
 
     it('shows a muted hint instead for a kind that prints none, and sends no title', async () => {
@@ -233,44 +258,64 @@ describe('Lettering fieldset', () => {
         expect(el('pages-title-field').hidden).toBe(true);
         expect(el('pages-lettering-hint').hidden).toBe(false);
         expect(el('pages-lettering-hint').textContent).toBe('This page prints no title.');
-        await vi.waitFor(() => expect(lastPagePages()[0]).toBe('cutout'));
-        expect(lastPagePages()[1].title).toBe('');
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('cutout'));
+        expect(lastPreviewPage()[1].title).toBe('');
     });
 });
 
-describe('page count', () => {
-    it('shows the count from PagePages', async () => {
-        vi.mocked(PagePages).mockResolvedValueOnce(3);
+describe('live preview', () => {
+    it('draws the page PreviewPage rendered and counts its pages', async () => {
+        fakePdf('/preview?id=3', 3);
+        vi.mocked(PreviewPage).mockResolvedValueOnce({url: '/preview?id=3', pages: 3});
         radio('pages-paper', 'letter').click();
         await vi.waitFor(() => expect(el('pages-count').textContent).toBe('Page 1 of 3'));
+        await vi.waitFor(() => expect(el('pages-sheet').querySelector('canvas')).not.toBeNull());
+        expect(renders.at(-1)).toEqual({url: '/preview?id=3', page: 1});
+        expect(el<HTMLButtonElement>('pages-prev').disabled).toBe(true);
+        el('pages-next').click();
+        await vi.waitFor(() => expect(renders.at(-1)).toEqual({url: '/preview?id=3', page: 2}));
+        expect(el('pages-count').textContent).toBe('Page 2 of 3');
+    });
+
+    it('renders again for every change of kind, form, Page and Lettering', async () => {
+        await previewDone();
+        const before = vi.mocked(PreviewPage).mock.calls.length;
+        radio('pages-dotgrid-spacing', '4').click();
+        await vi.waitFor(() => expect(vi.mocked(PreviewPage).mock.calls.length).toBe(before + 1));
+        radio('pages-paper', 'b5').click();
+        await vi.waitFor(() => expect(vi.mocked(PreviewPage).mock.calls.length).toBe(before + 2));
+        setTitle('Ideas');
+        await vi.waitFor(() => expect(vi.mocked(PreviewPage).mock.calls.length).toBe(before + 3));
+        radio('pages-kinds', 'cutout').click();
+        await vi.waitFor(() => expect(vi.mocked(PreviewPage).mock.calls.length).toBe(before + 4));
+        expect(lastPreviewPage()).toEqual(['cutout', expect.objectContaining({paper: 'b5', title: ''}), '{}']);
+        radio('pages-dotgrid-spacing', '5').click();
     });
 
     it('ignores an answer to an older request', async () => {
-        let answerOld: (n: number) => void = () => {};
-        vi.mocked(PagePages).mockImplementationOnce(() => new Promise((done) => { answerOld = done; }));
-        vi.mocked(PagePages).mockResolvedValueOnce(2);
+        fakePdf('/preview?id=2', 2);
+        fakePdf('/preview?id=9', 9);
+        let answerOld: (info: {url: string; pages: number}) => void = () => {};
+        vi.mocked(PreviewPage).mockImplementationOnce(() => new Promise((done) => { answerOld = done; }));
+        vi.mocked(PreviewPage).mockResolvedValueOnce({url: '/preview?id=2', pages: 2});
         radio('pages-paper', 'a4').click();
+        await vi.waitFor(() => expect(PreviewPage).toHaveBeenCalledTimes(1));
         radio('pages-paper', 'b5').click();
         await vi.waitFor(() => expect(el('pages-count').textContent).toBe('Page 1 of 2'));
-        answerOld(9);
-        await Promise.resolve();
-        await Promise.resolve();
+        answerOld({url: '/preview?id=9', pages: 9});
+        await new Promise((done) => setTimeout(done, 20));
         expect(el('pages-count').textContent).toBe('Page 1 of 2');
     });
 
-    it('shows no count for settings PagePages could not count', async () => {
-        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-        try {
-            vi.mocked(PagePages).mockResolvedValueOnce(3);
-            radio('pages-paper', 'letter').click();
-            await vi.waitFor(() => expect(el('pages-count').textContent).toBe('Page 1 of 3'));
-            vi.mocked(PagePages).mockRejectedValueOnce(new Error('boom'));
-            radio('pages-paper', 'a4').click();
-            await vi.waitFor(() => expect(warn).toHaveBeenCalledWith('Could not count pages: boom'));
-            expect(el('pages-count').textContent).toBe('');
-        } finally {
-            warn.mockRestore();
-        }
+    it('shows the error instead of a page when PreviewPage fails', async () => {
+        vi.mocked(PreviewPage).mockRejectedValueOnce(new Error('boom'));
+        radio('pages-paper', 'a4').click();
+        await vi.waitFor(() => expect(el('pages-preview-message').textContent).toBe('Could not show the preview: boom'));
+        expect(el('pages-preview-message').hidden).toBe(false);
+        expect(el('pages-count').textContent).toBe('');
+        expect(el('pages-sheet').querySelector('canvas')).toBeNull();
+        radio('pages-paper', 'b5').click();
+        await vi.waitFor(() => expect(el('pages-preview-message').hidden).toBe(true));
     });
 });
 
@@ -279,6 +324,8 @@ describe('export', () => {
         vi.mocked(ExportPage).mockResolvedValueOnce('/out/dotgrid_A5.pdf');
         radio('pages-dotgrid-spacing', '4').click();
         setTitle('Notes');
+        // The page count comes from the preview of these options.
+        await previewDone();
         el('pages-export').click();
         await vi.waitFor(() => expect(el('pages-status').textContent).toBe('Saved dotgrid_A5.pdf: 1 page'));
         const [kind, dir, settings, options] = vi.mocked(ExportPage).mock.calls[0];
@@ -296,6 +343,7 @@ describe('export', () => {
 
     it('keeps the last result when the dialog is cancelled', async () => {
         vi.mocked(ExportPage).mockResolvedValueOnce('/out/first.pdf');
+        await previewDone();
         el('pages-export').click();
         await vi.waitFor(() => expect(el('pages-status').textContent).toBe('Saved first.pdf: 1 page'));
         vi.mocked(ExportPage).mockResolvedValueOnce('');

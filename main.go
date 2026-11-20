@@ -24,9 +24,10 @@ func main() {
 		WindowStartState: options.Maximised,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
-			// Serves /thumbs (print sheet thumbnails); used only for
-			// requests that match no embedded asset.
-			Handler: app.thumbs,
+			// Serves /thumbs (print sheet thumbnails) and /preview (live
+			// preview PDFs); used only for requests that match no embedded
+			// asset.
+			Handler: app.assetHandler(),
 		},
 		// Matches --bg in frontend/src/style.css (light theme).
 		BackgroundColour: &options.RGBA{R: 245, G: 246, B: 248, A: 255},

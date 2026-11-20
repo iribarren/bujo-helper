@@ -30,6 +30,10 @@ export function PageKinds():Promise<Array<main.PageKindInfo>>;
 
 export function PagePages(arg1:string,arg2:sheet.PageSettings,arg3:string):Promise<number>;
 
+export function PreviewPDF(arg1:Array<string>,arg2:sheet.Options):Promise<main.PreviewInfo>;
+
+export function PreviewPage(arg1:string,arg2:sheet.PageSettings,arg3:string):Promise<main.PreviewInfo>;
+
 export function PrintCropModes():Promise<Array<main.PrintCropModeInfo>>;
 
 export function PrintCutModes():Promise<Array<main.PrintCutModeInfo>>;

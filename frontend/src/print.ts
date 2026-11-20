@@ -5,12 +5,15 @@
 // shape the photos are cropped to) and a cut mode and, for a full page or a
 // checklist, a header, and whether to end with a credits page for the
 // images that have a credit, and export them to a PDF on that paper (see
-// internal/sheet).
+// internal/sheet). The Gallery | Preview switch shows, instead of the
+// gallery, a live preview of the PDF of the selected covers (preview.ts).
 
-import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCropModes, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
+import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PreviewPDF, PrintCropModes, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
 import {fillSelect, labelOptions, renderSharedFieldsets, syncFieldsets} from './fieldsets';
-import {has, label, onLangChange, pluralKey, t, tn, type MessageKey} from './i18n';
+import {getLang, has, label, onLangChange, pluralKey, t, tn, type MessageKey} from './i18n';
+import {initPreview} from './preview';
+import {initRadioGroup} from './radioGroup';
 
 export interface PrintDeps {
     // The download output folder; the print sheet shows it until the user
@@ -22,6 +25,9 @@ export interface PrintDeps {
     // type ID; review cards follow it until the user picks another here.
     mediaTypes: () => main.MediaTypeInfo[];
     mediaType: () => string;
+    // The preview's debounce delay in milliseconds; preview.ts's default
+    // when unset.
+    previewDelay?: number;
 }
 
 export interface PrintSheet {
@@ -199,7 +205,20 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         crop: byId<HTMLSelectElement>('print-crop'),
         cropField: byId<HTMLLabelElement>('print-crop-field'),
         options: byId<HTMLElement>('print-options'),
+        view: byId<HTMLDivElement>('print-view'),
+        pager: byId<HTMLDivElement>('print-pager'),
+        preview: byId<HTMLDivElement>('print-preview'),
+        sheet: byId<HTMLDivElement>('print-sheet'),
     };
+    // Gallery | Preview; the preview renders only while it is shown.
+    const viewGroup = initRadioGroup(ui.view, () => showView());
+    const preview = initPreview({
+        sheet: ui.sheet,
+        prev: byId<HTMLButtonElement>('print-prev'),
+        next: byId<HTMLButtonElement>('print-next'),
+        pageLabel: byId<HTMLSpanElement>('print-preview-count'),
+        message: byId<HTMLParagraphElement>('print-preview-message'),
+    }, {delay: deps.previewDelay});
     // Page (paper, cut mode, credits page) and Lettering (the header), as
     // in Make pages.
     const shared = renderSharedFieldsets({
@@ -253,6 +272,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // (shown while lastExport is set), to show them again in another language.
     let emptyKey: MessageKey = 'print.emptyFolder';
     let lastExport: {file: string; formatId: string; items: number; pages: number} | undefined;
+    // Increases with every listing, so the preview renders again when the
+    // images may have changed (Refresh).
+    let listing = 0;
 
     function currentDir(): string {
         return chosenDir || deps.outputFolder();
@@ -383,6 +405,41 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         ui.exportPdf.disabled = n === 0 || exporting || !layout;
         ui.selectAll.disabled = covers.length === 0 || n === covers.length;
         ui.selectNone.disabled = n === 0;
+        updatePreview();
+    }
+
+    function previewing(): boolean {
+        return viewGroup.value === 'preview';
+    }
+
+    // showView shows the gallery (or its empty message) or the preview.
+    function showView() {
+        const on = previewing();
+        ui.gallery.hidden = on || covers.length === 0;
+        ui.empty.hidden = on || covers.length > 0;
+        ui.preview.hidden = !on;
+        ui.pager.hidden = !on;
+        if (on) updatePreview();
+        else preview.cancel();
+    }
+
+    // updatePreview previews the selected covers with the current options,
+    // while the preview is shown: the PDF Export PDF would save.
+    function updatePreview() {
+        if (!previewing()) return;
+        const paths = selectedPaths();
+        if (paths.length === 0) {
+            preview.showMessage('preview.noSelection');
+            return;
+        }
+        const layout = currentLayout();
+        if (!layout) return;
+        // The page keeps the paper's shape while the PDF renders.
+        ui.sheet.style.setProperty('--page-ratio', String(layout.paper.width / layout.paper.height));
+        const opts = printOptions(layout);
+        // Go prints stub, card and credits labels in the UI language.
+        const key = JSON.stringify([paths, opts, listing, getLang()]);
+        preview.schedule({key, render: () => PreviewPDF(paths, opts)});
     }
 
     function setSelected(path: string, on: boolean) {
@@ -430,16 +487,17 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     function render() {
-        // The images may have changed: count the pages again.
+        // The images may have changed: count the pages and preview again.
         pagesKey = '';
+        listing++;
         cards = new Map();
         ui.gallery.replaceChildren(...covers.map((cover) => {
             const card = renderCard(cover);
             cards.set(cover.path, card);
             return card.item;
         }));
-        ui.gallery.hidden = covers.length === 0;
-        ui.empty.hidden = covers.length > 0;
+        ui.gallery.hidden = previewing() || covers.length === 0;
+        ui.empty.hidden = previewing() || covers.length > 0;
         updateSelection();
     }
 
@@ -625,9 +683,20 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         }
     }
 
+    // labelViews names the Gallery | Preview switch in the current language.
+    function labelViews() {
+        ui.view.setAttribute('aria-label', t('print.view'));
+        viewGroup.replaceOptions([
+            {value: 'gallery', label: t('print.viewGallery')},
+            {value: 'preview', label: t('print.viewPreview')},
+        ]);
+    }
+
     // relabel shows the tab's dynamic text in the current language, keeping
     // the selections and the header.
     function relabel() {
+        labelViews();
+        preview.relabel();
         labelOptions(ui.format, 'format', formats);
         shared.relabel();
         labelOptions(ui.crop, 'crop', crops);
@@ -708,7 +777,11 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     });
     ui.media.addEventListener('change', () => {
         mediaChosen = true;
+        // The cards' date label is printed.
+        updatePreview();
     });
+    // The cut mode never changes the count, only the preview.
+    cutSelect.addEventListener('change', updatePreview);
     ui.size.addEventListener('change', updateSelection);
     // A crop mode shows or hides the size and cut mode, and sets the count.
     ui.crop.addEventListener('change', updateFormat);
@@ -717,6 +790,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // Credits pages follow the images when a selected image has a credit.
     creditsBox.addEventListener('change', updateSelection);
     onLangChange(relabel);
+    labelViews();
     updateSelection();
     loadPresets();
 

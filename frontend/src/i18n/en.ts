@@ -159,6 +159,9 @@ export const en = {
     'print.creditsTitle': 'Add a page at the end listing the author and licence of each selected image that came with a credit (place photos, flags and artworks). Images without a credit are not listed.',
     'print.selectAll': 'Select all',
     'print.selectNone': 'Select none',
+    'print.view': 'View',
+    'print.viewGallery': 'Gallery',
+    'print.viewPreview': 'Preview',
     'print.gallery': 'Covers in the folder',
     'print.openPdf': 'Open PDF',
     'print.exportPdf': 'Export PDF…',
@@ -184,7 +187,6 @@ export const en = {
     // Make pages tab.
     'pages.kinds': 'Page',
     'pages.preview': 'Preview',
-    'pages.pageOf': 'Page {page} of {total}',
     'pages.paperTitle': 'Paper you print on. The page is laid out to fill it.',
     'pages.cutTitle': 'How the page is prepared for cutting. Border: a thin grey line on the cut line. Bleed + crop marks: marks at the corners. None: no cut lines.',
     'pages.title': 'Title (optional)',
@@ -195,6 +197,14 @@ export const en = {
     'pages.saved': 'Saved {file}: {pages}',
     'pages.savedFile': 'Saved {file}',
     'pages.errKinds': 'Could not load page kinds: {error}',
+
+    // Live PDF preview (Make pages, Print covers).
+    'preview.pageOf': 'Page {page} of {total}',
+    'preview.prev': 'Previous page',
+    'preview.next': 'Next page',
+    'preview.error': 'Could not show the preview: {error}',
+    'preview.noSelection': 'Select covers to preview them.',
+    'preview.loading': 'Loading preview…',
 
     // Page kinds (Go: sheet.PageKinds), by ID.
     'pageKind.dotgrid': 'Dot grid',

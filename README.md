@@ -22,7 +22,7 @@ Book covers, movie posters, TV series posters, album covers, game box art and an
 - Vintage natural-history illustrations (plates) of plants and animals from Wikimedia Commons, each saved with a credit file, see [Nature](#nature).
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
-- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, with your own photos centre-cropped to standard print shapes (instant mini, square, 2 × 6 in photo strips or wallet), as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. See [Print sheet](#print-sheet).
+- **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, with your own photos centre-cropped to standard print shapes (instant mini, square, 2 × 6 in photo strips or wallet), as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. A live preview shows the PDF before you export it. See [Print sheet](#print-sheet).
 - Light and dark themes follow the system setting.
 - English and Spanish interface. It follows the system language and can be changed in **Settings**, see [Language](#language).
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
@@ -321,7 +321,8 @@ The **Print sheet** tab turns downloaded covers into a PDF to cut out, for examp
 5. For a cover sheet, pick what to **Crop to**: **None** (the default, whole images), **Instant mini**, **Square**, **Photo strip (3 frames)**, **Photo strip (4 frames)** or **Wallet** (see [Crop to](#crop-to)), and a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). The cut mode never changes how many covers fit on a page; it is hidden for Instant mini and photo strips, which always keep their frame border.
 6. Leave **Credits page** checked (the default) to end the PDF with the author and licence of every selected image that has a credit file, in every format (see [Credits page](#credits-page)). Uncheck it to print the images only.
 7. Click covers (or focus one and press Space or Enter) to select them. **Select all** and **Select none** help with large folders. The toolbar shows how many covers are selected and how many pages they need with the chosen format, paper and size (and, for a checklist, header), including any credits pages. The page count is exact: it reads the size of each selected image, since square and landscape covers take more room on a cover sheet (an image that cannot be read counts as a 2:3 cover).
-8. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `covers_A4_instax.pdf`, `covers_A4_Large_square.pdf`, `spines_A4_Standard.pdf`, `polaroid_A4_Standard.pdf` or, for review cards, ticket stubs, full pages and checklists, `cards_A4.pdf`, `stubs_A4.pdf`, `fullpage_A4.pdf` and `checklist_A4.pdf`), then **Open PDF** to view it.
+8. To see the PDF before saving it, switch the right-hand pane from **Gallery** to **Preview** (the switch is at the start of the toolbar; arrow keys move between the two). It shows the PDF of the selected covers with the current options, one page at a time with **‹** and **›** and "Page X of N", and updates about 300 ms after the last change to the selection or an option. It is the same PDF **Export PDF…** writes. Nothing is rendered while the gallery is shown.
+9. Click **Export PDF…**, choose where to save (the suggested name gives the format, paper, cover size and any cut mode other than Border, for example `covers_A4_Standard.pdf`, `covers_Letter_Mini.pdf`, `covers_A4_Standard_bleed.pdf`, `covers_A4_instax.pdf`, `covers_A4_Large_square.pdf`, `spines_A4_Standard.pdf`, `polaroid_A4_Standard.pdf` or, for review cards, ticket stubs, full pages and checklists, `cards_A4.pdf`, `stubs_A4.pdf`, `fullpage_A4.pdf` and `checklist_A4.pdf`), then **Open PDF** to view it.
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 
@@ -571,13 +572,15 @@ Frames are centred on the page with 4 mm gaps and at least 8 mm margins. Polaroi
 
 ## Generated pages
 
-Some printables need no downloaded images. Each one is a **page kind** with its own options, on any paper, built by `internal/sheet` (`PageKinds`, `BuildPage`) and exported through the `PageKinds`, `PagePages` and `ExportPage` bindings. The suggested file name gives the kind and the paper, for example `dotgrid_A5.pdf`.
+Some printables need no downloaded images. Each one is a **page kind** with its own options, on any paper, built by `internal/sheet` (`PageKinds`, `BuildPage`) and exported through the `PageKinds`, `PagePages`, `PreviewPage` and `ExportPage` bindings. The suggested file name gives the kind and the paper, for example `dotgrid_A5.pdf`.
 
 They live in the **Make pages** tab, in three columns:
 
 - **Page**: the page kinds; pick one.
 - **Options**: the kind's own options, then **Page** (the paper, and the cut mode for kinds that are cut out) and **Lettering** (the title, for kinds that print one).
-- **Preview**: a blank page in the paper's proportions, with how many pages the PDF will have. **Export PDF…** saves it, starting in the Print covers folder, and **Open PDF** opens the saved file.
+- **Preview**: a live preview of the PDF, shown by default. It updates about 300 ms after the last option change and stays on the page shown (or the last one, if the PDF gets shorter); **‹** and **›** step through the pages, with "Page X of N". It is the same PDF **Export PDF…** writes. **Export PDF…** saves it, starting in the Print covers folder, and **Open PDF** opens the saved file.
+
+The preview is rendered by Go into memory (no temporary file) and served by the app's asset handler at `/preview`, which keeps only the last few renders; the frontend draws it onto a `<canvas>` with [pdf.js](#third-party-software), the same way on every platform.
 
 To make a dot grid page: open **Make pages**, pick **Dot grid**, choose the dot spacing and the paper, type a title if you want one, and click **Export PDF…**.
 
@@ -704,7 +707,7 @@ The root package embeds `frontend/dist`, so build the frontend once first (`cd f
 ```
 main.go, app.go        Wails entry point and the methods bound to the UI
 frontend/              Vanilla TypeScript + Vite UI
-  src/                 main.ts (download tab and tabs), print.ts (print sheet tab) and style.css
+  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), preview.ts (live PDF preview) and style.css
   wailsjs/             generated bindings (committed)
 cmd/covers/            command-line tool
 internal/
@@ -719,6 +722,7 @@ internal/
   web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
   settings/            user settings file (TMDB API key)
   gallery/             print sheet: folder listing and thumbnails for the UI
+  preview/             in-memory store of preview PDFs served at /preview
   sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid)
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
 legacy/                the original Python script
@@ -738,3 +742,9 @@ That's all. The UI lists media types from the registry and uses the creator labe
 ## License
 
 [MIT](LICENSE)
+
+### Third-party software
+
+| Component | Licence | Use |
+|-----------|---------|-----|
+| [pdf.js](https://github.com/mozilla/pdf.js) (`pdfjs-dist`) | [Apache License 2.0](https://github.com/mozilla/pdf.js/blob/master/LICENSE) | draws the live PDF preview; bundled into the app by Vite with its worker, not loaded from a CDN |

@@ -1,11 +1,16 @@
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 
-import {beforeAll, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 
-import {ExportPDF, PrintPages} from '../wailsjs/go/main/App';
+import {ExportPDF, PreviewPDF, PrintPages} from '../wailsjs/go/main/App';
 import {main} from '../wailsjs/go/models';
+import {useLanguage} from './language';
 import {activeCrop, initPrint, perPageOf, sizePerPageOf, usesCutOf, usesSizeOf, type SelectionShape} from './print';
+import {fakePdf, renders, resetFakePdfs} from './previewMock';
+
+vi.mock('pdfjs-dist/legacy/build/pdf.mjs', async () => (await import('./previewMock')).pdfjsMock);
+vi.mock('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url', () => ({default: '/pdf.worker.min.mjs'}));
 
 // The print formats as PrintFormats sends them (see internal/sheet.Formats),
 // with every field set; for the option layout tests.
@@ -72,6 +77,7 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     stubs.ListCovers = vi.fn(async () => coverList);
     stubs.PrintPages = vi.fn(async () => ({pages: 1, allSquare: false, widePerPage: null}));
     stubs.ExportPDF = vi.fn(async () => '/out/covers_A4.pdf');
+    stubs.PreviewPDF = vi.fn(async () => ({url: '/preview?id=1', pages: 1}));
     stubs.PrintFormats = vi.fn(async () => formatList.map((f) => main.PrintFormatInfo.createFrom(f)));
     stubs.PrintCropModes = vi.fn(async () => cropList.map((c) => main.PrintCropModeInfo.createFrom(c)));
     return stubs;
@@ -190,6 +196,8 @@ describe('Print covers tab', () => {
     }
 
     beforeAll(async () => {
+        resetFakePdfs();
+        fakePdf('/preview?id=1', 1);
         const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
         document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
         const tab = initPrint({
@@ -198,6 +206,8 @@ describe('Print covers tab', () => {
             hideError: () => {},
             mediaTypes: () => [],
             mediaType: () => 'books',
+            // No debounce: the preview tests cover it.
+            previewDelay: 0,
         });
         await vi.waitFor(() => expect(el<HTMLSelectElement>('print-format').options.length).toBe(formatList.length));
         tab.activate();
@@ -312,6 +322,189 @@ describe('Print covers tab', () => {
             expect(dir).toBe('/covers');
             expect({...opts}).toEqual(want);
             paperRadio('a4').click();
+        });
+    });
+
+    describe('Gallery | Preview', () => {
+        // viewRadio is the switch's radio of view.
+        function viewRadio(view: string): HTMLButtonElement {
+            const node = el('print-view').querySelector<HTMLButtonElement>(`[role="radio"][data-value="${view}"]`);
+            if (!node) throw new Error(`missing view ${view}`);
+            return node;
+        }
+
+        function view(): string {
+            return el('print-view').querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.dataset.value ?? '';
+        }
+
+        function lastPreviewPDF(): [string[], Record<string, unknown>] {
+            const calls = vi.mocked(PreviewPDF).mock.calls;
+            expect(calls.length).toBeGreaterThan(0);
+            const [paths, opts] = calls[calls.length - 1];
+            return [paths, {...opts}];
+        }
+
+        function cardCheck(i: number): HTMLInputElement {
+            return el('gallery').querySelectorAll<HTMLInputElement>('input.card-check')[i];
+        }
+
+        // pause lets pending timers and promises run.
+        const pause = () => new Promise((done) => setTimeout(done, 20));
+
+        afterEach(() => {
+            viewRadio('gallery').click();
+            el('select-all').click();
+            paperRadio('a4').click();
+        });
+
+        it('is a segmented switch in the toolbar, on Gallery at first', () => {
+            const group = el('print-view');
+            expect(group.getAttribute('role')).toBe('radiogroup');
+            expect(group.classList.contains('segmented')).toBe(true);
+            expect(group.closest('.toolbar')).not.toBeNull();
+            expect(group.getAttribute('aria-label')).toBe('View');
+            expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Gallery', 'Preview']);
+            expect(view()).toBe('gallery');
+            expect(el('gallery').hidden).toBe(false);
+            expect(el('print-preview').hidden).toBe(true);
+            expect(el('print-pager').hidden).toBe(true);
+        });
+
+        it('renders nothing while the gallery is shown', async () => {
+            el('select-all').click();
+            paperRadio('a5').click();
+            cardCheck(0).click();
+            await pause();
+            expect(PreviewPDF).not.toHaveBeenCalled();
+        });
+
+        it('shows the PDF of the selected covers with the current options', async () => {
+            el('select-all').click();
+            paperRadio('b5').click();
+            viewRadio('preview').click();
+            expect(el('gallery').hidden).toBe(true);
+            expect(el('gallery-empty').hidden).toBe(true);
+            expect(el('print-preview').hidden).toBe(false);
+            expect(el('print-pager').hidden).toBe(false);
+            await vi.waitFor(() => expect(PreviewPDF).toHaveBeenCalledTimes(1));
+            const [paths, opts] = lastPreviewPDF();
+            expect(paths).toEqual(['/covers/a.jpg', '/covers/b.jpg']);
+            expect(opts).toEqual(expect.objectContaining({format: 'covers', paper: 'b5', cut: 'border'}));
+            await vi.waitFor(() => expect(el('print-sheet').querySelector('canvas')).not.toBeNull());
+            expect(el('print-preview-count').textContent).toBe('Page 1 of 1');
+            expect(renders.at(-1)).toEqual({url: '/preview?id=1', page: 1});
+        });
+
+        it('renders again when the selection or an option changes', async () => {
+            viewRadio('preview').click();
+            cardCheck(0).click();
+            await vi.waitFor(() => expect(lastPreviewPDF()[0]).toEqual(['/covers/b.jpg']));
+            const cut = el<HTMLSelectElement>('print-cut');
+            cut.value = 'bleed';
+            cut.dispatchEvent(new Event('change'));
+            try {
+                await vi.waitFor(() => expect(lastPreviewPDF()[1].cut).toBe('bleed'));
+            } finally {
+                cut.value = 'border';
+                cut.dispatchEvent(new Event('change'));
+            }
+            const header = el<HTMLInputElement>('print-header');
+            const format = el<HTMLSelectElement>('print-format');
+            format.value = 'fullpage';
+            format.dispatchEvent(new Event('change'));
+            header.value = 'Books';
+            header.dispatchEvent(new Event('input'));
+            try {
+                await vi.waitFor(() => expect(lastPreviewPDF()[1]).toEqual(expect.objectContaining({format: 'fullpage', header: 'Books'})));
+            } finally {
+                header.value = '';
+                header.dispatchEvent(new Event('input'));
+                format.value = 'covers';
+                format.dispatchEvent(new Event('change'));
+            }
+        });
+
+        it('shows a message instead of a render when no cover is selected', async () => {
+            el('select-none').click();
+            viewRadio('preview').click();
+            expect(el('print-preview-message').hidden).toBe(false);
+            expect(el('print-preview-message').textContent).toBe('Select covers to preview them.');
+            expect(el('print-sheet').querySelector('canvas')).toBeNull();
+            await pause();
+            expect(PreviewPDF).not.toHaveBeenCalled();
+            cardCheck(1).click();
+            await vi.waitFor(() => expect(lastPreviewPDF()[0]).toEqual(['/covers/b.jpg']));
+            await vi.waitFor(() => expect(el('print-preview-message').hidden).toBe(true));
+        });
+
+        it('stops rendering when switched back to the gallery', async () => {
+            viewRadio('preview').click();
+            paperRadio('letter').click();
+            await vi.waitFor(() => expect(lastPreviewPDF()[1].paper).toBe('letter'));
+            const calls = vi.mocked(PreviewPDF).mock.calls.length;
+            viewRadio('gallery').click();
+            paperRadio('a5').click();
+            cardCheck(0).click();
+            await pause();
+            expect(vi.mocked(PreviewPDF).mock.calls.length).toBe(calls);
+            expect(el('print-preview').hidden).toBe(true);
+        });
+
+        it('shows "Loading preview…" over the preview while it renders, not once back on the gallery', async () => {
+            const indicator = el('print-preview').querySelector<HTMLElement>('.preview-loading');
+            expect(indicator).not.toBeNull();
+            viewRadio('preview').click();
+            expect(indicator?.dataset.active).toBe('true');
+            expect(indicator?.textContent).toBe('Loading preview…');
+            await vi.waitFor(() => expect(indicator?.dataset.active).toBe('false'));
+            paperRadio('letter').click();
+            expect(indicator?.dataset.active).toBe('true');
+            viewRadio('gallery').click();
+            expect(indicator?.dataset.active).toBe('false');
+            expect(indicator?.textContent).toBe('');
+        });
+
+        it('renders again in a new language, only while the preview is shown', async () => {
+            // Go prints the stub, card and credits labels in the UI language.
+            viewRadio('preview').click();
+            paperRadio('a5').click();
+            await vi.waitFor(() => expect(lastPreviewPDF()[1].paper).toBe('a5'));
+            const before = vi.mocked(PreviewPDF).mock.calls.length;
+            try {
+                await useLanguage('es');
+                await vi.waitFor(() => expect(vi.mocked(PreviewPDF).mock.calls.length).toBe(before + 1));
+                expect(lastPreviewPDF()[1].paper).toBe('a5');
+
+                viewRadio('gallery').click();
+                const shown = vi.mocked(PreviewPDF).mock.calls.length;
+                await useLanguage('en');
+                await pause();
+                expect(vi.mocked(PreviewPDF).mock.calls.length).toBe(shown);
+            } finally {
+                await useLanguage('en');
+            }
+        });
+
+        it('switches with the arrow keys, one tab stop', () => {
+            const gallery = viewRadio('gallery');
+            expect(gallery.tabIndex).toBe(0);
+            expect(viewRadio('preview').tabIndex).toBe(-1);
+            gallery.dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true, cancelable: true}));
+            expect(view()).toBe('preview');
+            expect(el('print-preview').hidden).toBe(false);
+            viewRadio('preview').dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowLeft', bubbles: true, cancelable: true}));
+            expect(view()).toBe('gallery');
+            expect(el('gallery').hidden).toBe(false);
+        });
+
+        it('follows the language', async () => {
+            await useLanguage('es');
+            try {
+                expect(Array.from(el('print-view').querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Galería', 'Vista previa']);
+                expect(el('print-view').getAttribute('aria-label')).toBe('Vista');
+            } finally {
+                await useLanguage('en');
+            }
         });
     });
 });
