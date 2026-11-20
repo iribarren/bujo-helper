@@ -447,7 +447,12 @@ Order: 29 → 30 → 31, then the generated printables.
 - Print covers layout: a 300 px options column with **Covers**, **Layout**, **Page** and **Lettering** fieldsets, a fieldset with no visible field is hidden, and the gallery has 6 cards per row with a round check badge and an accent border when selected (20e2c1b, 5bd1c5a).
 - EN and ES strings for the renamed tab and the fieldset legends.
 
-Still to do for this item: the **Make pages** tab and its three-column layout, the no-image backend and the dot grid page, **B5** paper, the **Print these covers** link, the sources-tried line under the media types (`MediaTypes()` has no provider names yet, so it needs a Go change), the muted Lettering hint, and making **Page** and **Lettering** shared fieldsets that both tabs render.
+**Done in branch `feat/make-pages`** (see `odd/tasks/make-pages.md`):
+- **B5** paper (ca1b8bf).
+- Download: the sources-tried line under the media types (`MediaTypeInfo.Sources`, provider display names through an optional `Label()`), and the **Print these covers** link, which opens Print covers on the finished job's folder (d45c5b6, b1353f8).
+- No-image backend: a page kinds registry in `internal/sheet/pages.go` (each kind decodes its own typed options from JSON, unknown fields rejected), the **Dot grid** kind (4 / 5 / 6 mm, optional title), and the `PageKinds`, `PagePages` and `ExportPage` bindings, with options passed as a JSON string so new kinds don't change them (168e2cd).
+- **Make pages** tab: page kinds list, kind form registry (`pageForms.ts`), shared **Page** and **Lettering** fieldsets (`fieldsets.ts`) rendered by both tabs, Paper as a segmented group, the muted Lettering hint in Print covers, and a page-shaped preview placeholder with the page count (b1353f8, 71fb1a2).
+- Decisions: the dot grid title sits in the Lettering fieldset (the shared title/header text), not in the kind form; selected segments use the accent-soft fill.
 
 **Scope**
 - **Three tabs:** **Download**, **Print covers** (today's Print sheet, renamed) and **Make pages**. Make the tab list data-driven instead of the two hard-coded entries in `main.ts`, and fix the `#app[data-tab="print"]` CSS rules.
