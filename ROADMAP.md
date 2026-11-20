@@ -542,6 +542,21 @@ Order: 29 → 30 → 31, then the generated printables.
 
 **Why:** hand lettering is central to bujo headers, and printed headers in a plain sans font look out of place on a hand-drawn spread. Hollow (outline-only) letters let the user colour headers by hand, the same way they colour bubble lettering drawn with a pen.
 
+**Done in branch `feat/lettering-fonts`** (see `odd/tasks/lettering-fonts.md`):
+- Registry and delivery: ten fonts embedded in `internal/sheet/fonts/<id>/` with their licences, a registry (`LetteringFonts`, `LetteringFont`, `LetteringFontByID`), the `LetteringFonts()` binding, and `internal/fonts` serving `/fonts/<id>.ttf` and `/fonts/<id>/licence` next to `/thumbs` and `/preview` (6266d44); a content-hash ETag so cached fonts revalidate after an upgrade, and the id charset asserted (64c77bb).
+- PDF: `Font` and `ColourIn` on `Options` and `PageSettings`; Full page and Checklist headers, the Dot grid title and Review card titles draw in the chosen font, hollow with Colour-in; the credits page gains a Fonts section (867dd0a).
+- UI: the font picker listbox and Colour-in controls (7ce9e03), wired into the Lettering fieldset of Print covers and Make pages (b22d7e7).
+- Docs and About: Settings → About lists every bundled font with its licence, read in place (1c41692); tests for font load failures and the served bytes (bcaab2c); README Lettering section, font table and third-party licences (the `docs:` commit after 1c41692).
+- Decisions:
+  - Font ids `go` (default; empty means `go`), `kaushan-script`, `pacifico`, `sacramento`, `patrick-hand`, `amatic-sc`, `titan-one`, `bungee`, `luckiest-guy`, `bungee-outline`, `londrina-outline`; groups `sans`, `brush`, `monoline`, `handwritten`, `display`, `hollow`; hollow capability `stroke`, `none` (Sacramento, Amatic SC) or `native` (Bungee Outline, Londrina Outline).
+  - The credits page lists the bundled font only when that page prints anyway (Credits on and at least one image credit): a font never adds a page, so "no credit file, no page" and `CreditPages` stay as they were. Page kinds have no credits page; the README and Settings → About list every font.
+  - A `usesLettering` format flag (Full page, Checklist, Review cards) shows Font and Colour-in in Print covers; the Header text stays tied to `usesHeader`. Make pages always shows them.
+  - Bundled fonts fit headers into 96 % of the width (swash margin); the Go font keeps 100 % and its bold face, so default output is byte-identical (2700 PDFs compared against 782ab17).
+  - Outline width max(0.2, 0.25 × pt / 20) mm, black, only at 14 pt or larger; mode 0, line width and draw colour are always restored.
+  - A `native` font shows Colour-in checked without overwriting the stored preference, which is sent to Go (Go never strokes those fonts) and comes back with the next font.
+  - Review card titles are 9.5 pt, too small for outlines, so they always print filled.
+  - Fonts reach the webview through the asset handler, not the Vite bundle.
+
 **Research (2026-11-20)**
 - **Licences.** SIL OFL 1.1 allows bundling fonts with software, provided each copy ships the copyright notice and licence text (clause 2, [official text](https://openfontlicense.org/open-font-license-official-text/)). The OFL doesn't apply to documents made with the font, and embedding subsets in PDFs is fine ([OFL FAQ 1.12–1.13, 1.20](https://openfontlicense.org/ofl-faq/)). Apache 2.0 fonts need the licence text shipped. Ship the original TTFs unmodified. Pre-subsetting a font and keeping its name would clash with Reserved Font Names (Kaushan Script, Sacramento, Monoton, Londrina, Titan). fpdf subsets inside each PDF anyway.
 - **fpdf v0.9.0 support** (checked in source and a probe PDF):
