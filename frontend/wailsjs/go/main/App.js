@@ -54,6 +54,14 @@ export function PagePages(arg1, arg2, arg3) {
   return window['go']['main']['App']['PagePages'](arg1, arg2, arg3);
 }
 
+export function PreviewPDF(arg1, arg2) {
+  return window['go']['main']['App']['PreviewPDF'](arg1, arg2);
+}
+
+export function PreviewPage(arg1, arg2, arg3) {
+  return window['go']['main']['App']['PreviewPage'](arg1, arg2, arg3);
+}
+
 export function PrintCropModes() {
   return window['go']['main']['App']['PrintCropModes']();
 }

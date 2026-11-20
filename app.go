@@ -27,6 +27,7 @@ import (
 	"bujo-helper/internal/gallery"
 	"bujo-helper/internal/i18n"
 	"bujo-helper/internal/media"
+	"bujo-helper/internal/preview"
 	"bujo-helper/internal/settings"
 	"bujo-helper/internal/sheet"
 	"bujo-helper/internal/web"
@@ -126,6 +127,10 @@ type App struct {
 	// is the Wails asset server's fallback handler (see main.go).
 	thumbs *gallery.Thumbs
 
+	// previews holds the PDFs rendered by PreviewPDF and PreviewPage for
+	// the live preview; served next to thumbs (see assetHandler).
+	previews *preview.Store
+
 	// settingsPath is the settings file; "" means it is unknown and
 	// SaveSettings fails. settings is the current copy, read live by
 	// tmdbKey, igdbCredentials and bhlKey so saved keys are used without a
@@ -217,7 +222,17 @@ func newApp(reg *media.Registry, client *http.Client) *App {
 		registry:   reg,
 		downloader: downloader.Downloader{Registry: reg, Client: client},
 		thumbs:     gallery.NewThumbs(),
+		previews:   preview.NewStore(),
 	}
+}
+
+// assetHandler serves what the Wails asset server cannot find among the
+// embedded assets: thumbnails and preview PDFs. Anything else is 404.
+func (a *App) assetHandler() http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle(gallery.ThumbPath, a.thumbs)
+	mux.Handle(preview.Path, a.previews)
+	return mux
 }
 
 // loadSettings reads the settings file at path and remembers path for
@@ -986,6 +1001,41 @@ func (a *App) ExportPDF(paths []string, defaultDir string, opts sheet.Options) (
 	return path, nil
 }
 
+// PreviewInfo is a rendered preview: the URL the asset handler serves its
+// PDF at, and its page count.
+type PreviewInfo struct {
+	URL   string `json:"url"`
+	Pages int    `json:"pages"`
+}
+
+// PreviewPDF renders the print sheet PDF of the images at paths with the
+// print settings opts, exactly as ExportPDF writes it, and keeps it in
+// memory for the preview. It reports the same errors as ExportPDF.
+func (a *App) PreviewPDF(paths []string, opts sheet.Options) (PreviewInfo, error) {
+	if len(paths) == 0 {
+		return PreviewInfo{}, errors.New(a.t("err.selectCover"))
+	}
+	opts = a.withLabels(opts)
+	return a.preview(func(w io.Writer) error { return buildCovers(w, paths, opts) })
+}
+
+// PreviewPage renders the PDF of the page kind with the shared settings page
+// and options (as for PagePages), exactly as ExportPage writes it, and keeps
+// it in memory for the preview.
+func (a *App) PreviewPage(kind string, page sheet.PageSettings, options string) (PreviewInfo, error) {
+	return a.preview(func(w io.Writer) error { return buildPage(w, kind, page, options) })
+}
+
+// preview renders a PDF with build into the preview store.
+func (a *App) preview(build func(io.Writer) error) (PreviewInfo, error) {
+	var buf bytes.Buffer
+	if err := build(&buf); err != nil {
+		return PreviewInfo{}, err
+	}
+	data := buf.Bytes()
+	return PreviewInfo{URL: a.previews.Put(data), Pages: preview.PageCount(data)}, nil
+}
+
 // withLabels returns opts with the stub, card and credits page labels in
 // the UI language.
 func (a *App) withLabels(opts sheet.Options) sheet.Options {
@@ -1075,8 +1125,20 @@ func (a *App) withExtension(path, ext string) (string, error) {
 // exportTo writes the print sheet PDF of files to path, atomically.
 func exportTo(path string, files []string, opts sheet.Options) error {
 	return writeFileAtomic(path, "PDF", func(w io.Writer) error {
-		return sheet.Build(w, files, opts)
+		return buildCovers(w, files, opts)
 	})
+}
+
+// buildCovers writes the print sheet PDF of files to w. Export and preview
+// both render through it, so the preview shows exactly what is exported.
+func buildCovers(w io.Writer, files []string, opts sheet.Options) error {
+	return sheet.Build(w, files, opts)
+}
+
+// buildPage writes the PDF of a generated page to w; like buildCovers, it
+// is shared by export and preview.
+func buildPage(w io.Writer, kind string, page sheet.PageSettings, options string) error {
+	return sheet.BuildPage(w, kind, page, json.RawMessage(options))
 }
 
 // PageKindInfo describes a page kind for the Make pages list.
@@ -1153,7 +1215,7 @@ func (a *App) ExportPage(kind, defaultDir string, page sheet.PageSettings, optio
 		return "", err
 	}
 	err = writeFileAtomic(path, "PDF", func(w io.Writer) error {
-		return sheet.BuildPage(w, kind, page, json.RawMessage(options))
+		return buildPage(w, kind, page, options)
 	})
 	if err != nil {
 		return "", err
