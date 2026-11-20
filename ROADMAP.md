@@ -4,11 +4,12 @@ New printables and content types for bullet journal users, based on research int
 
 - **Part 1 (items 1–13):** media spreads, such as reading logs, bookshelf trackers, movie and TV trackers and sticker sheets. Done, except item 7 (won't do).
 - **Part 2 (items 14–28):** other bujo collections, such as art, travel, nature, food and personal memories. Items are grouped by how well they fit the app: **Strong**, **Medium** and **Weak**.
+- **Part 3 (items 29–31):** app structure and lettering. A **Make pages** section for generated printables, a live PDF preview, and lettering fonts with hollow letters for colouring in.
 
 ## How to use this roadmap
 
 - Each item is **self-contained** and sized for **one fresh Claude session**. Start with: *"Implement roadmap item N from ROADMAP.md."*
-- Within each part, items are ordered by **value first, then effort**; in Part 2 they are also grouped by fit. Any order works. No item needs another one done first.
+- Within each part, items are ordered by **value first, then effort**; in Part 2 they are also grouped by fit. Any order works, with one exception: item 29 (Make pages section) must be done before the generated printables (items 16, 18, 27, 28). Item 30 (preview) and item 31 (lettering) are strongly recommended before them too.
 - When an item is done, mark it `[x]` and add the merge commit hash. Items we decided not to build are marked `[-] WONT DO`, with the reason.
 
 ## Shared conventions
@@ -21,7 +22,10 @@ Any item may be the first one to touch a shared piece, so each item follows thes
 - **Defaults keep today's output.** With default settings, the existing A4 cover sheet keeps exactly today's layout: 50 mm covers, 5 × 5 grid, grey cut border.
 - **Non-2:3 images.** Artworks, photos, flags and illustrations come in any shape. Any item that adds such images makes sure the print sheet places them correctly (landscape and square cells, not only shrink-to-fit into a 2:3 column). If an earlier item already did this, reuse it.
 - **Attribution.** Some sources require credit (for example Wikimedia Commons CC BY images, or the Biodiversity Heritage Library). Store the credit and licence next to each download (for example a `<file>.credit.txt` sidecar) and offer a credits page or caption in the PDF. Whichever item first needs this creates it; later items reuse it.
-- **Generated printables.** Some items create a page without downloading anything (map, moon calendar, quotes, trackers). They are print formats under the same **Format** control, and their input is typed in the Print sheet tab instead of a folder of images.
+- **Generated printables.** Some items create a page without downloading anything (map, moon calendar, quotes, trackers). They live in the **Make pages** section (item 29), not under the Print covers **Format** control. Each one is a page kind with its own typed options form, and it reuses the shared **Page** controls (paper, cut, credits) and **Lettering** controls (item 31).
+- **Colour-in mode.** Generated pages that can be coloured by hand (moon outlines, map outlines, hollow lettering) use one shared **Colour-in** toggle, which means outlines only and no fills. Don't add a separate "outline only" switch per page.
+- **Lettering.** Any title or display text a page prints (headers, month names, quote text) uses the font chosen in the **Lettering** controls (item 31). Small body text, such as captions, dates and credits, stays in the default Go font for legibility.
+- **UI mockups.** The UI for items 29–31, and for the forms of the generated printables, follows the design canvas at https://claude.ai/artifact/6gdFFavUM9kyA76MsCpB1R. It has four artboards: Download, Print covers, Make pages and Lettering picker. Read it with the Artifact tool's `read` action before building UI. It reuses `style.css` tokens and components; don't copy its markup. Where the canvas and this file disagree, the canvas wins for layout and this file wins for behaviour and scope. The canvas lists all six page kinds only to show the end state.
 - **Licensing check first.** For any new source, the session starts by reading the source's official terms and API docs, and records the findings in the README. If the terms forbid the intended use, stop and report it to the user before writing code.
 - **Docs and tests ship with the code.** Update the README's [Print sheet](README.md#print-sheet) section (or [Sources](README.md#sources) for media types). Add table-driven Go tests next to the layout code.
 
@@ -407,7 +411,7 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 **Weakness:** there are no images to fetch, and free versions are everywhere, so the app adds little.
 
 **Scope**
-- A generated print format **Quote cards**: the user types or imports quotes (`Quote, Author`), and the app lays them out as cards in a few typographic styles using embedded open-licence fonts.
+- A generated print format **Quote cards**: the user types or imports quotes (`Quote, Author`), and the app lays them out as cards in a few typographic styles. It uses the lettering fonts from item 31 instead of adding new ones.
 
 **Acceptance**
 - Text auto-fits each card without overflow. Layout tests.
@@ -424,3 +428,137 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 
 **Acceptance**
 - Calendar dates are correct for leap years and for both week starts (unit tests). The PDF renders both formats.
+
+---
+
+# Part 3: App structure and lettering
+
+The generated printables (items 16, 18, 27, 28) don't fit the Print sheet tab. That tab is built around a folder of images: `sheet.build`, `ExportPDF` and `PrintPages` all fail without image paths, export is disabled with nothing selected, and the only visual is the thumbnail gallery. These items give generated pages a home of their own and add lettering, which several of them need.
+
+Order: 29 → 30 → 31, then the generated printables.
+
+## 29. [ ] Make pages section and app navigation
+
+**Why:** generated pages need typed options and no folder. Forcing them under the Print sheet **Format** control would leave half its controls (folder, gallery, selection, cover size, crop) meaningless for them. The Print options are also one long flex row of nine controls, and adding font, colour-in and page-specific fields would make it unreadable.
+
+**Scope**
+- **Three tabs:** **Download**, **Print covers** (today's Print sheet, renamed) and **Make pages**. Make the tab list data-driven instead of the two hard-coded entries in `main.ts`, and fix the `#app[data-tab="print"]` CSS rules.
+- **Download tab** (canvas: Download): two columns.
+  - **Left column, the input:**
+    - The media type moves out of the global header and becomes a **grid of buttons** (5 per row; the selected one has an accent border and a tinted background). Below it, a muted line lists the sources tried for that type, in order, from the catalog's `Providers`.
+    - Import CSV… / Sample CSV, the item count, the items textarea, Output folder + Country, and **Download** + Cancel.
+  - **Right column, the results:** the progress bar and the results list. The footer has **Open folder** and a **Print these covers** link that switches to Print covers.
+- **Print covers layout** (canvas: Print covers): an options column on the left (about 300 px), grouped in `<fieldset>`s, with toolbar + gallery on the right:
+  ```
+  ┌ Covers ──────────┐  ┌───────────────────────────────────────┐
+  │ Folder [….][Brw] │  │ [Gallery|Preview]   all · none  8 sel │
+  ├ Layout ──────────┤  │ ┌──┐┌──┐┌──┐┌──┐┌──┐┌──┐               │
+  │ Format  [▾]      │  │ │ ✓││  ││ ✓││  ││ ✓││  │  6 per row    │
+  │ Size [▾] Crop[▾] │  │ └──┘└──┘└──┘└──┘└──┘└──┘               │
+  │ Cards for [▾]    │  │                                        │
+  ├ Page ────────────┤  │                                        │
+  │ Paper[▾] Cut[▾]  │  │                                        │
+  │ [✓] Credits page │  │                                        │
+  ├ Lettering ───────┤  └───────────────────────────────────────┘
+  │ Header [……]      │  status            [Open PDF] [Export PDF…]
+  │ Font[▾] □Colour  │
+  └──────────────────┘
+  ```
+  - **Shared fieldsets:** **Page** and **Lettering** are shared components that both tabs render.
+  - **Show/hide rules:** keep the existing ones (`updateFormat`); they now hide fields inside fieldsets. A fieldset with no visible fields is hidden.
+    - The Lettering fieldset only shows for formats that print a header (Full page, Checklist). Otherwise a muted hint says so.
+    - The Gallery | Preview switch is added by item 30, and the Font and Colour-in fields by item 31.
+  - **Gallery cards:** each card shows the cover thumbnail with a round check badge in its top-right corner and the file name below. A selected card gets an accent border.
+- **Make pages tab** (canvas: Make pages): three columns. On the left, a list of page kinds (about 200 px). In the middle, an options column (about 320 px) with the kind's form and then the shared Page and Lettering fieldsets. On the right, the preview with the status line and export buttons below it:
+  ```
+  ┌─────────────┬──────────────────────┬──────────────────────────┐
+  │ PAGE        │ Moon calendar        │ Preview      Page 1 of 1 │
+  │▸Dot grid  29│ Month [▾]  Year [  ] │ ┌──────────────────────┐ │
+  │ Moon cal. 18│ Layout [Row|Grid|Yr] │ │   January moons      │ │
+  │ Month cal.28│ Hemisphere [N|S]     │ │  ◐ ◑ ○ ● …           │ │
+  │ Habits    28│ ┌ Page ────────────┐ │ │                      │ │
+  │ Quotes    27│ │[A5|B5|A4|Letter] │ │ │                      │ │
+  │ Map       16│ │ Cut [▾]          │ │ └──────────────────────┘ │
+  │             │ ├ Lettering ───────┤ │ status                   │
+  │             │ │ Font [Pacifico▾] │ │  [Open PDF] [Export PDF…]│
+  │             │ │ □ Colour-in      │ │                          │
+  │             │ └──────────────────┘ │                          │
+  └─────────────┴──────────────────────┴──────────────────────────┘
+  ```
+  - **Page kinds list:** kinds that aren't built yet are not listed. The list comes from Go, like `PrintFormats()`.
+  - **Option controls:** options with two to four values use segmented button groups (Layout, Hemisphere, Paper, Dot spacing, Week start). Longer lists use selects.
+  - **Preview:** a page-shaped placeholder (the paper's aspect ratio on a grey well) until item 30 makes it live.
+- **Backend:** a no-image path next to the image one, for example `PageKinds()`, `PagePages(kind, opts)` and `ExportPage(kind, opts)` bindings, plus a builder in `internal/sheet` (or a new `internal/pages`) that takes typed options instead of paths. It reuses `newPDF`, papers, cut modes and the text helpers. Each kind declares its own options struct, decoded from JSON, so later items add kinds without touching the bindings.
+- **First kind: Dot grid page.** A plain dot grid (5 mm pitch, optional title) proves the path end to end. Dot grid paper is the basic bujo page, so it's useful on its own.
+- Paper sizes: add **B5** (176 × 250 mm), which bujo notebooks use and item 28 asks for.
+- EN and ES strings for every new label.
+
+**Acceptance**
+- Tabs work with keyboard navigation, as today. The Download tab still works, and its media type buttons are inside it and reachable by keyboard.
+- Print covers output is byte-identical to before for the same options (compare page-stream hashes, as in earlier items).
+- Make pages exports a dot grid PDF on every paper size. Go tests cover the dot positions and margins, and the frontend tests cover tab switching and fieldset visibility.
+
+**Out of scope:** the preview pane stays a placeholder until item 30. The Lettering fieldset only holds today's Header field until item 31.
+
+## 30. [ ] Live PDF preview
+
+**Why:** generated pages have no thumbnails, so without a preview the user exports blind. A real preview also helps Print covers (spines, stubs and polaroids are hard to imagine from the gallery).
+
+**Scope**
+- Go renders the current options to PDF bytes in memory and serves them through the existing asset handler (the one behind `thumbUrl`). No temp file is left behind.
+- The frontend draws page 1, with next/previous for more pages, onto a `<canvas>` using **pdf.js** (`pdfjs-dist`, Apache 2.0, bundled by Vite and not loaded from a CDN). Verify first whether WebKitGTK, WebView2 and WKWebView render PDFs natively in an `<iframe>`. Assumption: WebKitGTK does not, so pdf.js is needed on Linux.
+- Debounce re-renders (about 300 ms after the last option change) and drop stale renders.
+- Make pages shows the preview by default. Print covers gets a **Gallery | Preview** switch on the right-hand pane.
+
+**Acceptance**
+- The preview matches the exported PDF (same bytes for the same options). Changing an option updates it within about a second for a one-page document. The licence for pdf.js is recorded in the README.
+
+## 31. [ ] Lettering fonts and hollow letters
+
+**Why:** hand lettering is central to bujo headers, and printed headers in a plain sans font look out of place on a hand-drawn spread. Hollow (outline-only) letters let the user colour headers by hand, the same way they colour bubble lettering drawn with a pen.
+
+**Research (2026-11-20)**
+- **Licences.** SIL OFL 1.1 allows bundling fonts with software, provided each copy ships the copyright notice and licence text (clause 2, [official text](https://openfontlicense.org/open-font-license-official-text/)). The OFL doesn't apply to documents made with the font, and embedding subsets in PDFs is fine ([OFL FAQ 1.12–1.13, 1.20](https://openfontlicense.org/ofl-faq/)). Apache 2.0 fonts need the licence text shipped. Ship the original TTFs unmodified. Pre-subsetting a font and keeping its name would clash with Reserved Font Names (Kaushan Script, Sacramento, Monoton, Londrina, Titan). fpdf subsets inside each PDF anyway.
+- **fpdf v0.9.0 support** (checked in source and a probe PDF):
+  - `AddUTF8FontFromBytes` embeds TTFs from memory, as `internal/sheet/cards.go` already does for the Go fonts. Only static `.ttf` with `glyf` outlines works: CFF `.otf` and `.ttc` are rejected, and variable fonts render only their default instance.
+  - Subsetting is automatic. 21 fonts in one probe PDF came to 181 KB.
+  - `SetTextRenderingMode(1)` emits the PDF `Tr` operator for stroke-only text. Stroke colour comes from `SetDrawColor` and width from `SetLineWidth`. fpdf doesn't track the mode, so it must be reset to 0 after each use.
+  - There is no OpenType shaping or kerning (no GSUB/GPOS). Script fonts lose contextual alternates. Pacifico and Dancing Script still connect acceptably, and Caveat loses its letter variation.
+  - **go-pdf/fpdf is archived** (v0.9.0 is the last release), so shaping, OTF and variable-font support will never come.
+- **How hollow mode looks** (probe): bold display fonts (Bungee, Titan One, Luckiest Guy, Pacifico, Patrick Hand) make good hollow letters. Thin and monoline fonts (Sacramento, Amatic SC, Caveat) turn into hairline double strokes with no room to colour. Fonts that are already outlined (Bungee Outline, Londrina Outline) are hollow by design, and stroking them doubles every line.
+
+**Scope**
+- **Ten bundled fonts** (about 1.6 MB raw), embedded with `go:embed` under `internal/sheet/fonts/<id>/` together with each font's `OFL.txt` or `LICENSE`:
+
+  | Style | Fonts | Hollow mode |
+  |---|---|---|
+  | Default | Go Regular/Bold (already shipped) | stroke |
+  | Brush script | Kaushan Script, Pacifico | stroke |
+  | Monoline script | Sacramento | not offered (too thin) |
+  | Handwritten print | Patrick Hand, Amatic SC | Patrick Hand: stroke; Amatic SC: not offered |
+  | Bold display ("bubble") | Titan One, Bungee, Luckiest Guy | stroke |
+  | Hollow by design | Bungee Outline, Londrina Outline | already hollow; Colour-in is always on |
+
+  All of them cover the Spanish letters (á é í ó ú ñ ü ¿ ¡). Luckiest Guy and Londrina Outline lack Latin Extended (ő ł č); note it for future locales.
+- **A font registry** in Go: id, label, style group, TTF bytes, licence, and a hollow capability (`stroke`, `none` or `native`). It is exposed to the frontend like `PrintFormats()`.
+- **Lettering fieldset** (canvas: Lettering picker, and the Make pages font popover):
+  - **Font picker:** a button showing the current font's name in that font, with a chevron. It opens a listbox (`role="listbox"`, keyboard navigable). Native `<select>` options can't show custom fonts in WebKitGTK.
+    - Each row shows the font name in its own face at about 21 px, its style group, and a badge: **outline ok** (`stroke`), **hollow** (`native`) or **no outline** (`none`).
+    - Serve the same embedded TTFs to the webview through the asset handler for `@font-face`, so the fonts aren't duplicated in the frontend bundle.
+  - **Colour-in checkbox**, with a one-line muted hint below it.
+    - It stays enabled for every font, because it also outlines moons and the map.
+    - With a `none` font, the hint says the letters stay filled.
+    - With a `native` font, it shows as checked for letters, and the hint says the font is hollow by design.
+  - the existing **Header** text, when the format uses it.
+- **Applies to display text only:** full page and checklist headers, review card titles, and later month names, page titles and quote text. Captions, dates, stub text and credits stay in the Go font.
+- **Hollow drawing:** a helper that sets mode 1, a stroke width of about 0.25 mm (scaled with the font size, minimum 0.2 mm) and draw colour black, draws, then always restores mode 0. Hollow text is only used at 14 pt or larger. Below that, it falls back to filled text.
+- **Text fitting:** the existing `fitHeader`, `fitLines` and `GetStringWidth` code must use the chosen font. Script fonts with swashes need a small safety margin.
+- **Credits:** the credits page and the README list the bundled fonts with their licences. The About text in Settings links the licence files.
+
+**Acceptance**
+- A test loads every bundled font through fpdf and fails if `pdf.Err()` is set. Another test checks that each font covers the EN and ES alphabets.
+- A hollow-mode test checks that the content stream contains `1 Tr` … `0 Tr` and that no `Tr` state leaks to the next text or the next page.
+- With the default font and Colour-in off, every existing format is byte-identical to before.
+- Header text auto-fits without overflow in every font (layout tests, table-driven over fonts).
+
+**Out of scope:** user-supplied fonts (a later item could allow importing a TTF, with the same `glyf`-only check), OpenType shaping, and outline versions of cover images. Turning photos into line art for colouring is a different, much harder feature; note it as a separate idea.
