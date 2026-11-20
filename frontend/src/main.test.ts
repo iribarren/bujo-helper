@@ -87,6 +87,37 @@ describe('items placeholder', () => {
     }
 });
 
+describe('tabs', () => {
+    it('are named Download and Print covers', () => {
+        expect(el('tab-download').textContent).toBe('Download');
+        expect(el('tab-print').textContent).toBe('Print covers');
+    });
+
+    it('switch the panel and the app section on click', () => {
+        el('tab-print').click();
+        expect(el('app').dataset.tab).toBe('print');
+        expect(el('panel-print').hidden).toBe(false);
+        expect(el('panel-download').hidden).toBe(true);
+        expect(el('tab-print').getAttribute('aria-selected')).toBe('true');
+        expect(el('tab-download').getAttribute('aria-selected')).toBe('false');
+
+        el('tab-download').click();
+        expect(el('app').dataset.tab).toBe('download');
+        expect(el('panel-download').hidden).toBe(false);
+        expect(el('panel-print').hidden).toBe(true);
+    });
+
+    it('wrap with the arrow keys', () => {
+        const key = (id: string, name: string) =>
+            el(id).dispatchEvent(new KeyboardEvent('keydown', {key: name, bubbles: true, cancelable: true}));
+        key('tab-download', 'ArrowLeft');
+        expect(el('app').dataset.tab).toBe('print');
+        key('tab-print', 'ArrowRight');
+        expect(el('app').dataset.tab).toBe('download');
+        expect(document.activeElement).toBe(el('tab-download'));
+    });
+});
+
 describe('key tip', () => {
     it('suggests a BHL key for nature while none is saved', () => {
         selectType('nature');

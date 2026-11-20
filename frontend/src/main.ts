@@ -17,6 +17,7 @@ import {applyDom, has, label, onLangChange, t, tn, type MessageKey} from './i18n
 import {useLanguage} from './language';
 import {initPrint, type PrintSheet} from './print';
 import {initSettings, type SettingsDialog} from './settings';
+import {initTabs} from './tabs';
 
 // Payload of the "job:item" event (Go: ItemEvent).
 interface ItemEvent {
@@ -602,36 +603,9 @@ export function outputFolder(): string {
 }
 
 const appRoot = byId<HTMLDivElement>('app');
-const tabs = [
-    {name: 'download', tab: byId<HTMLButtonElement>('tab-download'), panel: byId<HTMLDivElement>('panel-download')},
-    {name: 'print', tab: byId<HTMLButtonElement>('tab-print'), panel: byId<HTMLDivElement>('panel-print')},
-];
-
-function selectTab(index: number, focus = false) {
-    tabs.forEach(({tab, panel}, i) => {
-        const on = i === index;
-        tab.setAttribute('aria-selected', String(on));
-        tab.tabIndex = on ? 0 : -1;
-        panel.hidden = !on;
-    });
-    if (focus) tabs[index].tab.focus();
-    appRoot.dataset.tab = tabs[index].name;
-    if (tabs[index].name === 'print') printSheet?.activate();
-}
-
-tabs.forEach(({tab}, i) => {
-    tab.addEventListener('click', () => selectTab(i));
-    tab.addEventListener('keydown', (e) => {
-        const next = {
-            ArrowRight: (i + 1) % tabs.length,
-            ArrowLeft: (i - 1 + tabs.length) % tabs.length,
-            Home: 0,
-            End: tabs.length - 1,
-        }[e.key];
-        if (next === undefined) return;
-        e.preventDefault();
-        selectTab(next, true);
-    });
+initTabs(byId<HTMLDivElement>('tabs'), (name) => {
+    appRoot.dataset.tab = name;
+    if (name === 'print') printSheet?.activate();
 });
 
 // Ctrl+Enter starts a download; it does nothing while the print sheet or

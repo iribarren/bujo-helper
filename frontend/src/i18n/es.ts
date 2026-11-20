@@ -8,7 +8,7 @@ export const es: Messages = {
     'app.settings': 'Ajustes',
     'app.sections': 'Secciones',
     'app.tabDownload': 'Descargar',
-    'app.tabPrint': 'Hoja de impresión',
+    'app.tabPrint': 'Imprimir portadas',
     'app.dismiss': 'Cerrar',
 
     // Key tip above the list.
@@ -122,7 +122,7 @@ export const es: Messages = {
     'sample.title.places': 'Guarda un CSV de ejemplo de lugares (Lugar, País) como referencia para Importar CSV',
     'sample.title.nature': 'Guarda un CSV de ejemplo de naturaleza (Nombre) como referencia para Importar CSV',
 
-    // Print sheet tab.
+    // Print covers tab.
     'print.coversFolder': 'Carpeta de portadas',
     'print.refresh': 'Actualizar',
     'print.format': 'Formato',

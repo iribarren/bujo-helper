@@ -1,4 +1,4 @@
-// The "Print sheet" tab: preview the covers in a folder, select some, pick
+// The "Print covers" tab: preview the covers in a folder, select some, pick
 // a format (a cover sheet, review cards, book spines, ticket stubs, a full
 // page, a checklist or polaroids), a paper, for a cover sheet, spines or
 // polaroids a cover size, for a cover sheet a crop mode (a standard print
