@@ -136,13 +136,27 @@
 
     <section class="column print-covers">
         <div class="toolbar">
+            <!-- Gallery | Preview: filled by print.ts. -->
+            <div id="print-view" class="segmented view-switch" role="radiogroup" aria-label="View"></div>
             <button id="select-all" type="button" data-i18n="print.selectAll">Select all</button>
             <button id="select-none" type="button" data-i18n="print.selectNone">Select none</button>
             <span id="selection" class="muted" aria-live="polite">0 selected · 0 pages</span>
+            <div id="print-pager" class="pager toolbar-end" hidden>
+                <button id="print-prev" class="pager-button" type="button" disabled aria-label="Previous page"
+                        title="Previous page" data-i18n-aria-label="preview.prev" data-i18n-title="preview.prev">‹</button>
+                <span id="print-preview-count" class="muted" aria-live="polite"></span>
+                <button id="print-next" class="pager-button" type="button" disabled aria-label="Next page"
+                        title="Next page" data-i18n-aria-label="preview.next" data-i18n-title="preview.next">›</button>
+            </div>
         </div>
 
         <ul id="gallery" class="gallery" aria-label="Covers in the folder" data-i18n-aria-label="print.gallery"></ul>
         <p id="gallery-empty" class="gallery-empty muted" hidden></p>
+        <!-- The live preview of the selected covers: preview.ts draws the page here. -->
+        <div id="print-preview" class="page-well" hidden>
+            <div id="print-sheet" class="page-sheet" aria-hidden="true"></div>
+            <p id="print-preview-message" class="preview-message" role="status" hidden></p>
+        </div>
 
         <footer class="footer">
             <span id="export-status" class="muted" aria-live="polite"></span>

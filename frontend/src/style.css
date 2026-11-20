@@ -307,8 +307,9 @@ input[readonly] {
 
 .toolbar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    gap: 8px 12px;
 }
 
 textarea {
@@ -936,6 +937,16 @@ textarea {
     font-size: 13px;
     font-weight: 600;
     color: var(--muted);
+}
+
+/* Gallery | Preview, at the start of the Print covers toolbar. */
+.view-switch {
+    flex: none;
+}
+
+/* Pushed to the end of a toolbar. */
+.toolbar-end {
+    margin-left: auto;
 }
 
 /* Previous page, "Page X of N", next page. */
