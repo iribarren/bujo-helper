@@ -119,10 +119,11 @@ func fitChecklistText(title, creator string, width float64, measure measureFunc)
 }
 
 // buildChecklist draws a checklist row per image on the rows of grid: the
-// header, if not empty, on every page in the band above the rows, then per
+// header, if not empty, on every page in the band above the rows in the
+// lettering l, then per
 // row a checkbox, the thumbnail, the title and creator (from the file name)
 // and a rule under the row. There are no cut borders.
-func buildChecklist(grid Grid, paths []string, ratios []float64, header string) (*fpdf.Fpdf, error) {
+func buildChecklist(grid Grid, paths []string, ratios []float64, header string, l lettering) (*fpdf.Fpdf, error) {
 	pages, err := grid.Cells(len(paths))
 	if err != nil {
 		return nil, err
@@ -149,7 +150,11 @@ func buildChecklist(grid Grid, paths []string, ratios []float64, header string) 
 	band, hasHeader := fullPageHeaderBox(grid, header != "")
 	var line headerLine
 	if hasHeader {
-		line = fitHeader(pdf, header, band.W)
+		// Re-adding the default font is a no-op.
+		if err := l.add(pdf); err != nil {
+			return nil, err
+		}
+		line = fitHeader(pdf, l, header, band.W)
 	}
 	measure := pdfMeasure(pdf)
 	imgOpts := fpdf.ImageOptions{ImageType: "JPG"}
@@ -157,7 +162,7 @@ func buildChecklist(grid Grid, paths []string, ratios []float64, header string) 
 	i := 0
 	for _, page := range pages {
 		pdf.AddPage()
-		drawHeader(pdf, band, line)
+		drawHeader(pdf, l, band, line)
 		for range page {
 			name := fmt.Sprintf("cover-%d", i)
 			pdf.RegisterImageOptionsReader(name, imgOpts, bytes.NewReader(images[i].jpeg))

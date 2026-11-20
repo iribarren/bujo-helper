@@ -645,7 +645,10 @@ type PrintFormatInfo struct {
 	UsesCut    bool   `json:"usesCut"`    // whether the cut mode applies
 	UsesCrop   bool   `json:"usesCrop"`   // whether the crop mode applies
 	UsesHeader bool   `json:"usesHeader"` // whether the format prints the header the user types
-	Default    bool   `json:"default"`
+	// UsesLettering is whether the format prints display text in the
+	// chosen lettering font and Colour-in mode.
+	UsesLettering bool `json:"usesLettering"`
+	Default       bool `json:"default"`
 }
 
 // PrintFormats lists the print formats, the default first.
@@ -653,14 +656,15 @@ func (a *App) PrintFormats() []PrintFormatInfo {
 	out := make([]PrintFormatInfo, 0, len(sheet.Formats))
 	for _, f := range sheet.Formats {
 		out = append(out, PrintFormatInfo{
-			ID:         f.ID,
-			Label:      f.Label,
-			Noun:       f.Noun,
-			UsesSize:   f.UsesSize,
-			UsesCut:    f.UsesCut,
-			UsesCrop:   f.UsesCrop,
-			UsesHeader: f.UsesHeader,
-			Default:    f.ID == sheet.DefaultFormat,
+			ID:            f.ID,
+			Label:         f.Label,
+			Noun:          f.Noun,
+			UsesSize:      f.UsesSize,
+			UsesCut:       f.UsesCut,
+			UsesCrop:      f.UsesCrop,
+			UsesHeader:    f.UsesHeader,
+			UsesLettering: f.UsesLettering,
+			Default:       f.ID == sheet.DefaultFormat,
 		})
 	}
 	return out
@@ -1078,6 +1082,7 @@ func (a *App) withLabels(opts sheet.Options) sheet.Options {
 		Where:    a.t("pdf.stubWhere"),
 		CardDate: a.t("pdf.cardDate"),
 		Credits:  a.t("pdf.credits"),
+		Fonts:    a.t("pdf.fonts"),
 	}
 	return opts
 }

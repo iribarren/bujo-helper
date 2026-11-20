@@ -629,11 +629,11 @@ func TestPrintFormats(t *testing.T) {
 	got := NewApp().PrintFormats()
 	want := []PrintFormatInfo{
 		{ID: "covers", Label: "Cover sheet", Noun: "cover", UsesSize: true, UsesCut: true, UsesCrop: true, Default: true},
-		{ID: "cards", Label: "Review cards", Noun: "card"},
+		{ID: "cards", Label: "Review cards", Noun: "card", UsesLettering: true},
 		{ID: "spines", Label: "Spines", Noun: "spine", UsesSize: true},
 		{ID: "stubs", Label: "Ticket stubs", Noun: "stub"},
-		{ID: "fullpage", Label: "Full page", Noun: "cover", UsesHeader: true},
-		{ID: "checklist", Label: "Checklist", Noun: "row", UsesHeader: true},
+		{ID: "fullpage", Label: "Full page", Noun: "cover", UsesHeader: true, UsesLettering: true},
+		{ID: "checklist", Label: "Checklist", Noun: "row", UsesHeader: true, UsesLettering: true},
 		{ID: "polaroid", Label: "Polaroid", Noun: "polaroid", UsesSize: true},
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -1768,12 +1768,12 @@ func TestExportPDFDialogUsesTheUILanguage(t *testing.T) {
 func TestPDFLabelsFollowTheUILanguage(t *testing.T) {
 	a := newApp(media.NewRegistry(), http.DefaultClient)
 	opts := sheet.Options{Format: "stubs", DateLabel: "Leído el"}
-	if got := a.withLabels(opts); got.Labels != (sheet.Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date", Credits: "Credits"}) {
+	if got := a.withLabels(opts); got.Labels != (sheet.Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date", Credits: "Credits", Fonts: "Fonts"}) {
 		t.Errorf("English labels = %+v", got.Labels)
 	}
 	a.SetLanguage("es")
 	got := a.withLabels(opts)
-	if got.Labels != (sheet.Labels{Admit: "ENTRADA", Date: "Fecha:", Where: "Lugar:", CardDate: "Fecha", Credits: "Créditos"}) {
+	if got.Labels != (sheet.Labels{Admit: "ENTRADA", Date: "Fecha:", Where: "Lugar:", CardDate: "Fecha", Credits: "Créditos", Fonts: "Fuentes"}) {
 		t.Errorf("Spanish labels = %+v", got.Labels)
 	}
 	if got.Format != opts.Format || got.DateLabel != opts.DateLabel {

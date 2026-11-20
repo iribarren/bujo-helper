@@ -152,3 +152,110 @@ func addLetteringFont(pdf *fpdf.Fpdf, f Font) error {
 	}
 	return nil
 }
+
+// Lettering drawing settings.
+const (
+	// minHollowFontSize is the smallest size letters are drawn hollow at;
+	// smaller hollow letters leave no room to colour in, so they print
+	// filled.
+	minHollowFontSize = 14.0 // pt
+	// refHollowStrokeWidth is the outline width of hollow letters at
+	// hollowReferenceSize; it scales with the font size, down to
+	// minHollowStrokeWidth.
+	refHollowStrokeWidth = 0.25              // mm
+	hollowReferenceSize  = maxHeaderFontSize // pt
+	minHollowStrokeWidth = 0.2               // mm
+	// bundledFitShare is the share of the available width display text in
+	// a bundled font is fitted into. fpdf measures advance widths only, and
+	// script and display faces draw swashes and overhangs past them, so the
+	// rest is a safety margin, split on both sides of centred text. The Go
+	// font keeps the whole width, so default headers stay as they were.
+	bundledFitShare = 0.96
+)
+
+// lettering is how a printable draws its display text (headers and
+// titles): in font, and hollow (stroke-only) when Colour-in is on and the
+// font can be outlined.
+type lettering struct {
+	font     Font
+	colourIn bool
+}
+
+// newLettering is the lettering of the font id (empty or unknown: the
+// default font) with Colour-in on or off.
+func newLettering(id string, colourIn bool) lettering {
+	return lettering{font: LetteringFont(id), colourIn: colourIn}
+}
+
+// defaultLettering is today's display text: the Go font, filled.
+var defaultLettering = newLettering(DefaultLetteringFont, false)
+
+// bundled reports whether l uses a bundled font rather than the Go font,
+// so the PDF embeds a font the credits page lists.
+func (l lettering) bundled() bool { return l.font.ID != DefaultLetteringFont }
+
+// hollow reports whether text at pt points is drawn stroke-only: with
+// Colour-in on, in a font that can be outlined (fonts hollow by design are
+// never stroked, and thin ones stay filled), at minHollowFontSize or more.
+func (l lettering) hollow(pt float64) bool {
+	return l.colourIn && l.font.Hollow == HollowStroke && pt >= minHollowFontSize
+}
+
+// fitWidth is the width text fitted into width may take in l's font.
+func (l lettering) fitWidth(width float64) float64 {
+	if l.bundled() {
+		return width * bundledFitShare
+	}
+	return width
+}
+
+// add registers l's font in pdf.
+func (l lettering) add(pdf *fpdf.Fpdf) error { return addLetteringFont(pdf, l.font) }
+
+// setFont selects l's font, in its header style, at pt points; it must be
+// added.
+func (l lettering) setFont(pdf *fpdf.Fpdf, pt float64) {
+	pdf.SetFont(l.font.ID, l.font.HeaderStyle(), pt)
+}
+
+// measure measures text in l's font, which must be added. The bold flag of
+// measureFunc is ignored: display text always uses the header style.
+func (l lettering) measure(pdf *fpdf.Fpdf) measureFunc {
+	return func(text string, _ bool, pt float64) float64 {
+		l.setFont(pdf, pt)
+		return pdf.GetStringWidth(text)
+	}
+}
+
+// text writes s with its baseline at (x, y) in the current font, which is
+// l's at pt points: hollow if l.hollow(pt), else filled.
+func (l lettering) text(pdf *fpdf.Fpdf, x, y, pt float64, s string) {
+	if !l.hollow(pt) {
+		pdf.Text(x, y, s)
+		return
+	}
+	hollowText(pdf, x, y, pt, s)
+}
+
+// hollowStrokeWidth is the outline width of hollow letters at pt points.
+func hollowStrokeWidth(pt float64) float64 {
+	return max(minHollowStrokeWidth, refHollowStrokeWidth*pt/hollowReferenceSize)
+}
+
+// hollowText writes s stroke-only (text rendering mode 1) in black, its
+// outline as wide as hollowStrokeWidth for pt. It always restores mode 0,
+// which fpdf does not track, and the line width and draw colour, so the
+// text and lines drawn after it are unaffected.
+func hollowText(pdf *fpdf.Fpdf, x, y, pt float64, s string) {
+	width := pdf.GetLineWidth()
+	r, g, b := pdf.GetDrawColor()
+	defer func() {
+		pdf.SetTextRenderingMode(0)
+		pdf.SetDrawColor(r, g, b)
+		pdf.SetLineWidth(width)
+	}()
+	pdf.SetLineWidth(hollowStrokeWidth(pt))
+	pdf.SetDrawColor(0, 0, 0)
+	pdf.SetTextRenderingMode(1)
+	pdf.Text(x, y, s)
+}

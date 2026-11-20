@@ -78,7 +78,7 @@ func drawStub(pdf *fpdf.Fpdf, s stubParts, image string, imgOpts fpdf.ImageOptio
 	pdf.SetDashPattern([]float64{}, 0)
 
 	pdf.ImageOptions(image, s.Cover.X, s.Cover.Y, s.Cover.W, s.Cover.H, false, imgOpts, 0, "")
-	drawTitleAndCreator(pdf, s.Title, s.Creator, title, creator)
+	drawTitleAndCreator(pdf, defaultLettering, s.Title, s.Creator, title, creator)
 
 	// Field labels, each with a rule to the right edge to write on; the
 	// rules start together, after the longer label, which leaves at least

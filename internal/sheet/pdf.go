@@ -89,9 +89,9 @@ func build(paths []string, opts Options) (*fpdf.Fpdf, error) {
 	case stubsFormat:
 		pdf, err = buildStubs(grid, paths, ratios, opts.labels())
 	case fullFormat:
-		pdf, err = buildFullPage(grid.Page, paths, ratios, opts.header())
+		pdf, err = buildFullPage(grid.Page, paths, ratios, opts.header(), opts.lettering())
 	case checkFormat:
-		pdf, err = buildChecklist(grid, paths, ratios, opts.header())
+		pdf, err = buildChecklist(grid, paths, ratios, opts.header(), opts.lettering())
 	case polaFormat:
 		pdf, err = buildPolaroids(grid, paths, ratios)
 	default:

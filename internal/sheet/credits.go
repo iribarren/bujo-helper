@@ -21,6 +21,7 @@ import (
 // next to its images.
 const (
 	creditsText      = "Credits" // default heading; Options.Labels can replace it
+	fontsText        = "Fonts"   // default fonts section heading; Options.Labels can replace it
 	creditsMargin    = 15.0      // page margin, mm
 	creditsTitleSize = 16.0      // heading, pt
 	creditsTitleGap  = 4.0       // below the heading, mm
@@ -98,12 +99,43 @@ type creditLine struct {
 	Size float64 // pt
 }
 
+// creditFontsSection is the fonts section of credits pages: its heading
+// and the bundled lettering fonts the sheet prints, listed with their
+// licences. Without fonts there is no section.
+type creditFontsSection struct {
+	Title string
+	Fonts []Font
+}
+
+// creditFonts are the bundled lettering fonts the sheet of o prints, for
+// its credits page: the chosen font when it is not the Go font and the
+// format draws text in it (a full page or checklist with a header; review
+// cards always print titles). Otherwise none.
+func (o Options) creditFonts() []Font {
+	f, err := FormatByID(o.Format)
+	l := o.lettering()
+	if err != nil || !f.UsesLettering || !l.bundled() {
+		return nil
+	}
+	if f.UsesHeader && o.header() == "" {
+		return nil
+	}
+	return []Font{l.font}
+}
+
+// creditFontsSection is the fonts section of the credits pages of o.
+func (o Options) creditFontsSection() creditFontsSection {
+	return creditFontsSection{Title: o.labels().Fonts, Fonts: o.creditFonts()}
+}
+
 // layoutCredits lays credits out on pages of page size, as measured by
 // measure: every page starts with title, bold; then each credit, in order,
 // as its number and name, bold, and its text, indented, each line wrapped
-// to the page width. A credit that does not fit in what is left of a page
-// starts the next one; a credit taller than a page continues on the next.
-func layoutCredits(page Page, title string, credits []credit, measure measureFunc) [][]creditLine {
+// to the page width; then, if fonts lists any, the fonts section as one
+// more entry: its heading, bold, and a line per font, "Label — licence",
+// indented. An entry that does not fit in what is left of a page starts
+// the next one; an entry taller than a page continues on the next.
+func layoutCredits(page Page, title string, credits []credit, fonts creditFontsSection, measure measureFunc) [][]creditLine {
 	left := creditsMargin
 	width := page.Width - 2*creditsMargin
 	bottom := page.Height - creditsMargin
@@ -128,17 +160,32 @@ func layoutCredits(page Page, title string, credits []credit, measure measureFun
 	}
 	newPage()
 
-	for i, c := range credits {
+	// entryOf is an entry: its heading, bold, then each of texts indented.
+	entryOf := func(heading string, texts []string) []creditLine {
 		var entry []creditLine
-		name := strconv.Itoa(i+1) + ". " + c.Name
-		for _, l := range fitLines(name, width, maxCreditLines, sized(true, creditsNameSize)) {
+		for _, l := range fitLines(heading, width, maxCreditLines, sized(true, creditsNameSize)) {
 			entry = append(entry, creditLine{X: left, Text: l, Bold: true, Size: creditsNameSize})
 		}
-		for _, text := range strings.Split(c.Text, "\n") {
+		for _, text := range texts {
 			for _, l := range fitLines(text, width-creditsIndent, maxCreditLines, sized(false, creditsTextSize)) {
 				entry = append(entry, creditLine{X: left + creditsIndent, Text: l, Size: creditsTextSize})
 			}
 		}
+		return entry
+	}
+	var entries [][]creditLine
+	for i, c := range credits {
+		entries = append(entries, entryOf(strconv.Itoa(i+1)+". "+c.Name, strings.Split(c.Text, "\n")))
+	}
+	if len(fonts.Fonts) > 0 {
+		var texts []string
+		for _, f := range fonts.Fonts {
+			texts = append(texts, f.Label+" — "+f.Licence)
+		}
+		entries = append(entries, entryOf(fonts.Title, texts))
+	}
+
+	for _, entry := range entries {
 		height := 0.0
 		for _, l := range entry {
 			height += lineHeight(l.Size)
@@ -162,7 +209,7 @@ func layoutCredits(page Page, title string, credits []credit, measure measureFun
 
 // CreditPages is the number of credits pages Build adds after the pages of
 // the images at paths: 0 when Credits is off or no image has a credit
-// sidecar.
+// sidecar. It counts the fonts section, which never adds a page on its own.
 func (o Options) CreditPages(paths []string) (int, error) {
 	if !o.Credits {
 		return 0, nil
@@ -179,7 +226,7 @@ func (o Options) CreditPages(paths []string) (int, error) {
 	if err := addTextFonts(pdf); err != nil {
 		return 0, err
 	}
-	return len(layoutCredits(grid.Page, o.labels().Credits, credits, pdfMeasure(pdf))), nil
+	return len(layoutCredits(grid.Page, o.labels().Credits, credits, o.creditFontsSection(), pdfMeasure(pdf))), nil
 }
 
 // addCredits adds the credits pages of the images at paths to pdf, on
@@ -197,7 +244,7 @@ func addCredits(pdf *fpdf.Fpdf, page Page, paths []string, opts Options) error {
 	if err := addTextFonts(pdf); err != nil {
 		return err
 	}
-	for _, lines := range layoutCredits(page, opts.labels().Credits, credits, pdfMeasure(pdf)) {
+	for _, lines := range layoutCredits(page, opts.labels().Credits, credits, opts.creditFontsSection(), pdfMeasure(pdf)) {
 		pdf.AddPage()
 		for _, l := range lines {
 			grey := textGrey

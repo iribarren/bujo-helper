@@ -106,7 +106,7 @@ func TestLayoutCredits(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pages := layoutCredits(tt.page, "Credits", tt.credits, fakeMeasure)
+			pages := layoutCredits(tt.page, "Credits", tt.credits, creditFontsSection{}, fakeMeasure)
 			if len(pages) != tt.pages {
 				t.Fatalf("got %d pages, want %d", len(pages), tt.pages)
 			}
@@ -238,7 +238,7 @@ func TestBuildCreditsNamesAnUnreadableSidecarAndWritesNothing(t *testing.T) {
 func TestLayoutCreditsSplitsUnbrokenTokens(t *testing.T) {
 	a4 := Page{Width: 210, Height: 297}
 	url := "https://commons.wikimedia.org/wiki/File:" + strings.Repeat("Very_long_file_name_", 20) + ".jpg"
-	pages := layoutCredits(a4, "Credits", []credit{{Name: "Place", Text: "File page: " + url}}, fakeMeasure)
+	pages := layoutCredits(a4, "Credits", []credit{{Name: "Place", Text: "File page: " + url}}, creditFontsSection{}, fakeMeasure)
 	if len(pages) != 1 {
 		t.Fatalf("got %d pages, want 1", len(pages))
 	}
@@ -262,7 +262,7 @@ func TestLayoutCreditsSplitsUnbrokenTokens(t *testing.T) {
 func TestLayoutCreditsMarksAnOverlongLine(t *testing.T) {
 	a4 := Page{Width: 210, Height: 297}
 	huge := strings.Repeat("word ", 200*maxCreditLines)
-	pages := layoutCredits(a4, "Credits", []credit{{Name: "Place", Text: huge}}, fakeMeasure)
+	pages := layoutCredits(a4, "Credits", []credit{{Name: "Place", Text: huge}}, creditFontsSection{}, fakeMeasure)
 	var lines []creditLine
 	for _, p := range pages {
 		for _, l := range p[1:] {
