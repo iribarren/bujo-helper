@@ -50,6 +50,7 @@ Printed headers in plain Go sans look out of place on a hand-drawn spread. Hollo
 ## Progress
 - Feature doc created; branch `feat/lettering-fonts` from `782ab17`.
 - T1 (`6266d44`): `internal/sheet/lettering.go` registry (`Font{ID, Label, Group, TTF, Bold, Licence, LicenceText, Hollow}`, `LetteringFonts` default first, `LetteringFont(id)` falls back to `go` for empty/unknown, `LetteringFontByID` exact, `addLetteringFont(pdf, f)` registers family `f.ID`, `HeaderStyle()` "B" for Go only); Go licence copied from x/image `font/gofont/ttfs/README` to `internal/sheet/fonts/go/LICENSE`; Apache detected by `LICENSE.txt` (Luckiest Guy). `internal/fonts` route: `/fonts/<id>.ttf` (header face; Go Bold for go; `max-age=86400`), `/fonts/<id>/licence`; 404 unknown/other paths, 405 + `Allow` for non-GET/HEAD. `LetteringFonts()` binding; wailsjs regenerated (modes reset to 644). RED: three packages failed to build (undefined registry/handler symbols). GREEN: go test 1586 pass, vet clean, tsc clean, vitest 193/193. No glyph gaps: every face maps the EN/ES alphabets. Existing drawing untouched.
+- Review `782ab17..8ec5484` (T1 + doc, medium, 1766 lines mostly licence text): consent granted; reliability lens approved; acknowledged (authority burned). Advisory SUGGESTIONs folded into T2: R3-id-charset-invariant-untested (assert ids match `^[a-z0-9-]+$`), R3-cache-across-upgrades (`max-age` with no validator; add a content-hash ETag). Next reviewed boundary: `8ec5484`.
 
 ## Next step
 T2.
