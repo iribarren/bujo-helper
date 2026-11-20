@@ -14,8 +14,8 @@ vi.mock('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url', () => ({default: '/pdf
 
 // The print formats as PrintFormats sends them (see internal/sheet.Formats),
 // with every field set; for the option layout tests.
-const {formatList, cropList, paperList, sizeList, cutList, coverList} = vi.hoisted(() => {
-    const format = (id: string, flags: {usesSize?: boolean; usesCut?: boolean; usesCrop?: boolean; usesHeader?: boolean}) => ({
+const {formatList, cropList, paperList, sizeList, cutList, coverList, fontList} = vi.hoisted(() => {
+    const format = (id: string, flags: {usesSize?: boolean; usesCut?: boolean; usesCrop?: boolean; usesHeader?: boolean; usesLettering?: boolean}) => ({
         id,
         label: id,
         noun: 'cover',
@@ -23,17 +23,18 @@ const {formatList, cropList, paperList, sizeList, cutList, coverList} = vi.hoist
         usesCut: false,
         usesCrop: false,
         usesHeader: false,
+        usesLettering: false,
         default: id === 'covers',
         ...flags,
     });
     return {
         formatList: [
             format('covers', {usesSize: true, usesCut: true, usesCrop: true}),
-            format('cards', {}),
+            format('cards', {usesLettering: true}),
             format('spines', {usesSize: true}),
             format('stubs', {}),
-            format('fullpage', {usesHeader: true}),
-            format('checklist', {usesHeader: true}),
+            format('fullpage', {usesHeader: true, usesLettering: true}),
+            format('checklist', {usesHeader: true, usesLettering: true}),
             format('polaroid', {usesSize: true}),
         ],
         cropList: [{id: 'none', label: 'None', usesSize: true, usesCut: true, frames: 1, default: true}],
@@ -62,6 +63,13 @@ const {formatList, cropList, paperList, sizeList, cutList, coverList} = vi.hoist
             {path: '/covers/a.jpg', name: 'a.jpg', width: 400, height: 600, thumbUrl: 'a'},
             {path: '/covers/b.jpg', name: 'b.jpg', width: 400, height: 600, thumbUrl: 'b'},
         ],
+        fontList: [
+            ['go', 'Default', 'sans', 'stroke'],
+            ['titan-one', 'Titan One', 'display', 'stroke'],
+            ['bungee-outline', 'Bungee Outline', 'hollow', 'native'],
+        ].map(([id, label, group, hollow]) => ({
+            id, label, group, hollow, licence: 'OFL-1.1', url: `/fonts/${id}.ttf`, licenceUrl: `/fonts/${id}/licence`, default: id === 'go',
+        })),
     };
 });
 
@@ -80,6 +88,7 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     stubs.PreviewPDF = vi.fn(async () => ({url: '/preview?id=1', pages: 1}));
     stubs.PrintFormats = vi.fn(async () => formatList.map((f) => main.PrintFormatInfo.createFrom(f)));
     stubs.PrintCropModes = vi.fn(async () => cropList.map((c) => main.PrintCropModeInfo.createFrom(c)));
+    stubs.LetteringFonts = vi.fn(async () => fontList);
     return stubs;
 });
 
@@ -227,6 +236,19 @@ describe('Print covers tab', () => {
         return node;
     }
 
+    // pickFont chooses the font id in the Lettering font picker.
+    function pickFont(id: string) {
+        el('print-font').click();
+        const option = el('print-font-list').querySelector<HTMLElement>(`[role="option"][data-value="${id}"]`);
+        if (!option) throw new Error(`missing font ${id}`);
+        option.click();
+    }
+
+    function setColourIn(on: boolean) {
+        const box = el<HTMLInputElement>('print-colour-in');
+        if (box.checked !== on) box.click();
+    }
+
     describe('option groups', () => {
         it('group the options in fieldsets with legends', () => {
             const legends = Array.from(el('print-options').querySelectorAll('fieldset > legend'), (l) => l.textContent);
@@ -242,21 +264,24 @@ describe('Print covers tab', () => {
             expect(groupOf('print-credits')).toBe('print-group-page');
             expect(groupOf('print-header')).toBe('print-group-lettering');
             expect(groupOf('print-lettering-hint')).toBe('print-group-lettering');
+            expect(groupOf('print-font')).toBe('print-group-lettering');
+            expect(groupOf('print-colour-in')).toBe('print-group-lettering');
         });
 
         // Lettering is always shown: the header for the formats that print
-        // one, a muted hint for the others.
-        const cases: Array<[format: string, header: boolean]> = [
-            ['covers', false],
-            ['cards', false],
-            ['spines', false],
-            ['stubs', false],
-            ['fullpage', true],
-            ['checklist', true],
-            ['polaroid', false],
+        // one, a muted hint for the others, and the font and Colour-in for
+        // the formats that print lettering.
+        const cases: Array<[format: string, header: boolean, lettering: boolean]> = [
+            ['covers', false, false],
+            ['cards', false, true],
+            ['spines', false, false],
+            ['stubs', false, false],
+            ['fullpage', true, true],
+            ['checklist', true, true],
+            ['polaroid', false, false],
         ];
-        for (const [format, header] of cases) {
-            it(`${format}: Lettering with ${header ? 'the header' : 'a hint'}`, () => {
+        for (const [format, header, lettering] of cases) {
+            it(`${format}: Lettering with ${header ? 'the header' : 'a hint'}${lettering ? ', the font and Colour-in' : ''}`, () => {
                 chooseFormat(format);
                 expect(el('print-group-covers').hidden).toBe(false);
                 expect(el('print-group-layout').hidden).toBe(false);
@@ -265,6 +290,8 @@ describe('Print covers tab', () => {
                 expect(el('print-header-field').hidden).toBe(!header);
                 expect(el('print-lettering-hint').hidden).toBe(header);
                 if (!header) expect(el('print-lettering-hint').textContent).toBe('This format prints no header.');
+                expect(el('print-font-field').hidden).toBe(!lettering);
+                expect(el('print-colour-in-field').hidden).toBe(!lettering);
             });
         }
 
@@ -309,6 +336,8 @@ describe('Print covers tab', () => {
                 cut: 'border',
                 dateLabel: '',
                 header: '',
+                font: '',
+                colourIn: false,
                 credits: true,
             };
             await vi.waitFor(() => {
@@ -322,6 +351,59 @@ describe('Print covers tab', () => {
             expect(dir).toBe('/covers');
             expect({...opts}).toEqual(want);
             paperRadio('a4').click();
+        });
+    });
+
+    describe('lettering', () => {
+        function lastPrintPages(): Record<string, unknown> {
+            const calls = vi.mocked(PrintPages).mock.calls;
+            return {...calls[calls.length - 1][1]};
+        }
+
+        afterEach(() => {
+            pickFont('go');
+            setColourIn(false);
+            chooseFormat('covers');
+        });
+
+        it('lists the fonts from LetteringFonts, the default chosen', async () => {
+            await vi.waitFor(() => expect(el('print-font-list').querySelectorAll('[role="option"]').length).toBe(fontList.length));
+            expect(el('print-font').querySelector('.font-picker-name')?.textContent).toBe('Default');
+            expect(document.head.querySelectorAll('style#lettering-font-faces').length).toBe(1);
+        });
+
+        for (const format of ['fullpage', 'cards']) {
+            it(`${format}: sends the chosen font and Colour-in to PrintPages and ExportPDF`, async () => {
+                chooseFormat(format);
+                el('select-all').click();
+                pickFont('titan-one');
+                setColourIn(true);
+                // Colour-in never changes the page count, so PrintPages may
+                // not be asked again for it.
+                await vi.waitFor(() => expect(lastPrintPages()).toEqual(expect.objectContaining({format, font: 'titan-one'})));
+                el('export-pdf').click();
+                await vi.waitFor(() => {
+                    const calls = vi.mocked(ExportPDF).mock.calls;
+                    expect({...calls[calls.length - 1][2]}).toEqual(expect.objectContaining({format, font: 'titan-one', colourIn: true}));
+                });
+            });
+        }
+
+        it('sends the stored Colour-in with a hollow font', async () => {
+            chooseFormat('fullpage');
+            el('select-all').click();
+            pickFont('bungee-outline');
+            expect(el<HTMLInputElement>('print-colour-in').checked).toBe(true);
+            await vi.waitFor(() => expect(lastPrintPages()).toEqual(expect.objectContaining({font: 'bungee-outline', colourIn: false})));
+        });
+
+        it('sends no font and no Colour-in for a format without lettering', async () => {
+            chooseFormat('fullpage');
+            el('select-all').click();
+            pickFont('titan-one');
+            setColourIn(true);
+            chooseFormat('spines');
+            await vi.waitFor(() => expect(lastPrintPages()).toEqual(expect.objectContaining({format: 'spines', font: '', colourIn: false})));
         });
     });
 
@@ -419,6 +501,25 @@ describe('Print covers tab', () => {
             } finally {
                 header.value = '';
                 header.dispatchEvent(new Event('input'));
+                format.value = 'covers';
+                format.dispatchEvent(new Event('change'));
+            }
+        });
+
+        it('renders again when the font or Colour-in changes', async () => {
+            const format = el<HTMLSelectElement>('print-format');
+            format.value = 'checklist';
+            format.dispatchEvent(new Event('change'));
+            viewRadio('preview').click();
+            try {
+                await vi.waitFor(() => expect(lastPreviewPDF()[1]).toEqual(expect.objectContaining({format: 'checklist', font: 'go', colourIn: false})));
+                pickFont('titan-one');
+                await vi.waitFor(() => expect(lastPreviewPDF()[1]).toEqual(expect.objectContaining({font: 'titan-one', colourIn: false})));
+                setColourIn(true);
+                await vi.waitFor(() => expect(lastPreviewPDF()[1]).toEqual(expect.objectContaining({font: 'titan-one', colourIn: true})));
+            } finally {
+                pickFont('go');
+                setColourIn(false);
                 format.value = 'covers';
                 format.dispatchEvent(new Event('change'));
             }
