@@ -2,11 +2,15 @@ package sheet
 
 import (
 	"bytes"
+	"regexp"
 	"strings"
 	"testing"
 
 	"golang.org/x/image/font/sfnt"
 )
+
+// fontID is the charset lettering font ids keep to.
+var fontID = regexp.MustCompile(`^[a-z0-9-]+$`)
 
 func TestLetteringFontsRegistry(t *testing.T) {
 	wantIDs := []string{
@@ -25,6 +29,10 @@ func TestLetteringFontsRegistry(t *testing.T) {
 		}
 		if seen[f.ID] {
 			t.Errorf("duplicate id %q", f.ID)
+		}
+		// Ids are fpdf family names and URL path segments of /fonts/.
+		if !fontID.MatchString(f.ID) {
+			t.Errorf("id %q does not match %s", f.ID, fontID)
 		}
 		seen[f.ID] = true
 		if f.Label == "" {

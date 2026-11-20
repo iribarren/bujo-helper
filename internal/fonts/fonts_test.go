@@ -99,3 +99,30 @@ func TestRejectsOtherRequests(t *testing.T) {
 		})
 	}
 }
+
+// Responses carry a content-hash ETag, different per body, so a cached font
+// or licence revalidates after an upgrade changes it.
+func TestETagRevalidates(t *testing.T) {
+	seen := map[string]string{}
+	for _, f := range sheet.LetteringFonts {
+		for _, target := range []string{TTFURL(f.ID), LicenceURL(f.ID)} {
+			rec := serve(http.MethodGet, target)
+			etag := rec.Header().Get("ETag")
+			if len(etag) < 3 || etag[0] != '"' || etag[len(etag)-1] != '"' {
+				t.Errorf("%s: ETag %q, want a quoted tag", target, etag)
+				continue
+			}
+			if other, dup := seen[etag]; dup && !bytes.Equal(serve(http.MethodGet, other).Body.Bytes(), rec.Body.Bytes()) {
+				t.Errorf("%s and %s share ETag %s with different bodies", target, other, etag)
+			}
+			seen[etag] = target
+			req := httptest.NewRequest(http.MethodGet, target, nil)
+			req.Header.Set("If-None-Match", etag)
+			cached := httptest.NewRecorder()
+			Handler{}.ServeHTTP(cached, req)
+			if cached.Code != http.StatusNotModified {
+				t.Errorf("%s: If-None-Match gave %d, want 304", target, cached.Code)
+			}
+		}
+	}
+}

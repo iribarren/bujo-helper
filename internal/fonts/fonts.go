@@ -5,6 +5,8 @@ package fonts
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"strings"
 	"time"
@@ -24,7 +26,9 @@ func LicenceURL(id string) string { return Path + id + "/licence" }
 // Handler serves GET /fonts/<id>.ttf (the font's header face, as font/ttf)
 // and GET /fonts/<id>/licence (its licence, as plain text) from the
 // embedded fonts. Unknown ids and any other path are 404. The fonts never
-// change while the app runs, so responses are cacheable.
+// change while the app runs, so responses are cacheable; a content-hash
+// ETag lets the webview revalidate once max-age runs out, so an upgrade
+// that changes a font or licence is picked up.
 type Handler struct{}
 
 func (Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -57,5 +61,12 @@ func (Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Cache-Control", "max-age=86400")
+	w.Header().Set("ETag", etag(body))
 	http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(body))
+}
+
+// etag is a strong entity tag for body: a prefix of its SHA-256.
+func etag(body []byte) string {
+	sum := sha256.Sum256(body)
+	return `"` + hex.EncodeToString(sum[:8]) + `"`
 }
