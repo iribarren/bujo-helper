@@ -441,6 +441,14 @@ Order: 29 → 30 → 31, then the generated printables.
 
 **Why:** generated pages need typed options and no folder. Forcing them under the Print sheet **Format** control would leave half its controls (folder, gallery, selection, cover size, crop) meaningless for them. The Print options are also one long flex row of nine controls, and adding font, colour-in and page-specific fields would make it unreadable.
 
+**Already done** (layout restyle, branch `feat/ui-restyle`; see `odd/tasks/ui-restyle.md`):
+- Tabs: the tab list is data-driven (read from the markup), "Print sheet" is renamed **Print covers** / **Imprimir portadas** with the internal id `print` kept, and the `#app[data-tab="print"] #media-type` rule is gone (12513cb).
+- Download tab layout: the media type is a grid of radio buttons (5 per row) inside the panel, and the tab has two columns: input left, progress + results + footer right (6c92f1f).
+- Print covers layout: a 300 px options column with **Covers**, **Layout**, **Page** and **Lettering** fieldsets, a fieldset with no visible field is hidden, and the gallery has 6 cards per row with a round check badge and an accent border when selected (20e2c1b, 5bd1c5a).
+- EN and ES strings for the renamed tab and the fieldset legends.
+
+Still to do for this item: the **Make pages** tab and its three-column layout, the no-image backend and the dot grid page, **B5** paper, the **Print these covers** link, the sources-tried line under the media types (`MediaTypes()` has no provider names yet, so it needs a Go change), the muted Lettering hint, and making **Page** and **Lettering** shared fieldsets that both tabs render.
+
 **Scope**
 - **Three tabs:** **Download**, **Print covers** (today's Print sheet, renamed) and **Make pages**. Make the tab list data-driven instead of the two hard-coded entries in `main.ts`, and fix the `#app[data-tab="print"]` CSS rules.
 - **Download tab** (canvas: Download): two columns.

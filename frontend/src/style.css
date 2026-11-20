@@ -9,6 +9,7 @@
     --muted: #667085;
     --accent: #2f6fde;
     --accent-hover: #255bb8;
+    --accent-soft: #e8effc;
     --accent-text: #ffffff;
     --ok: #1f8a4c;
     --failed: #c8372d;
@@ -16,6 +17,10 @@
     --banner-bg: #fdecea;
     --banner-border: #f1b5ae;
     --track: #e3e6eb;
+    /* The round check badge on gallery cards: its ring and tick, and its
+       fill when the card is not selected. */
+    --badge-ring: #ffffff;
+    --badge-off: rgba(29, 35, 48, 0.35);
     --radius: 6px;
     --font: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans",
         "Helvetica Neue", Arial, sans-serif;
@@ -32,6 +37,7 @@
         --muted: #9aa3b2;
         --accent: #4c8dff;
         --accent-hover: #6aa0ff;
+        --accent-soft: #233a5e;
         --accent-text: #0d1117;
         --ok: #4cc27f;
         --failed: #ff6b5e;
@@ -39,6 +45,7 @@
         --banner-bg: #3a2220;
         --banner-border: #6b3631;
         --track: #313641;
+        --badge-off: rgba(0, 0, 0, 0.5);
     }
 }
 
@@ -332,20 +339,26 @@ textarea {
     opacity: 0.55;
 }
 
-/* A checkbox option (Credits page) sits at the start of its field, level
-   with the selects next to it. */
+/* A checkbox option (Credits page): the box, then its label. */
+.field.check-field {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+}
+
 .field.check-field input {
-    align-self: flex-start;
-    margin: 6px 0;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
 }
 
 .field.grow {
     flex: 1;
     min-width: 0;
-}
-
-#print-header {
-    width: 12em;
 }
 
 .row {
@@ -483,22 +496,6 @@ textarea {
     color: var(--muted);
 }
 
-/* --- narrow windows --- */
-
-@media (max-width: 700px) {
-    #app {
-        padding: 10px 12px;
-    }
-
-    .options {
-        flex-wrap: wrap;
-    }
-
-    .field.grow {
-        flex-basis: 100%;
-    }
-}
-
 /* --- tabs --- */
 
 .tabs {
@@ -534,16 +531,113 @@ textarea {
     flex: 1 1 auto;
 }
 
-/* The media type and its tip only apply to downloads. */
-#app[data-tab="print"] #media-type {
-    visibility: hidden;
+/* A panel in two columns that fill the window height; long lists (results,
+   gallery) scroll inside their column. */
+.panel.split {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1 1 0;
+    min-height: 360px;
 }
 
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* The input or options column, on a surface like the canvas. */
+.column.side {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow-y: auto;
+}
+
+/* --- download --- */
+
+#panel-download {
+    grid-template-columns: minmax(0, 520px) minmax(300px, 1fr);
+}
+
+/* Media type: a grid of radio buttons, five per row. */
+.radio-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.radio-grid .radio-button {
+    height: 34px;
+    padding: 0 6px;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.radio-grid .radio-button[aria-checked="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    font-weight: 600;
+}
+
+#count {
+    margin-left: auto;
+}
+
+/* The item list takes the height the other inputs leave. */
+.download-input textarea {
+    flex: 1 1 120px;
+    height: auto;
+    resize: none;
+}
+
+#start {
+    flex: 1;
+}
+
+.progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* The media type tip only applies to downloads. */
 #app[data-tab="print"] #key-tip {
     display: none;
 }
 
-/* --- print sheet --- */
+/* --- print covers --- */
+
+#panel-print {
+    grid-template-columns: 300px minmax(0, 1fr);
+}
+
+/* An option group (Covers, Layout, Page, Lettering). */
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 8px 12px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.group > legend {
+    padding: 0 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.print-options .row button {
+    flex: 1;
+}
 
 .footer .row {
     margin-left: auto;
@@ -559,11 +653,13 @@ textarea {
     background: var(--surface);
 }
 
+/* Six cards a row, as in the design; the app starts maximised. */
 .gallery {
+    --gallery-gap: 10px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     align-content: start;
-    gap: 10px;
+    gap: var(--gallery-gap);
     padding: 10px;
     list-style: none;
     overflow-y: auto;
@@ -575,8 +671,9 @@ textarea {
 
 .card {
     position: relative;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    min-width: 0;
+    border: 2px solid var(--border);
+    border-radius: 8px;
     background: var(--surface);
 }
 
@@ -591,9 +688,6 @@ textarea {
 
 .card.selected {
     border-color: var(--accent);
-    background: var(--track);
-    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
-    box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .card-label {
@@ -601,19 +695,20 @@ textarea {
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    padding: 8px;
+    padding: 6px;
     cursor: pointer;
 }
 
+/* The checkbox is kept for the keyboard and screen readers; the round
+   badge on the thumbnail shows its state. */
 .card-check {
     position: absolute;
-    top: 6px;
-    left: 6px;
-    width: 18px;
-    height: 18px;
+    width: 1px;
+    height: 1px;
     margin: 0;
-    accent-color: var(--accent);
-    cursor: pointer;
+    opacity: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
 }
 
 /* The checkbox shows focus through the card outline. */
@@ -622,11 +717,50 @@ textarea {
 }
 
 .card-thumb {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 150px;
+    aspect-ratio: 2 / 3;
+}
+
+/* The check badge: a ring, filled with the accent and ticked when the
+   card is selected. Above the image, whose shadow filter paints it over
+   positioned content before it. */
+.card-thumb::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    top: 6px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--badge-ring);
+    border-radius: 50%;
+    background: var(--badge-off);
+}
+
+.card-thumb::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    top: 10px;
+    right: 12.5px;
+    width: 5px;
+    height: 8px;
+    border: solid var(--badge-ring);
+    border-width: 0 1.8px 1.8px 0;
+    transform: rotate(45deg);
+    opacity: 0;
+}
+
+.card.selected .card-thumb::before {
+    background: var(--accent);
+}
+
+.card.selected .card-thumb::after {
+    opacity: 1;
 }
 
 /* A fixed box (so lazy loading sees a real size) with the cover fitted
@@ -651,4 +785,45 @@ textarea {
 
 .card.selected .card-name {
     color: var(--text);
+}
+
+/* --- narrow windows --- */
+
+@media (max-width: 700px) {
+    #app {
+        padding: 10px 12px;
+    }
+
+    .options {
+        flex-wrap: wrap;
+    }
+
+    .field.grow {
+        flex-basis: 100%;
+    }
+
+    /* The columns stack and the window scrolls. */
+    .panel.split,
+    #panel-download {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: none;
+        flex: 1 0 auto;
+    }
+
+    .column.side {
+        overflow-y: visible;
+    }
+
+    .download-input textarea {
+        flex: none;
+        height: 170px;
+    }
+
+    #panel-print {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .gallery {
+        min-height: 320px;
+    }
 }

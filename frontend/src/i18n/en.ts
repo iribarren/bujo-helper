@@ -13,7 +13,7 @@ export const en = {
     'app.settings': 'Settings',
     'app.sections': 'Sections',
     'app.tabDownload': 'Download',
-    'app.tabPrint': 'Print sheet',
+    'app.tabPrint': 'Print covers',
     'app.dismiss': 'Dismiss',
 
     // Key tip above the list.
@@ -128,7 +128,11 @@ export const en = {
     'sample.title.places': 'Save an example places CSV (Place, Country) to use as a reference for Import CSV',
     'sample.title.nature': 'Save an example nature CSV (Name) to use as a reference for Import CSV',
 
-    // Print sheet tab.
+    // Print covers tab.
+    'print.groupCovers': 'Covers',
+    'print.groupLayout': 'Layout',
+    'print.groupPage': 'Page',
+    'print.groupLettering': 'Lettering',
     'print.coversFolder': 'Covers folder',
     'print.refresh': 'Refresh',
     'print.format': 'Format',
