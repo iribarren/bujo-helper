@@ -37,7 +37,7 @@ Generated printables (items 16, 18, 27, 28) need typed options and no folder. Th
 - [x] T1 B5 paper: Go constant + `Papers`, `TestPrintPapers`, i18n `paper.b5`, README. Route: delegated writer A (writer trigger: Go + TS + docs).
 - [x] T2 Sources tried line + Print these covers link: `MediaTypeInfo` provider names, Download line under the media types, link in the Download footer switching to Print covers, tests. Route: writer A.
 - [x] T3 No-image backend: page kinds registry + Dot grid builder in `internal/sheet`, bindings, wailsjs regenerated, Go tests. Route: writer A.
-- [ ] T4 Make pages tab: markup, `pages.ts`, shared Page/Lettering fieldsets used by both tabs, segmented controls CSS, Lettering hint in Print covers, i18n, tests. Route: delegated writer B (writer trigger: index.html, TS modules, CSS, i18n, tests).
+- [x] T4 Make pages tab: markup, `pages.ts`, shared Page/Lettering fieldsets used by both tabs, segmented controls CSS, Lettering hint in Print covers, i18n, tests. Route: delegated writer B (writer trigger: index.html, TS modules, CSS, i18n, tests).
 - [ ] T5 Verify: page-stream hashes vs `main`, full checks, `wails build`, README Print sheet / Make pages docs, ROADMAP item 29 marked. Route: inline state checks + delegated hash check.
 
 ## Progress
@@ -51,5 +51,9 @@ Generated printables (items 16, 18, 27, 28) need typed options and no folder. Th
 
 - Review `24b0691..cb08ad6` (medium, 34 files, 1248 lines, `slice_budget_reached`): consent granted; reliability lens approved; acknowledged (authority burned). Advisory R3-print-these-folder WARNING (`main.ts:631`: the link doesn't point Print covers at the finished job folder; test checks only the tab) → folded into T4. Next reviewed boundary: `cb08ad6`.
 
+- Passive check `cb08ad6..36135d7` (docs only): `passive`, no review; boundary advances to `36135d7`.
+- T4 done in `b1353f8` (14 files, +1360/−172, ~600 test lines): third tab `pages` (Make pages / Crear páginas); `pages.ts` + kind form registry (`pageForms.ts`; a kind without a form exports its defaults); `fieldsets.ts` renders the shared Page and Lettering fieldsets in both tabs (Print covers keeps every id; Page/Lettering no longer static markup, created in `initPrint`); Paper is a segmented group in both tabs; Lettering hint "This format prints no header." instead of hiding; Print these covers points Print covers at `jobFolder` (review finding R3-print-these-folder); Ctrl+Enter only starts downloads on Download; `#key-tip` hidden on Make pages; segmented CSS, three-column grid, preview well (+2 tokens light/dark); EN/ES; README dot grid how-to. RED: 4 tab tests + Print these folder test (`main.test.ts`), `pages.test.ts` (24), 9 Lettering/legend + 2 paper tests (`print.test.ts`). Deviations: selected segment = accent-soft fill (canvas: solid accent); Title in Lettering fieldset (canvas: dot grid form); status line empty until export; options not persisted (Print covers doesn't persist either).
+- Writer B checks: `tsc --noEmit` clean; vitest 135/135; `go test -tags webkit2_41 ./...` 1458 passed; `git diff 36135d7 --stat -- '*.go' frontend/wailsjs` empty; headless Chrome 1200×820 + 680 px, light/dark, EN/ES. Parent spot check: vitest 135/135; screenshot of Make pages matches the canvas layout.
+
 ## Next step
-T4 with writer B.
+Review of `b1353f8` (consent granted, reliability lens running); T5 hash check running.
