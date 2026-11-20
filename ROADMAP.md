@@ -437,7 +437,7 @@ The generated printables (items 16, 18, 27, 28) don't fit the Print sheet tab. T
 
 Order: 29 → 30 → 31, then the generated printables.
 
-## 29. [ ] Make pages section and app navigation
+## 29. [x] Make pages section and app navigation (e7f8b6f)
 
 **Why:** generated pages need typed options and no folder. Forcing them under the Print sheet **Format** control would leave half its controls (folder, gallery, selection, cover size, crop) meaningless for them. The Print options are also one long flex row of nine controls, and adding font, colour-in and page-specific fields would make it unreadable.
 
@@ -447,7 +447,7 @@ Order: 29 → 30 → 31, then the generated printables.
 - Print covers layout: a 300 px options column with **Covers**, **Layout**, **Page** and **Lettering** fieldsets, a fieldset with no visible field is hidden, and the gallery has 6 cards per row with a round check badge and an accent border when selected (20e2c1b, 5bd1c5a).
 - EN and ES strings for the renamed tab and the fieldset legends.
 
-**Done in branch `feat/make-pages`** (see `odd/tasks/make-pages.md`):
+**Done in branch `feat/make-pages`**, merged in e7f8b6f (see `odd/tasks/make-pages.md`):
 - **B5** paper (ca1b8bf).
 - Download: the sources-tried line under the media types (`MediaTypeInfo.Sources`, provider display names through an optional `Label()`), and the **Print these covers** link, which opens Print covers on the finished job's folder (d45c5b6, b1353f8).
 - No-image backend: a page kinds registry in `internal/sheet/pages.go` (each kind decodes its own typed options from JSON, unknown fields rejected), the **Dot grid** kind (4 / 5 / 6 mm, optional title), and the `PageKinds`, `PagePages` and `ExportPage` bindings, with options passed as a JSON string so new kinds don't change them (168e2cd).

@@ -61,5 +61,7 @@ Generated printables (items 16, 18, 27, 28) need typed options and no folder. Th
 
 - Review `d5f62f1..bce0e1b` (medium, 6 files, 168 lines; final slice, run before delivery): consent granted; reliability lens approved with no findings; acknowledged (authority burned). Every code commit on the branch is now reviewed.
 
+- GUI check passed (user, 2026-11-20); merged `feat/make-pages` into `main` in `e7f8b6f` (`--no-ff`); ROADMAP item 29 marked `[x]`.
+
 ## Next step
-User GUI check of `build/bin/bujo-helper`, then local `--no-ff` merge to `main`, mark ROADMAP item 29 `[x]` with the merge hash.
+Done. Not pushed.
