@@ -312,11 +312,11 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 
 ## Print sheet
 
-The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter or A5 paper: a sheet of small covers (or of photos [cropped](#crop-to) to standard print shapes), [review cards](#review-cards), [spines](#spines), [ticket stubs](#ticket-stubs), a [full page](#full-page) of covers under a header, with nothing to cut, a [checklist](#checklist) to tick off as you read or watch, or [polaroids](#polaroid) with the title as a caption.
+The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter, A5 or B5 paper: a sheet of small covers (or of photos [cropped](#crop-to) to standard print shapes), [review cards](#review-cards), [spines](#spines), [ticket stubs](#ticket-stubs), a [full page](#full-page) of covers under a header, with nothing to cut, a [checklist](#checklist) to tick off as you read or watch, or [polaroids](#polaroid) with the title as a caption.
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
 2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page**, **Checklist** or **Polaroid**. For review cards, pick what they are **Cards for** (Books, Movies, TV series or Albums); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** (for example "Books of 2026" or "TBR 2026"), or leave it empty.
-3. Pick a **Paper**: **A4** (the default), **US Letter** or **A5**. Each **Cover size** option shows how many covers (or spines, or polaroids) fit on that paper. On a cover sheet it follows the selection: when every selected image is square (albums), how many square covers fit; when every one gets a wide cell at that size (landscape artworks), how many images of the selection's middle shape fit, which is exact when they all share one shape; otherwise, and for mixed shapes, how many 2:3 covers fit.
+3. Pick a **Paper**: **A4** (the default), **US Letter**, **A5** or **B5** (176 × 250 mm, the size of many bullet journal notebooks). Each **Cover size** option shows how many covers (or spines, or polaroids) fit on that paper. On a cover sheet it follows the selection: when every selected image is square (albums), how many square covers fit; when every one gets a wide cell at that size (landscape artworks), how many images of the selection's middle shape fit, which is exact when they all share one shape; otherwise, and for mixed shapes, how many 2:3 covers fit.
 4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet, spines and polaroids, so it is disabled for review cards, ticket stubs, full pages and checklists. On a cover sheet it is hidden for the crop modes with a fixed size (Instant mini, Photo strip and Wallet).
 5. For a cover sheet, pick what to **Crop to**: **None** (the default, whole images), **Instant mini**, **Square**, **Photo strip (3 frames)**, **Photo strip (4 frames)** or **Wallet** (see [Crop to](#crop-to)), and a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). The cut mode never changes how many covers fit on a page; it is hidden for Instant mini and photo strips, which always keep their frame border.
 6. Leave **Credits page** checked (the default) to end the PDF with the author and licence of every selected image that has a credit file, in every format (see [Credits page](#credits-page)). Uncheck it to print the images only.
@@ -332,6 +332,7 @@ Grid per paper and cover size (columns × rows = covers per page):
 | **A4**    | 210 × 297     | 9 × 9 = 81   | 5 × 5 = 25           | 3 × 3 = 9     |
 | US Letter | 215.9 × 279.4 | 9 × 9 = 81   | 5 × 4 = 20           | 3 × 3 = 9     |
 | A5        | 148 × 210     | 6 × 6 = 36   | 3 × 3 = 9            | 2 × 2 = 4     |
+| B5        | 176 × 250     | 7 × 8 = 56   | 4 × 4 = 16           | 2 × 2 = 4     |
 
 On A4, for example, Standard columns are 35.6 mm wide with 15.5 mm top and bottom margins.
 
@@ -349,8 +350,8 @@ How the grid is derived from the cover height *h* and the page width *W* and hei
 
 - **Square cells:** a square cover (width / height within about 10 % of 1, such as album art) gets a square cell, *h* × *h*, instead of a column. Cells flow left to right, 4 mm apart, and a row wraps when the next cell does not fit, so a folder of books and albums mixes both kinds of cell. The rows per page stay the same. Each row is centred, and a short row is centred as if it were filled with more cells like its last one, so the last row lines up with the full rows above it. A sheet whose covers all fit the 2:3 column keeps the grid in the table above.
 - **Wide cells:** a cover wider than the column at full height that is not square gets a wide cell, as wide as the cover at height *h*: a 3:2 painting at Standard size gets a 75 × 50 mm cell, a 4:5 portrait 40 × 50 mm. Wide cells flow, wrap and centre like square cells. No cell is wider than the space between the side margins: a panorama wider than that shrinks to fit, so it is shorter than *h* and centred in its row (a 5:1 panorama on A4 Standard is 194 × 38.8 mm). Whether a 4:5 portrait needs a wide cell depends on the column: on A5 Standard and Large it fits the column.
-- **3:2 covers per page:** A4 4 × 9 = 36 (Mini), 2 × 5 = 10 (Standard), 1 × 3 = 3 (Large); US Letter 4 × 9 = 36, 2 × 4 = 8, 1 × 3 = 3; A5 3 × 6 = 18, 1 × 3 = 3, 1 × 2 = 2.
-- **Square covers per page:** A4 6 × 9 = 54 (Mini), 3 × 5 = 15 (Standard), 2 × 3 = 6 (Large); US Letter 7 × 9 = 63, 3 × 4 = 12, 2 × 3 = 6; A5 4 × 6 = 24, 2 × 3 = 6, 1 × 2 = 2.
+- **3:2 covers per page:** A4 4 × 9 = 36 (Mini), 2 × 5 = 10 (Standard), 1 × 3 = 3 (Large); US Letter 4 × 9 = 36, 2 × 4 = 8, 1 × 3 = 3; A5 3 × 6 = 18, 1 × 3 = 3, 1 × 2 = 2; B5 3 × 8 = 24, 2 × 4 = 8, 1 × 2 = 2.
+- **Square covers per page:** A4 6 × 9 = 54 (Mini), 3 × 5 = 15 (Standard), 2 × 3 = 6 (Large); US Letter 7 × 9 = 63, 3 × 4 = 12, 2 × 3 = 6; A5 4 × 6 = 24, 2 × 3 = 6, 1 × 2 = 2; B5 5 × 8 = 40, 3 × 4 = 12, 1 × 2 = 2.
 - **Shrink to fit:** a cover wider than its cell (a near-square cover in its square cell, or a panorama wider than the page) is shrunk to the cell width and keeps its aspect ratio, so it ends up shorter than the chosen height. Each cover is centred in its cell. Typical book covers (about 2:3) keep the full height: at Standard size they are 50 mm tall and about 33 mm wide. The other formats have no square or wide cells: square and landscape images shrink to fit there.
 - **Pagination:** covers fill each page left to right, top to bottom. More covers than fit on a page add pages; the last page may be partly filled.
 - **Print at 100 % / actual size** (not "fit to page") on every paper, so covers come out at the chosen height. Pick the paper loaded in the printer: on Letter paper choose **US Letter**, not A4, so the printer does not scale or clip the page.
@@ -394,6 +395,7 @@ The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, s
 | **A4**    | 3 × 3 = 9    | 54 / 15 / 6                        | 3 strips = 9    | 3 strips = 12   | 2 × 3 = 6 |
 | US Letter | 3 × 2 = 6    | 63 / 12 / 6                        | 3 strips = 9    | 3 strips = 12   | 2 × 2 = 4 |
 | A5        | 2 × 2 = 4    | 24 / 6 / 2                         | 2 strips = 6    | 2 strips = 8    | 2 × 2 = 4 |
+| B5        | 2 × 2 = 4    | 40 / 12 / 2                        | 2 strips = 6    | 2 strips = 8    | 2 × 2 = 4 |
 
 - The page count and size labels count photos, whatever their shape.
 - The suggested file name adds the crop mode after the cover size (only for Square), for example `covers_A4_instax.pdf`, `covers_A4_Large_square.pdf`, `covers_Letter_wallet_bleed.pdf` or `covers_A4_strip4.pdf`.
@@ -427,6 +429,7 @@ Cards are centred on the page with 4 mm gaps and a grey cut border, at a fixed s
 | **A4**    | 2 × 4          | 8              |
 | US Letter | 2 × 4          | 8              |
 | A5        | 1 × 3          | 3              |
+| B5        | 1 × 4          | 4              |
 
 - **File names:** the title and creator are split at the last ` - `; a name without one is a title only. A duplicate's suffix is dropped (`Dune - Frank Herbert-2.jpg` reads as "Dune" by "Frank Herbert").
 - **Caveat:** a title without a creator that ends in `-2`, `-3`… is read as a duplicate suffix, so `Catch-22.jpg` prints as "Catch". Add the creator (`Catch-22 - Joseph Heller.jpg`) to keep it.
@@ -455,6 +458,7 @@ Spines per page (spines per row × rows):
 | **A4**    | 16 × 9 = 144   | 16 × 5 = 80          | 16 × 3 = 48   |
 | US Letter | 16 × 9 = 144   | 16 × 4 = 64          | 16 × 3 = 48   |
 | A5        | 11 × 6 = 66    | 11 × 3 = 33          | 11 × 2 = 22   |
+| B5        | 13 × 8 = 104   | 13 × 4 = 52          | 13 × 2 = 26   |
 
 The suggested file name is `spines_<paper>_<size>.pdf`, for example `spines_A4_Standard.pdf`.
 
@@ -480,6 +484,7 @@ Stubs are centred on the page with 4 mm gaps, at a fixed size (the cover size an
 | **A4**    | 2 × 6          | 12             |
 | US Letter | 2 × 6          | 12             |
 | A5        | 1 × 4          | 4              |
+| B5        | 1 × 5          | 5              |
 
 - The title and creator are read from the file name as for [review cards](#review-cards), with the same caveats.
 - The suggested file name is `stubs_<paper>.pdf`, for example `stubs_A4.pdf`.
@@ -526,6 +531,7 @@ Rows are 16 mm tall and span the page within 8 mm margins, from the top margin d
 | **A4**    | 17            | 16            |
 | US Letter | 16            | 15            |
 | A5        | 12            | 11            |
+| B5        | 14            | 13            |
 
 - More rows go on further pages, with the header repeated on every page; the last page may be partly filled.
 - The title and creator are read from the file name as for [review cards](#review-cards), with the same caveats.
@@ -557,6 +563,7 @@ Frames are centred on the page with 4 mm gaps and at least 8 mm margins. Polaroi
 | **A4**    | 8 × 7 = 56 | 4 × 3 = 12   | 2 × 2 = 4 |
 | US Letter | 8 × 7 = 56 | 4 × 3 = 12   | 2 × 2 = 4 |
 | A5        | 5 × 5 = 25 | 3 × 2 = 6    | 1 × 1 = 1 |
+| B5        | 6 × 6 = 36 | 3 × 3 = 9    | 2 × 2 = 4 |
 
 - The title is read from the file name as for [review cards](#review-cards), with the same caveats.
 - The paper and cover size apply; the cut mode and header do not (the border always stays).

@@ -204,6 +204,7 @@ export const es: Messages = {
     'paper.a4': 'A4',
     'paper.letter': 'Carta (EE. UU.)',
     'paper.a5': 'A5',
+'paper.b5': 'B5',
     'cut.border': 'Borde',
     'cut.bleed': 'Sangrado + marcas de corte',
     'cut.none': 'Ninguno',

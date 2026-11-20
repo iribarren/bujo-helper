@@ -40,6 +40,7 @@ var (
 	A4     = Page{Width: 210, Height: 297}
 	Letter = Page{Width: 215.9, Height: 279.4} // US Letter, 8.5 × 11 in
 	A5     = Page{Width: 148, Height: 210}
+	B5     = Page{Width: 176, Height: 250} // ISO B5, the bujo notebook size
 )
 
 // Paper is a paper size preset.
@@ -58,6 +59,7 @@ var Papers = []Paper{
 	{ID: DefaultPaper, Label: "A4", FileTag: "A4", Page: A4},
 	{ID: "letter", Label: "US Letter", FileTag: "Letter", Page: Letter},
 	{ID: "a5", Label: "A5", FileTag: "A5", Page: A5},
+	{ID: "b5", Label: "B5", FileTag: "B5", Page: B5},
 }
 
 // PaperByID returns the paper with the given ID; "" means DefaultPaper.

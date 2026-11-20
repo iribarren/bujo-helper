@@ -210,6 +210,7 @@ export const en = {
     'paper.a4': 'A4',
     'paper.letter': 'US Letter',
     'paper.a5': 'A5',
+'paper.b5': 'B5',
     'cut.border': 'Border',
     'cut.bleed': 'Bleed + crop marks',
     'cut.none': 'None',

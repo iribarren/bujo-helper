@@ -670,6 +670,19 @@ func TestPrintPapers(t *testing.T) {
 			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 11},
 			SquarePerPage: map[string]map[string]int{"covers": {"mini": 24, "standard": 6, "large": 2}},
 			CropPerPage:   map[string]map[string]int{"instax": {"": 4}, "square": {"mini": 24, "standard": 6, "large": 2}, "strip3": {"": 6}, "strip4": {"": 8}, "wallet": {"": 4}}},
+		{ID: "b5", Label: "B5", Width: 176, Height: 250,
+			PerPage: map[string]map[string]int{
+				"covers":    {"mini": 56, "standard": 16, "large": 4},
+				"cards":     {"": 4},
+				"spines":    {"mini": 104, "standard": 52, "large": 26},
+				"stubs":     {"": 5},
+				"fullpage":  {"": 60},
+				"checklist": {"": 14},
+				"polaroid":  {"mini": 36, "standard": 9, "large": 4},
+			},
+			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 13},
+			SquarePerPage: map[string]map[string]int{"covers": {"mini": 40, "standard": 12, "large": 2}},
+			CropPerPage:   map[string]map[string]int{"instax": {"": 4}, "square": {"mini": 40, "standard": 12, "large": 2}, "strip3": {"": 6}, "strip4": {"": 8}, "wallet": {"": 4}}},
 	}
 	if len(papers) != len(want) {
 		t.Fatalf("PrintPapers() = %+v, want %+v", papers, want)
