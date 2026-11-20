@@ -1,0 +1,44 @@
+# Feature: ui-restyle (layout part of roadmap item 29)
+
+## Objective
+Restyle the existing Download and Print tabs to match the design canvas (https://claude.ai/artifact/6gdFFavUM9kyA76MsCpB1R, artboards **Download** and **Print covers**) with no change in behaviour.
+
+## Problem / Why
+The Print options are one long flex row, and the media type sits in the global header although only Download (and Print's "Cards for" default) use it. Items 29–31 need a fieldset-based layout to grow into. This restyle lands the layout first so item 29 only adds the Make pages tab and the backend.
+
+## Scope / constraints
+- Frontend only: `frontend/index.html`, `frontend/src/main.ts`, `print.ts` (only if needed), `style.css`, `i18n/en.ts`, `i18n/es.ts`, frontend tests. **No Go, bindings or PDF change**; if one seems needed, stop and ask.
+- Canvas = layout and visuals only. Rebuild with `style.css` tokens and components (`.field`, `button.primary`, `.tab`, …); no inline styles from the canvas.
+- Tabs: rename "Print sheet" → "Print covers" / "Imprimir portadas"; internal id stays `print`. Tab list data-driven (still exactly two tabs), same keyboard nav (arrows, Home, End).
+- Download: media type becomes a radio group of buttons (5 per row, selected = accent border + tinted background), inside the Download panel, fed by `MediaTypes()`; `role="radiogroup"`, `aria-checked`, arrow keys move the selection. Every reader of the current media type keeps working (Print "Cards for" follows it). Remove `#app[data-tab="print"] #media-type`. Two columns: input left, progress + results + footer right.
+- "Sources tried" line: **skipped** — `MediaTypeInfo` has only `id`, `label`, `creatorLabel`, `dateLabel`; provider names would need a Go change.
+- Print covers: options column (~300 px) with fieldsets Covers (folder, Browse, Refresh), Layout (Format, Cover size, Crop to, Cards for), Page (Paper, Cut mode, Credits page), Lettering (Header). Toolbar + gallery + footer on the right. Every element id kept (`print.ts` `byId` throws). `updateFormat` rules unchanged; additionally a fieldset with no visible field is hidden (Lettering only for header formats). Gallery: 6 cards per row at the default window size, round check badge top-right, accent border when selected; same selection logic.
+- Styling: new colours only through CSS variables, dark theme works; ≤700 px columns stack; EN + ES for every new label.
+- Out of scope: Make pages tab, no-image backend (item 29), Gallery | Preview (30), Font picker / Colour-in (31), "Print these covers" link, B5.
+
+## Acceptance criteria
+- Exported PDFs byte-identical to `main` for the same options (page-stream hashes per format).
+- `go test ./...` passes unchanged. Frontend tests pass, with tests for tab switching + keyboard nav, the media type radio group (click + arrows update selection; "Cards for" follows), fieldset visibility per format.
+- `wails build -tags webkit2_41` builds `build/bin/bujo-helper`.
+
+## Checks
+- `cd frontend && npx tsc --noEmit && npx vitest run`
+- `go test -tags webkit2_41 ./...`, `git diff main --stat -- '*.go' frontend/wailsjs` empty
+- Page-stream hashes: scratch test via `go test -overlay`, base tree from `git archive main`.
+- `wails build -tags webkit2_41`; revert any 0755 mode change on regenerated bindings.
+
+## Delivery
+- Branch `feat/ui-restyle` from `c774745`. Forecast ~700 authored lines (≈ 35 % tests). Strategy `single-pr` (user GUI-checks before a local `--no-ff` merge), as earlier items. Merge only after the user tries the build.
+- RDD on (global). First reviewed boundary: `c774745`.
+
+## Tasks
+- [ ] T1 Tabs: data-driven tab list, rename, keyboard-nav tests. Route: delegated writer (writer trigger: index.html, main.ts, i18n, tests).
+- [ ] T2 Download tab: media type radio group in the panel, two-column layout, CSS, tests. Route: same delegated writer, own commit.
+- [ ] T3 Print covers tab: fieldsets, fieldset visibility, gallery cards, CSS, tests. Route: same delegated writer, own commit.
+- [ ] T4 Verify: PDF page-stream hashes vs `main`, Go tests, `wails build`; ROADMAP item 29 notes the done layout bullets. Route: inline (state checks) + delegated hash check.
+
+## Progress
+- Feature doc created; branch `feat/ui-restyle` from `c774745`.
+
+## Next step
+T1–T3 via one delegated writer.
