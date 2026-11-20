@@ -76,6 +76,9 @@ func NewIGDB(client *http.Client, creds func() (clientID, clientSecret string)) 
 // Name implements media.Provider.
 func (p *IGDB) Name() string { return "igdb" }
 
+// Label implements media.Labeler.
+func (*IGDB) Label() string { return "IGDB" }
+
 type igdbGame struct {
 	Name             string `json:"name"`
 	FirstReleaseDate int64  `json:"first_release_date"`

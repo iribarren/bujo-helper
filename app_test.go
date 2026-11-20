@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"bujo-helper/internal/batch"
+	"bujo-helper/internal/catalog"
 	"bujo-helper/internal/downloader"
 	"bujo-helper/internal/i18n"
 	"bujo-helper/internal/media"
@@ -224,8 +225,47 @@ func TestCancel(t *testing.T) {
 func TestMediaTypes(t *testing.T) {
 	a, _ := testApp(t, &fakeProvider{})
 	got := a.MediaTypes()
-	if len(got) != 1 || got[0] != (MediaTypeInfo{ID: "books", Label: "Books", CreatorLabel: "Author", DateLabel: "Read on"}) {
-		t.Errorf("MediaTypes = %+v", got)
+	want := []MediaTypeInfo{{ID: "books", Label: "Books", CreatorLabel: "Author", DateLabel: "Read on",
+		// The fake provider has no display name, so its Name stands in.
+		Sources: []string{"fake"}}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("MediaTypes = %+v, want %+v", got, want)
+	}
+}
+
+// The sources line lists each media type's providers by display name, in
+// the order they are tried.
+func TestMediaTypesListSourcesInOrder(t *testing.T) {
+	a := newApp(catalog.Default(http.DefaultClient, catalog.Keys{}), http.DefaultClient)
+	got := map[string][]string{}
+	for _, mt := range a.MediaTypes() {
+		got[mt.ID] = mt.Sources
+	}
+	want := map[string][]string{
+		"books":  {"Apple Books", "Open Library", "Amazon"},
+		"movies": {"TMDB", "IMDb", "Wikidata/iTunes"},
+		"albums": {"MusicBrainz", "Apple Music"},
+	}
+	for id, w := range want {
+		if !reflect.DeepEqual(got[id], w) {
+			t.Errorf("%s sources = %q, want %q", id, got[id], w)
+		}
+	}
+}
+
+// Every provider in the catalog has its own display name, so the sources
+// line never shows an internal provider id.
+func TestCatalogProvidersHaveDisplayNames(t *testing.T) {
+	for _, mt := range catalog.Default(http.DefaultClient, catalog.Keys{}).List() {
+		if len(mt.Providers) == 0 {
+			t.Errorf("%s: no providers", mt.ID)
+		}
+		for _, p := range mt.Providers {
+			l, ok := p.(media.Labeler)
+			if !ok || strings.TrimSpace(l.Label()) == "" {
+				t.Errorf("%s: provider %q has no display name", mt.ID, p.Name())
+			}
+		}
 	}
 }
 
@@ -601,6 +641,129 @@ func TestPrintFormats(t *testing.T) {
 	}
 }
 
+func TestPageKinds(t *testing.T) {
+	got := NewApp().PageKinds()
+	want := []PageKindInfo{
+		{ID: "dotgrid", Label: "Dot grid", UsesTitle: true, Defaults: `{"spacing":5}`, Default: true},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("PageKinds() = %+v, want %+v", got, want)
+	}
+}
+
+func TestPagePages(t *testing.T) {
+	tests := []struct {
+		name    string
+		kind    string
+		page    sheet.PageSettings
+		options string
+		want    int
+		wantErr string
+	}{
+		{"default dot grid", "dotgrid", sheet.PageSettings{}, "", 1, ""},
+		{"dot grid with options", "dotgrid", sheet.PageSettings{Paper: "b5", Title: "Ideas"}, `{"spacing":6}`, 1, ""},
+		{"unknown kind", "moon", sheet.PageSettings{}, "", 0, `"moon"`},
+		{"unknown paper", "dotgrid", sheet.PageSettings{Paper: "a3"}, "", 0, `"a3"`},
+		{"unknown option", "dotgrid", sheet.PageSettings{}, `{"pitch":5}`, 0, `"pitch"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewApp().PagePages(tt.kind, tt.page, tt.options)
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("err = %v, want one containing %s", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil || got != tt.want {
+				t.Errorf("PagePages = %d, %v; want %d", got, err, tt.want)
+			}
+		})
+	}
+}
+
+func TestExportPageRejectsBadSettingsBeforeAsking(t *testing.T) {
+	tests := []struct {
+		name    string
+		kind    string
+		page    sheet.PageSettings
+		options string
+		want    string
+	}{
+		{"unknown kind", "moon", sheet.PageSettings{}, "", `"moon"`},
+		{"unknown paper", "dotgrid", sheet.PageSettings{Paper: "a3"}, "", `"a3"`},
+		{"unknown cut", "dotgrid", sheet.PageSettings{Cut: "zigzag"}, "", `"zigzag"`},
+		{"unknown option", "dotgrid", sheet.PageSettings{}, `{"spacing":5,"dots":"round"}`, `"dots"`},
+		{"bad spacing", "dotgrid", sheet.PageSettings{}, `{"spacing":8}`, "8"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stubDialogs(t, nil, nil) // the save dialog must not open
+			_, err := NewApp().ExportPage(tt.kind, "", tt.page, tt.options)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("err = %v, want an error naming %s", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestExportPageDefaultFileName(t *testing.T) {
+	tests := []struct {
+		name string
+		page sheet.PageSettings
+		want string
+	}{
+		{"default paper", sheet.PageSettings{}, "dotgrid_A4.pdf"},
+		{"A5", sheet.PageSettings{Paper: "a5"}, "dotgrid_A5.pdf"},
+		{"B5 ignores the cut and title", sheet.PageSettings{Paper: "b5", Cut: "bleed", Title: "Ideas"}, "dotgrid_B5.pdf"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got runtime.SaveDialogOptions
+			stubDialogs(t, func(o runtime.SaveDialogOptions) (string, error) {
+				got = o
+				return "", nil // cancel: nothing is written
+			}, nil)
+			dir := t.TempDir()
+			path, err := NewApp().ExportPage("dotgrid", dir, tt.page, "")
+			if err != nil || path != "" {
+				t.Fatalf("cancelled ExportPage = %q, %v; want \"\", nil", path, err)
+			}
+			if got.DefaultFilename != tt.want || got.DefaultDirectory != dir {
+				t.Errorf("dialog name %q in %q, want %q in %q", got.DefaultFilename, got.DefaultDirectory, tt.want, dir)
+			}
+			if entries, _ := os.ReadDir(dir); len(entries) != 0 {
+				t.Errorf("a cancelled export wrote %d files", len(entries))
+			}
+		})
+	}
+}
+
+func TestExportPageWritesThePDF(t *testing.T) {
+	dir := t.TempDir()
+	stubDialogs(t, func(runtime.SaveDialogOptions) (string, error) {
+		return filepath.Join(dir, "grid"), nil // no extension: .pdf is added
+	}, nil)
+	path, err := NewApp().ExportPage("dotgrid", "", sheet.PageSettings{Paper: "a5", Title: "Ideas"}, `{"spacing":4}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := filepath.Join(dir, "grid.pdf"); path != want {
+		t.Errorf("path = %q, want %q", path, want)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.HasPrefix(data, []byte("%PDF-")) {
+		t.Error("not a PDF")
+	}
+	entries, _ := os.ReadDir(dir)
+	if len(entries) != 1 {
+		t.Errorf("%d files in the folder, want only the PDF (no temporary file left)", len(entries))
+	}
+}
+
 func TestPrintCutModes(t *testing.T) {
 	got := NewApp().PrintCutModes()
 	want := []PrintCutModeInfo{
@@ -670,6 +833,19 @@ func TestPrintPapers(t *testing.T) {
 			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 11},
 			SquarePerPage: map[string]map[string]int{"covers": {"mini": 24, "standard": 6, "large": 2}},
 			CropPerPage:   map[string]map[string]int{"instax": {"": 4}, "square": {"mini": 24, "standard": 6, "large": 2}, "strip3": {"": 6}, "strip4": {"": 8}, "wallet": {"": 4}}},
+		{ID: "b5", Label: "B5", Width: 176, Height: 250,
+			PerPage: map[string]map[string]int{
+				"covers":    {"mini": 56, "standard": 16, "large": 4},
+				"cards":     {"": 4},
+				"spines":    {"mini": 104, "standard": 52, "large": 26},
+				"stubs":     {"": 5},
+				"fullpage":  {"": 60},
+				"checklist": {"": 14},
+				"polaroid":  {"mini": 36, "standard": 9, "large": 4},
+			},
+			HeaderPerPage: map[string]int{"fullpage": 60, "checklist": 13},
+			SquarePerPage: map[string]map[string]int{"covers": {"mini": 40, "standard": 12, "large": 2}},
+			CropPerPage:   map[string]map[string]int{"instax": {"": 4}, "square": {"mini": 40, "standard": 12, "large": 2}, "strip3": {"": 6}, "strip4": {"": 8}, "wallet": {"": 4}}},
 	}
 	if len(papers) != len(want) {
 		t.Fatalf("PrintPapers() = %+v, want %+v", papers, want)

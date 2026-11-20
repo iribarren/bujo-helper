@@ -45,6 +45,9 @@ func NewOpenLibrary(client *http.Client) *OpenLibrary {
 // Name implements media.Provider.
 func (o *OpenLibrary) Name() string { return "openlibrary" }
 
+// Label implements media.Labeler.
+func (*OpenLibrary) Label() string { return "Open Library" }
+
 type openLibraryDoc struct {
 	Title            string   `json:"title"`
 	AuthorName       []string `json:"author_name"`

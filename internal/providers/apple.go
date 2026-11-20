@@ -48,6 +48,14 @@ func (a *Apple) albums() bool { return a.Entity == "album" }
 // Name implements media.Provider.
 func (a *Apple) Name() string { return "apple" }
 
+// Label implements media.Labeler: Apple Books, or Apple Music for albums.
+func (a *Apple) Label() string {
+	if a.albums() {
+		return "Apple Music"
+	}
+	return "Apple Books"
+}
+
 type appleResponse struct {
 	Results []struct {
 		TrackName string `json:"trackName"`

@@ -12,6 +12,8 @@ export function DefaultOutputDir():Promise<string>;
 
 export function ExportPDF(arg1:Array<string>,arg2:string,arg3:sheet.Options):Promise<string>;
 
+export function ExportPage(arg1:string,arg2:string,arg3:sheet.PageSettings,arg4:string):Promise<string>;
+
 export function GetSettings():Promise<settings.Settings>;
 
 export function ImportCSV():Promise<string>;
@@ -23,6 +25,10 @@ export function MediaTypes():Promise<Array<main.MediaTypeInfo>>;
 export function OpenFile(arg1:string):Promise<void>;
 
 export function OpenFolder(arg1:string):Promise<void>;
+
+export function PageKinds():Promise<Array<main.PageKindInfo>>;
+
+export function PagePages(arg1:string,arg2:sheet.PageSettings,arg3:string):Promise<number>;
 
 export function PrintCropModes():Promise<Array<main.PrintCropModeInfo>>;
 

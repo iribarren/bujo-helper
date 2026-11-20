@@ -49,6 +49,9 @@ func NewSteam(client *http.Client) *Steam {
 // Name implements media.Provider.
 func (p *Steam) Name() string { return "steam" }
 
+// Label implements media.Labeler.
+func (*Steam) Label() string { return "Steam" }
+
 type steamSearchResponse struct {
 	Items []struct {
 		Type string `json:"type"`

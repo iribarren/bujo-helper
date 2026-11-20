@@ -25,6 +25,8 @@
                 aria-controls="panel-download" data-i18n="app.tabDownload">Download</button>
         <button id="tab-print" class="tab" type="button" role="tab" data-tab="print" aria-selected="false"
                 aria-controls="panel-print" tabindex="-1" data-i18n="app.tabPrint">Print covers</button>
+        <button id="tab-pages" class="tab" type="button" role="tab" data-tab="pages" aria-selected="false"
+                aria-controls="panel-pages" tabindex="-1" data-i18n="app.tabPages">Make pages</button>
     </div>
 
     <div id="banner" class="banner" role="alert" hidden>
@@ -37,6 +39,7 @@
         <div class="field">
             <span id="media-type-label" data-i18n="app.mediaType">Media type</span>
             <div id="media-type" class="radio-grid" role="radiogroup" aria-labelledby="media-type-label"></div>
+            <p id="sources" class="sources muted" hidden></p>
         </div>
 
         <div class="toolbar">
@@ -83,7 +86,10 @@
 
         <footer class="footer">
             <span id="summary" class="muted"></span>
-            <button id="open-folder" type="button" hidden data-i18n="download.openFolder">Open folder</button>
+            <div class="row">
+                <button id="open-folder" type="button" hidden data-i18n="download.openFolder">Open folder</button>
+                <button id="print-these" class="accent-outline" type="button" hidden data-i18n="download.printThese">Print these covers</button>
+            </div>
         </footer>
     </section>
     </div>
@@ -125,36 +131,7 @@
                         data-i18n-title="print.cardsForTitle"></select>
             </label>
         </fieldset>
-
-        <fieldset id="print-group-page" class="group">
-            <legend data-i18n="print.groupPage">Page</legend>
-            <label class="field">
-                <span data-i18n="print.paper">Paper</span>
-                <select id="print-paper" title="Paper you print on. The grid is recomputed to fill it."
-                        data-i18n-title="print.paperTitle"></select>
-            </label>
-            <label id="print-cut-field" class="field">
-                <span data-i18n="print.cut">Cut mode</span>
-                <select id="print-cut" title="How covers are prepared for cutting. Border: a thin grey line on the cut line. Bleed + crop marks: each image runs 1 mm past its cut line, with marks at the corners, for print-then-cut machines or hand cutting without white edges. None: the images only."
-                        data-i18n-title="print.cutTitle"></select>
-            </label>
-            <label class="field check-field">
-                <input id="print-credits" type="checkbox" checked
-                       title="Add a page at the end listing the author and licence of each selected image that came with a credit (place photos, flags and artworks). Images without a credit are not listed."
-                       data-i18n-title="print.creditsTitle"/>
-                <span data-i18n="print.credits">Credits page</span>
-            </label>
-        </fieldset>
-
-        <fieldset id="print-group-lettering" class="group" hidden>
-            <legend data-i18n="print.groupLettering">Lettering</legend>
-            <label id="print-header-field" class="field" hidden>
-                <span data-i18n="print.header">Header</span>
-                <input id="print-header" type="text" placeholder="Books of 2026" maxlength="120" autocomplete="off" disabled
-                       title="Printed at the top of every page, above the covers or rows. Leave it empty for no header."
-                       data-i18n-title="print.headerTitle"/>
-            </label>
-        </fieldset>
+        <!-- Page and Lettering: rendered by fieldsets.ts. -->
     </section>
 
     <section class="column print-covers">
@@ -172,6 +149,37 @@
             <div class="row">
                 <button id="open-pdf" type="button" hidden data-i18n="print.openPdf">Open PDF</button>
                 <button id="export-pdf" class="primary" type="button" disabled data-i18n="print.exportPdf">Export PDF…</button>
+            </div>
+        </footer>
+    </section>
+    </div>
+
+    <div id="panel-pages" class="panel split" role="tabpanel" aria-labelledby="tab-pages" hidden>
+    <section class="column kinds-column">
+        <p id="pages-kinds-label" class="kinds-heading" data-i18n="pages.kinds">Page</p>
+        <div id="pages-kinds" class="kind-list" role="radiogroup" aria-labelledby="pages-kinds-label"
+             aria-orientation="vertical"></div>
+    </section>
+
+    <section id="pages-options" class="column side pages-options">
+        <h2 id="pages-kind-title" class="kind-title"></h2>
+        <div id="pages-form"></div>
+        <!-- Page and Lettering: rendered by fieldsets.ts. -->
+    </section>
+
+    <section class="column pages-preview">
+        <div class="preview-head">
+            <h2 class="preview-title" data-i18n="pages.preview">Preview</h2>
+            <span id="pages-count" class="muted"></span>
+        </div>
+        <div class="page-well">
+            <div id="pages-sheet" class="page-sheet" aria-hidden="true"></div>
+        </div>
+        <footer class="footer">
+            <span id="pages-status" class="muted" aria-live="polite"></span>
+            <div class="row">
+                <button id="pages-open-pdf" type="button" hidden data-i18n="print.openPdf">Open PDF</button>
+                <button id="pages-export" class="primary" type="button" disabled data-i18n="print.exportPdf">Export PDF…</button>
             </div>
         </footer>
     </section>

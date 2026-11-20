@@ -40,6 +40,9 @@ func NewMusicBrainz(client *http.Client) *MusicBrainz {
 // Name implements media.Provider.
 func (p *MusicBrainz) Name() string { return "musicbrainz" }
 
+// Label implements media.Labeler.
+func (*MusicBrainz) Label() string { return "MusicBrainz" }
+
 type musicBrainzResponse struct {
 	ReleaseGroups []struct {
 		ID               string `json:"id"`

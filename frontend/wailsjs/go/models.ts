@@ -41,6 +41,7 @@ export namespace main {
 	    label: string;
 	    creatorLabel: string;
 	    dateLabel: string;
+	    sources: string[];
 	
 	    static createFrom(source: any = {}) {
 	        return new MediaTypeInfo(source);
@@ -52,6 +53,29 @@ export namespace main {
 	        this.label = source["label"];
 	        this.creatorLabel = source["creatorLabel"];
 	        this.dateLabel = source["dateLabel"];
+	        this.sources = source["sources"];
+	    }
+	}
+	export class PageKindInfo {
+	    id: string;
+	    label: string;
+	    usesCut: boolean;
+	    usesTitle: boolean;
+	    defaults: string;
+	    default: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PageKindInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.usesCut = source["usesCut"];
+	        this.usesTitle = source["usesTitle"];
+	        this.defaults = source["defaults"];
+	        this.default = source["default"];
 	    }
 	}
 	export class PrintCropModeInfo {
@@ -274,6 +298,22 @@ export namespace sheet {
 	        this.dateLabel = source["dateLabel"];
 	        this.header = source["header"];
 	        this.credits = source["credits"];
+	    }
+	}
+	export class PageSettings {
+	    paper: string;
+	    cut: string;
+	    title: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PageSettings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.paper = source["paper"];
+	        this.cut = source["cut"];
+	        this.title = source["title"];
 	    }
 	}
 

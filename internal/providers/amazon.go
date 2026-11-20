@@ -75,6 +75,9 @@ func NewAmazon(client *http.Client) *Amazon {
 // Name implements media.Provider.
 func (a *Amazon) Name() string { return "amazon" }
 
+// Label implements media.Labeler.
+func (*Amazon) Label() string { return "Amazon" }
+
 var (
 	// sizeModifier matches the "._AC_UY218_" segment before the extension of
 	// Amazon image URLs; removing it yields the original full-size image.

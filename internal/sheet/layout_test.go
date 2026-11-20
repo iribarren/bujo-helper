@@ -378,6 +378,7 @@ func TestPaperByID(t *testing.T) {
 		{"a4", A4},
 		{"letter", Page{Width: 215.9, Height: 279.4}},
 		{"a5", Page{Width: 148, Height: 210}},
+		{"b5", Page{Width: 176, Height: 250}},
 	}
 	for _, tt := range tests {
 		p, err := PaperByID(tt.id)

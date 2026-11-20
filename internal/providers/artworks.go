@@ -121,6 +121,9 @@ func NewMet(client *http.Client) *Met {
 // Name implements media.Provider.
 func (p *Met) Name() string { return "met" }
 
+// Label implements media.Labeler.
+func (*Met) Label() string { return "The Met" }
+
 type metObject struct {
 	ObjectID          int    `json:"objectID"`
 	Title             string `json:"title"`
@@ -251,6 +254,9 @@ func NewCleveland(client *http.Client) *Cleveland {
 
 // Name implements media.Provider.
 func (p *Cleveland) Name() string { return "cleveland" }
+
+// Label implements media.Labeler.
+func (*Cleveland) Label() string { return "Cleveland Museum of Art" }
 
 type clevelandImage struct {
 	URL string `json:"url"`

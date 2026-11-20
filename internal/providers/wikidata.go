@@ -38,6 +38,9 @@ func NewWikidataITunes(client *http.Client) *WikidataITunes {
 // Name implements media.Provider.
 func (p *WikidataITunes) Name() string { return "wikidata-itunes" }
 
+// Label implements media.Labeler.
+func (*WikidataITunes) Label() string { return "Wikidata/iTunes" }
+
 // wikidataSearchLimit caps the entities read per search.
 const wikidataSearchLimit = 10
 

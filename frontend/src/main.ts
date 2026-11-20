@@ -15,6 +15,7 @@ import {main} from '../wailsjs/go/models';
 import {EventsOn} from '../wailsjs/runtime/runtime';
 import {applyDom, has, label, onLangChange, t, tn, type MessageKey} from './i18n';
 import {useLanguage} from './language';
+import {initPages} from './pages';
 import {initPrint, type PrintSheet} from './print';
 import {initRadioGroup} from './radioGroup';
 import {initSettings, type SettingsDialog} from './settings';
@@ -134,10 +135,13 @@ const ui = {
     results: byId<HTMLUListElement>('results'),
     summary: byId<HTMLSpanElement>('summary'),
     openFolder: byId<HTMLButtonElement>('open-folder'),
+    printThese: byId<HTMLButtonElement>('print-these'),
+    sources: byId<HTMLParagraphElement>('sources'),
 };
 
 let mediaTypes: main.MediaTypeInfo[] = [];
-// The Settings dialog and the print sheet, set up once the language is known.
+// The Settings dialog and the print sheet, set up once the language is known
+// (like the Make pages tab).
 let settingsDialog: SettingsDialog | undefined;
 let printSheet: PrintSheet | undefined;
 let running = false;
@@ -268,7 +272,16 @@ function updateSampleButton() {
     }
 }
 
+// updateSources lists the sources tried for the selected media type, in
+// order, under the media type buttons.
+function updateSources() {
+    const sources = currentMediaType()?.sources ?? [];
+    ui.sources.hidden = sources.length === 0;
+    ui.sources.textContent = sources.length ? t('download.sources', {sources: sources.join(', ')}) : '';
+}
+
 function updateMediaType() {
+    updateSources();
     updatePlaceholder();
     updateKeyTip();
     updateSampleButton();
@@ -390,7 +403,14 @@ function applyResult(ev: ItemEvent) {
     renderResult(row, ev);
     finished++;
     updateProgress();
-    ui.openFolder.hidden = false;
+    showFolderActions(true);
+}
+
+// showFolderActions shows or hides the footer actions on the job's folder:
+// Open folder and Print these covers.
+function showFolderActions(show: boolean) {
+    ui.openFolder.hidden = !show;
+    ui.printThese.hidden = !show;
 }
 
 function renderSummary(done: DoneEvent) {
@@ -406,7 +426,7 @@ function finishJob(done: DoneEvent) {
     hideRateLimit();
     lastDone = done;
     renderSummary(done);
-    ui.openFolder.hidden = false;
+    showFolderActions(true);
     if (done.error) showError(done.error);
 }
 
@@ -433,7 +453,7 @@ async function startDownload() {
     earlyDone = null;
     ui.summary.textContent = '';
     lastDone = null;
-    ui.openFolder.hidden = true;
+    showFolderActions(false);
     jobFolder = ui.outputDir.value;
     try {
         const views = await Start(new main.StartRequest({
@@ -540,6 +560,7 @@ async function openFolder() {
 // keeping the selections, the typed list and the results.
 function relabel() {
     fillMediaTypes();
+    updateSources();
     updatePlaceholder();
     updateKeyTip();
     updateSampleButton();
@@ -602,16 +623,24 @@ export function outputFolder(): string {
 }
 
 const appRoot = byId<HTMLDivElement>('app');
-initTabs(byId<HTMLDivElement>('tabs'), (name) => {
+const tabs = initTabs(byId<HTMLDivElement>('tabs'), (name) => {
     appRoot.dataset.tab = name;
     if (name === 'print') printSheet?.activate();
 });
 
-// Ctrl+Enter starts a download; it does nothing while the print sheet or
-// the Settings dialog is shown. This capture listener runs before the
+// Print these covers opens Print covers on the finished job's folder (the
+// one Open folder opens), whatever folder was shown there before.
+ui.printThese.addEventListener('click', () => {
+    printSheet?.showFolder(jobFolder || ui.outputDir.value);
+    tabs.select('print', true);
+});
+
+// Ctrl+Enter starts a download; it does nothing outside the Download tab or
+// while the Settings dialog is shown. This capture listener runs before the
 // document listener above.
 window.addEventListener('keydown', (e) => {
-    const blocked = appRoot.dataset.tab === 'print' || (settingsDialog?.isOpen() ?? false);
+    const tab = appRoot.dataset.tab ?? 'download';
+    const blocked = tab !== 'download' || (settingsDialog?.isOpen() ?? false);
     if (blocked && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.stopPropagation();
     }
@@ -642,6 +671,12 @@ async function init() {
         hideError,
         mediaTypes: () => mediaTypes,
         mediaType: () => ui.mediaType.value,
+    });
+    initPages({
+        // Where Print covers exports too.
+        defaultDir: () => printSheet?.folder() ?? outputFolder(),
+        showError,
+        hideError,
     });
     try {
         mediaTypes = await MediaTypes();
