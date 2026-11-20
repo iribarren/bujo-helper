@@ -653,13 +653,11 @@ textarea {
     background: var(--surface);
 }
 
-/* At least six cards a row at the default window width (900 px): a card
-   is at most 140 px wide before another column fits. */
+/* Six cards a row, as in the design; the app starts maximised. */
 .gallery {
     --gallery-gap: 10px;
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-columns: repeat(auto-fill, minmax(min(140px, calc((100% - 5 * var(--gallery-gap)) / 6)), 1fr));
     align-content: start;
     gap: var(--gallery-gap);
     padding: 10px;
