@@ -1067,10 +1067,12 @@ textarea {
     }
 }
 
-/* The spinner stands still (the text still says it is loading). */
+/* With reduced motion (e.g. GNOME's animations off, which WebKitGTK reports
+   as prefers-reduced-motion), the spinner still turns, slower: a small
+   spinner is the feedback that the preview is on its way. */
 @media (prefers-reduced-motion: reduce) {
     .preview-loading[data-active="true"] .preview-spinner {
-        animation: none;
+        animation-duration: 1.6s;
     }
 }
 

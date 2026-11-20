@@ -80,7 +80,9 @@ interface PdfPage {
 interface PdfDoc {
     numPages: number;
     getPage: (n: number) => Promise<PdfPage>;
-    destroy: () => Promise<void>;
+    // pdf.js 6 documents have no destroy of their own: they are freed
+    // through the task that loaded them.
+    loadingTask: {destroy: () => Promise<void>};
 }
 
 interface Shown {
@@ -112,6 +114,16 @@ async function loadPdf(url: string, isStale: () => boolean): Promise<PdfDoc | un
     // A newer request won while this one loaded: free it.
     void task.destroy();
     return undefined;
+}
+
+// free frees a document. Freeing is housekeeping: it never stops the
+// preview from showing the next document.
+function free(doc: PdfDoc) {
+    try {
+        doc.loadingTask.destroy().catch(() => {});
+    } catch {
+        // Nothing to free.
+    }
 }
 
 // loadingIndicator makes the indicator shown over the well while the
@@ -188,7 +200,7 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
         drawing = false;
         renderTask?.cancel();
         renderTask = undefined;
-        if (shown) void shown.doc.destroy();
+        if (shown) free(shown.doc);
         shown = undefined;
         updateBusy();
     }
@@ -216,6 +228,19 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
     function sheetSize() {
         const box = el.sheet.getBoundingClientRect();
         return {width: box.width, height: box.height};
+    }
+
+    // redrawIfResized redraws the page shown, quietly, when the sheet's size
+    // changed (by more than rounding) since it was drawn. Not while a
+    // request or a page draw is on its way: a new document is drawn at the
+    // sheet's size anyway, and a page being drawn is redrawn once it is
+    // drawn, rather than cancelled (which would leave the preview busy
+    // until a redraw of it finished).
+    function redrawIfResized() {
+        if (!shown || requesting || drawing) return;
+        const size = sheetSize();
+        const changed = Math.abs(size.width - drawnSize.width) > 1 || Math.abs(size.height - drawnSize.height) > 1;
+        if (size.width > 0 && changed) void drawPage(page, true);
     }
 
     // drawPage draws page n of the shown document on a new canvas, which
@@ -263,6 +288,8 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
                 message = undefined;
                 renderLabels();
             }
+            // The sheet may have been resized while the page drew.
+            redrawIfResized();
         } catch (err) {
             // A cancelled draw was replaced by a newer one.
             if (!current() || (err instanceof Error && err.name === 'RenderingCancelledException')) return;
@@ -351,11 +378,7 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
         let resizeTimer: ReturnType<typeof setTimeout> | undefined;
         new ResizeObserver(() => {
             clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                const size = sheetSize();
-                const changed = Math.abs(size.width - drawnSize.width) > 1 || Math.abs(size.height - drawnSize.height) > 1;
-                if (shown && size.width > 0 && changed) void drawPage(page, true);
-            }, 150);
+            resizeTimer = setTimeout(redrawIfResized, 150);
         }).observe(el.sheet);
     }
 

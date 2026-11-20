@@ -13,8 +13,11 @@ export interface FakePdf {
     release: () => void;
     // releaseDraw lets the held page draws finish.
     releaseDraw: () => void;
-    // destroyed reports whether the document or its loading task was
-    // destroyed.
+    // holdDraw keeps the page draws started from now on drawing until
+    // releaseDraw is called.
+    holdDraw: () => void;
+    // destroyed reports whether the document's loading task was destroyed
+    // (pdf.js 6 documents have no destroy of their own).
     destroyed: () => boolean;
 }
 
@@ -45,15 +48,16 @@ export function fakePdf(url: string, pages: number, opts: FakePdfOptions = {}): 
     let release = () => {};
     const loaded = opts.hold ? new Promise<void>((done) => { release = done; }) : Promise.resolve();
     let releaseDraw = () => {};
-    const drawn = opts.holdDraw ? new Promise<void>((done) => { releaseDraw = done; }) : Promise.resolve();
+    const held = () => new Promise<void>((done) => { releaseDraw = done; });
     let destroyed = false;
     const entry: Entry = {
         pages,
         loaded,
-        drawn,
+        drawn: opts.holdDraw ? held() : Promise.resolve(),
         failPage: opts.failPage,
         release: () => release(),
         releaseDraw: () => releaseDraw(),
+        holdDraw: () => { entry.drawn = held(); },
         destroyed: () => destroyed,
         destroy: () => { destroyed = true; },
     };
@@ -73,9 +77,16 @@ export function resetFakePdfs(): void {
     })));
 }
 
+// getDocument answers a loading task like pdf.js 6's: the document it loads
+// has no destroy (pdf.js 6 removed PDFDocumentProxy.destroy); it is freed
+// through its loadingTask.
 function getDocument(src: {data: Uint8Array}) {
     const url = new TextDecoder().decode(src.data);
     const entry = pdfDocs.get(url);
+    const task = {
+        promise: Promise.resolve() as Promise<unknown>,
+        destroy: async () => entry?.destroy(),
+    };
     const doc = entry && {
         numPages: entry.pages,
         getPage: async (n: number) => ({
@@ -86,8 +97,9 @@ function getDocument(src: {data: Uint8Array}) {
                 // Like pdf.js, a cancelled draw fails with a
                 // RenderingCancelledException.
                 let cancel = () => {};
+                const drawn = entry.drawn;
                 const promise = new Promise<void>((done, fail) => {
-                    void entry.drawn.then(done);
+                    void drawn.then(done);
                     cancel = () => {
                         const err = new Error(`drawing page ${n} cancelled`);
                         err.name = 'RenderingCancelledException';
@@ -97,14 +109,12 @@ function getDocument(src: {data: Uint8Array}) {
                 return {promise, cancel: () => cancel()};
             },
         }),
-        destroy: async () => entry.destroy(),
+        loadingTask: task,
     };
-    return {
-        promise: entry && doc
-            ? entry.loaded.then(() => doc)
-            : Promise.reject(new Error(`no fake PDF at ${url}`)),
-        destroy: async () => entry?.destroy(),
-    };
+    task.promise = entry && doc
+        ? entry.loaded.then(() => doc)
+        : Promise.reject(new Error(`no fake PDF at ${url}`));
+    return task;
 }
 
 export const pdfjsMock = {

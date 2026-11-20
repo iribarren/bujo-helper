@@ -430,6 +430,158 @@ describe('loading indicator', () => {
         expect(el('t-sheet').getAttribute('aria-busy')).toBe('false');
         expect(loadingShown()).toBe(false);
     });
+
+    it('clears when the next document replaces the shown one', async () => {
+        // pdf.js 6 documents have no destroy(); freeing the shown one must not
+        // break the hand-over (T6: Make pages stuck on the indicator).
+        preview.schedule({key: 'a', render: answer('/preview?id=1', 1)});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        preview.schedule({key: 'b', render: answer('/preview?id=2', 2)});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(renders.at(-1)).toEqual({url: '/preview?id=2', page: 1});
+        expect(el('t-label').textContent).toBe('Page 1 of 2');
+        expect(preview.result()).toEqual({key: 'b', pages: 2});
+        expect(el('t-message').hidden).toBe(true);
+        expect(el('t-sheet').getAttribute('aria-busy')).toBe('false');
+        expect(loadingShown()).toBe(false);
+        expect(pdfDocs.get('/preview?id=1')?.destroyed()).toBe(true);
+    });
+});
+
+describe('resize', () => {
+    // The sheet's size, as getBoundingClientRect reports it, and the
+    // ResizeObserver callback (jsdom has neither layout nor ResizeObserver).
+    let size = {width: 0, height: 0};
+    let notify: () => void = () => {};
+
+    function resize(width: number, height: number) {
+        size = {width, height};
+        notify();
+    }
+
+    function canvasSize(): string {
+        const canvas = el('t-sheet').querySelector('canvas');
+        return canvas ? `${canvas.width}x${canvas.height}` : 'none';
+    }
+
+    beforeEach(() => {
+        size = {width: 0, height: 0};
+        vi.stubGlobal('ResizeObserver', class {
+            constructor(callback: () => void) {
+                notify = callback;
+            }
+            observe() {}
+            disconnect() {}
+        });
+        document.body.innerHTML = `
+            <button id="t-prev"></button><span id="t-label"></span><button id="t-next"></button>
+            <div id="t-well"><div id="t-sheet"></div><p id="t-message" hidden></p></div>`;
+        el('t-sheet').getBoundingClientRect = () => ({...size}) as DOMRect;
+        preview = initPreview({
+            sheet: el('t-sheet'),
+            prev: el('t-prev'),
+            next: el('t-next'),
+            pageLabel: el('t-label'),
+            message: el('t-message'),
+        });
+    });
+
+    it('redraws the page for the new size quietly, once', async () => {
+        // Drawn while its tab is hidden (size 0), at the PDF's own size.
+        const pdf = fakePdf('/preview?id=1', 1);
+        preview.schedule({key: 'a', render: vi.fn(async () => ({url: '/preview?id=1', pages: 1}))});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(canvasSize()).toBe('595x842');
+
+        pdf.holdDraw();
+        resize(297.5, 421);
+        await vi.advanceTimersByTimeAsync(150);
+        await settle();
+        expect(renders).toHaveLength(2);
+        // A sharper redraw of the page shown is not loading.
+        expect(el('t-sheet').getAttribute('aria-busy')).toBe('false');
+        expect(loadingShown()).toBe(false);
+        pdf.releaseDraw();
+        await settle();
+        expect(canvasSize()).toBe('297x421');
+        expect(loadingShown()).toBe(false);
+
+        // Same size (or a rounding away): no redraw.
+        resize(297.9, 421.4);
+        await vi.advanceTimersByTimeAsync(150);
+        await settle();
+        expect(renders).toHaveLength(2);
+    });
+
+    it('lets the page being drawn finish, then redraws it for the new size', async () => {
+        const pdf = fakePdf('/preview?id=1', 1, {holdDraw: true});
+        preview.schedule({key: 'a', render: vi.fn(async () => ({url: '/preview?id=1', pages: 1}))});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(renders).toHaveLength(1);
+        expect(loadingShown()).toBe(true);
+
+        resize(297.5, 421);
+        await vi.advanceTimersByTimeAsync(150);
+        await settle();
+        // Not cancelled for a quiet redraw: the indicator waits for it.
+        expect(renders).toHaveLength(1);
+        expect(loadingShown()).toBe(true);
+
+        pdf.releaseDraw();
+        await settle();
+        expect(renders).toHaveLength(2);
+        expect(canvasSize()).toBe('297x421');
+        expect(el('t-sheet').getAttribute('aria-busy')).toBe('false');
+        expect(loadingShown()).toBe(false);
+    });
+
+    it('does not redraw the old page while new options render', async () => {
+        resize(297.5, 421);
+        preview.schedule({key: 'a', render: answer('/preview?id=1', 1)});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(renders).toHaveLength(1);
+
+        // A new paper reshapes the sheet before its PDF arrives.
+        fakePdf('/preview?id=2', 1);
+        const req = pending('/preview?id=2', 1);
+        preview.schedule({key: 'b', render: req.render});
+        resize(325, 421);
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(renders).toEqual([{url: '/preview?id=1', page: 1}]);
+        expect(loadingShown()).toBe(true);
+
+        req.answer();
+        await settle();
+        expect(renders).toEqual([{url: '/preview?id=1', page: 1}, {url: '/preview?id=2', page: 1}]);
+        expect(loadingShown()).toBe(false);
+    });
+
+    it('shows the indicator when paging replaces a quiet redraw, until the page is drawn', async () => {
+        const pdf = fakePdf('/preview?id=1', 2);
+        preview.schedule({key: 'a', render: vi.fn(async () => ({url: '/preview?id=1', pages: 2}))});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+
+        pdf.holdDraw();
+        resize(297.5, 421);
+        await vi.advanceTimersByTimeAsync(150);
+        await settle();
+        expect(loadingShown()).toBe(false);
+        el('t-next').click();
+        await settle();
+        expect(renders.at(-1)).toEqual({url: '/preview?id=1', page: 2});
+        expect(loadingShown()).toBe(true);
+        pdf.releaseDraw();
+        await settle();
+        expect(el('t-label').textContent).toBe('Page 2 of 2');
+        expect(loadingShown()).toBe(false);
+    });
 });
 
 describe('messages exist in English and Spanish', () => {
