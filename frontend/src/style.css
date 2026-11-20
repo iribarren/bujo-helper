@@ -259,6 +259,57 @@ input[readonly] {
     color: var(--accent);
 }
 
+/* About: the bundled fonts, each licence opening in place. */
+.settings-about h3 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.about-fonts {
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+}
+
+.about-fonts li + li {
+    margin-top: 4px;
+}
+
+.about-fonts summary {
+    cursor: pointer;
+}
+
+.about-font-licence {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.about-fonts .settings-status:empty,
+#about-fonts-status:empty {
+    display: none;
+}
+
+.licence-text {
+    max-height: 180px;
+    margin: 6px 0 0;
+    padding: 8px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.settings-about > .hint:last-child {
+    margin-top: 8px;
+}
+
 .dialog-actions {
     display: flex;
     align-items: center;

@@ -254,6 +254,15 @@
         <p class="hint"><span data-i18n="settings.bhlHint">Optional. Adds natural-history plates from the Biodiversity Heritage Library when Wikimedia Commons has none. Get a free key at</span>
             <a id="bhl-link" href="https://www.biodiversitylibrary.org/getapikey.aspx">biodiversitylibrary.org</a></p>
     </div>
+    <!-- settings.ts lists the bundled lettering fonts from LetteringFonts;
+         each licence text loads when its entry is opened. -->
+    <section id="settings-about" class="settings-section settings-about" aria-labelledby="about-title">
+        <h3 id="about-title" data-i18n="about.title">About</h3>
+        <p class="hint" data-i18n="about.fontsIntro">Lettering fonts bundled with the app, each under its own licence. Open one to read it.</p>
+        <ul id="about-fonts" class="about-fonts"></ul>
+        <p id="about-fonts-status" class="settings-status error" role="status"></p>
+        <p class="hint" data-i18n="about.pdfjs">The live preview uses pdf.js by Mozilla (Apache 2.0).</p>
+    </section>
     <div class="dialog-actions">
         <span id="settings-status" class="settings-status" aria-live="polite"></span>
         <div class="row">

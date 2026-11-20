@@ -291,4 +291,13 @@ export const es: Messages = {
     'settings.saved': 'Guardado',
     'settings.errRead': 'No se han podido leer los ajustes: {error}',
     'settings.errReload': 'Guardado, pero no se han podido volver a cargar los ajustes: {error}',
+
+    // About section of the Settings dialog.
+    'about.title': 'Acerca de',
+    'about.fontsIntro': 'Fuentes de rotulación incluidas en la aplicación, cada una con su propia licencia. Abre una para leerla.',
+    'about.goFonts': 'Fuentes Go (predeterminadas)',
+    'about.licenceTitle': 'Licencia de {font}',
+    'about.loading': 'Cargando…',
+    'about.errLicence': 'No se ha podido leer la licencia: {error}',
+    'about.pdfjs': 'La vista previa usa pdf.js de Mozilla (Apache 2.0).',
 };

@@ -298,6 +298,16 @@ export const en = {
     'settings.saved': 'Saved',
     'settings.errRead': 'Could not read the settings: {error}',
     'settings.errReload': 'Saved, but could not reload the settings: {error}',
+
+    // About section of the Settings dialog: the bundled lettering fonts and
+    // their licences, and the other bundled software.
+    'about.title': 'About',
+    'about.fontsIntro': 'Lettering fonts bundled with the app, each under its own licence. Open one to read it.',
+    'about.goFonts': 'Go fonts (default)',
+    'about.licenceTitle': 'Licence of {font}',
+    'about.loading': 'Loading…',
+    'about.errLicence': 'Could not read the licence: {error}',
+    'about.pdfjs': 'The live preview uses pdf.js by Mozilla (Apache 2.0).',
 } as const;
 
 // MessageKey is the key of a UI message.
