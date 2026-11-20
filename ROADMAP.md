@@ -513,11 +513,11 @@ Order: 29 → 30 → 31, then the generated printables.
 
 **Out of scope:** the preview pane stays a placeholder until item 30. The Lettering fieldset only holds today's Header field until item 31.
 
-## 30. [ ] Live PDF preview
+## 30. [x] Live PDF preview (5439969)
 
 **Why:** generated pages have no thumbnails, so without a preview the user exports blind. A real preview also helps Print covers (spines, stubs and polaroids are hard to imagine from the gallery).
 
-**Done in branch `feat/live-preview`** (see `odd/tasks/live-preview.md`):
+**Done in branch `feat/live-preview`**, merged in 5439969 (see `odd/tasks/live-preview.md`):
 - Backend: `internal/preview` keeps the last 4 renders in memory and serves them at `/preview?id=N` next to `/thumbs`; the `PreviewPDF` and `PreviewPage` bindings render through the same functions as `ExportPDF` and `ExportPage` and answer the URL and page count (9657cae).
 - **Make pages** shows the live preview by default, with ‹ › and "Page X of N"; requests are debounced (300 ms) and numbered so only the newest is drawn (e72af35).
 - **Print covers** gets a **Gallery | Preview** switch; Preview shows the selected covers with the export's options, and renders again after a language change (stub, card and credits labels) (65f18dd).

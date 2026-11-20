@@ -65,5 +65,7 @@ Generated pages have no thumbnails, so the user exports blind. Spines, stubs and
 
 - Review `df94df1..3be5838` (T6, medium; final slice before delivery): consent granted; reliability lens approved; acknowledged (authority burned). Advisory, left as follow-ups: WARNING R3-skipped-resize-not-replayed (`preview.ts:239-244`: a resize skipped while a request is in flight is not replayed if that request ends without a new document, so the old page stays at its old size until the next resize); SUGGESTION R3-free-failure-path-untested (`preview.ts:121-127`: no test where `loadingTask.destroy` throws/rejects); SUGGESTION R3-holddraw-rebinds-release (`previewMock.ts:51-60`: a second `holdDraw()` orphans earlier held draws). Every code commit on the branch is reviewed.
 
+- GUI check passed (user, 2026-11-20); merged `feat/live-preview` into `main` in `5439969` (`--no-ff`); ROADMAP item 30 marked `[x]`.
+
 ## Next step
-User GUI check of the build with T6 (Make pages: change options; Print covers: Preview with a few selection changes; spinner turning), then local `--no-ff` merge to `main` and ROADMAP item 30 `[x]`. Open: re-rendering a large cover selection re-encodes every image (no preview cache); `vite build` warns about the 570 kB main chunk.
+Done. Not pushed. Open follow-ups: re-rendering a large cover selection re-encodes every image (no preview cache); `vite build` warns about the 570 kB main chunk; T6 review advisories (R3-skipped-resize-not-replayed, R3-free-failure-path-untested, R3-holddraw-rebinds-release).
