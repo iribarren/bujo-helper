@@ -10,7 +10,6 @@
     <header class="header">
         <h1>BuJo Helper</h1>
         <div class="header-controls">
-            <select id="media-type" aria-label="Media type" data-i18n-aria-label="app.mediaType"></select>
             <button id="settings-open" type="button" data-i18n="app.settings">Settings</button>
         </div>
     </header>
@@ -33,8 +32,13 @@
         <button id="banner-close" class="icon-button" type="button" aria-label="Dismiss" data-i18n-aria-label="app.dismiss">×</button>
     </div>
 
-    <div id="panel-download" class="panel" role="tabpanel" aria-labelledby="tab-download">
-    <section class="input">
+    <div id="panel-download" class="panel split" role="tabpanel" aria-labelledby="tab-download">
+    <section class="column side download-input">
+        <div class="field">
+            <span id="media-type-label" data-i18n="app.mediaType">Media type</span>
+            <div id="media-type" class="radio-grid" role="radiogroup" aria-labelledby="media-type-label"></div>
+        </div>
+
         <div class="toolbar">
             <button id="import" type="button" data-i18n="download.import">Import CSV…</button>
             <button id="sample-csv" class="link-button" type="button">Sample CSV</button>
@@ -42,41 +46,46 @@
             <span id="count" class="muted">0 items</span>
         </div>
         <textarea id="items" spellcheck="false" autocomplete="off" aria-label="Items, one per line" data-i18n-aria-label="download.itemsLabel"></textarea>
-    </section>
 
-    <section class="options">
-        <div class="field grow">
-            <label for="output-dir" data-i18n="download.outputFolder">Output folder</label>
-            <div class="row">
-                <input id="output-dir" type="text" readonly/>
-                <button id="browse" type="button" data-i18n="download.browse">Browse…</button>
+        <div class="options">
+            <div class="field grow">
+                <label for="output-dir" data-i18n="download.outputFolder">Output folder</label>
+                <div class="row">
+                    <input id="output-dir" type="text" readonly/>
+                    <button id="browse" type="button" data-i18n="download.browse">Browse…</button>
+                </div>
             </div>
+            <label class="field">
+                <span data-i18n="download.country">Country</span>
+                <input id="country" type="text" value="es" maxlength="2" size="3" autocomplete="off" spellcheck="false"
+                       title="Two-letter store country code, e.g. es, us, gb, de. Covers of local editions are preferred."
+                       data-i18n-title="download.countryTitle"/>
+            </label>
         </div>
-        <label class="field">
-            <span data-i18n="download.country">Country</span>
-            <input id="country" type="text" value="es" maxlength="2" size="3" autocomplete="off" spellcheck="false"
-                   title="Two-letter store country code, e.g. es, us, gb, de. Covers of local editions are preferred."
-                   data-i18n-title="download.countryTitle"/>
-        </label>
+
+        <div class="actions">
+            <button id="start" class="primary" type="button" title="Ctrl+Enter" data-i18n="download.start">Download covers</button>
+            <button id="cancel" type="button" hidden data-i18n="download.cancel">Cancel</button>
+        </div>
     </section>
 
-    <section class="actions">
-        <button id="start" class="primary" type="button" title="Ctrl+Enter" data-i18n="download.start">Download covers</button>
-        <button id="cancel" type="button" hidden data-i18n="download.cancel">Cancel</button>
-        <div class="progress" aria-hidden="true">
-            <div id="progress-bar" class="progress-bar"></div>
+    <section class="column download-results">
+        <div class="progress-row">
+            <div class="progress" aria-hidden="true">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <span id="progress-text" class="muted">0 / 0</span>
         </div>
-        <span id="progress-text" class="muted">0 / 0</span>
+
+        <p id="rate-limit" class="rate-limit" hidden></p>
+
+        <ul id="results" class="results" aria-live="polite"></ul>
+
+        <footer class="footer">
+            <span id="summary" class="muted"></span>
+            <button id="open-folder" type="button" hidden data-i18n="download.openFolder">Open folder</button>
+        </footer>
     </section>
-
-    <p id="rate-limit" class="rate-limit" hidden></p>
-
-    <ul id="results" class="results" aria-live="polite"></ul>
-
-    <footer class="footer">
-        <span id="summary" class="muted"></span>
-        <button id="open-folder" type="button" hidden data-i18n="download.openFolder">Open folder</button>
-    </footer>
     </div>
 
     <div id="panel-print" class="panel" role="tabpanel" aria-labelledby="tab-print" hidden>

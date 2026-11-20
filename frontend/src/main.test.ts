@@ -46,17 +46,22 @@ function el<T extends HTMLElement>(id: string): T {
     return node as T;
 }
 
+// mediaRadio is the media type radio button for id.
+function mediaRadio(id: string): HTMLButtonElement {
+    const node = el('media-type').querySelector<HTMLButtonElement>(`[role="radio"][data-value="${id}"]`);
+    if (!node) throw new Error(`missing media type radio ${id}`);
+    return node;
+}
+
 function selectType(id: string) {
-    const select = el<HTMLSelectElement>('media-type');
-    select.value = id;
-    select.dispatchEvent(new Event('change'));
+    mediaRadio(id).click();
 }
 
 beforeAll(async () => {
     const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
     document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
     await import('./main');
-    await vi.waitFor(() => expect(el<HTMLSelectElement>('media-type').options.length).toBe(mediaTypes.length));
+    await vi.waitFor(() => expect(el('media-type').querySelectorAll('[role="radio"]').length).toBe(mediaTypes.length));
 });
 
 describe('items placeholder', () => {
@@ -129,5 +134,41 @@ describe('key tip', () => {
     it('is hidden for a type whose sources need no key', () => {
         selectType('books');
         expect(el('key-tip').hidden).toBe(true);
+    });
+});
+
+describe('media type', () => {
+    it('is a radio group in the Download panel', () => {
+        const group = el('media-type');
+        expect(group.getAttribute('role')).toBe('radiogroup');
+        expect(el('panel-download').contains(group)).toBe(true);
+    });
+
+    it('checks the clicked type and updates the placeholder', () => {
+        selectType('nature');
+        expect(mediaRadio('nature').getAttribute('aria-checked')).toBe('true');
+        expect(mediaRadio('books').getAttribute('aria-checked')).toBe('false');
+        expect(el<HTMLTextAreaElement>('items').placeholder.startsWith('Name')).toBe(true);
+    });
+
+    it('moves the selection with the arrow keys', () => {
+        selectType('books');
+        mediaRadio('books').dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true, cancelable: true}));
+        expect(mediaRadio('nature').getAttribute('aria-checked')).toBe('true');
+        expect(el('key-tip').hidden).toBe(false);
+        mediaRadio('nature').dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowLeft', bubbles: true, cancelable: true}));
+        expect(mediaRadio('books').getAttribute('aria-checked')).toBe('true');
+        expect(el('key-tip').hidden).toBe(true);
+    });
+
+    it('sets what the print cards are for', () => {
+        selectType('anime');
+        el('tab-print').click();
+        expect(el<HTMLSelectElement>('print-media').value).toBe('anime');
+        el('tab-download').click();
+        selectType('manga');
+        el('tab-print').click();
+        expect(el<HTMLSelectElement>('print-media').value).toBe('manga');
+        el('tab-download').click();
     });
 });

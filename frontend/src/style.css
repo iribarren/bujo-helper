@@ -9,6 +9,7 @@
     --muted: #667085;
     --accent: #2f6fde;
     --accent-hover: #255bb8;
+    --accent-soft: #e8effc;
     --accent-text: #ffffff;
     --ok: #1f8a4c;
     --failed: #c8372d;
@@ -32,6 +33,7 @@
         --muted: #9aa3b2;
         --accent: #4c8dff;
         --accent-hover: #6aa0ff;
+        --accent-soft: #233a5e;
         --accent-text: #0d1117;
         --ok: #4cc27f;
         --failed: #ff6b5e;
@@ -483,22 +485,6 @@ textarea {
     color: var(--muted);
 }
 
-/* --- narrow windows --- */
-
-@media (max-width: 700px) {
-    #app {
-        padding: 10px 12px;
-    }
-
-    .options {
-        flex-wrap: wrap;
-    }
-
-    .field.grow {
-        flex-basis: 100%;
-    }
-}
-
 /* --- tabs --- */
 
 .tabs {
@@ -534,11 +520,81 @@ textarea {
     flex: 1 1 auto;
 }
 
-/* The media type and its tip only apply to downloads. */
-#app[data-tab="print"] #media-type {
-    visibility: hidden;
+/* A panel in two columns that fill the window height; long lists (results,
+   gallery) scroll inside their column. */
+.panel.split {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1 1 0;
+    min-height: 360px;
 }
 
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* The input or options column, on a surface like the canvas. */
+.column.side {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow-y: auto;
+}
+
+/* --- download --- */
+
+#panel-download {
+    grid-template-columns: minmax(0, 520px) minmax(300px, 1fr);
+}
+
+/* Media type: a grid of radio buttons, five per row. */
+.radio-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.radio-grid .radio-button {
+    height: 34px;
+    padding: 0 6px;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.radio-grid .radio-button[aria-checked="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    font-weight: 600;
+}
+
+#count {
+    margin-left: auto;
+}
+
+/* The item list takes the height the other inputs leave. */
+.download-input textarea {
+    flex: 1 1 120px;
+    height: auto;
+    resize: none;
+}
+
+#start {
+    flex: 1;
+}
+
+.progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* The media type tip only applies to downloads. */
 #app[data-tab="print"] #key-tip {
     display: none;
 }
@@ -651,4 +707,37 @@ textarea {
 
 .card.selected .card-name {
     color: var(--text);
+}
+
+/* --- narrow windows --- */
+
+@media (max-width: 700px) {
+    #app {
+        padding: 10px 12px;
+    }
+
+    .options {
+        flex-wrap: wrap;
+    }
+
+    .field.grow {
+        flex-basis: 100%;
+    }
+
+    /* The columns stack and the window scrolls. */
+    .panel.split,
+    #panel-download {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: none;
+        flex: 1 0 auto;
+    }
+
+    .column.side {
+        overflow-y: visible;
+    }
+
+    .download-input textarea {
+        flex: none;
+        height: 170px;
+    }
 }
