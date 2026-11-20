@@ -681,14 +681,23 @@ func TestLetteringFonts(t *testing.T) {
 
 func TestAssetHandlerServesFonts(t *testing.T) {
 	h := NewApp().assetHandler()
+	font := func(id string) sheet.Font {
+		f, ok := sheet.LetteringFontByID(id)
+		if !ok {
+			t.Fatalf("no lettering font %q", id)
+		}
+		return f
+	}
 	tests := []struct {
 		target, contentType string
 		want                int
+		body                []byte // the registry bytes; nil skips the check
 	}{
-		{"/fonts/pacifico.ttf", "font/ttf", http.StatusOK},
-		{"/fonts/go.ttf", "font/ttf", http.StatusOK},
-		{"/fonts/luckiest-guy/licence", "text/plain; charset=utf-8", http.StatusOK},
-		{"/fonts/comic-sans.ttf", "", http.StatusNotFound},
+		{"/fonts/pacifico.ttf", "font/ttf", http.StatusOK, font("pacifico").TTF},
+		{"/fonts/go.ttf", "font/ttf", http.StatusOK, font("go").HeaderTTF()},
+		{"/fonts/luckiest-guy/licence", "text/plain; charset=utf-8", http.StatusOK, []byte(font("luckiest-guy").LicenceText)},
+		{"/fonts/pacifico/licence", "text/plain; charset=utf-8", http.StatusOK, []byte(font("pacifico").LicenceText)},
+		{"/fonts/comic-sans.ttf", "", http.StatusNotFound, nil},
 	}
 	for _, tt := range tests {
 		rec := httptest.NewRecorder()
@@ -698,6 +707,9 @@ func TestAssetHandlerServesFonts(t *testing.T) {
 		}
 		if tt.contentType != "" && rec.Header().Get("Content-Type") != tt.contentType {
 			t.Errorf("%s: content type = %q", tt.target, rec.Header().Get("Content-Type"))
+		}
+		if tt.body != nil && !bytes.Equal(rec.Body.Bytes(), tt.body) {
+			t.Errorf("%s: body is %d bytes, want the registry's %d", tt.target, rec.Body.Len(), len(tt.body))
 		}
 	}
 }
