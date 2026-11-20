@@ -145,6 +145,39 @@ describe('schedule', () => {
         expect(canvasCount()).toBe(1);
     });
 
+    it('keeps the old page, dimmed, until the next document is drawn', async () => {
+        preview.schedule({key: 'a', render: answer('/preview?id=1', 1)});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        const old = el('t-sheet').querySelector('canvas');
+        expect(old).not.toBeNull();
+
+        const next = fakePdf('/preview?id=2', 1, {holdDraw: true});
+        preview.schedule({key: 'b', render: vi.fn(async () => ({url: '/preview?id=2', pages: 1}))});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(renders.at(-1)).toEqual({url: '/preview?id=2', page: 1});
+        expect(el('t-sheet').querySelector('canvas')).toBe(old);
+        expect(el('t-sheet').getAttribute('aria-busy')).toBe('true');
+
+        next.releaseDraw();
+        await settle();
+        expect(canvasCount()).toBe(1);
+        expect(el('t-sheet').querySelector('canvas')).not.toBe(old);
+        expect(el('t-sheet').getAttribute('aria-busy')).toBe('false');
+    });
+
+    it('shows the error when the page cannot be drawn', async () => {
+        fakePdf('/preview?id=1', 1, {failPage: 1});
+        preview.schedule({key: 'a', render: vi.fn(async () => ({url: '/preview?id=1', pages: 1}))});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(el('t-message').hidden).toBe(false);
+        expect(el('t-message').textContent).toBe('Could not show the preview: cannot draw page 1');
+        expect(canvasCount()).toBe(0);
+        expect(el('t-sheet').getAttribute('aria-busy')).toBe('false');
+    });
+
     it('marks the sheet busy while a render is on its way', async () => {
         preview.schedule({key: 'a', render: answer('/preview?id=1', 1)});
         expect(el('t-sheet').getAttribute('aria-busy')).toBe('true');
@@ -190,6 +223,25 @@ describe('pages', () => {
         expect(el('t-label').textContent).toBe('Page 3 of 4');
         await show(2);
         expect(el('t-label').textContent).toBe('Page 2 of 2');
+    });
+
+    it('shows the error for a page that cannot be drawn, and clears it on the next page drawn', async () => {
+        fakePdf('/preview?id=1', 2, {failPage: 2});
+        preview.schedule({key: 'a', render: vi.fn(async () => ({url: '/preview?id=1', pages: 2}))});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(canvasCount()).toBe(1);
+        el('t-next').click();
+        await settle();
+        expect(el('t-label').textContent).toBe('Page 2 of 2');
+        expect(el('t-message').hidden).toBe(false);
+        expect(el('t-message').textContent).toBe('Could not show the preview: cannot draw page 2');
+        expect(canvasCount()).toBe(0);
+        el('t-prev').click();
+        await settle();
+        expect(el('t-label').textContent).toBe('Page 1 of 2');
+        expect(el('t-message').hidden).toBe(true);
+        expect(canvasCount()).toBe(1);
     });
 
     it('has no page buttons to press before a document is shown', () => {

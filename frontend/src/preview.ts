@@ -140,13 +140,19 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
         el.message.hidden = !message;
     }
 
-    // clear forgets the shown document and its canvas.
-    function clear() {
+    // forget frees the shown document and stops drawing it; its canvas stays
+    // until a new page replaces it.
+    function forget() {
         drawSeq++;
         renderTask?.cancel();
         renderTask = undefined;
         if (shown) void shown.doc.destroy();
         shown = undefined;
+    }
+
+    // clear forgets the shown document and its canvas.
+    function clear() {
+        forget();
         el.sheet.replaceChildren();
     }
 
@@ -192,10 +198,19 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
             renderTask = undefined;
             drawnSize = size;
             el.sheet.replaceChildren(canvas);
+            // A page drawn clears the error of one that could not be.
+            if (message) {
+                message = undefined;
+                renderLabels();
+            }
         } catch (err) {
             // A cancelled draw was replaced by a newer one.
             if (!current() || (err instanceof Error && err.name === 'RenderingCancelledException')) return;
-            console.warn(`Could not draw the preview: ${errorText(err)}`);
+            renderTask = undefined;
+            // Show the error rather than another page under this page's label.
+            el.sheet.replaceChildren();
+            message = {key: 'preview.error', params: {error: errorText(err)}};
+            renderLabels();
         }
     }
 
@@ -206,15 +221,16 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
             if (isStale()) return;
             const doc = await loadPdf(info.url, isStale);
             if (!doc || isStale()) return;
-            clear();
+            // The old page stays, dimmed, until the new one is drawn.
+            forget();
             message = undefined;
             const pages = doc.numPages || info.pages;
             shown = {key: req.key, doc, pages};
             // Stay on the page shown, if the new document has it.
             page = Math.min(Math.max(page, 1), pages);
             renderLabels();
-            setBusy(false);
             await drawPage(page);
+            if (!isStale()) setBusy(false);
         } catch (err) {
             if (isStale()) return;
             // Forget the key so the same options can be tried again.

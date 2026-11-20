@@ -450,6 +450,27 @@ describe('Print covers tab', () => {
             expect(el('print-preview').hidden).toBe(true);
         });
 
+        it('renders again in a new language, only while the preview is shown', async () => {
+            // Go prints the stub, card and credits labels in the UI language.
+            viewRadio('preview').click();
+            paperRadio('a5').click();
+            await vi.waitFor(() => expect(lastPreviewPDF()[1].paper).toBe('a5'));
+            const before = vi.mocked(PreviewPDF).mock.calls.length;
+            try {
+                await useLanguage('es');
+                await vi.waitFor(() => expect(vi.mocked(PreviewPDF).mock.calls.length).toBe(before + 1));
+                expect(lastPreviewPDF()[1].paper).toBe('a5');
+
+                viewRadio('gallery').click();
+                const shown = vi.mocked(PreviewPDF).mock.calls.length;
+                await useLanguage('en');
+                await pause();
+                expect(vi.mocked(PreviewPDF).mock.calls.length).toBe(shown);
+            } finally {
+                await useLanguage('en');
+            }
+        });
+
         it('switches with the arrow keys, one tab stop', () => {
             const gallery = viewRadio('gallery');
             expect(gallery.tabIndex).toBe(0);

@@ -11,6 +11,8 @@ import {vi} from 'vitest';
 export interface FakePdf {
     // release lets a held PDF finish loading.
     release: () => void;
+    // releaseDraw lets the held page draws finish.
+    releaseDraw: () => void;
     // destroyed reports whether the document or its loading task was
     // destroyed.
     destroyed: () => boolean;
@@ -19,6 +21,8 @@ export interface FakePdf {
 interface Entry extends FakePdf {
     pages: number;
     loaded: Promise<void>;
+    drawn: Promise<void>;
+    failPage?: number;
     destroy: () => void;
 }
 
@@ -27,16 +31,29 @@ export const pdfDocs = new Map<string, Entry>();
 // renders lists the pages drawn, in order.
 export const renders: Array<{url: string; page: number}> = [];
 
-// fakePdf registers a PDF of n pages served at url. With hold, it loads
-// only once released.
-export function fakePdf(url: string, pages: number, opts: {hold?: boolean} = {}): FakePdf {
+export interface FakePdfOptions {
+    // hold keeps the PDF loading until release is called.
+    hold?: boolean;
+    // holdDraw keeps its pages drawing until releaseDraw is called.
+    holdDraw?: boolean;
+    // failPage is a page whose drawing fails.
+    failPage?: number;
+}
+
+// fakePdf registers a PDF of n pages served at url.
+export function fakePdf(url: string, pages: number, opts: FakePdfOptions = {}): FakePdf {
     let release = () => {};
     const loaded = opts.hold ? new Promise<void>((done) => { release = done; }) : Promise.resolve();
+    let releaseDraw = () => {};
+    const drawn = opts.holdDraw ? new Promise<void>((done) => { releaseDraw = done; }) : Promise.resolve();
     let destroyed = false;
     const entry: Entry = {
         pages,
         loaded,
+        drawn,
+        failPage: opts.failPage,
         release: () => release(),
+        releaseDraw: () => releaseDraw(),
         destroyed: () => destroyed,
         destroy: () => { destroyed = true; },
     };
@@ -64,8 +81,9 @@ function getDocument(src: {data: Uint8Array}) {
         getPage: async (n: number) => ({
             getViewport: ({scale}: {scale: number}) => ({width: 595 * scale, height: 842 * scale}),
             render: () => {
+                if (n === entry.failPage) return {promise: Promise.reject(new Error(`cannot draw page ${n}`)), cancel: () => {}};
                 renders.push({url, page: n});
-                return {promise: Promise.resolve(), cancel: () => {}};
+                return {promise: entry.drawn, cancel: () => {}};
             },
         }),
         destroy: async () => entry.destroy(),
