@@ -33,7 +33,7 @@ The Print options are one long flex row, and the media type sits in the global h
 
 ## Tasks
 - [x] T1 Tabs: data-driven tab list, rename, keyboard-nav tests. Route: delegated writer (writer trigger: index.html, main.ts, i18n, tests).
-- [ ] T2 Download tab: media type radio group in the panel, two-column layout, CSS, tests. Route: same delegated writer, own commit.
+- [x] T2 Download tab: media type radio group in the panel, two-column layout, CSS, tests. Route: same delegated writer, own commit.
 - [ ] T3 Print covers tab: fieldsets, fieldset visibility, gallery cards, CSS, tests. Route: same delegated writer, own commit.
 - [ ] T4 Verify: PDF page-stream hashes vs `main`, Go tests, `wails build`; ROADMAP item 29 notes the done layout bullets. Route: inline (state checks) + delegated hash check.
 
@@ -41,6 +41,8 @@ The Print options are one long flex row, and the media type sits in the global h
 - Feature doc created; branch `feat/ui-restyle` from `c774745`.
 
 - T1 done in `12513cb`: new `frontend/src/tabs.ts` (`initTabs` reads `[role=tab]` with `data-tab` + `aria-controls` from the markup; adding a tab is markup only, labels stay `data-i18n`), `main.ts` wires it, tab renamed (EN "Print covers", ES "Imprimir portadas"). Tests: `tabs.test.ts` (click, arrows wrap, Home/End, focus, missing panel), `main.test.ts` tabs block. RED: `tabs.test.ts` (module missing), `main.test.ts > tabs > are named Download and Print covers`; GREEN: 85/85. Deviation: tabs discovered from markup instead of a TS `TABS` array (keeps static markup + i18n as is).
+
+- T2 done in `6c92f1f`: new `frontend/src/radioGroup.ts` (select-like `value`/`disabled`/`replaceOptions`, roving tab stop, arrows move + select with wrap, Home/End; setting `value` does not fire onChange), `#media-type` is now the radiogroup (labelled by the visible "Media type" label via `aria-labelledby`) at the top of the Download input column; `ui.mediaType.value` readers unchanged. Two-column `#panel-download` (`.panel.split`, input column on a surface, progress/results/footer right), `--accent-soft` (light + dark), `#app[data-tab="print"] #media-type` removed, narrow-window block moved to the end of `style.css` so it overrides the new rules. Tests: `radioGroup.test.ts`; `main.test.ts` media type block (click, arrows, "Cards for" follows). RED: `main.test.ts` beforeAll (no radios), `radioGroup.test.ts` (module missing); GREEN: 97/97.
 
 ## Next step
 T1–T3 via one delegated writer.
