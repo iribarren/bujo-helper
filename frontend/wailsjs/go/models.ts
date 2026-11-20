@@ -36,6 +36,32 @@ export namespace main {
 	        this.creator = source["creator"];
 	    }
 	}
+	export class LetteringFontInfo {
+	    id: string;
+	    label: string;
+	    group: string;
+	    hollow: string;
+	    licence: string;
+	    url: string;
+	    licenceUrl: string;
+	    default: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new LetteringFontInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.group = source["group"];
+	        this.hollow = source["hollow"];
+	        this.licence = source["licence"];
+	        this.url = source["url"];
+	        this.licenceUrl = source["licenceUrl"];
+	        this.default = source["default"];
+	    }
+	}
 	export class MediaTypeInfo {
 	    id: string;
 	    label: string;

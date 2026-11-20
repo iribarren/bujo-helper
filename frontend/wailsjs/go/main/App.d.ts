@@ -18,6 +18,8 @@ export function GetSettings():Promise<settings.Settings>;
 
 export function ImportCSV():Promise<string>;
 
+export function LetteringFonts():Promise<Array<main.LetteringFontInfo>>;
+
 export function ListCovers(arg1:string):Promise<Array<main.CoverView>>;
 
 export function MediaTypes():Promise<Array<main.MediaTypeInfo>>;

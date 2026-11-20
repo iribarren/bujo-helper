@@ -30,6 +30,10 @@ export function ImportCSV() {
   return window['go']['main']['App']['ImportCSV']();
 }
 
+export function LetteringFonts() {
+  return window['go']['main']['App']['LetteringFonts']();
+}
+
 export function ListCovers(arg1) {
   return window['go']['main']['App']['ListCovers'](arg1);
 }

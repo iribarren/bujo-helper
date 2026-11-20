@@ -24,6 +24,7 @@ import (
 	"bujo-helper/internal/batch"
 	"bujo-helper/internal/catalog"
 	"bujo-helper/internal/downloader"
+	"bujo-helper/internal/fonts"
 	"bujo-helper/internal/gallery"
 	"bujo-helper/internal/i18n"
 	"bujo-helper/internal/media"
@@ -227,11 +228,13 @@ func newApp(reg *media.Registry, client *http.Client) *App {
 }
 
 // assetHandler serves what the Wails asset server cannot find among the
-// embedded assets: thumbnails and preview PDFs. Anything else is 404.
+// embedded assets: thumbnails, preview PDFs and the lettering fonts.
+// Anything else is 404.
 func (a *App) assetHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle(gallery.ThumbPath, a.thumbs)
 	mux.Handle(preview.Path, a.previews)
+	mux.Handle(fonts.Path, fonts.Handler{})
 	return mux
 }
 
@@ -658,6 +661,36 @@ func (a *App) PrintFormats() []PrintFormatInfo {
 			UsesCrop:   f.UsesCrop,
 			UsesHeader: f.UsesHeader,
 			Default:    f.ID == sheet.DefaultFormat,
+		})
+	}
+	return out
+}
+
+// LetteringFontInfo describes a lettering font for the font picker.
+type LetteringFontInfo struct {
+	ID         string `json:"id"`
+	Label      string `json:"label"`
+	Group      string `json:"group"`  // style group: sans, brush, monoline, handwritten, display, hollow
+	Hollow     string `json:"hollow"` // hollow letters: stroke, none or native
+	Licence    string `json:"licence"`
+	URL        string `json:"url"`        // the TTF, for @font-face
+	LicenceURL string `json:"licenceUrl"` // the licence text
+	Default    bool   `json:"default"`
+}
+
+// LetteringFonts lists the lettering fonts, the default first.
+func (a *App) LetteringFonts() []LetteringFontInfo {
+	out := make([]LetteringFontInfo, 0, len(sheet.LetteringFonts))
+	for _, f := range sheet.LetteringFonts {
+		out = append(out, LetteringFontInfo{
+			ID:         f.ID,
+			Label:      f.Label,
+			Group:      f.Group,
+			Hollow:     string(f.Hollow),
+			Licence:    f.Licence,
+			URL:        fonts.TTFURL(f.ID),
+			LicenceURL: fonts.LicenceURL(f.ID),
+			Default:    f.ID == sheet.DefaultLetteringFont,
 		})
 	}
 	return out

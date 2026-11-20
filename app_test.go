@@ -651,6 +651,57 @@ func TestPageKinds(t *testing.T) {
 	}
 }
 
+func TestLetteringFonts(t *testing.T) {
+	got := NewApp().LetteringFonts()
+	if len(got) != len(sheet.LetteringFonts) {
+		t.Fatalf("len = %d, want %d", len(got), len(sheet.LetteringFonts))
+	}
+	want0 := LetteringFontInfo{
+		ID: "go", Label: "Default", Group: "sans", Hollow: "stroke",
+		Licence: "BSD 3-Clause (Go fonts)", URL: "/fonts/go.ttf",
+		LicenceURL: "/fonts/go/licence", Default: true,
+	}
+	if got[0] != want0 {
+		t.Errorf("first = %+v, want %+v", got[0], want0)
+	}
+	wantLast := LetteringFontInfo{
+		ID: "londrina-outline", Label: "Londrina Outline", Group: "hollow", Hollow: "native",
+		Licence: "SIL OFL 1.1", URL: "/fonts/londrina-outline.ttf",
+		LicenceURL: "/fonts/londrina-outline/licence",
+	}
+	if last := got[len(got)-1]; last != wantLast {
+		t.Errorf("last = %+v, want %+v", last, wantLast)
+	}
+	for _, f := range got[1:] {
+		if f.Default {
+			t.Errorf("%s is marked default", f.ID)
+		}
+	}
+}
+
+func TestAssetHandlerServesFonts(t *testing.T) {
+	h := NewApp().assetHandler()
+	tests := []struct {
+		target, contentType string
+		want                int
+	}{
+		{"/fonts/pacifico.ttf", "font/ttf", http.StatusOK},
+		{"/fonts/go.ttf", "font/ttf", http.StatusOK},
+		{"/fonts/luckiest-guy/licence", "text/plain; charset=utf-8", http.StatusOK},
+		{"/fonts/comic-sans.ttf", "", http.StatusNotFound},
+	}
+	for _, tt := range tests {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tt.target, nil))
+		if rec.Code != tt.want {
+			t.Errorf("%s: status = %d, want %d", tt.target, rec.Code, tt.want)
+		}
+		if tt.contentType != "" && rec.Header().Get("Content-Type") != tt.contentType {
+			t.Errorf("%s: content type = %q", tt.target, rec.Header().Get("Content-Type"))
+		}
+	}
+}
+
 func TestPagePages(t *testing.T) {
 	tests := []struct {
 		name    string
