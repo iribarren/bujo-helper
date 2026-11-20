@@ -450,6 +450,20 @@ describe('Print covers tab', () => {
             expect(el('print-preview').hidden).toBe(true);
         });
 
+        it('shows "Loading preview…" over the preview while it renders, not once back on the gallery', async () => {
+            const indicator = el('print-preview').querySelector<HTMLElement>('.preview-loading');
+            expect(indicator).not.toBeNull();
+            viewRadio('preview').click();
+            expect(indicator?.dataset.active).toBe('true');
+            expect(indicator?.textContent).toBe('Loading preview…');
+            await vi.waitFor(() => expect(indicator?.dataset.active).toBe('false'));
+            paperRadio('letter').click();
+            expect(indicator?.dataset.active).toBe('true');
+            viewRadio('gallery').click();
+            expect(indicator?.dataset.active).toBe('false');
+            expect(indicator?.textContent).toBe('');
+        });
+
         it('renders again in a new language, only while the preview is shown', async () => {
             // Go prints the stub, card and credits labels in the UI language.
             viewRadio('preview').click();

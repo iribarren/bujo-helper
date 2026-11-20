@@ -204,6 +204,7 @@ export const en = {
     'preview.next': 'Next page',
     'preview.error': 'Could not show the preview: {error}',
     'preview.noSelection': 'Select covers to preview them.',
+    'preview.loading': 'Loading preview…',
 
     // Page kinds (Go: sheet.PageKinds), by ID.
     'pageKind.dotgrid': 'Dot grid',

@@ -202,6 +202,17 @@ describe('Page fieldset', () => {
         await vi.waitFor(() => expect(lastPreviewPage()[1].paper).toBe('b5'));
     });
 
+    it('shows "Loading preview…" over the preview well until the page is drawn', async () => {
+        const indicator = document.querySelector<HTMLElement>('.pages-preview .page-well .preview-loading');
+        expect(indicator).not.toBeNull();
+        radio('pages-paper', 'b5').click();
+        expect(indicator?.dataset.active).toBe('true');
+        expect(indicator?.textContent).toBe('Loading preview…');
+        await previewDone();
+        expect(indicator?.dataset.active).toBe('false');
+        expect(indicator?.textContent).toBe('');
+    });
+
     it('shapes the preview page like the paper', () => {
         radio('pages-paper', 'a4').click();
         expect(Number(el('pages-sheet').style.getPropertyValue('--page-ratio'))).toBeCloseTo(210 / 297, 5);

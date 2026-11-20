@@ -2,7 +2,9 @@
 // the current options in Go and answers the URL its PDF is served at (see
 // internal/preview); pdf.js draws one page of it onto a <canvas> in a
 // page-shaped sheet, with previous and next buttons. Requests are debounced
-// and numbered: only the newest one is ever drawn.
+// and numbered: only the newest one is ever drawn. While a render or a page
+// draw is on its way, the sheet is marked busy (dimming the old page) and a
+// "Loading preview…" indicator shows over the well.
 //
 // The legacy build of pdf.js is used: the modern one calls JavaScript
 // methods that only the newest engines have (e.g. Map.getOrInsertComputed),
@@ -34,7 +36,8 @@ export interface PreviewRequest {
 
 export interface PreviewElements {
     // The page-shaped box the canvas fills; its --page-ratio is set to the
-    // drawn page's width / height.
+    // drawn page's width / height. The loading indicator is added next to it
+    // in its parent (the well).
     sheet: HTMLElement;
     prev: HTMLButtonElement;
     next: HTMLButtonElement;
@@ -111,8 +114,28 @@ async function loadPdf(url: string, isStale: () => boolean): Promise<PdfDoc | un
     return undefined;
 }
 
+// loadingIndicator makes the indicator shown over the well while the
+// preview loads: a decorative spinner and a polite status text, which is
+// empty at rest so that only its arrival is announced.
+function loadingIndicator(): {node: HTMLElement; text: HTMLElement} {
+    const node = document.createElement('div');
+    node.className = 'preview-loading';
+    node.setAttribute('role', 'status');
+    node.setAttribute('aria-live', 'polite');
+    node.dataset.active = 'false';
+    const spinner = document.createElement('span');
+    spinner.className = 'preview-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    const text = document.createElement('span');
+    text.className = 'preview-loading-text';
+    node.append(spinner, text);
+    return {node, text};
+}
+
 export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Preview {
     const delay = opts.delay ?? DEBOUNCE_MS;
+    const loading = loadingIndicator();
+    el.sheet.after(loading.node);
     // seq numbers requests; a result is used only while its number is the
     // latest. drawSeq does the same for drawing pages.
     let seq = 0;
@@ -127,9 +150,26 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
     // The sheet size the shown page was drawn for, to redraw it sharper
     // when the sheet is resized (e.g. its tab was hidden at first).
     let drawnSize = {width: 0, height: 0};
+    // The preview is busy while a request is pending or loading
+    // (requesting) or the page to be shown is drawing (drawing): the old
+    // page stays, dimmed, under the loading indicator until then.
+    let requesting = false;
+    let drawing = false;
+    let busy: boolean | undefined;
 
-    function setBusy(busy: boolean) {
-        el.sheet.setAttribute('aria-busy', String(busy));
+    function renderLoading() {
+        loading.node.dataset.active = String(Boolean(busy));
+        const text = busy ? t('preview.loading') : '';
+        // Rewriting the same text could make screen readers repeat it.
+        if (loading.text.textContent !== text) loading.text.textContent = text;
+    }
+
+    function updateBusy() {
+        const now = requesting || drawing;
+        if (now === busy) return;
+        busy = now;
+        el.sheet.setAttribute('aria-busy', String(now));
+        renderLoading();
     }
 
     function renderLabels() {
@@ -138,16 +178,19 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
         el.next.disabled = !shown || page >= shown.pages;
         el.message.textContent = message ? t(message.key, message.params) : '';
         el.message.hidden = !message;
+        renderLoading();
     }
 
     // forget frees the shown document and stops drawing it; its canvas stays
     // until a new page replaces it.
     function forget() {
         drawSeq++;
+        drawing = false;
         renderTask?.cancel();
         renderTask = undefined;
         if (shown) void shown.doc.destroy();
         shown = undefined;
+        updateBusy();
     }
 
     // clear forgets the shown document and its canvas.
@@ -156,12 +199,18 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
         el.sheet.replaceChildren();
     }
 
-    // stop drops pending and in-flight requests.
-    function stop() {
+    // drop drops pending and in-flight requests.
+    function drop() {
         seq++;
         clearTimeout(timer);
         timer = undefined;
-        setBusy(false);
+    }
+
+    // stop drops requests and the busy state they hold.
+    function stop() {
+        drop();
+        requesting = false;
+        updateBusy();
     }
 
     function sheetSize() {
@@ -171,12 +220,23 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
 
     // drawPage draws page n of the shown document on a new canvas, which
     // replaces the old one once drawn, so the old page stays until then.
-    async function drawPage(n: number) {
+    // The preview stays busy until the newest draw ends; a quiet draw (a
+    // sharper redraw of the page shown) does not make it busy.
+    async function drawPage(n: number, quiet = false) {
         if (!shown) return;
         const {doc} = shown;
         const mine = ++drawSeq;
         renderTask?.cancel();
+        if (!quiet) {
+            drawing = true;
+            updateBusy();
+        }
         const current = () => mine === drawSeq && shown?.doc === doc;
+        const done = () => {
+            renderTask = undefined;
+            drawing = false;
+            updateBusy();
+        };
         try {
             const pdfPage = await doc.getPage(n);
             if (!current()) return;
@@ -195,7 +255,7 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
             renderTask = task;
             await task.promise;
             if (!current()) return;
-            renderTask = undefined;
+            done();
             drawnSize = size;
             el.sheet.replaceChildren(canvas);
             // A page drawn clears the error of one that could not be.
@@ -206,7 +266,7 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
         } catch (err) {
             // A cancelled draw was replaced by a newer one.
             if (!current() || (err instanceof Error && err.name === 'RenderingCancelledException')) return;
-            renderTask = undefined;
+            done();
             // Show the error rather than another page under this page's label.
             el.sheet.replaceChildren();
             message = {key: 'preview.error', params: {error: errorText(err)}};
@@ -221,8 +281,10 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
             if (isStale()) return;
             const doc = await loadPdf(info.url, isStale);
             if (!doc || isStale()) return;
-            // The old page stays, dimmed, until the new one is drawn.
+            // The old page stays, dimmed, until the new one is drawn: the
+            // request hands the busy state over to the page draw.
             forget();
+            requesting = false;
             message = undefined;
             const pages = doc.numPages || info.pages;
             shown = {key: req.key, doc, pages};
@@ -230,24 +292,26 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
             page = Math.min(Math.max(page, 1), pages);
             renderLabels();
             await drawPage(page);
-            if (!isStale()) setBusy(false);
         } catch (err) {
             if (isStale()) return;
             // Forget the key so the same options can be tried again.
             wanted = '';
             clear();
+            requesting = false;
             message = {key: 'preview.error', params: {error: errorText(err)}};
             renderLabels();
-            setBusy(false);
+            updateBusy();
         }
     }
 
     function schedule(req: PreviewRequest) {
         if (req.key === wanted) return;
-        stop();
+        // Still busy: the indicator stays up from one change to the next.
+        drop();
         wanted = req.key;
         const mine = seq;
-        setBusy(true);
+        requesting = true;
+        updateBusy();
         timer = setTimeout(() => {
             timer = undefined;
             void run(req, mine);
@@ -264,6 +328,9 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
 
     function cancel() {
         stop();
+        // A page still drawing finishes unseen.
+        drawing = false;
+        updateBusy();
         wanted = shown?.key ?? '';
     }
 
@@ -287,12 +354,12 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
             resizeTimer = setTimeout(() => {
                 const size = sheetSize();
                 const changed = Math.abs(size.width - drawnSize.width) > 1 || Math.abs(size.height - drawnSize.height) > 1;
-                if (shown && size.width > 0 && changed) void drawPage(page);
+                if (shown && size.width > 0 && changed) void drawPage(page, true);
             }, 150);
         }).observe(el.sheet);
     }
 
-    setBusy(false);
+    updateBusy();
     renderLabels();
 
     return {

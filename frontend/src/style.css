@@ -1017,6 +1017,63 @@ textarea {
     text-align: center;
 }
 
+/* "Loading preview…" centred over the well, on the dimmed old page or the
+   empty well, while a render or a page draw is on its way (preview.ts). It
+   stays in the accessibility tree with no text at rest, so its status text
+   is announced when it arrives. It fades in after 150 ms, so quick page
+   draws do not flash it, and hides at once. */
+.preview-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: calc(100% - 32px);
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 2px 10px var(--page-shadow);
+    font-size: 13px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.preview-loading[data-active="true"] {
+    opacity: 1;
+    transition: opacity 0.15s ease 0.15s;
+}
+
+.preview-spinner {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    box-sizing: border-box;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+}
+
+.preview-loading[data-active="true"] .preview-spinner {
+    animation: preview-spin 0.8s linear infinite;
+}
+
+@keyframes preview-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* The spinner stands still (the text still says it is loading). */
+@media (prefers-reduced-motion: reduce) {
+    .preview-loading[data-active="true"] .preview-spinner {
+        animation: none;
+    }
+}
+
 /* --- narrow windows --- */
 
 @media (max-width: 700px) {

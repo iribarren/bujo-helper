@@ -198,6 +198,7 @@ export const es: Messages = {
     'preview.next': 'Página siguiente',
     'preview.error': 'No se ha podido mostrar la vista previa: {error}',
     'preview.noSelection': 'Seleccione portadas para previsualizarlas.',
+    'preview.loading': 'Cargando vista previa…',
 
     // Page kinds (Go: sheet.PageKinds), by ID.
     'pageKind.dotgrid': 'Cuadrícula de puntos',

@@ -21,6 +21,27 @@ function canvasCount(): number {
     return el('t-sheet').querySelectorAll('canvas').length;
 }
 
+// loading is the loading indicator the preview adds to the well.
+function loading(): HTMLElement {
+    const node = el('t-well').querySelector<HTMLElement>('.preview-loading');
+    if (!node) throw new Error('missing .preview-loading');
+    return node;
+}
+
+// loadingShown reports whether the loading indicator is shown and says so.
+function loadingShown(): boolean {
+    const shown = loading().dataset.active === 'true';
+    expect(loading().textContent).toBe(shown ? 'Loading preview…' : '');
+    return shown;
+}
+
+// pending is a render binding that answers only when answered.
+function pending(url: string, pages: number) {
+    let done: (info: PreviewInfo) => void = () => {};
+    const render = vi.fn(() => new Promise<PreviewInfo>((resolve) => { done = resolve; }));
+    return {render, answer: () => done({url, pages})};
+}
+
 // answer is a render binding resolving to a preview of n pages at url.
 function answer(url: string, pages: number): () => Promise<PreviewInfo> {
     fakePdf(url, pages);
@@ -295,10 +316,126 @@ describe('cancel', () => {
     });
 });
 
+describe('loading indicator', () => {
+    it('is a polite status over the well, with a decorative spinner, hidden at rest', () => {
+        const node = loading();
+        expect(node.parentElement).toBe(el('t-well'));
+        expect(node.getAttribute('role')).toBe('status');
+        expect(node.getAttribute('aria-live')).toBe('polite');
+        expect(node.querySelector('.preview-spinner')?.getAttribute('aria-hidden')).toBe('true');
+        expect(loadingShown()).toBe(false);
+    });
+
+    it('shows from the option change, on an empty well, until the page is drawn', async () => {
+        fakePdf('/preview?id=1', 1);
+        const req = pending('/preview?id=1', 1);
+        preview.schedule({key: 'a', render: req.render});
+        expect(loadingShown()).toBe(true);
+        await vi.advanceTimersByTimeAsync(150);
+        expect(loadingShown()).toBe(true);
+        await vi.advanceTimersByTimeAsync(150);
+        expect(req.render).toHaveBeenCalled();
+        await settle();
+        expect(loadingShown()).toBe(true);
+        expect(canvasCount()).toBe(0);
+        req.answer();
+        await settle();
+        expect(canvasCount()).toBe(1);
+        expect(loadingShown()).toBe(false);
+    });
+
+    it('shows over the old page until the new one is drawn', async () => {
+        preview.schedule({key: 'a', render: answer('/preview?id=1', 1)});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(loadingShown()).toBe(false);
+
+        const next = fakePdf('/preview?id=2', 1, {holdDraw: true});
+        preview.schedule({key: 'b', render: vi.fn(async () => ({url: '/preview?id=2', pages: 1}))});
+        expect(loadingShown()).toBe(true);
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(canvasCount()).toBe(1);
+        expect(loadingShown()).toBe(true);
+        next.releaseDraw();
+        await settle();
+        expect(loadingShown()).toBe(false);
+    });
+
+    it('gives way to the error when the render fails', async () => {
+        preview.schedule({key: 'a', render: vi.fn(async () => { throw new Error('bad paper'); })});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(loadingShown()).toBe(false);
+        expect(el('t-message').hidden).toBe(false);
+    });
+
+    it('gives way to the error when the page cannot be drawn', async () => {
+        fakePdf('/preview?id=1', 1, {failPage: 1});
+        preview.schedule({key: 'a', render: vi.fn(async () => ({url: '/preview?id=1', pages: 1}))});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(loadingShown()).toBe(false);
+        expect(el('t-message').hidden).toBe(false);
+    });
+
+    it('gives way to a message', async () => {
+        const req = pending('/preview?id=1', 1);
+        preview.schedule({key: 'a', render: req.render});
+        await vi.advanceTimersByTimeAsync(300);
+        expect(loadingShown()).toBe(true);
+        preview.showMessage('preview.noSelection');
+        expect(loadingShown()).toBe(false);
+        expect(el('t-message').hidden).toBe(false);
+    });
+
+    it('hides when the render is cancelled', async () => {
+        const req = pending('/preview?id=1', 1);
+        preview.schedule({key: 'a', render: req.render});
+        await vi.advanceTimersByTimeAsync(300);
+        expect(loadingShown()).toBe(true);
+        preview.cancel();
+        expect(loadingShown()).toBe(false);
+    });
+
+    it('follows the language', async () => {
+        preview.schedule({key: 'a', render: pending('/preview?id=1', 1).render});
+        await useLanguage('es');
+        preview.relabel();
+        expect(loading().textContent).toBe(es['preview.loading']);
+    });
+
+    it('stays, with the old page dimmed, when paging while a new document draws', async () => {
+        preview.schedule({key: 'a', render: answer('/preview?id=1', 1)});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        const old = el('t-sheet').querySelector('canvas');
+
+        const next = fakePdf('/preview?id=2', 3, {holdDraw: true});
+        preview.schedule({key: 'b', render: vi.fn(async () => ({url: '/preview?id=2', pages: 3}))});
+        await vi.advanceTimersByTimeAsync(300);
+        await settle();
+        expect(renders.at(-1)).toEqual({url: '/preview?id=2', page: 1});
+        el('t-next').click();
+        await settle();
+        expect(renders.at(-1)).toEqual({url: '/preview?id=2', page: 2});
+        expect(el('t-label').textContent).toBe('Page 2 of 3');
+        expect(el('t-sheet').querySelector('canvas')).toBe(old);
+        expect(el('t-sheet').getAttribute('aria-busy')).toBe('true');
+        expect(loadingShown()).toBe(true);
+
+        next.releaseDraw();
+        await settle();
+        expect(el('t-sheet').querySelector('canvas')).not.toBe(old);
+        expect(el('t-sheet').getAttribute('aria-busy')).toBe('false');
+        expect(loadingShown()).toBe(false);
+    });
+});
+
 describe('messages exist in English and Spanish', () => {
     const keys = Object.keys(en).filter((k) => k.startsWith('preview.'));
     it('has the preview messages', () => {
-        expect(keys).toEqual(expect.arrayContaining(['preview.pageOf', 'preview.prev', 'preview.next', 'preview.error', 'preview.noSelection']));
+        expect(keys).toEqual(expect.arrayContaining(['preview.pageOf', 'preview.prev', 'preview.next', 'preview.error', 'preview.noSelection', 'preview.loading']));
     });
     it.each(keys)('%s is translated', (key) => {
         expect((es as Record<string, string>)[key]).toBeTruthy();

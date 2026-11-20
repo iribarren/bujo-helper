@@ -83,7 +83,18 @@ function getDocument(src: {data: Uint8Array}) {
             render: () => {
                 if (n === entry.failPage) return {promise: Promise.reject(new Error(`cannot draw page ${n}`)), cancel: () => {}};
                 renders.push({url, page: n});
-                return {promise: entry.drawn, cancel: () => {}};
+                // Like pdf.js, a cancelled draw fails with a
+                // RenderingCancelledException.
+                let cancel = () => {};
+                const promise = new Promise<void>((done, fail) => {
+                    void entry.drawn.then(done);
+                    cancel = () => {
+                        const err = new Error(`drawing page ${n} cancelled`);
+                        err.name = 'RenderingCancelledException';
+                        fail(err);
+                    };
+                });
+                return {promise, cancel: () => cancel()};
             },
         }),
         destroy: async () => entry.destroy(),
