@@ -49,5 +49,7 @@ Generated printables (items 16, 18, 27, 28) need typed options and no folder. Th
 - Writer A checks: `go test -tags webkit2_41 ./...` all ok; `tsc --noEmit` clean; vitest 112/112; `go vet` clean. Parent spot check: `go test ./internal/sheet/ .` 900 passed.
 - Open from T2: the link only switches tabs; a folder chosen earlier in Print covers wins. T4 resets Print covers to the download folder on the link.
 
+- Review `24b0691..cb08ad6` (medium, 34 files, 1248 lines, `slice_budget_reached`): consent granted; reliability lens approved; acknowledged (authority burned). Advisory R3-print-these-folder WARNING (`main.ts:631`: the link doesn't point Print covers at the finished job folder; test checks only the tab) → folded into T4. Next reviewed boundary: `cb08ad6`.
+
 ## Next step
 T4 with writer B.
