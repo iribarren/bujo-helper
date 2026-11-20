@@ -938,9 +938,26 @@ textarea {
     color: var(--muted);
 }
 
+/* Previous page, "Page X of N", next page. */
+.pager {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pager-button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 16px;
+    line-height: 1;
+}
+
 /* A grey well with the page centred in it, as large as fits, in the
-   paper's proportions (--page-ratio, width / height, set by pages.ts). */
+   paper's proportions (--page-ratio, width / height, set by pages.ts and
+   preview.ts). */
 .page-well {
+    position: relative;
     flex: 1 1 auto;
     min-height: 240px;
     display: flex;
@@ -957,6 +974,36 @@ textarea {
     aspect-ratio: var(--page-ratio);
     background: var(--page);
     box-shadow: 0 2px 10px var(--page-shadow);
+    overflow: hidden;
+}
+
+/* The drawn page; drawn at the sheet's size in device pixels. */
+.preview-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: opacity 0.15s;
+}
+
+/* Dim the page while a newer one renders. */
+.page-sheet[aria-busy="true"] .preview-canvas {
+    opacity: 0.6;
+}
+
+/* An error, or why there is nothing to preview, over the well. */
+.preview-message {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 2px 10px var(--page-shadow);
+    font-size: 13px;
+    text-align: center;
 }
 
 /* --- narrow windows --- */

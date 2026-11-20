@@ -178,7 +178,6 @@ export const es: Messages = {
     // Make pages tab.
     'pages.kinds': 'Página',
     'pages.preview': 'Vista previa',
-    'pages.pageOf': 'Página {page} de {total}',
     'pages.paperTitle': 'Papel en el que imprimes. La página se ajusta para llenarlo.',
     'pages.cutTitle': 'Cómo se prepara la página para recortarla. Borde: una fina línea gris sobre la línea de corte. Sangrado + marcas de corte: marcas en las esquinas. Ninguno: sin líneas de corte.',
     'pages.title': 'Título (opcional)',
@@ -189,6 +188,13 @@ export const es: Messages = {
     'pages.saved': 'Guardado {file}: {pages}',
     'pages.savedFile': 'Guardado {file}',
     'pages.errKinds': 'No se han podido cargar los tipos de página: {error}',
+
+    // Vista previa del PDF (Crear páginas, Imprimir portadas).
+    'preview.pageOf': 'Página {page} de {total}',
+    'preview.prev': 'Página anterior',
+    'preview.next': 'Página siguiente',
+    'preview.error': 'No se ha podido mostrar la vista previa: {error}',
+    'preview.noSelection': 'Seleccione portadas para previsualizarlas.',
 
     // Page kinds (Go: sheet.PageKinds), by ID.
     'pageKind.dotgrid': 'Cuadrícula de puntos',

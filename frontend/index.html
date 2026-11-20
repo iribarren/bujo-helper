@@ -170,10 +170,18 @@
     <section class="column pages-preview">
         <div class="preview-head">
             <h2 class="preview-title" data-i18n="pages.preview">Preview</h2>
-            <span id="pages-count" class="muted"></span>
+            <div class="pager">
+                <button id="pages-prev" class="pager-button" type="button" disabled aria-label="Previous page"
+                        title="Previous page" data-i18n-aria-label="preview.prev" data-i18n-title="preview.prev">‹</button>
+                <span id="pages-count" class="muted" aria-live="polite"></span>
+                <button id="pages-next" class="pager-button" type="button" disabled aria-label="Next page"
+                        title="Next page" data-i18n-aria-label="preview.next" data-i18n-title="preview.next">›</button>
+            </div>
         </div>
         <div class="page-well">
+            <!-- The live preview: preview.ts draws the page on a canvas here. -->
             <div id="pages-sheet" class="page-sheet" aria-hidden="true"></div>
+            <p id="pages-preview-message" class="preview-message" role="status" hidden></p>
         </div>
         <footer class="footer">
             <span id="pages-status" class="muted" aria-live="polite"></span>
