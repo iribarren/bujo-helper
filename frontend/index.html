@@ -88,76 +88,93 @@
     </section>
     </div>
 
-    <div id="panel-print" class="panel" role="tabpanel" aria-labelledby="tab-print" hidden>
-    <section class="options">
-        <div class="field grow">
-            <label for="print-dir" data-i18n="print.coversFolder">Covers folder</label>
-            <div class="row">
+    <div id="panel-print" class="panel split" role="tabpanel" aria-labelledby="tab-print" hidden>
+    <section id="print-options" class="column side print-options">
+        <fieldset id="print-group-covers" class="group">
+            <legend data-i18n="print.groupCovers">Covers</legend>
+            <div class="field">
+                <label for="print-dir" data-i18n="print.coversFolder">Covers folder</label>
                 <input id="print-dir" type="text" readonly/>
-                <button id="print-browse" type="button" data-i18n="download.browse">Browse…</button>
-                <button id="print-refresh" type="button" data-i18n="print.refresh">Refresh</button>
+                <div class="row">
+                    <button id="print-browse" type="button" data-i18n="download.browse">Browse…</button>
+                    <button id="print-refresh" type="button" data-i18n="print.refresh">Refresh</button>
+                </div>
             </div>
-        </div>
-        <label class="field">
-            <span data-i18n="print.format">Format</span>
-            <select id="print-format" title="What to print for each cover: a sheet of covers, a review card with its title, a date, stars and lines, a book spine in the cover's main colour for a bookshelf tracker, a movie ticket stub with the title, Date and Where fields and stars, a full page of covers under a header, sized to fit, to glue into a journal without cutting, a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row under a header, or a polaroid frame with the title as a caption."
-                    data-i18n-title="print.formatTitle"></select>
-        </label>
-        <label id="print-header-field" class="field" hidden>
-            <span data-i18n="print.header">Header</span>
-            <input id="print-header" type="text" placeholder="Books of 2026" maxlength="120" autocomplete="off" disabled
-                   title="Printed at the top of every page, above the covers or rows. Leave it empty for no header."
-                   data-i18n-title="print.headerTitle"/>
-        </label>
-        <label id="print-media-field" class="field" hidden>
-            <span data-i18n="print.cardsFor">Cards for</span>
-            <select id="print-media" title="Media type of the covers. It sets the date label on the cards, e.g. Read on or Watched on."
-                    data-i18n-title="print.cardsForTitle"></select>
-        </label>
-        <label class="field">
-            <span data-i18n="print.paper">Paper</span>
-            <select id="print-paper" title="Paper you print on. The grid is recomputed to fill it."
-                    data-i18n-title="print.paperTitle"></select>
-        </label>
-        <label id="print-crop-field" class="field">
-            <span data-i18n="print.crop">Crop to</span>
-            <select id="print-crop" title="Cut each photo to a standard print shape. Photos are centre-cropped to fill their window exactly; the image files are not changed. None: whole images at the cover size. Instant mini: a 54 × 86 mm white frame around a 46 × 62 mm photo. Square: square photos at the cover size. Photo strip: 2 × 6 in strips of 3 or 4 consecutive photos. Wallet: 64 × 89 mm photos."
-                    data-i18n-title="print.cropTitle"></select>
-        </label>
-        <label id="print-size-field" class="field">
-            <span data-i18n="print.size">Cover size</span>
-            <select id="print-size" title="Height of each printed cover, spine or polaroid picture. Smaller sizes fit more per page."
-                    data-i18n-title="print.sizeTitle"></select>
-        </label>
-        <label id="print-cut-field" class="field">
-            <span data-i18n="print.cut">Cut mode</span>
-            <select id="print-cut" title="How covers are prepared for cutting. Border: a thin grey line on the cut line. Bleed + crop marks: each image runs 1 mm past its cut line, with marks at the corners, for print-then-cut machines or hand cutting without white edges. None: the images only."
-                    data-i18n-title="print.cutTitle"></select>
-        </label>
-        <label class="field check-field">
-            <span data-i18n="print.credits">Credits page</span>
-            <input id="print-credits" type="checkbox" checked
-                   title="Add a page at the end listing the author and licence of each selected image that came with a credit (place photos, flags and artworks). Images without a credit are not listed."
-                   data-i18n-title="print.creditsTitle"/>
-        </label>
+        </fieldset>
+
+        <fieldset id="print-group-layout" class="group">
+            <legend data-i18n="print.groupLayout">Layout</legend>
+            <label class="field">
+                <span data-i18n="print.format">Format</span>
+                <select id="print-format" title="What to print for each cover: a sheet of covers, a review card with its title, a date, stars and lines, a book spine in the cover's main colour for a bookshelf tracker, a movie ticket stub with the title, Date and Where fields and stars, a full page of covers under a header, sized to fit, to glue into a journal without cutting, a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row under a header, or a polaroid frame with the title as a caption."
+                        data-i18n-title="print.formatTitle"></select>
+            </label>
+            <label id="print-size-field" class="field">
+                <span data-i18n="print.size">Cover size</span>
+                <select id="print-size" title="Height of each printed cover, spine or polaroid picture. Smaller sizes fit more per page."
+                        data-i18n-title="print.sizeTitle"></select>
+            </label>
+            <label id="print-crop-field" class="field">
+                <span data-i18n="print.crop">Crop to</span>
+                <select id="print-crop" title="Cut each photo to a standard print shape. Photos are centre-cropped to fill their window exactly; the image files are not changed. None: whole images at the cover size. Instant mini: a 54 × 86 mm white frame around a 46 × 62 mm photo. Square: square photos at the cover size. Photo strip: 2 × 6 in strips of 3 or 4 consecutive photos. Wallet: 64 × 89 mm photos."
+                        data-i18n-title="print.cropTitle"></select>
+            </label>
+            <label id="print-media-field" class="field" hidden>
+                <span data-i18n="print.cardsFor">Cards for</span>
+                <select id="print-media" title="Media type of the covers. It sets the date label on the cards, e.g. Read on or Watched on."
+                        data-i18n-title="print.cardsForTitle"></select>
+            </label>
+        </fieldset>
+
+        <fieldset id="print-group-page" class="group">
+            <legend data-i18n="print.groupPage">Page</legend>
+            <label class="field">
+                <span data-i18n="print.paper">Paper</span>
+                <select id="print-paper" title="Paper you print on. The grid is recomputed to fill it."
+                        data-i18n-title="print.paperTitle"></select>
+            </label>
+            <label id="print-cut-field" class="field">
+                <span data-i18n="print.cut">Cut mode</span>
+                <select id="print-cut" title="How covers are prepared for cutting. Border: a thin grey line on the cut line. Bleed + crop marks: each image runs 1 mm past its cut line, with marks at the corners, for print-then-cut machines or hand cutting without white edges. None: the images only."
+                        data-i18n-title="print.cutTitle"></select>
+            </label>
+            <label class="field check-field">
+                <input id="print-credits" type="checkbox" checked
+                       title="Add a page at the end listing the author and licence of each selected image that came with a credit (place photos, flags and artworks). Images without a credit are not listed."
+                       data-i18n-title="print.creditsTitle"/>
+                <span data-i18n="print.credits">Credits page</span>
+            </label>
+        </fieldset>
+
+        <fieldset id="print-group-lettering" class="group" hidden>
+            <legend data-i18n="print.groupLettering">Lettering</legend>
+            <label id="print-header-field" class="field" hidden>
+                <span data-i18n="print.header">Header</span>
+                <input id="print-header" type="text" placeholder="Books of 2026" maxlength="120" autocomplete="off" disabled
+                       title="Printed at the top of every page, above the covers or rows. Leave it empty for no header."
+                       data-i18n-title="print.headerTitle"/>
+            </label>
+        </fieldset>
     </section>
 
-    <div class="toolbar">
-        <button id="select-all" type="button" data-i18n="print.selectAll">Select all</button>
-        <button id="select-none" type="button" data-i18n="print.selectNone">Select none</button>
-        <span id="selection" class="muted" aria-live="polite">0 selected · 0 pages</span>
-    </div>
-
-    <ul id="gallery" class="gallery" aria-label="Covers in the folder" data-i18n-aria-label="print.gallery"></ul>
-    <p id="gallery-empty" class="gallery-empty muted" hidden></p>
-
-    <footer class="footer">
-        <span id="export-status" class="muted" aria-live="polite"></span>
-        <div class="row">
-            <button id="open-pdf" type="button" hidden data-i18n="print.openPdf">Open PDF</button>
-            <button id="export-pdf" class="primary" type="button" disabled data-i18n="print.exportPdf">Export PDF…</button>
+    <section class="column print-covers">
+        <div class="toolbar">
+            <button id="select-all" type="button" data-i18n="print.selectAll">Select all</button>
+            <button id="select-none" type="button" data-i18n="print.selectNone">Select none</button>
+            <span id="selection" class="muted" aria-live="polite">0 selected · 0 pages</span>
         </div>
-    </footer>
+
+        <ul id="gallery" class="gallery" aria-label="Covers in the folder" data-i18n-aria-label="print.gallery"></ul>
+        <p id="gallery-empty" class="gallery-empty muted" hidden></p>
+
+        <footer class="footer">
+            <span id="export-status" class="muted" aria-live="polite"></span>
+            <div class="row">
+                <button id="open-pdf" type="button" hidden data-i18n="print.openPdf">Open PDF</button>
+                <button id="export-pdf" class="primary" type="button" disabled data-i18n="print.exportPdf">Export PDF…</button>
+            </div>
+        </footer>
+    </section>
     </div>
 </div>
 

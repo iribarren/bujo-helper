@@ -123,6 +123,10 @@ export const es: Messages = {
     'sample.title.nature': 'Guarda un CSV de ejemplo de naturaleza (Nombre) como referencia para Importar CSV',
 
     // Print covers tab.
+    'print.groupCovers': 'Portadas',
+    'print.groupLayout': 'Diseño',
+    'print.groupPage': 'Página',
+    'print.groupLettering': 'Rotulación',
     'print.coversFolder': 'Carpeta de portadas',
     'print.refresh': 'Actualizar',
     'print.format': 'Formato',

@@ -198,6 +198,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         header: byId<HTMLInputElement>('print-header'),
         headerField: byId<HTMLLabelElement>('print-header-field'),
         credits: byId<HTMLInputElement>('print-credits'),
+        options: byId<HTMLElement>('print-options'),
     };
 
     // The folder picked with Browse…; empty means "follow the output folder".
@@ -558,7 +559,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // (hidden for a crop mode with a fixed size), the crop mode for a cover
     // sheet, the cut mode for a cover sheet unless the crop mode draws a
     // frame, what the cards are for for review cards, the header for a full
-    // page or a checklist.
+    // page or a checklist; and the option groups that have a field shown.
     function updateFormat() {
         const format = currentFormat();
         const crop = currentCrop();
@@ -573,8 +574,18 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         ui.header.disabled = !usesHeader;
         ui.headerField.hidden = !usesHeader;
         ui.header.placeholder = headerExample(ui.format.value);
+        syncFieldsets();
         updateSizeLabels();
         updateSelection();
+    }
+
+    // syncFieldsets hides each option group whose fields are all hidden,
+    // e.g. Lettering for a format without a header.
+    function syncFieldsets() {
+        for (const group of Array.from(ui.options.querySelectorAll<HTMLFieldSetElement>('fieldset'))) {
+            const fields = Array.from(group.querySelectorAll<HTMLElement>('.field'));
+            group.hidden = fields.length > 0 && fields.every((field) => field.hidden);
+        }
     }
 
     // syncMedia fills the Cards for choices from the media types and, until

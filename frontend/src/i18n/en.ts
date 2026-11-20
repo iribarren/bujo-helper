@@ -129,6 +129,10 @@ export const en = {
     'sample.title.nature': 'Save an example nature CSV (Name) to use as a reference for Import CSV',
 
     // Print covers tab.
+    'print.groupCovers': 'Covers',
+    'print.groupLayout': 'Layout',
+    'print.groupPage': 'Page',
+    'print.groupLettering': 'Lettering',
     'print.coversFolder': 'Covers folder',
     'print.refresh': 'Refresh',
     'print.format': 'Format',
