@@ -3,12 +3,13 @@ import {resolve} from 'node:path';
 
 import {beforeAll, describe, expect, it, vi} from 'vitest';
 
+import {ExportPDF, PrintPages} from '../wailsjs/go/main/App';
 import {main} from '../wailsjs/go/models';
 import {activeCrop, initPrint, perPageOf, sizePerPageOf, usesCutOf, usesSizeOf, type SelectionShape} from './print';
 
 // The print formats as PrintFormats sends them (see internal/sheet.Formats),
 // with every field set; for the option layout tests.
-const {formatList, cropList} = vi.hoisted(() => {
+const {formatList, cropList, paperList, sizeList, cutList, coverList} = vi.hoisted(() => {
     const format = (id: string, flags: {usesSize?: boolean; usesCut?: boolean; usesCrop?: boolean; usesHeader?: boolean}) => ({
         id,
         label: id,
@@ -31,6 +32,31 @@ const {formatList, cropList} = vi.hoisted(() => {
             format('polaroid', {usesSize: true}),
         ],
         cropList: [{id: 'none', label: 'None', usesSize: true, usesCut: true, frames: 1, default: true}],
+        // Papers, sizes, cut modes and covers for the paper tests; every
+        // format fits 25 covers a page.
+        paperList: [
+            ['a4', 'A4', 210, 297, true],
+            ['letter', 'US Letter', 215.9, 279.4, false],
+            ['a5', 'A5', 148, 210, false],
+            ['b5', 'B5', 176, 250, false],
+        ].map(([id, label, width, height, isDefault]) => ({
+            id, label, width, height, default: isDefault,
+            perPage: Object.fromEntries(['covers', 'cards', 'spines', 'stubs', 'fullpage', 'checklist', 'polaroid']
+                .map((f) => [f, {'': 25, standard: 25}])),
+            headerPerPage: {fullpage: 20, checklist: 20},
+            squarePerPage: {},
+            cropPerPage: {},
+        })),
+        sizeList: [{id: 'standard', label: 'Standard', coverHeight: 70, default: true}],
+        cutList: [
+            {id: 'border', label: 'Border', default: true},
+            {id: 'bleed', label: 'Bleed + crop marks', default: false},
+            {id: 'none', label: 'None', default: false},
+        ],
+        coverList: [
+            {path: '/covers/a.jpg', name: 'a.jpg', width: 400, height: 600, thumbUrl: 'a'},
+            {path: '/covers/b.jpg', name: 'b.jpg', width: 400, height: 600, thumbUrl: 'b'},
+        ],
     };
 });
 
@@ -40,9 +66,12 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     for (const name of Object.keys(original)) {
         stubs[name] = vi.fn(async () => undefined);
     }
-    for (const name of ['PrintPapers', 'PrintSizes', 'PrintCutModes']) {
-        stubs[name] = vi.fn(async () => []);
-    }
+    stubs.PrintPapers = vi.fn(async () => paperList);
+    stubs.PrintSizes = vi.fn(async () => sizeList);
+    stubs.PrintCutModes = vi.fn(async () => cutList);
+    stubs.ListCovers = vi.fn(async () => coverList);
+    stubs.PrintPages = vi.fn(async () => ({pages: 1, allSquare: false, widePerPage: null}));
+    stubs.ExportPDF = vi.fn(async () => '/out/covers_A4.pdf');
     stubs.PrintFormats = vi.fn(async () => formatList.map((f) => main.PrintFormatInfo.createFrom(f)));
     stubs.PrintCropModes = vi.fn(async () => cropList.map((c) => main.PrintCropModeInfo.createFrom(c)));
     return stubs;
@@ -153,7 +182,7 @@ describe('sizePerPageOf with a crop mode', () => {
     });
 });
 
-describe('option groups', () => {
+describe('Print covers tab', () => {
     function el<T extends HTMLElement>(id: string): T {
         const node = document.getElementById(id);
         if (!node) throw new Error(`missing #${id}`);
@@ -163,7 +192,7 @@ describe('option groups', () => {
     beforeAll(async () => {
         const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
         document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
-        initPrint({
+        const tab = initPrint({
             outputFolder: () => '/covers',
             showError: () => {},
             hideError: () => {},
@@ -171,6 +200,8 @@ describe('option groups', () => {
             mediaType: () => 'books',
         });
         await vi.waitFor(() => expect(el<HTMLSelectElement>('print-format').options.length).toBe(formatList.length));
+        tab.activate();
+        await vi.waitFor(() => expect(el('gallery').children.length).toBe(coverList.length));
     });
 
     function chooseFormat(id: string) {
@@ -179,58 +210,108 @@ describe('option groups', () => {
         select.dispatchEvent(new Event('change'));
     }
 
-    it('group the options in fieldsets with legends', () => {
-        const legends = Array.from(el('print-options').querySelectorAll('fieldset > legend'), (l) => l.textContent);
-        expect(legends).toEqual(['Covers', 'Layout', 'Page', 'Lettering']);
-        const groupOf = (id: string) => el(id).closest('fieldset')?.id;
-        expect(groupOf('print-dir')).toBe('print-group-covers');
-        expect(groupOf('print-format')).toBe('print-group-layout');
-        expect(groupOf('print-size')).toBe('print-group-layout');
-        expect(groupOf('print-crop')).toBe('print-group-layout');
-        expect(groupOf('print-media')).toBe('print-group-layout');
-        expect(groupOf('print-paper')).toBe('print-group-page');
-        expect(groupOf('print-cut')).toBe('print-group-page');
-        expect(groupOf('print-credits')).toBe('print-group-page');
-        expect(groupOf('print-header')).toBe('print-group-lettering');
-    });
-
-    // Lettering shows only for the formats that print a header; the other
-    // groups always have a visible field.
-    const cases: Array<[format: string, lettering: boolean]> = [
-        ['covers', false],
-        ['cards', false],
-        ['spines', false],
-        ['stubs', false],
-        ['fullpage', true],
-        ['checklist', true],
-        ['polaroid', false],
-    ];
-    for (const [format, lettering] of cases) {
-        it(`${format}: Lettering ${lettering ? 'shown' : 'hidden'}`, () => {
-            chooseFormat(format);
-            expect(el('print-group-covers').hidden).toBe(false);
-            expect(el('print-group-layout').hidden).toBe(false);
-            expect(el('print-group-page').hidden).toBe(false);
-            expect(el('print-group-lettering').hidden).toBe(!lettering);
-            expect(el('print-header-field').hidden).toBe(!lettering);
-        });
+    // paperRadio is the Paper radio of id.
+    function paperRadio(id: string): HTMLButtonElement {
+        const node = el('print-paper').querySelector<HTMLButtonElement>(`[role="radio"][data-value="${id}"]`);
+        if (!node) throw new Error(`missing paper ${id}`);
+        return node;
     }
 
-    it('hide a group when none of its fields is shown', () => {
-        // Paper and Credits page are always shown; hidden here, the Page
-        // group follows the cut mode, which review cards do not use.
-        const paper = el('print-paper').closest<HTMLElement>('.field')!;
-        const credits = el('print-credits').closest<HTMLElement>('.field')!;
-        paper.hidden = true;
-        credits.hidden = true;
-        try {
-            chooseFormat('cards');
-            expect(el('print-group-page').hidden).toBe(true);
-            chooseFormat('covers');
-            expect(el('print-group-page').hidden).toBe(false);
-        } finally {
-            paper.hidden = false;
-            credits.hidden = false;
+    describe('option groups', () => {
+        it('group the options in fieldsets with legends', () => {
+            const legends = Array.from(el('print-options').querySelectorAll('fieldset > legend'), (l) => l.textContent);
+            expect(legends).toEqual(['Covers', 'Layout', 'Page', 'Lettering']);
+            const groupOf = (id: string) => el(id).closest('fieldset')?.id;
+            expect(groupOf('print-dir')).toBe('print-group-covers');
+            expect(groupOf('print-format')).toBe('print-group-layout');
+            expect(groupOf('print-size')).toBe('print-group-layout');
+            expect(groupOf('print-crop')).toBe('print-group-layout');
+            expect(groupOf('print-media')).toBe('print-group-layout');
+            expect(groupOf('print-paper')).toBe('print-group-page');
+            expect(groupOf('print-cut')).toBe('print-group-page');
+            expect(groupOf('print-credits')).toBe('print-group-page');
+            expect(groupOf('print-header')).toBe('print-group-lettering');
+            expect(groupOf('print-lettering-hint')).toBe('print-group-lettering');
+        });
+
+        // Lettering is always shown: the header for the formats that print
+        // one, a muted hint for the others.
+        const cases: Array<[format: string, header: boolean]> = [
+            ['covers', false],
+            ['cards', false],
+            ['spines', false],
+            ['stubs', false],
+            ['fullpage', true],
+            ['checklist', true],
+            ['polaroid', false],
+        ];
+        for (const [format, header] of cases) {
+            it(`${format}: Lettering with ${header ? 'the header' : 'a hint'}`, () => {
+                chooseFormat(format);
+                expect(el('print-group-covers').hidden).toBe(false);
+                expect(el('print-group-layout').hidden).toBe(false);
+                expect(el('print-group-page').hidden).toBe(false);
+                expect(el('print-group-lettering').hidden).toBe(false);
+                expect(el('print-header-field').hidden).toBe(!header);
+                expect(el('print-lettering-hint').hidden).toBe(header);
+                if (!header) expect(el('print-lettering-hint').textContent).toBe('This format prints no header.');
+            });
         }
+
+        it('hide a group when none of its fields is shown', () => {
+            // Paper and Credits page are always shown; hidden here, the Page
+            // group follows the cut mode, which review cards do not use.
+            const paper = el('print-paper').closest<HTMLElement>('.field')!;
+            const credits = el('print-credits').closest<HTMLElement>('.field')!;
+            paper.hidden = true;
+            credits.hidden = true;
+            try {
+                chooseFormat('cards');
+                expect(el('print-group-page').hidden).toBe(true);
+                chooseFormat('covers');
+                expect(el('print-group-page').hidden).toBe(false);
+            } finally {
+                paper.hidden = false;
+                credits.hidden = false;
+            }
+        });
+    });
+
+    describe('paper', () => {
+        it('is a segmented group of the Go papers, the default checked', () => {
+            const group = el('print-paper');
+            expect(group.getAttribute('role')).toBe('radiogroup');
+            expect(group.classList.contains('segmented')).toBe(true);
+            expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['A4', 'US Letter', 'A5', 'B5']);
+            expect(paperRadio('a4').getAttribute('aria-checked')).toBe('true');
+            expect(paperRadio('b5').title).toBe('B5 · 176 × 250 mm');
+        });
+
+        it('drives PrintPages and ExportPDF with the same options', async () => {
+            chooseFormat('covers');
+            el('select-all').click();
+            paperRadio('a5').click();
+            const want = {
+                format: 'covers',
+                size: 'standard',
+                paper: 'a5',
+                crop: '',
+                cut: 'border',
+                dateLabel: '',
+                header: '',
+                credits: true,
+            };
+            await vi.waitFor(() => {
+                const calls = vi.mocked(PrintPages).mock.calls;
+                expect({...calls[calls.length - 1][1]}).toEqual(want);
+            });
+            el('export-pdf').click();
+            await vi.waitFor(() => expect(ExportPDF).toHaveBeenCalled());
+            const [paths, dir, opts] = vi.mocked(ExportPDF).mock.calls[0];
+            expect(paths).toEqual(['/covers/a.jpg', '/covers/b.jpg']);
+            expect(dir).toBe('/covers');
+            expect({...opts}).toEqual(want);
+            paperRadio('a4').click();
+        });
     });
 });

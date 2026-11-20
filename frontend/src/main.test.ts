@@ -3,6 +3,8 @@ import {resolve} from 'node:path';
 
 import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 
+import {ChooseFolder, ListCovers, Start} from '../wailsjs/go/main/App';
+import {EventsOn} from '../wailsjs/runtime/runtime';
 import {useLanguage} from './language';
 
 // main.ts wires the whole page when imported, so these tests load the real
@@ -59,10 +61,17 @@ function selectType(id: string) {
     mediaRadio(id).click();
 }
 
+const handlers = new Map<string, (payload: unknown) => void>();
+
 beforeAll(async () => {
     const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
     document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
     await import('./main');
+    // The Wails event handlers main.ts registered; mock calls are cleared
+    // before each test.
+    for (const [event, handler] of vi.mocked(EventsOn).mock.calls) {
+        handlers.set(event, handler as (payload: unknown) => void);
+    }
     await vi.waitFor(() => expect(el('media-type').querySelectorAll('[role="radio"]').length).toBe(mediaTypes.length));
 });
 
@@ -95,9 +104,18 @@ describe('items placeholder', () => {
 });
 
 describe('tabs', () => {
-    it('are named Download and Print covers', () => {
+    const key = (id: string, name: string) =>
+        el(id).dispatchEvent(new KeyboardEvent('keydown', {key: name, bubbles: true, cancelable: true}));
+
+    afterEach(() => {
+        el('tab-download').click();
+    });
+
+    it('are named Download, Print covers and Make pages', () => {
         expect(el('tab-download').textContent).toBe('Download');
         expect(el('tab-print').textContent).toBe('Print covers');
+        expect(el('tab-pages').textContent).toBe('Make pages');
+        expect(el('tab-pages').getAttribute('aria-controls')).toBe('panel-pages');
     });
 
     it('switch the panel and the app section on click', () => {
@@ -105,23 +123,54 @@ describe('tabs', () => {
         expect(el('app').dataset.tab).toBe('print');
         expect(el('panel-print').hidden).toBe(false);
         expect(el('panel-download').hidden).toBe(true);
+        expect(el('panel-pages').hidden).toBe(true);
         expect(el('tab-print').getAttribute('aria-selected')).toBe('true');
         expect(el('tab-download').getAttribute('aria-selected')).toBe('false');
+
+        el('tab-pages').click();
+        expect(el('app').dataset.tab).toBe('pages');
+        expect(el('panel-pages').hidden).toBe(false);
+        expect(el('panel-print').hidden).toBe(true);
+        expect(el('panel-download').hidden).toBe(true);
+        expect(el('tab-pages').getAttribute('aria-selected')).toBe('true');
 
         el('tab-download').click();
         expect(el('app').dataset.tab).toBe('download');
         expect(el('panel-download').hidden).toBe(false);
         expect(el('panel-print').hidden).toBe(true);
+        expect(el('panel-pages').hidden).toBe(true);
     });
 
-    it('wrap with the arrow keys', () => {
-        const key = (id: string, name: string) =>
-            el(id).dispatchEvent(new KeyboardEvent('keydown', {key: name, bubbles: true, cancelable: true}));
+    it('wrap across the three tabs with the arrow keys', () => {
+        el('tab-download').click();
         key('tab-download', 'ArrowLeft');
+        expect(el('app').dataset.tab).toBe('pages');
+        expect(document.activeElement).toBe(el('tab-pages'));
+        key('tab-pages', 'ArrowRight');
+        expect(el('app').dataset.tab).toBe('download');
+        key('tab-download', 'ArrowRight');
         expect(el('app').dataset.tab).toBe('print');
         key('tab-print', 'ArrowRight');
+        expect(el('app').dataset.tab).toBe('pages');
+        key('tab-pages', 'Home');
         expect(el('app').dataset.tab).toBe('download');
-        expect(document.activeElement).toBe(el('tab-download'));
+        key('tab-download', 'End');
+        expect(el('app').dataset.tab).toBe('pages');
+        expect(document.activeElement).toBe(el('tab-pages'));
+    });
+
+    it('do not start a download with Ctrl+Enter outside the Download tab', () => {
+        el<HTMLTextAreaElement>('items').value = 'Dune, Frank Herbert';
+        try {
+            for (const tab of ['tab-print', 'tab-pages']) {
+                el(tab).click();
+                window.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true}));
+                document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true}));
+            }
+            expect(Start).not.toHaveBeenCalled();
+        } finally {
+            el<HTMLTextAreaElement>('items').value = '';
+        }
     });
 });
 
@@ -214,6 +263,41 @@ describe('print these covers', () => {
         expect(link.closest('footer')).toBe(el('open-folder').closest('footer'));
         expect(el('open-folder').compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(link.textContent).toBe('Print these covers');
+    });
+
+    // handler is the Wails event handler main.ts registered for name.
+    function handler(name: string): (payload: unknown) => void {
+        const found = handlers.get(name);
+        if (!found) throw new Error(`no ${name} handler`);
+        return found;
+    }
+
+    it('shows the finished job\'s folder in Print covers', async () => {
+        // A folder picked in Print covers earlier.
+        vi.mocked(ChooseFolder).mockResolvedValueOnce('/elsewhere');
+        el('tab-print').click();
+        el('print-browse').click();
+        await vi.waitFor(() => expect(el<HTMLInputElement>('print-dir').value).toBe('/elsewhere'));
+        el('tab-download').click();
+
+        // A download into /job, whose output folder is changed afterwards.
+        el<HTMLInputElement>('output-dir').value = '/job';
+        el<HTMLTextAreaElement>('items').value = 'Dune, Frank Herbert';
+        vi.mocked(Start).mockResolvedValueOnce([]);
+        el('start').click();
+        await vi.waitFor(() => expect(Start).toHaveBeenCalled());
+        await vi.waitFor(() => expect(el('cancel').hidden).toBe(false));
+        handler('job:done')({ok: 1, failed: 0, cancelled: 0});
+        await vi.waitFor(() => expect(el('start').hidden).toBe(false));
+        el<HTMLInputElement>('output-dir').value = '/other';
+        el<HTMLTextAreaElement>('items').value = '';
+
+        vi.mocked(ListCovers).mockClear();
+        el('print-these').click();
+        expect(el('app').dataset.tab).toBe('print');
+        expect(el<HTMLInputElement>('print-dir').value).toBe('/job');
+        expect(ListCovers).toHaveBeenCalledWith('/job');
+        el<HTMLInputElement>('output-dir').value = '/covers';
     });
 
     it('switches to the Print covers tab', () => {

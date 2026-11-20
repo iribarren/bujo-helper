@@ -21,6 +21,9 @@
        fill when the card is not selected. */
     --badge-ring: #ffffff;
     --badge-off: rgba(29, 35, 48, 0.35);
+    /* The page placeholder in the Make pages preview, and its shadow. */
+    --page: #ffffff;
+    --page-shadow: rgba(29, 35, 48, 0.18);
     --radius: 6px;
     --font: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans",
         "Helvetica Neue", Arial, sans-serif;
@@ -46,6 +49,8 @@
         --banner-border: #6b3631;
         --track: #313641;
         --badge-off: rgba(0, 0, 0, 0.5);
+        --page: #d9dce2;
+        --page-shadow: rgba(0, 0, 0, 0.5);
     }
 }
 
@@ -619,8 +624,53 @@ textarea {
 }
 
 /* The media type tip only applies to downloads. */
-#app[data-tab="print"] #key-tip {
+#app[data-tab="print"] #key-tip,
+#app[data-tab="pages"] #key-tip {
     display: none;
+}
+
+/* --- segmented control --- */
+
+/* A radio group of two to four joined buttons (Paper, Dot spacing). */
+.segmented {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    overflow: hidden;
+}
+
+.segmented .radio-button {
+    /* Long labels (US Letter) get the room they need; the rest is shared. */
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 30px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 0;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.segmented .radio-button + .radio-button {
+    border-left: 1px solid var(--border);
+}
+
+.segmented .radio-button:hover:not(:disabled) {
+    color: var(--accent);
+}
+
+.segmented .radio-button[aria-checked="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* Inside the group, which clips anything outside it. */
+.segmented .radio-button:focus-visible {
+    outline-offset: -3px;
 }
 
 /* --- print covers --- */
@@ -800,6 +850,115 @@ textarea {
     color: var(--text);
 }
 
+/* --- make pages --- */
+
+#panel-pages {
+    grid-template-columns: 196px 320px minmax(0, 1fr);
+}
+
+.kinds-column {
+    gap: 6px;
+}
+
+.kinds-heading {
+    margin: 4px 0 0 10px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* Page kinds: one row each, marked with a dot; the selected one like a
+   selected media type. */
+.kind-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.kind-list .radio-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 0 10px;
+    border-color: transparent;
+    background: transparent;
+    text-align: left;
+}
+
+.kind-list .radio-button::before {
+    content: "";
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+}
+
+.kind-list .radio-button[aria-checked="true"] {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    font-weight: 600;
+}
+
+.kind-list .radio-button[aria-checked="true"]::before {
+    background: var(--accent);
+}
+
+.kind-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.kind-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Why an option group has nothing to set, e.g. a format without a header. */
+.group-hint {
+    margin: 0;
+    font-size: 12px;
+}
+
+.preview-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.preview-title {
+    flex: 1;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+/* A grey well with the page centred in it, as large as fits, in the
+   paper's proportions (--page-ratio, width / height, set by pages.ts). */
+.page-well {
+    flex: 1 1 auto;
+    min-height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    background: var(--track);
+    container-type: size;
+}
+
+.page-sheet {
+    --page-ratio: 0.7071;
+    width: min(calc(100cqw - 48px), calc((100cqh - 48px) * var(--page-ratio)));
+    aspect-ratio: var(--page-ratio);
+    background: var(--page);
+    box-shadow: 0 2px 10px var(--page-shadow);
+}
+
 /* --- narrow windows --- */
 
 @media (max-width: 700px) {
@@ -832,8 +991,14 @@ textarea {
         height: 170px;
     }
 
-    #panel-print {
+    #panel-print,
+    #panel-pages {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .page-well {
+        flex: none;
+        height: 420px;
     }
 
     .gallery {

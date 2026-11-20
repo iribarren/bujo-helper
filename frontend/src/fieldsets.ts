@@ -1,0 +1,205 @@
+// The Page and Lettering option groups that the Print covers and Make pages
+// tabs share: Paper (a segmented group of the Go papers), Cut mode and, for
+// Print covers, Credits page; and the tab's printed text (a header or a
+// title) or, where the format or page kind prints none, a muted hint. Each
+// tab renders them into its options column with its own ID prefix, e.g.
+// "print-paper" and "pages-paper", and decides which fields apply.
+
+import {main} from '../wailsjs/go/models';
+import {label, t, type MessageKey} from './i18n';
+import {initRadioGroup, type RadioGroup} from './radioGroup';
+
+// Preset is a Go preset with an ID, an English label and a default flag.
+export interface Preset {
+    id: string;
+    label: string;
+    default: boolean;
+}
+
+export interface SharedFieldsetsConfig {
+    // The ID prefix: "<prefix>-group-page", "<prefix>-paper", …
+    prefix: string;
+    // The options column the two fieldsets are appended to.
+    container: HTMLElement;
+    // Tooltips of Paper and Cut mode.
+    paperTitle: MessageKey;
+    cutTitle: MessageKey;
+    // The Credits page checkbox (checked at first), when the tab has one.
+    credits?: {label: MessageKey; title: MessageKey};
+    // The printed text field: its ID suffix, label and tooltip.
+    text: {id: string; label: MessageKey; title: MessageKey};
+    // The hint shown instead of the text field when it does not apply.
+    hint: MessageKey;
+    // Called when the user picks another paper.
+    onPaperChange: () => void;
+}
+
+export interface SharedFieldsets {
+    pageGroup: HTMLFieldSetElement;
+    letteringGroup: HTMLFieldSetElement;
+    paper: RadioGroup;
+    cut: HTMLSelectElement;
+    cutField: HTMLLabelElement;
+    credits?: HTMLInputElement;
+    text: HTMLInputElement;
+    textField: HTMLLabelElement;
+    hint: HTMLParagraphElement;
+    // Fills Paper from the Go papers; the first time, the default is checked.
+    setPapers: (papers: main.PrintPaperInfo[]) => void;
+    // Fills Cut mode from the Go cut modes, the default selected.
+    setCuts: (cuts: Preset[]) => void;
+    // Shows the text field when it applies, the hint otherwise.
+    showText: (on: boolean) => void;
+    // Names the papers and cut modes in the current language.
+    relabel: () => void;
+}
+
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = ''): HTMLElementTagNameMap[K] {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    return node;
+}
+
+// translated sets node's text to the message key, and marks it so applyDom
+// translates it again on a language change.
+export function translated<T extends HTMLElement>(node: T, key: MessageKey): T {
+    node.dataset.i18n = key;
+    node.textContent = t(key);
+    return node;
+}
+
+// titled sets node's tooltip to the message key, like translated.
+export function titled<T extends HTMLElement>(node: T, key: MessageKey): T {
+    node.dataset.i18nTitle = key;
+    node.title = t(key);
+    return node;
+}
+
+// fillSelect fills select with the presets, named by their IDs, the default
+// selected.
+export function fillSelect(select: HTMLSelectElement, kind: string, presets: Preset[]) {
+    select.replaceChildren(...presets.map((preset) => {
+        const option = el('option');
+        option.textContent = label(kind, preset.id, preset.label);
+        option.value = preset.id;
+        option.selected = preset.default;
+        return option;
+    }));
+}
+
+// labelOptions names the options of a select by their preset IDs.
+export function labelOptions(select: HTMLSelectElement, kind: string, presets: Array<{id: string; label: string}>) {
+    for (const option of Array.from(select.options)) {
+        const preset = presets.find((p) => p.id === option.value);
+        if (preset) option.textContent = label(kind, preset.id, preset.label);
+    }
+}
+
+// syncFieldsets hides each option group under root whose fields and hints
+// are all hidden.
+export function syncFieldsets(root: HTMLElement) {
+    for (const group of Array.from(root.querySelectorAll<HTMLFieldSetElement>('fieldset'))) {
+        const parts = Array.from(group.querySelectorAll<HTMLElement>('.field, .group-hint'));
+        group.hidden = parts.length > 0 && parts.every((part) => part.hidden);
+    }
+}
+
+// renderSharedFieldsets appends the Page and Lettering groups to the
+// options column and wires Paper.
+export function renderSharedFieldsets(config: SharedFieldsetsConfig): SharedFieldsets {
+    const {prefix} = config;
+    let papers: main.PrintPaperInfo[] = [];
+    let cuts: Preset[] = [];
+
+    const pageGroup = el('fieldset', 'group');
+    pageGroup.id = `${prefix}-group-page`;
+    pageGroup.append(translated(el('legend'), 'print.groupPage'));
+
+    // Paper: a segmented group, labelled by its caption.
+    const paperField = el('div', 'field');
+    const paperLabel = translated(el('span'), 'print.paper');
+    paperLabel.id = `${prefix}-paper-label`;
+    const paperBox = titled(el('div', 'segmented'), config.paperTitle);
+    paperBox.id = `${prefix}-paper`;
+    paperBox.setAttribute('role', 'radiogroup');
+    paperBox.setAttribute('aria-labelledby', paperLabel.id);
+    paperField.append(paperLabel, paperBox);
+    const paper = initRadioGroup(paperBox, config.onPaperChange);
+
+    const cutField = el('label', 'field');
+    cutField.id = `${prefix}-cut-field`;
+    const cut = titled(el('select'), config.cutTitle);
+    cut.id = `${prefix}-cut`;
+    cutField.append(translated(el('span'), 'print.cut'), cut);
+    pageGroup.append(paperField, cutField);
+
+    let credits: HTMLInputElement | undefined;
+    if (config.credits) {
+        const field = el('label', 'field check-field');
+        credits = titled(el('input'), config.credits.title);
+        credits.id = `${prefix}-credits`;
+        credits.type = 'checkbox';
+        credits.checked = true;
+        field.append(credits, translated(el('span'), config.credits.label));
+        pageGroup.append(field);
+    }
+
+    const letteringGroup = el('fieldset', 'group');
+    letteringGroup.id = `${prefix}-group-lettering`;
+    letteringGroup.append(translated(el('legend'), 'print.groupLettering'));
+    const textField = el('label', 'field');
+    textField.id = `${prefix}-${config.text.id}-field`;
+    const text = titled(el('input'), config.text.title);
+    text.id = `${prefix}-${config.text.id}`;
+    text.type = 'text';
+    text.maxLength = 120;
+    text.autocomplete = 'off';
+    textField.append(translated(el('span'), config.text.label), text);
+    const hint = translated(el('p', 'group-hint muted'), config.hint);
+    hint.id = `${prefix}-lettering-hint`;
+    letteringGroup.append(textField, hint);
+
+    config.container.append(pageGroup, letteringGroup);
+
+    function labelPapers() {
+        paper.replaceOptions(papers.map((p) => {
+            const name = label('paper', p.id, p.label);
+            return {value: p.id, label: name, title: `${name} · ${p.width} × ${p.height} mm`};
+        }));
+    }
+
+    function showText(on: boolean) {
+        text.disabled = !on;
+        textField.hidden = !on;
+        hint.hidden = on;
+    }
+    showText(false);
+
+    return {
+        pageGroup,
+        letteringGroup,
+        paper,
+        cut,
+        cutField,
+        credits,
+        text,
+        textField,
+        hint,
+        setPapers: (list) => {
+            const first = papers.length === 0;
+            papers = list;
+            labelPapers();
+            const preset = list.find((p) => p.default);
+            if (first && preset) paper.value = preset.id;
+        },
+        setCuts: (list) => {
+            cuts = list;
+            fillSelect(cut, 'cut', cuts);
+        },
+        showText,
+        relabel: () => {
+            labelPapers();
+            labelOptions(cut, 'cut', cuts);
+        },
+    };
+}

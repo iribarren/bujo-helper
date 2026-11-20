@@ -15,6 +15,7 @@ import {main} from '../wailsjs/go/models';
 import {EventsOn} from '../wailsjs/runtime/runtime';
 import {applyDom, has, label, onLangChange, t, tn, type MessageKey} from './i18n';
 import {useLanguage} from './language';
+import {initPages} from './pages';
 import {initPrint, type PrintSheet} from './print';
 import {initRadioGroup} from './radioGroup';
 import {initSettings, type SettingsDialog} from './settings';
@@ -139,7 +140,8 @@ const ui = {
 };
 
 let mediaTypes: main.MediaTypeInfo[] = [];
-// The Settings dialog and the print sheet, set up once the language is known.
+// The Settings dialog and the print sheet, set up once the language is known
+// (like the Make pages tab).
 let settingsDialog: SettingsDialog | undefined;
 let printSheet: PrintSheet | undefined;
 let running = false;
@@ -626,15 +628,19 @@ const tabs = initTabs(byId<HTMLDivElement>('tabs'), (name) => {
     if (name === 'print') printSheet?.activate();
 });
 
-// Print these covers opens Print covers like its tab does; with no folder
-// chosen there, it shows the download output folder.
-ui.printThese.addEventListener('click', () => tabs.select('print', true));
+// Print these covers opens Print covers on the finished job's folder (the
+// one Open folder opens), whatever folder was shown there before.
+ui.printThese.addEventListener('click', () => {
+    printSheet?.showFolder(jobFolder || ui.outputDir.value);
+    tabs.select('print', true);
+});
 
-// Ctrl+Enter starts a download; it does nothing while the print sheet or
-// the Settings dialog is shown. This capture listener runs before the
+// Ctrl+Enter starts a download; it does nothing outside the Download tab or
+// while the Settings dialog is shown. This capture listener runs before the
 // document listener above.
 window.addEventListener('keydown', (e) => {
-    const blocked = appRoot.dataset.tab === 'print' || (settingsDialog?.isOpen() ?? false);
+    const tab = appRoot.dataset.tab ?? 'download';
+    const blocked = tab !== 'download' || (settingsDialog?.isOpen() ?? false);
     if (blocked && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.stopPropagation();
     }
@@ -665,6 +671,12 @@ async function init() {
         hideError,
         mediaTypes: () => mediaTypes,
         mediaType: () => ui.mediaType.value,
+    });
+    initPages({
+        // Where Print covers exports too.
+        defaultDir: () => printSheet?.folder() ?? outputFolder(),
+        showError,
+        hideError,
     });
     try {
         mediaTypes = await MediaTypes();

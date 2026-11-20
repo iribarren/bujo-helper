@@ -6,6 +6,8 @@
 export interface RadioOption {
     value: string;
     label: string;
+    // The tooltip; the label when there is none.
+    title?: string;
 }
 
 export interface RadioGroup {
@@ -64,7 +66,7 @@ export function initRadioGroup(container: HTMLElement, onChange: () => void): Ra
             radio.setAttribute('role', 'radio');
             radio.dataset.value = option.value;
             radio.textContent = option.label;
-            radio.title = option.label;
+            radio.title = option.title ?? option.label;
             radio.disabled = disabled;
             radio.addEventListener('click', () => pick(i, false));
             radio.addEventListener('keydown', (e) => {

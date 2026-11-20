@@ -5,8 +5,8 @@
 // "<key>_other", looked up by tn(); "{name}" placeholders are filled by t().
 // Labels of Go presets are keyed by their ID: "media.<id>", "creator.<id>",
 // "date.<id>", "sample.button.<id>", "sample.title.<id>", "format.<id>",
-// "noun.<format id>_one/_other", "size.<id>", "paper.<id>", "cut.<id>" and
-// "crop.<id>".
+// "noun.<format id>_one/_other", "size.<id>", "paper.<id>", "cut.<id>",
+// "crop.<id>" and "pageKind.<id>".
 export const en = {
     // Header, tabs and banner.
     'app.mediaType': 'Media type',
@@ -14,6 +14,7 @@ export const en = {
     'app.sections': 'Sections',
     'app.tabDownload': 'Download',
     'app.tabPrint': 'Print covers',
+    'app.tabPages': 'Make pages',
     'app.dismiss': 'Dismiss',
 
     // Key tip above the list.
@@ -143,6 +144,7 @@ export const en = {
     'print.headerTitle': 'Printed at the top of every page, above the covers or rows. Leave it empty for no header.',
     'print.headerExample': 'Books of 2026',
     'print.headerExample.checklist': 'TBR 2026',
+    'print.noHeader': 'This format prints no header.',
     'print.cardsFor': 'Cards for',
     'print.cardsForTitle': 'Media type of the covers. It sets the date label on the cards, e.g. Read on or Watched on.',
     'print.paper': 'Paper',
@@ -178,6 +180,24 @@ export const en = {
     'print.errPapers': 'Could not load paper sizes: {error}',
     'print.errCuts': 'Could not load cut modes: {error}',
     'print.errCrops': 'Could not load crop modes: {error}',
+
+    // Make pages tab.
+    'pages.kinds': 'Page',
+    'pages.preview': 'Preview',
+    'pages.pageOf': 'Page {page} of {total}',
+    'pages.paperTitle': 'Paper you print on. The page is laid out to fill it.',
+    'pages.cutTitle': 'How the page is prepared for cutting. Border: a thin grey line on the cut line. Bleed + crop marks: marks at the corners. None: no cut lines.',
+    'pages.title': 'Title (optional)',
+    'pages.titleTitle': 'Printed at the top of the page. Leave it empty for no title.',
+    'pages.noTitle': 'This page prints no title.',
+    'pages.dotSpacing': 'Dot spacing',
+    'pages.dotSpacingTitle': 'Distance between dot centres.',
+    'pages.saved': 'Saved {file}: {pages}',
+    'pages.savedFile': 'Saved {file}',
+    'pages.errKinds': 'Could not load page kinds: {error}',
+
+    // Page kinds (Go: sheet.PageKinds), by ID.
+    'pageKind.dotgrid': 'Dot grid',
 
     // Print formats (Go: sheet.Formats), by ID, and what each prints.
     'format.covers': 'Cover sheet',

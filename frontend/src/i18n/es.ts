@@ -9,6 +9,7 @@ export const es: Messages = {
     'app.sections': 'Secciones',
     'app.tabDownload': 'Descargar',
     'app.tabPrint': 'Imprimir portadas',
+    'app.tabPages': 'Crear páginas',
     'app.dismiss': 'Cerrar',
 
     // Key tip above the list.
@@ -137,6 +138,7 @@ export const es: Messages = {
     'print.headerTitle': 'Se imprime en la parte superior de cada página, encima de las portadas o de las filas. Déjalo vacío para no poner encabezado.',
     'print.headerExample': 'Libros de 2026',
     'print.headerExample.checklist': 'Por leer 2026',
+    'print.noHeader': 'Este formato no imprime encabezado.',
     'print.cardsFor': 'Tarjetas de',
     'print.cardsForTitle': 'Tipo de medio de las portadas. Define la etiqueta de la fecha en las tarjetas, p. ej. Leído el o Visto el.',
     'print.paper': 'Papel',
@@ -172,6 +174,24 @@ export const es: Messages = {
     'print.errPapers': 'No se han podido cargar los tamaños de papel: {error}',
     'print.errCuts': 'No se han podido cargar los modos de corte: {error}',
     'print.errCrops': 'No se han podido cargar los modos de recorte: {error}',
+
+    // Make pages tab.
+    'pages.kinds': 'Página',
+    'pages.preview': 'Vista previa',
+    'pages.pageOf': 'Página {page} de {total}',
+    'pages.paperTitle': 'Papel en el que imprimes. La página se ajusta para llenarlo.',
+    'pages.cutTitle': 'Cómo se prepara la página para recortarla. Borde: una fina línea gris sobre la línea de corte. Sangrado + marcas de corte: marcas en las esquinas. Ninguno: sin líneas de corte.',
+    'pages.title': 'Título (opcional)',
+    'pages.titleTitle': 'Se imprime en la parte superior de la página. Déjalo vacío para no poner título.',
+    'pages.noTitle': 'Esta página no imprime título.',
+    'pages.dotSpacing': 'Separación de puntos',
+    'pages.dotSpacingTitle': 'Distancia entre los centros de los puntos.',
+    'pages.saved': 'Guardado {file}: {pages}',
+    'pages.savedFile': 'Guardado {file}',
+    'pages.errKinds': 'No se han podido cargar los tipos de página: {error}',
+
+    // Page kinds (Go: sheet.PageKinds), by ID.
+    'pageKind.dotgrid': 'Cuadrícula de puntos',
 
     // Print formats (Go: sheet.Formats), by ID, and what each prints.
     'format.covers': 'Hoja de portadas',

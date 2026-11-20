@@ -308,15 +308,15 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 3. Check the output folder (default: `~/Pictures/Covers`, or `%USERPROFILE%\Pictures\Covers` on Windows), and change it with **Browse…** if needed.
 4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
 5. Click **Download covers** or press **Ctrl+Enter**.
-6. When items finish, click **Open folder** to see the images, or **Print these covers** to switch to the [print sheet](#print-sheet) tab, which shows the output folder unless you chose another folder there.
+6. When items finish, click **Open folder** to see the images, or **Print these covers** to switch to the [print sheet](#print-sheet) tab on the folder the covers were saved to, even if you chose another folder there before.
 
 ## Print sheet
 
 The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter, A5 or B5 paper: a sheet of small covers (or of photos [cropped](#crop-to) to standard print shapes), [review cards](#review-cards), [spines](#spines), [ticket stubs](#ticket-stubs), a [full page](#full-page) of covers under a header, with nothing to cut, a [checklist](#checklist) to tick off as you read or watch, or [polaroids](#polaroid) with the title as a caption.
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
-2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page**, **Checklist** or **Polaroid**. For review cards, pick what they are **Cards for** (Books, Movies, TV series or Albums); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** (for example "Books of 2026" or "TBR 2026"), or leave it empty.
-3. Pick a **Paper**: **A4** (the default), **US Letter**, **A5** or **B5** (176 × 250 mm, the size of many bullet journal notebooks). Each **Cover size** option shows how many covers (or spines, or polaroids) fit on that paper. On a cover sheet it follows the selection: when every selected image is square (albums), how many square covers fit; when every one gets a wide cell at that size (landscape artworks), how many images of the selection's middle shape fit, which is exact when they all share one shape; otherwise, and for mixed shapes, how many 2:3 covers fit.
+2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page**, **Checklist** or **Polaroid**. For review cards, pick what they are **Cards for** (Books, Movies, TV series or Albums); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** under **Lettering** (for example "Books of 2026" or "TBR 2026"), or leave it empty; for the other formats, Lettering says the format prints no header.
+3. Pick a **Paper** (buttons side by side): **A4** (the default), **US Letter**, **A5** or **B5** (176 × 250 mm, the size of many bullet journal notebooks). Each **Cover size** option shows how many covers (or spines, or polaroids) fit on that paper. On a cover sheet it follows the selection: when every selected image is square (albums), how many square covers fit; when every one gets a wide cell at that size (landscape artworks), how many images of the selection's middle shape fit, which is exact when they all share one shape; otherwise, and for mixed shapes, how many 2:3 covers fit.
 4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet, spines and polaroids, so it is disabled for review cards, ticket stubs, full pages and checklists. On a cover sheet it is hidden for the crop modes with a fixed size (Instant mini, Photo strip and Wallet).
 5. For a cover sheet, pick what to **Crop to**: **None** (the default, whole images), **Instant mini**, **Square**, **Photo strip (3 frames)**, **Photo strip (4 frames)** or **Wallet** (see [Crop to](#crop-to)), and a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). The cut mode never changes how many covers fit on a page; it is hidden for Instant mini and photo strips, which always keep their frame border.
 6. Leave **Credits page** checked (the default) to end the PDF with the author and licence of every selected image that has a credit file, in every format (see [Credits page](#credits-page)). Uncheck it to print the images only.
@@ -572,6 +572,14 @@ Frames are centred on the page with 4 mm gaps and at least 8 mm margins. Polaroi
 ## Generated pages
 
 Some printables need no downloaded images. Each one is a **page kind** with its own options, on any paper, built by `internal/sheet` (`PageKinds`, `BuildPage`) and exported through the `PageKinds`, `PagePages` and `ExportPage` bindings. The suggested file name gives the kind and the paper, for example `dotgrid_A5.pdf`.
+
+They live in the **Make pages** tab, in three columns:
+
+- **Page**: the page kinds; pick one.
+- **Options**: the kind's own options, then **Page** (the paper, and the cut mode for kinds that are cut out) and **Lettering** (the title, for kinds that print one).
+- **Preview**: a blank page in the paper's proportions, with how many pages the PDF will have. **Export PDF…** saves it, starting in the Print covers folder, and **Open PDF** opens the saved file.
+
+To make a dot grid page: open **Make pages**, pick **Dot grid**, choose the dot spacing and the paper, type a title if you want one, and click **Export PDF…**.
 
 ### Dot grid
 

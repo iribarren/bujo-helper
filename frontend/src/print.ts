@@ -9,6 +9,7 @@
 
 import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PrintCropModes, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
 import {main, sheet} from '../wailsjs/go/models';
+import {fillSelect, labelOptions, renderSharedFieldsets, syncFieldsets} from './fieldsets';
 import {has, label, onLangChange, pluralKey, t, tn, type MessageKey} from './i18n';
 
 export interface PrintDeps {
@@ -26,6 +27,11 @@ export interface PrintDeps {
 export interface PrintSheet {
     // Called whenever the tab is shown; reloads the folder.
     activate: () => void;
+    // The folder shown: the one picked with Browse…, or the output folder.
+    folder: () => string;
+    // Shows dir from now on, as if picked with Browse…; the next activate
+    // loads it.
+    showFolder: (dir: string) => void;
 }
 
 interface Card {
@@ -190,16 +196,29 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         mediaField: byId<HTMLLabelElement>('print-media-field'),
         size: byId<HTMLSelectElement>('print-size'),
         sizeField: byId<HTMLLabelElement>('print-size-field'),
-        paper: byId<HTMLSelectElement>('print-paper'),
         crop: byId<HTMLSelectElement>('print-crop'),
         cropField: byId<HTMLLabelElement>('print-crop-field'),
-        cut: byId<HTMLSelectElement>('print-cut'),
-        cutField: byId<HTMLLabelElement>('print-cut-field'),
-        header: byId<HTMLInputElement>('print-header'),
-        headerField: byId<HTMLLabelElement>('print-header-field'),
-        credits: byId<HTMLInputElement>('print-credits'),
         options: byId<HTMLElement>('print-options'),
     };
+    // Page (paper, cut mode, credits page) and Lettering (the header), as
+    // in Make pages.
+    const shared = renderSharedFieldsets({
+        prefix: 'print',
+        container: ui.options,
+        paperTitle: 'print.paperTitle',
+        cutTitle: 'print.cutTitle',
+        credits: {label: 'print.credits', title: 'print.creditsTitle'},
+        text: {id: 'header', label: 'print.header', title: 'print.headerTitle'},
+        hint: 'print.noHeader',
+        onPaperChange: () => {
+            updateSizeLabels();
+            updateSelection();
+        },
+    });
+    const paperGroup = shared.paper;
+    const cutSelect = shared.cut;
+    const headerInput = shared.text;
+    const creditsBox = shared.credits!;
 
     // The folder picked with Browse…; empty means "follow the output folder".
     let chosenDir = '';
@@ -252,7 +271,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     function currentPaper(): main.PrintPaperInfo | undefined {
-        return papers.find((p) => p.id === ui.paper.value);
+        return papers.find((p) => p.id === paperGroup.value);
     }
 
     function currentCrop(): main.PrintCropModeInfo | undefined {
@@ -271,7 +290,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         const size = usesSize ? currentSize() : undefined;
         if (usesSize && !size) return undefined;
         // A header may leave room for fewer items (checklist rows).
-        const withHeader = format.usesHeader && ui.header.value.trim() !== '';
+        const withHeader = format.usesHeader && headerInput.value.trim() !== '';
         const perPage = perPageOf(paper, format, size?.id, withHeader, crop);
         if (!perPage) return undefined;
         return {format, paper, size, crop, perPage};
@@ -293,11 +312,11 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             paper: layout.paper.id,
             crop: layout.crop?.id ?? '',
             // The cut mode never changes the page count.
-            cut: usesCutOf(layout.format, layout.crop) ? ui.cut.value : '',
+            cut: usesCutOf(layout.format, layout.crop) ? cutSelect.value : '',
             // Translated here: Go prints the label as given.
             dateLabel: layout.format.id === REVIEW_CARDS && media ? dateLabelOf(media) : '',
-            header: layout.format.usesHeader ? ui.header.value.trim() : '',
-            credits: ui.credits.checked,
+            header: layout.format.usesHeader ? headerInput.value.trim() : '',
+            credits: creditsBox.checked,
         });
     }
 
@@ -325,7 +344,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         const paths = selectedPaths();
         if (exact?.pathsKey !== JSON.stringify(paths)) return undefined;
         const crop = activeCrop(currentFormat(), currentCrop())?.id ?? '';
-        const sameShape = exact.shapeKey === shapeKey(paths, ui.format.value, ui.paper.value, crop);
+        const sameShape = exact.shapeKey === shapeKey(paths, ui.format.value, paperGroup.value, crop);
         return {allSquare: exact.info.allSquare, widePerPage: sameShape ? exact.info.widePerPage : undefined};
     }
 
@@ -559,7 +578,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // (hidden for a crop mode with a fixed size), the crop mode for a cover
     // sheet, the cut mode for a cover sheet unless the crop mode draws a
     // frame, what the cards are for for review cards, the header for a full
-    // page or a checklist; and the option groups that have a field shown.
+    // page or a checklist (a hint otherwise); and the option groups that
+    // have a field shown.
     function updateFormat() {
         const format = currentFormat();
         const crop = currentCrop();
@@ -568,24 +588,14 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         ui.sizeField.classList.toggle('disabled', !formatUsesSize);
         ui.sizeField.hidden = formatUsesSize && !usesSizeOf(format, crop);
         ui.cropField.hidden = !(format?.usesCrop ?? true);
-        ui.cutField.hidden = !usesCutOf(format, crop);
+        shared.cutField.hidden = !usesCutOf(format, crop);
         ui.mediaField.hidden = ui.format.value !== REVIEW_CARDS;
-        const usesHeader = format?.usesHeader ?? false;
-        ui.header.disabled = !usesHeader;
-        ui.headerField.hidden = !usesHeader;
-        ui.header.placeholder = headerExample(ui.format.value);
-        syncFieldsets();
+        // Lettering shows the header, or a hint that the format prints none.
+        shared.showText(format?.usesHeader ?? false);
+        headerInput.placeholder = headerExample(ui.format.value);
+        syncFieldsets(ui.options);
         updateSizeLabels();
         updateSelection();
-    }
-
-    // syncFieldsets hides each option group whose fields are all hidden,
-    // e.g. Lettering for a format without a header.
-    function syncFieldsets() {
-        for (const group of Array.from(ui.options.querySelectorAll<HTMLFieldSetElement>('fieldset'))) {
-            const fields = Array.from(group.querySelectorAll<HTMLElement>('.field'));
-            group.hidden = fields.length > 0 && fields.every((field) => field.hidden);
-        }
     }
 
     // syncMedia fills the Cards for choices from the media types and, until
@@ -615,38 +625,15 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         }
     }
 
-    // labelOptions names the options of a select by their preset IDs.
-    function labelOptions(select: HTMLSelectElement, kind: string, presets: Array<{id: string; label: string}>) {
-        for (const option of Array.from(select.options)) {
-            const preset = presets.find((p) => p.id === option.value);
-            if (preset) option.textContent = label(kind, preset.id, preset.label);
-        }
-    }
-
-    // The cut modes, from PrintCutModes; empty until they load.
-    let cuts: main.PrintCutModeInfo[] = [];
-
-    // fillSelect fills select with the presets, named by their IDs, the
-    // default selected.
-    function fillSelect(select: HTMLSelectElement, kind: string, presets: Array<{id: string; label: string; default: boolean}>) {
-        select.replaceChildren(...presets.map((preset) => {
-            const option = el('option', '', label(kind, preset.id, preset.label));
-            option.value = preset.id;
-            option.selected = preset.default;
-            return option;
-        }));
-    }
-
     // relabel shows the tab's dynamic text in the current language, keeping
     // the selections and the header.
     function relabel() {
         labelOptions(ui.format, 'format', formats);
-        labelOptions(ui.paper, 'paper', papers);
+        shared.relabel();
         labelOptions(ui.crop, 'crop', crops);
-        labelOptions(ui.cut, 'cut', cuts);
         labelMedia();
         updateSizeLabels();
-        ui.header.placeholder = headerExample(ui.format.value);
+        headerInput.placeholder = headerExample(ui.format.value);
         if (ui.empty.textContent) ui.empty.textContent = t(emptyKey);
         if (exporting) ui.status.textContent = t('print.exporting');
         else renderExportStatus();
@@ -680,19 +667,12 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         }
         if (paperList.status === 'fulfilled') {
             papers = paperList.value ?? [];
-            ui.paper.replaceChildren(...papers.map((paper) => {
-                const option = el('option', '', label('paper', paper.id, paper.label));
-                option.value = paper.id;
-                option.title = `${paper.width} × ${paper.height} mm`;
-                option.selected = paper.default;
-                return option;
-            }));
+            shared.setPapers(papers);
         } else {
             deps.showError(t('print.errPapers', {error: errorText(paperList.reason)}));
         }
         if (cutList.status === 'fulfilled') {
-            cuts = cutList.value ?? [];
-            fillSelect(ui.cut, 'cut', cuts);
+            shared.setCuts(cutList.value ?? []);
         } else {
             deps.showError(t('print.errCuts', {error: errorText(cutList.reason)}));
         }
@@ -733,13 +713,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // A crop mode shows or hides the size and cut mode, and sets the count.
     ui.crop.addEventListener('change', updateFormat);
     // A header may change the page count.
-    ui.header.addEventListener('input', updateSelection);
+    headerInput.addEventListener('input', updateSelection);
     // Credits pages follow the images when a selected image has a credit.
-    ui.credits.addEventListener('change', updateSelection);
-    ui.paper.addEventListener('change', () => {
-        updateSizeLabels();
-        updateSelection();
-    });
+    creditsBox.addEventListener('change', updateSelection);
     onLangChange(relabel);
     updateSelection();
     loadPresets();
@@ -748,6 +724,10 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         activate: () => {
             syncMedia();
             load();
+        },
+        folder: currentDir,
+        showFolder: (dir) => {
+            chosenDir = dir;
         },
     };
 }
