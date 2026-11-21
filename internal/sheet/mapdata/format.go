@@ -32,7 +32,8 @@ import (
 
 var magic = []byte("BJMAP\x01")
 
-// Sanity limits for decoding; the real data is far below them.
+// Sanity limits, enforced by both Encode and Decode; the real data is far
+// below them.
 const (
 	maxCountries = 10000
 	maxNames     = 64
@@ -64,6 +65,9 @@ type Country struct {
 func Encode(countries []Country, scale int) ([]byte, error) {
 	if scale <= 0 || scale > 1_000_000 {
 		return nil, fmt.Errorf("mapdata: invalid scale %d", scale)
+	}
+	if len(countries) > maxCountries {
+		return nil, fmt.Errorf("mapdata: %d countries, over %d", len(countries), maxCountries)
 	}
 	var raw bytes.Buffer
 	raw.Write(magic)

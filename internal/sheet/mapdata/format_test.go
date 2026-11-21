@@ -126,6 +126,46 @@ func TestEncodeErrors(t *testing.T) {
 	}
 }
 
+// Encode accepts exactly what Decode accepts: data at every limit round
+// trips, and one over the limit is an Encode error, not unreadable data.
+func TestEncodeLimitsMatchDecode(t *testing.T) {
+	tri := []LonLat{{0, 0}, {1, 0}, {0, 1}}
+	countries := func(n int) []Country { return make([]Country, n) }
+	withNames := func(n int) []Country { return []Country{{Names: make([]string, n)}} }
+	withRings := func(n int) []Country {
+		rings := make([][]LonLat, n)
+		for i := range rings {
+			rings[i] = tri
+		}
+		return []Country{{Rings: rings}}
+	}
+	withString := func(n int) []Country { return []Country{{NameEN: strings.Repeat("x", n)}} }
+	tests := []struct {
+		name string
+		make func(int) []Country
+		max  int
+	}{
+		{"countries", countries, maxCountries},
+		{"names", withNames, maxNames},
+		{"rings", withRings, maxRings},
+		{"string bytes", withString, maxString},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data, err := Encode(tt.make(tt.max), 1000)
+			if err != nil {
+				t.Fatalf("at the limit: Encode: %v", err)
+			}
+			if _, err := Decode(data); err != nil {
+				t.Fatalf("at the limit: Decode: %v", err)
+			}
+			if _, err := Encode(tt.make(tt.max+1), 1000); err == nil {
+				t.Errorf("Encode accepted %d %s, over the limit Decode enforces", tt.max+1, tt.name)
+			}
+		})
+	}
+}
+
 // raw builds an uncompressed payload for the decoder tests.
 type raw struct{ bytes.Buffer }
 
