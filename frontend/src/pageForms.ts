@@ -11,6 +11,10 @@ import {initRadioGroup, type RadioGroup} from './radioGroup';
 export interface PageForm {
     // The kind's options, sent to Go as JSON.
     options: () => Record<string, unknown>;
+    // dispose releases what the form subscribed to (e.g. language changes),
+    // for a form that is discarded. The tab keeps its forms for its
+    // lifetime; tests that build forms dispose them.
+    dispose?: () => void;
 }
 
 // PageFormBuilder renders a kind's form into container, starting from the
@@ -99,6 +103,12 @@ function clampYear(year: number): number {
     return Math.min(MAX_YEAR, Math.max(MIN_YEAR, year));
 }
 
+// partialYear reports whether a committed year is still being typed: fewer
+// than four digits (e.g. "20" while typing 2026), or not positive.
+function partialYear(year: number): boolean {
+    return year < 1000;
+}
+
 // validYear is the year text as a number when it is a whole year the moon
 // calendar accepts, undefined otherwise (e.g. "20" while typing 2026).
 function validYear(text: string): number | undefined {
@@ -110,9 +120,10 @@ function validYear(text: string): number | undefined {
 // Layout and Hemisphere, segmented groups. A default month or year of 0
 // (or none) is the current one. Month is hidden for the Year layout, which
 // prints the whole year, but still sent. The Year input sends a valid year
-// as it is typed; on commit (change) an out-of-range year is clamped to
-// 1900–2100, a fractional one rounded, and an empty one restored, so Go
-// never gets a year it rejects. The month names and choices follow the UI
+// as it is typed; on commit (change) a fractional year is rounded, an
+// out-of-range whole year clamped to 1900–2100, and an empty or partial one
+// (fewer than four digits) restored to the year sent, so Go never gets a
+// year it rejects. The month names and choices follow the UI
 // language, keeping the selection.
 const moonForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
     const now = new Date();
@@ -162,7 +173,7 @@ const moonForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
         hemisphere.replaceOptions(choices(HEMISPHERES));
     }
     relabel();
-    onLangChange(relabel);
+    const stopRelabel = onLangChange(relabel);
 
     const presetMonth = Number(defaults.month);
     month.value = String(Number.isInteger(presetMonth) && presetMonth >= 1 && presetMonth <= 12
@@ -188,8 +199,8 @@ const moonForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
         if (typed !== undefined) setYear(typed);
     });
     year.addEventListener('change', () => {
-        const typed = Number(year.value);
-        const next = year.value.trim() === '' || !Number.isFinite(typed) ? current : clampYear(Math.round(typed));
+        const typed = Math.round(Number(year.value));
+        const next = year.value.trim() === '' || !Number.isFinite(typed) || partialYear(typed) ? current : clampYear(typed);
         year.value = String(next);
         setYear(next);
     });
@@ -201,6 +212,7 @@ const moonForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
             layout: layout.value,
             hemisphere: hemisphere.value,
         }),
+        dispose: stopRelabel,
     };
 };
 

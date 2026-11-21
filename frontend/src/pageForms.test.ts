@@ -9,13 +9,18 @@ const MOON_DEFAULTS = '{"month":0,"year":0,"layout":"grid","hemisphere":"north"}
 
 let box: HTMLDivElement;
 let onChange: ReturnType<typeof vi.fn>;
+// The forms a test built, disposed after it so their language listeners
+// do not pile up.
+let built: PageForm[] = [];
 
 // moonForm builds a moon form from defaults (JSON), as the tab does.
 function moonForm(defaults = MOON_DEFAULTS): PageForm {
     box = document.createElement('div');
     document.body.replaceChildren(box);
     onChange = vi.fn();
-    return pageForms.moon(box, 'test-moon', parseDefaults(defaults), onChange);
+    const form = pageForms.moon(box, 'test-moon', parseDefaults(defaults), onChange);
+    built.push(form);
+    return form;
 }
 
 function q<T extends HTMLElement>(selector: string): T {
@@ -52,6 +57,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    for (const form of built) form.dispose?.();
+    built = [];
     vi.useRealTimers();
     setLang('en');
 });
@@ -153,11 +160,19 @@ describe('moon calendar form', () => {
             expect(onChange).toHaveBeenCalledTimes(1);
         });
 
+        // A whole year out of range is clamped; a partial one (fewer than
+        // four digits) or an empty one restores the year sent.
         const committed: Array<[typed: string, shown: string]> = [
             ['1800', '1900'],
+            ['1850', '1900'],
+            ['2500', '2100'],
             ['3000', '2100'],
             ['2024.6', '2025'],
             ['', '2026'],
+            ['2', '2026'],
+            ['20', '2026'],
+            ['203', '2026'],
+            ['-2024', '2026'],
         ];
         it.each(committed)('commits %j as %s', (typed, shown) => {
             const form = moonForm();
@@ -165,6 +180,15 @@ describe('moon calendar form', () => {
             expect(year().value).toBe(shown);
             expect(form.options().year).toBe(Number(shown));
             expect(onChange).toHaveBeenCalledTimes(shown === '2026' ? 0 : 1);
+        });
+
+        it('restores the last year sent on a partial commit', () => {
+            const form = moonForm();
+            typeYear('2030');
+            typeYear('20', 'change');
+            expect(year().value).toBe('2030');
+            expect(form.options().year).toBe(2030);
+            expect(onChange).toHaveBeenCalledTimes(1);
         });
 
         it('does not report a commit of the value it already sends', () => {
@@ -201,5 +225,14 @@ describe('moon calendar form', () => {
         expect(q('#test-moon-month-field > span').textContent).toBe('Mes');
         expect(q('#test-moon-hemisphere').title).toBe('Cambia qué lado de la luna aparece iluminado.');
         expect(form.options()).toEqual({month: 4, year: 2026, layout: 'grid', hemisphere: 'south'});
+    });
+
+    it('stops following the language once disposed', () => {
+        const form = moonForm();
+        expect(form.dispose).toBeTypeOf('function');
+        form.dispose?.();
+        setLang('es');
+        expect(month().options[0].textContent).toBe('January');
+        expect(Array.from(q('#test-moon-layout').children, (r) => r.textContent)).toEqual(['Row', 'Grid', 'Year']);
     });
 });
