@@ -1981,7 +1981,8 @@ func TestDefaultAppNatureUsesTheSavedBHLKey(t *testing.T) {
 }
 
 // wikiquoteStub answers the Wikiquote API: a search for "Einstein" finds
-// one page with one quote, anything else finds nothing. It records the
+// one page with one quote, "Quiet" finds two pages without quotes and
+// anything else finds nothing. It records the
 // language path of each request.
 func wikiquoteStub(t *testing.T) (*httptest.Server, *[]string) {
 	t.Helper()
@@ -1995,8 +1996,12 @@ func wikiquoteStub(t *testing.T) (*httptest.Server, *[]string) {
 		switch {
 		case q.Get("action") == "query" && q.Get("srsearch") == "Einstein":
 			w.Write([]byte(`{"query":{"search":[{"title":"Albert Einstein"},{"title":"EPR paradox"}]}}`))
+		case q.Get("action") == "query" && q.Get("srsearch") == "Quiet":
+			w.Write([]byte(`{"query":{"search":[{"title":"Quiet Person"},{"title":"Quiet Place"}]}}`))
 		case q.Get("action") == "query":
 			w.Write([]byte(`{"query":{"search":[]}}`))
+		case q.Get("page") != "Albert Einstein":
+			w.Write([]byte(`{"parse":{"title":"` + q.Get("page") + `","text":"<div class=\"mw-parser-output\"></div>"}}`))
 		default:
 			w.Write([]byte(`{"parse":{"title":"Albert Einstein","text":"<div class=\"mw-parser-output\"><h2>Quotes</h2><ul><li>Imagination is more important than knowledge.</li></ul></div>"}}`))
 		}
@@ -2048,6 +2053,25 @@ func TestSearchQuotes(t *testing.T) {
 				t.Errorf("requests went to %q, want %q", *langs, tt.wantLang)
 			}
 		})
+	}
+}
+
+func TestSearchQuotesWithoutQuotesKeepsMatches(t *testing.T) {
+	srv, _ := wikiquoteStub(t)
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.quotes = &quotes.Client{HTTP: srv.Client(), APIURL: func(lang string) string { return srv.URL + "/" + lang }}
+	got, err := a.SearchQuotes("Quiet")
+	if err != nil {
+		t.Fatalf("SearchQuotes: %v", err)
+	}
+	want := quotes.Result{
+		Person:  "Quiet Person",
+		URL:     "https://en.wikiquote.org/wiki/Quiet_Person",
+		Matches: []string{"Quiet Place"},
+		Quotes:  []quotes.Quote{},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("SearchQuotes = %#v, want %#v", got, want)
 	}
 }
 

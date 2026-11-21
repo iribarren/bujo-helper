@@ -1238,12 +1238,15 @@ func (a *App) PageKinds() []PageKindInfo {
 	return out
 }
 
-// quoteSearchTimeout bounds one SearchQuotes call (a search and a page).
+// quoteSearchTimeout bounds one SearchQuotes call (a search and up to
+// three pages).
 const quoteSearchTimeout = 20 * time.Second
 
 // SearchQuotes finds the Wikiquote page of the person query names, in the
 // UI language (English or Spanish), and returns its quotes and the other
-// matching pages. An empty query or a person without quotes gives a
+// matching pages. When no matching page has quotes, the result names the
+// best page with empty quotes and its other matches (no error, so the UI
+// can offer them). An empty query or a query without any page gives a
 // translated error.
 func (a *App) SearchQuotes(query string) (quotes.Result, error) {
 	parent := a.ctx

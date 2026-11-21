@@ -2,6 +2,7 @@ package quotes
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -80,6 +81,13 @@ func newFixtureServer(t *testing.T) *fixtureServer {
 	}))
 	t.Cleanup(fs.Close)
 	return fs
+}
+
+// parsedPages returns the page parameter of each parse request so far.
+func (fs *fixtureServer) parsedPages() []string {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	return slices.Clone(fs.pages)
 }
 
 func (fs *fixtureServer) client() *Client {
@@ -244,13 +252,6 @@ func TestSearchErrors(t *testing.T) {
 			},
 			wantText: "HTTP 500",
 		},
-		{
-			name:         "page without quotes",
-			query:        "Einstein",
-			override:     jsonBody(`{"parse":{"title":"Somebody","text":"<div class=\"mw-parser-output\"><h2>See also</h2><ul><li>Some other long page title</li></ul></div>"}}`),
-			wantNotFound: true,
-			wantText:     `no quotes found on "Somebody"`,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -301,5 +302,146 @@ func TestPageURL(t *testing.T) {
 		if got := pageURL(tt.lang, tt.title); got != tt.want {
 			t.Errorf("pageURL(%q, %q) = %q, want %q", tt.lang, tt.title, got, tt.want)
 		}
+	}
+}
+
+// fallbackHandler answers a search with titles and a parse of each title
+// with a page whose quotes are quotes[title] (none when absent). Titles in
+// redirects resolve to the mapped title.
+func fallbackHandler(titles []string, quotes map[string][]string, redirects map[string]string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		if q.Get("action") == "query" {
+			var hits []map[string]string
+			for _, t := range titles {
+				hits = append(hits, map[string]string{"title": t})
+			}
+			body, _ := json.Marshal(map[string]any{"query": map[string]any{"search": hits}})
+			w.Write(body)
+			return
+		}
+		page := q.Get("page")
+		if to, ok := redirects[page]; ok {
+			page = to
+		}
+		html := `<div class="mw-parser-output"><h2>Quotes</h2><ul>`
+		for _, text := range quotes[page] {
+			html += "<li>" + text + "</li>"
+		}
+		html += `</ul><h2>See also</h2><ul><li>Some other long page title</li></ul></div>`
+		body, _ := json.Marshal(map[string]any{"parse": map[string]string{"title": page, "text": html}})
+		w.Write(body)
+	}
+}
+
+func TestSearchFallsBackToOtherMatches(t *testing.T) {
+	const quote = "Imagination is more important than knowledge."
+	tests := []struct {
+		name        string
+		titles      []string
+		quotes      map[string][]string
+		redirects   map[string]string
+		wantPerson  string
+		wantMatches []string
+		wantQuotes  []string
+		wantPages   []string
+	}{
+		{
+			name:        "second title has quotes",
+			titles:      []string{"Somebody", "Albert Einstein", "EPR paradox"},
+			quotes:      map[string][]string{"Albert Einstein": {quote}},
+			wantPerson:  "Albert Einstein",
+			wantMatches: []string{"Somebody", "EPR paradox"},
+			wantQuotes:  []string{quote},
+			wantPages:   []string{"Somebody", "Albert Einstein"},
+		},
+		{
+			name:        "third title through a redirect",
+			titles:      []string{"A", "B", "Einstein", "Albert Einstein", "D"},
+			quotes:      map[string][]string{"Albert Einstein": {quote}},
+			redirects:   map[string]string{"Einstein": "Albert Einstein"},
+			wantPerson:  "Albert Einstein",
+			wantMatches: []string{"A", "B", "D"},
+			wantQuotes:  []string{quote},
+			wantPages:   []string{"A", "B", "Einstein"},
+		},
+		{
+			name:        "no title has quotes",
+			titles:      []string{"Somebody", "B", "C", "D", "E", "F"},
+			quotes:      map[string][]string{"D": {quote}},
+			wantPerson:  "Somebody",
+			wantMatches: []string{"B", "C", "D", "E", "F"},
+			wantQuotes:  []string{},
+			wantPages:   []string{"Somebody", "B", "C"},
+		},
+		{
+			name:        "single title without quotes",
+			titles:      []string{"Somebody"},
+			wantPerson:  "Somebody",
+			wantMatches: []string{},
+			wantQuotes:  []string{},
+			wantPages:   []string{"Somebody"},
+		},
+		{
+			name:        "best title redirect without quotes",
+			titles:      []string{"Einstein", "Albert Einstein"},
+			redirects:   map[string]string{"Einstein": "Albert Einstein"},
+			wantPerson:  "Albert Einstein",
+			wantMatches: []string{},
+			wantQuotes:  []string{},
+			wantPages:   []string{"Einstein"}, // the second title is the page already read
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs := newFixtureServer(t)
+			fs.override = fallbackHandler(tt.titles, tt.quotes, tt.redirects)
+			got, err := fs.client().Search(context.Background(), "Einstein", "en")
+			if err != nil {
+				t.Fatalf("Search: %v", err)
+			}
+			if got.Person != tt.wantPerson || got.URL != pageURL("en", tt.wantPerson) {
+				t.Errorf("Person, URL = %q, %q; want %q", got.Person, got.URL, tt.wantPerson)
+			}
+			if got.Matches == nil || !slices.Equal(got.Matches, tt.wantMatches) {
+				t.Errorf("Matches = %#v, want %q", got.Matches, tt.wantMatches)
+			}
+			if got.Quotes == nil || !slices.Equal(quoteTexts(got.Quotes), tt.wantQuotes) {
+				t.Errorf("Quotes = %#v, want %q", got.Quotes, tt.wantQuotes)
+			}
+			if pages := fs.parsedPages(); !slices.Equal(pages, tt.wantPages) {
+				t.Errorf("parsed pages %q, want %q", pages, tt.wantPages)
+			}
+		})
+	}
+}
+
+func TestSearchCapsParseRequests(t *testing.T) {
+	fs := newFixtureServer(t)
+	fs.override = fallbackHandler([]string{"A", "B", "C", "D", "E", "F"}, nil, nil)
+	got, err := fs.client().Search(context.Background(), "nobody", "en")
+	if err != nil {
+		t.Fatalf("Search: %v", err)
+	}
+	if n := len(fs.parsedPages()); n != maxParses {
+		t.Errorf("made %d parse requests, want %d", n, maxParses)
+	}
+	if len(got.Quotes) != 0 || got.Person != "A" {
+		t.Errorf("got %+v, want no quotes on A", got)
+	}
+}
+
+func TestSearchFallbackStopsOnError(t *testing.T) {
+	fs := newFixtureServer(t)
+	ok := fallbackHandler([]string{"A", "B"}, nil, nil)
+	fs.override = func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("page") == "B" {
+			http.Error(w, "oops", http.StatusInternalServerError)
+			return
+		}
+		ok(w, r)
+	}
+	if _, err := fs.client().Search(context.Background(), "x", "en"); err == nil || !strings.Contains(err.Error(), "HTTP 500") {
+		t.Errorf("err = %v, want the HTTP 500 of the second parse", err)
 	}
 }

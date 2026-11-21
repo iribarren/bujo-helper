@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"bujo-helper/internal/web"
@@ -24,9 +25,12 @@ const searchLimit = 6
 // maxMatches caps Result.Matches.
 const maxMatches = 5
 
+// maxParses caps the pages one search reads: the best title and, when it
+// has no quotes, the next titles in order.
+const maxParses = 3
+
 var (
-	// ErrNotFound is returned when no page matches the query or the page
-	// has no quotes.
+	// ErrNotFound is returned when no page matches the query.
 	ErrNotFound = errors.New("no quotes found")
 	// ErrEmptyQuery is returned for a query with nothing but spaces.
 	ErrEmptyQuery = errors.New("empty query")
@@ -83,8 +87,12 @@ func pageURL(lang, title string) string {
 }
 
 // Search finds the Wikiquote page that best matches query in lang ("en" or
-// "es"; anything else means "en") and returns its quotes. A query with no
-// page, or a page without quotes, gives an error wrapping ErrNotFound.
+// "es"; anything else means "en") and returns its quotes. When the best
+// page has no quotes, the next search titles are read in order (at most
+// maxParses pages) and the first with quotes is used. When none has quotes,
+// the result names the best page with no quotes and a nil error, so the
+// caller can offer the other matches. A query without any page gives an
+// error wrapping ErrNotFound.
 func (c *Client) Search(ctx context.Context, query, lang string) (Result, error) {
 	query = cleanText(query)
 	if query == "" {
@@ -104,25 +112,63 @@ func (c *Client) Search(ctx context.Context, query, lang string) (Result, error)
 	if len(titles) == 0 {
 		return Result{}, fmt.Errorf("%w: no Wikiquote page for %q", ErrNotFound, query)
 	}
-	best := titles[0]
-	person, html, err := c.parse(ctx, endpoint, best)
+	var first wikiPage
+	read := map[string]bool{} // resolved titles already read
+	parses := 0
+	for _, title := range titles {
+		if parses == maxParses {
+			break
+		}
+		if read[title] {
+			continue
+		}
+		parses++
+		p, err := c.readPage(ctx, endpoint, title)
+		if err != nil {
+			return Result{}, err
+		}
+		read[p.person] = true
+		if first.person == "" {
+			first = p
+		}
+		if len(p.quotes) > 0 {
+			return p.result(lang, titles), nil
+		}
+	}
+	first.quotes = []Quote{}
+	return first.result(lang, titles), nil
+}
+
+// wikiPage is one Wikiquote page read by Search: the search title asked for,
+// the title it resolved to and its quotes.
+type wikiPage struct {
+	title, person string
+	quotes        []Quote
+}
+
+// readPage reads the Wikiquote page title and parses its quotes.
+func (c *Client) readPage(ctx context.Context, endpoint, title string) (wikiPage, error) {
+	person, html, err := c.parse(ctx, endpoint, title)
 	if err != nil {
-		return Result{}, err
+		return wikiPage{}, err
 	}
 	quotes, err := parseQuotes(html, person)
 	if err != nil {
-		return Result{}, fmt.Errorf("wikiquote: parse %q: %w", person, err)
+		return wikiPage{}, fmt.Errorf("wikiquote: parse %q: %w", person, err)
 	}
-	if len(quotes) == 0 {
-		return Result{}, fmt.Errorf("%w on %q", ErrNotFound, person)
-	}
+	return wikiPage{title: title, person: person, quotes: quotes}, nil
+}
+
+// result returns the Result for p: its quotes and the other search titles
+// (without p's search title and the title it resolved to) as matches.
+func (p wikiPage) result(lang string, titles []string) Result {
 	matches := []string{}
-	for _, t := range titles[1:] {
-		if t != person && t != best && len(matches) < maxMatches {
+	for _, t := range titles {
+		if t != p.person && t != p.title && !slices.Contains(matches, t) && len(matches) < maxMatches {
 			matches = append(matches, t)
 		}
 	}
-	return Result{Person: person, URL: pageURL(lang, person), Matches: matches, Quotes: quotes}, nil
+	return Result{Person: p.person, URL: pageURL(lang, p.person), Matches: matches, Quotes: p.quotes}
 }
 
 // apiError is the error object MediaWiki returns with HTTP 200.
