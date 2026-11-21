@@ -111,6 +111,9 @@ func TestMapDataKnownCountries(t *testing.T) {
 // 2°E 46°N, so overseas parts did not swallow the mainland.
 func TestMapDataFranceMainland(t *testing.T) {
 	c := mapCountryByISO3("FRA")
+	if c == nil {
+		t.Fatal("FRA missing from the map data")
+	}
 	for _, ring := range c.Rings {
 		minLon, minLat, maxLon, maxLat := ringBounds(ring)
 		if minLon > -5 && minLon < -4 && maxLon > 7 && maxLon < 8.5 && minLat > 42 && minLat < 43 && maxLat > 50.5 && maxLat < 51.5 {
