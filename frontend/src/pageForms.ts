@@ -138,6 +138,85 @@ const moonForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
     };
 };
 
+// The month calendar's week starts (Go: the calendar options), by value,
+// with their labels' message keys, and the one a form starts with when
+// Go's default is not one of them.
+const WEEK_STARTS: Array<[value: string, label: MessageKey]> = [
+    ['mon', 'pages.weekMonday'],
+    ['sun', 'pages.weekSunday'],
+];
+const DEFAULT_WEEK_START = 'mon';
+
+// calendarForm is the month calendar's form: Month and Year on one row
+// (see monthYearField), then Week starts on, a segmented group. It always
+// sends an explicit month and year. The choices follow the UI language,
+// keeping the selection.
+const calendarForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
+    const date = monthYearField(container, idPrefix, defaults, onChange);
+    const weekStart = segmentedField(container, idPrefix, 'weekStart', 'pages.weekStart', 'pages.weekStartTitle', onChange);
+
+    const relabel = () => weekStart.replaceOptions(choices(WEEK_STARTS));
+    relabel();
+    const stopRelabel = onLangChange(relabel);
+    weekStart.value = offered(WEEK_STARTS, defaults.weekStart, DEFAULT_WEEK_START);
+
+    return {
+        options: () => ({month: date.month(), year: date.year(), weekStart: weekStart.value}),
+        dispose: () => {
+            stopRelabel();
+            date.dispose();
+        },
+    };
+};
+
+// habitList is the habits typed in text, one per line: trimmed, blank
+// lines dropped.
+export function habitList(text: string): string[] {
+    return text.split(/\r\n|\r|\n/).map((s) => s.trim()).filter((s) => s !== '');
+}
+
+// habitsForm is the habit tracker's form: Month and Year on one row (see
+// monthYearField), then Habits, a textarea of one habit per line, sent as a
+// list as it is typed, the text left as typed. Go accepts at most 40
+// habits of at most 60 characters: a muted hint says so, and the form
+// sends what was typed, so a habit list over the limits shows Go's error
+// in the preview rather than a page silently missing habits.
+const habitsForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
+    const date = monthYearField(container, idPrefix, defaults, onChange);
+
+    const field = document.createElement('div');
+    field.className = 'field habits-field';
+    const label = document.createElement('label');
+    label.htmlFor = `${idPrefix}-habits`;
+    label.append(translated(document.createElement('span'), 'pages.habits'));
+    const habits = document.createElement('textarea');
+    habits.id = `${idPrefix}-habits`;
+    habits.rows = 5;
+    const hint = translated(document.createElement('p'), 'pages.habitsHint');
+    hint.className = 'field-hint muted';
+    hint.id = `${idPrefix}-habits-hint`;
+    habits.setAttribute('aria-describedby', hint.id);
+    field.append(label, habits, hint);
+    container.append(field);
+
+    // The habits Go gets, kept apart from the text being typed.
+    let sent = Array.isArray(defaults.habits)
+        ? defaults.habits.filter((h): h is string => typeof h === 'string' && h.trim() !== '').map((h) => h.trim())
+        : [];
+    habits.value = sent.join('\n');
+    habits.addEventListener('input', () => {
+        const next = habitList(habits.value);
+        if (next.length === sent.length && next.every((h, i) => h === sent[i])) return;
+        sent = next;
+        onChange();
+    });
+
+    return {
+        options: () => ({month: date.month(), year: date.year(), habits: [...sent]}),
+        dispose: date.dispose,
+    };
+};
+
 // The visited map's regions and fill colours (Go: sheet.MapRegions and
 // sheet.MapColours), by value, with their labels' message keys and, for the
 // colours, the swatch Go fills with; and the ones a form starts with when
@@ -254,5 +333,7 @@ const mapForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
 export const pageForms: Record<string, PageFormBuilder> = {
     dotgrid: dotGridForm,
     moon: moonForm,
+    calendar: calendarForm,
+    habits: habitsForm,
     map: mapForm,
 };
