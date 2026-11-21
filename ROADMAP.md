@@ -252,7 +252,7 @@ There is a reliable image source, and the item fits how the app already works: a
 - Projections: Natural Earth for the world, Lambert azimuthal equal-area per continent, region views and far-ring culling (6269630).
 - Page kind: `map` in `PageKinds` with filled and Colour-in drawing, small-country dots, the country list, localized labels and a default title (739b04d).
 - Make pages form: Region, Visited countries, Colour swatches and List countries, in English and Spanish (937f902).
-- Review fixes: decode validation tests, trailing data rejected, Encode limits matching Decode, a verified (SHA-256) Natural Earth download, list truncation tests, a list that never overflows its box, and a Go test that keeps the form's regions and colours in step with Go (85e0d24..9ed3c90).
+- Review fixes: decode validation tests, trailing data rejected, Encode limits matching Decode, a verified (SHA-256) Natural Earth download, list truncation tests, a list that never overflows its box, and a Go test that keeps the form's regions and colours in step with Go (1ad46dc..9ed3c90); regenerated bindings for the map labels (bca2cec).
 - README Visited map section and the Natural Earth licence (the `docs:` commit after 9ed3c90).
 - Decisions:
   - Scope change (user decision 2026-11-21): world and continent maps now; single-country maps (US states, provinces) are a follow-up. No Antarctica, no picking countries by clicking the map.
