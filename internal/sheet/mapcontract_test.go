@@ -1,9 +1,7 @@
 package sheet
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"reflect"
 	"regexp"
@@ -36,12 +34,11 @@ func tsArray(t *testing.T, src, name string) [][]string {
 // The form offers exactly Go's regions and colours, in Go's order, and its
 // swatches are the colours Go fills visited countries with.
 func TestMapFormMatchesGo(t *testing.T) {
+	// The frontend ships with the Go sources: a missing file fails, so a
+	// move or rename can't silently turn this check off.
 	raw, err := os.ReadFile(pageFormsTS)
-	if errors.Is(err, fs.ErrNotExist) {
-		t.Skipf("%s not found", pageFormsTS)
-	}
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("read the form source (moved? update pageFormsTS): %v", err)
 	}
 	src := string(raw)
 
