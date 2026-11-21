@@ -970,6 +970,18 @@ textarea {
     gap: 12px;
 }
 
+/* Two fields side by side in a kind's form, e.g. Month and Year; the
+   first grows. */
+.field-pair {
+    display: flex;
+    gap: 12px;
+}
+
+.field.year-field {
+    width: 84px;
+    flex-shrink: 0;
+}
+
 /* Why an option group has nothing to set, e.g. a format without a header. */
 .group-hint {
     margin: 0;

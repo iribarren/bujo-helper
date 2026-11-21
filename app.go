@@ -1060,6 +1060,7 @@ func (a *App) PreviewPDF(paths []string, opts sheet.Options) (PreviewInfo, error
 // and options (as for PagePages), exactly as ExportPage writes it, and keeps
 // it in memory for the preview.
 func (a *App) PreviewPage(kind string, page sheet.PageSettings, options string) (PreviewInfo, error) {
+	page = a.withPageLabels(page)
 	return a.preview(func(w io.Writer) error { return buildPage(w, kind, page, options) })
 }
 
@@ -1085,6 +1086,18 @@ func (a *App) withLabels(opts sheet.Options) sheet.Options {
 		Fonts:    a.t("pdf.fonts"),
 	}
 	return opts
+}
+
+// withPageLabels returns page with the labels of generated pages (month and
+// weekday names, moon marks) in the UI language.
+func (a *App) withPageLabels(page sheet.PageSettings) sheet.PageSettings {
+	page.Labels = sheet.PageLabels{
+		Months:   strings.Split(a.t("pdf.months"), ","),
+		Weekdays: strings.Split(a.t("pdf.weekdays"), ","),
+		NewMoon:  a.t("pdf.moonNew"),
+		FullMoon: a.t("pdf.moonFull"),
+	}
+	return page
 }
 
 // pdfFileName is the default name of the PDF opts describe, e.g.
@@ -1227,6 +1240,7 @@ func (a *App) PagePages(kind string, page sheet.PageSettings, options string) (i
 // error when the dialog is cancelled. Bad settings are reported before the
 // dialog opens.
 func (a *App) ExportPage(kind, defaultDir string, page sheet.PageSettings, options string) (string, error) {
+	page = a.withPageLabels(page)
 	if _, err := sheet.PageCount(kind, page, json.RawMessage(options)); err != nil {
 		return "", err
 	}

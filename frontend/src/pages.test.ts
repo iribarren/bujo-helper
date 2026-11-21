@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 
-import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {ExportPage, OpenFile, PreviewPage} from '../wailsjs/go/main/App';
 import {useLanguage} from './language';
@@ -18,6 +18,10 @@ vi.mock('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url', () => ({default: '/pdf
 const {kinds, papers, cuts, fonts} = vi.hoisted(() => ({
     kinds: [
         {id: 'dotgrid', label: 'Dot grid', usesCut: false, usesTitle: true, defaults: '{"spacing":5}', default: true},
+        {
+            id: 'moon', label: 'Moon calendar', usesCut: false, usesTitle: true,
+            defaults: '{"month":0,"year":0,"layout":"grid","hemisphere":"north"}', default: false,
+        },
         {id: 'cutout', label: 'Cut-out', usesCut: true, usesTitle: false, defaults: '{}', default: false},
     ],
     papers: [
@@ -133,7 +137,7 @@ describe('page kinds', () => {
     it('are listed from PageKinds in a radio group, the default checked', () => {
         const group = el('pages-kinds');
         expect(group.getAttribute('role')).toBe('radiogroup');
-        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Cut-out']);
+        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Cut-out']);
         expect(checked('pages-kinds')).toBe('dotgrid');
         expect(el('pages-kind-title').textContent).toBe('Dot grid');
     });
@@ -159,6 +163,7 @@ describe('page kinds', () => {
         try {
             expect(radio('pages-kinds', 'dotgrid').textContent).toBe('Cuadrícula de puntos');
             expect(el('pages-kind-title').textContent).toBe('Cuadrícula de puntos');
+            expect(radio('pages-kinds', 'moon').textContent).toBe('Calendario lunar');
             // A kind without a translation keeps the Go label.
             expect(radio('pages-kinds', 'cutout').textContent).toBe('Cut-out');
         } finally {
@@ -209,6 +214,82 @@ describe('dot grid form', () => {
 
     it('checks and sends an offered default spacing', () => {
         expect(spacingOf({spacing: 4})).toEqual({checked: '4', sent: 4});
+    });
+});
+
+describe('moon calendar form', () => {
+    // The moon options a form starts with under the test clock.
+    const defaults = {month: 3, year: 2024, layout: 'grid', hemisphere: 'north'};
+
+    // setMoon sets the moon form's options as the user does.
+    function setMoon(options: {month: number; year: number; layout: string; hemisphere: string}) {
+        const month = el<HTMLSelectElement>('pages-moon-month');
+        month.value = String(options.month);
+        month.dispatchEvent(new Event('change'));
+        const year = el<HTMLInputElement>('pages-moon-year');
+        year.value = String(options.year);
+        year.dispatchEvent(new Event('change'));
+        radio('pages-moon-layout', options.layout).click();
+        radio('pages-moon-hemisphere', options.hemisphere).click();
+    }
+
+    // Every test shows the moon kind under a clock in March 2024: the tab
+    // builds the form on first use, in whichever test runs first, and each
+    // test leaves the form at its defaults again.
+    beforeEach(() => {
+        vi.useFakeTimers({toFake: ['Date']});
+        vi.setSystemTime(new Date(2024, 2, 15, 12));
+        radio('pages-kinds', 'moon').click();
+    });
+
+    afterEach(() => {
+        setMoon(defaults);
+        vi.useRealTimers();
+    });
+
+    it('previews the current month and year in a grid by default', async () => {
+        expect(el('pages-form-moon').hidden).toBe(false);
+        expect(el('pages-form-dotgrid').hidden).toBe(true);
+        expect(el<HTMLSelectElement>('pages-moon-month').value).toBe('3');
+        expect(el<HTMLInputElement>('pages-moon-year').value).toBe('2024');
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual(defaults));
+        expect(lastPreviewPage()[0]).toBe('moon');
+        // The moon prints the shared title.
+        expect(el('pages-title-field').hidden).toBe(false);
+    });
+
+    it('previews and exports the chosen options', async () => {
+        const month = el<HTMLSelectElement>('pages-moon-month');
+        month.value = '7';
+        month.dispatchEvent(new Event('change'));
+        const year = el<HTMLInputElement>('pages-moon-year');
+        year.value = '2030';
+        year.dispatchEvent(new Event('input'));
+        radio('pages-moon-layout', 'year').click();
+        radio('pages-moon-hemisphere', 'south').click();
+        const want = {month: 7, year: 2030, layout: 'year', hemisphere: 'south'};
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual(want));
+        expect(el('pages-moon-month-field').hidden).toBe(true);
+
+        vi.mocked(ExportPage).mockResolvedValueOnce('/out/moon_A5.pdf');
+        await previewDone();
+        el('pages-export').click();
+        await vi.waitFor(() => expect(el('pages-status').textContent).toBe('Saved moon_A5.pdf: 1 page'));
+        const [kind, , , options] = vi.mocked(ExportPage).mock.calls.at(-1)!;
+        expect(kind).toBe('moon');
+        expect(JSON.parse(options)).toEqual(want);
+    });
+
+    it('keeps its options while another kind is shown', async () => {
+        const chosen = {month: 11, year: 2001, layout: 'row', hemisphere: 'south'};
+        setMoon(chosen);
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual(chosen));
+        radio('pages-kinds', 'dotgrid').click();
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('dotgrid'));
+        radio('pages-kinds', 'moon').click();
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('moon'));
+        expect(JSON.parse(lastPreviewPage()[2])).toEqual(chosen);
+        expect(el<HTMLInputElement>('pages-moon-year').value).toBe('2001');
     });
 });
 

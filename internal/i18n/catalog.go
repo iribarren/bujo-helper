@@ -41,6 +41,14 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.cardDate":  "Date",
 		"pdf.credits":   "Credits",
 		"pdf.fonts":     "Fonts",
+
+		// Generated page labels. Months and weekdays are comma-separated
+		// lists: the 12 month names from January, and the 7 short weekday
+		// names from Monday.
+		"pdf.months":   "January,February,March,April,May,June,July,August,September,October,November,December",
+		"pdf.weekdays": "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
+		"pdf.moonNew":  "New",
+		"pdf.moonFull": "Full",
 	},
 	ES: {
 		"dialog.importCSV":          "Importar CSV",
@@ -74,5 +82,10 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.cardDate":  "Fecha",
 		"pdf.credits":   "Créditos",
 		"pdf.fonts":     "Fuentes",
+
+		"pdf.months":   "Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre",
+		"pdf.weekdays": "Lun,Mar,Mié,Jue,Vie,Sáb,Dom",
+		"pdf.moonNew":  "Nueva",
+		"pdf.moonFull": "Llena",
 	},
 }

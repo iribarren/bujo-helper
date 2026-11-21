@@ -194,6 +194,19 @@ export const en = {
     'pages.noTitle': 'This page prints no title.',
     'pages.dotSpacing': 'Dot spacing',
     'pages.dotSpacingTitle': 'Distance between dot centres.',
+    'pages.month': 'Month',
+    'pages.year': 'Year',
+    'pages.yearTitle': 'A year from 1900 to 2100.',
+    'pages.months': 'January,February,March,April,May,June,July,August,September,October,November,December',
+    'pages.moonLayout': 'Layout',
+    'pages.moonLayoutTitle': 'Row: one line per day. Grid: a month calendar. Year: the whole year, one row per month.',
+    'pages.layoutRow': 'Row',
+    'pages.layoutGrid': 'Grid',
+    'pages.layoutYear': 'Year',
+    'pages.hemisphere': 'Hemisphere',
+    'pages.hemisphereTitle': 'Flips which side of the moon is lit.',
+    'pages.north': 'North',
+    'pages.south': 'South',
     'pages.saved': 'Saved {file}: {pages}',
     'pages.savedFile': 'Saved {file}',
     'pages.errKinds': 'Could not load page kinds: {error}',
@@ -230,6 +243,7 @@ export const en = {
 
     // Page kinds (Go: sheet.PageKinds), by ID.
     'pageKind.dotgrid': 'Dot grid',
+    'pageKind.moon': 'Moon calendar',
 
     // Print formats (Go: sheet.Formats), by ID, and what each prints.
     'format.covers': 'Cover sheet',

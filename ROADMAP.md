@@ -281,6 +281,21 @@ Useful, but either demand is less proven or the item adds a new kind of printabl
 
 **Why:** moon phase trackers are a common bujo spread (no search result confirmed it). They need no network and no licensing.
 
+**Done in branch `feat/moon-calendar`** (see `odd/tasks/moon-calendar.md`):
+- Phases: true new and full moons and the per-day phase in `internal/sheet/moon.go`, checked against the USNO 2024 table (86f7cc8).
+- Page kind: `moon` in `PageKinds` with the Row, Grid and Year layouts, hemisphere mirroring, Colour-in outline moons, localized labels and a default title (2819df6); a current year outside 1900–2100 (a wrong clock) is an error (bf57b36).
+- Make pages form: Month, Year, Layout and Hemisphere, in English and Spanish (2aa7b00); a partial year commit restores the last valid year, and the form's language listener can be disposed (c257874); order-independent tab tests (6164387).
+- README Moon calendar section (the `docs:` commit after 6164387).
+- Decisions:
+  - Kind id `moon`, options `month` (1–12), `year` (1900–2100), `layout` (`row` | `grid` | `year`), `hemisphere` (`north` | `south`); a month or year of 0 means the current one, resolved in Go through an injectable clock. The form always sends explicit values.
+  - Meeus, *Astronomical Algorithms* ch. 49 true phases, converted to UTC with the Espenak–Meeus ΔT polynomials (1900–2150); the drawn phase is the lunation fraction at local noon. All 25 USNO 2024 events within one minute. No new dependency.
+  - Days and marks use the computer's local time zone: an event is marked on the local date it falls on.
+  - Labels (month and weekday names, New/Full marks) reach Go as `PageSettings.Labels` (`json:"-"`), filled by the app from the UI language, like the Print covers labels.
+  - The default title comes from an optional `defaultTitler` interface in `buildPage`: "<Month> <Year>", or "<Year>" for the Year layout.
+  - The Year layout marks new and full moon with the mark's initial (N/F, in Spanish N/L).
+  - Weeks start on Monday (a week start choice is item 28).
+  - Form year: typing sends only a whole year in range; on commit a whole year out of range is clamped, a fraction rounded, and an empty or partial one (fewer than four digits) restored.
+
 **Scope**
 - A generated print format **Moon calendar**: one month or a whole year, drawn from a local astronomical calculation (phase per day, with new and full moon marked).
 - Layouts: a month row (one moon per day), a month grid and a year overview.

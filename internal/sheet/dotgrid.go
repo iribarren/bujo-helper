@@ -46,8 +46,8 @@ func (o DotGridOptions) validate() error {
 func (o DotGridOptions) pages() int { return 1 }
 
 // draw draws one page: the title, if any, centred in its band at the top
-// in the lettering l, and the dots below it.
-func (o DotGridOptions) draw(pdf *fpdf.Fpdf, page Page, title string, l lettering) error {
+// in the lettering l, and the dots below it. A dot grid prints no labels.
+func (o DotGridOptions) draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, _ PageLabels) error {
 	pdf.AddPage()
 	if title != "" {
 		band := dotGridTitleBand(page)

@@ -599,6 +599,35 @@ A plain grid of small grey dots, the basic bullet journal page, on one page.
 
 On A4 at 5 mm that is 39 × 57 dots (39 × 54 with a title). The cut mode does not apply.
 
+### Moon calendar
+
+A month or a whole year of moon phases, one moon per day, with the new and full moons marked. The phases are computed on your computer: no network, no API key, nothing to license.
+
+To make one: open **Make pages**, pick **Moon calendar**, choose the month, year, layout and hemisphere, and click **Export PDF…**.
+
+| Setting      | Rule |
+|--------------|------|
+| Month        | January to December; starts on the current month |
+| Year         | 1900 to 2100; starts on the current year. On leaving the box, a whole year out of range is clamped (1850 → 1900) and a partial one (`20`) goes back to the last valid year |
+| Layout: Row  | one line per day (day number and weekday, moon, mark), in two columns: 1–16 and 17 to the end |
+| Layout: Grid | the default: a month grid under weekday headers; day number top left, moon centred, mark below |
+| Layout: Year | 12 month rows of days under a day-number header; Month is hidden and marks shrink to their initial (N/F, in Spanish N/L) |
+| Hemisphere   | **North** (default) or **South**, which mirrors each moon left to right, as it looks from the southern hemisphere |
+| Title        | the shared **Title**, in the chosen [lettering font](#lettering); empty prints the month and year ("March 2024"), or the year ("2024") for the Year layout |
+| Labels       | month and weekday names, day numbers and New/Full marks follow the UI language, in the Go font |
+| Moons        | a dark disc (#3b4252), the lit part white, a thin outline; with [Colour-in](#colour-in), outlines only |
+| Weeks        | start on Monday |
+| Area         | within 8 mm margins, below a 12 mm title band |
+
+How the phases are computed:
+
+- New and full moon times come from Jean Meeus, *Astronomical Algorithms* (2nd ed.), chapter 49 (true phases with their periodic corrections), converted to UTC with the Espenak–Meeus ΔT polynomials.
+- The moon drawn on each day shows the fraction of the lunation (new moon to next new moon) elapsed at local noon.
+- Checked against the USNO phase table for 2024: every new and full moon within one minute.
+- Days and marks use the computer's local time zone. A new or full moon near midnight is marked on the local date it falls on, which can differ from a table in UTC.
+
+The cut mode does not apply.
+
 ## Lettering
 
 Headers and titles can print in one of ten bundled lettering fonts instead of the plain Go sans, and as hollow outlines to colour in by hand, the way bubble letters drawn with a pen are coloured. The controls sit in the **Lettering** fieldset of [Print sheet](#print-sheet) (for **Full page**, **Checklist** and **Review cards**) and [Make pages](#generated-pages) (every page kind).
@@ -613,9 +642,9 @@ Each tab keeps its own font and Colour-in until the app closes. With the **Defau
 
 | Text | Font |
 |------|------|
-| Full page and Checklist headers, Dot grid title | the chosen font, outlined with Colour-in |
+| Full page and Checklist headers, Dot grid and Moon calendar titles | the chosen font, outlined with Colour-in |
 | Review card titles | the chosen font, always filled: at 9.5 pt they are too small for outlines |
-| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits | always the Go font |
+| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels | always the Go font |
 
 Headers still shrink from 20 pt down to 12 pt to fit, then end with "…". A bundled font fits into 96 % of the width, leaving room for swashes; the Default (Go) font keeps its bold header and the full width.
 
@@ -628,6 +657,8 @@ Colour-in prints letters as black outlines (PDF text rendering mode 1) instead o
 | **outline ok** | Default, Kaushan Script, Pacifico, Patrick Hand, Titan One, Bungee, Luckiest Guy | outlined at 14 pt or larger; smaller text stays filled |
 | **hollow** | Bungee Outline, Londrina Outline | outlined by design, never stroked again; the box shows checked, and your own choice comes back with the next font |
 | **no outline** | Sacramento, Amatic SC | too thin to outline: letters stay filled |
+
+On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font.
 
 ### Bundled fonts
 
@@ -778,7 +809,7 @@ internal/
   gallery/             print sheet: folder listing and thumbnails for the UI
   preview/             in-memory store of preview PDFs served at /preview
   fonts/               serves the lettering fonts and their licences at /fonts/
-  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid); the lettering font registry and hollow text
+  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid, moon calendar with Meeus moon phases); the lettering font registry and hollow text
     fonts/<id>/        the bundled lettering fonts (TTF) and their licence files, embedded
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
 legacy/                the original Python script
