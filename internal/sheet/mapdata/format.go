@@ -142,7 +142,8 @@ func quantize(ring []LonLat, scale int) ([][2]int64, error) {
 	return q, nil
 }
 
-// Decode reads data written by Encode.
+// Decode reads data written by Encode. It rejects malformed data and any
+// data after the encoded countries.
 func Decode(data []byte) ([]Country, error) {
 	zr, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
@@ -151,9 +152,13 @@ func Decode(data []byte) ([]Country, error) {
 	d := &decoder{r: bufio.NewReader(zr)}
 	countries := d.countries()
 	if d.err == nil {
-		// Reading to EOF makes gzip verify its checksum.
-		if _, err := io.Copy(io.Discard, d.r); err != nil {
+		// Reading to EOF makes gzip verify its checksum; anything after the
+		// last country (in this or a further gzip member) is an error.
+		switch n, err := io.Copy(io.Discard, d.r); {
+		case err != nil:
 			d.err = err
+		case n > 0:
+			d.err = fmt.Errorf("%d bytes of trailing data", n)
 		}
 	}
 	if d.err != nil {

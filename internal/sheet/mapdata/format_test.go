@@ -217,6 +217,8 @@ func TestDecodeRejectsBadInput(t *testing.T) {
 		{"ring of two points", gz(t, head(1).attrs(0).uv(1).uv(2).v(0).v(0).v(1).v(1).Bytes())},
 		{"corrupt point varint", gz(t, head(1).attrs(0).uv(1).uv(3).add(overflow...).Bytes())},
 		{"missing country", gz(t, head(2).attrs(0).uv(1).triangle().Bytes())},
+		{"trailing payload bytes", gz(t, append(append([]byte(nil), valid...), 0))},
+		{"second gzip member", append(gz(t, valid), gz(t, []byte{0})...)},
 		{"garbage after gzip", append(gz(t, valid), "junk"...)},
 	}
 	if _, err := Decode(gz(t, valid)); err != nil {
