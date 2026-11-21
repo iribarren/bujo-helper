@@ -243,11 +243,11 @@ There is a reliable image source, and the item fits how the app already works: a
 - Provider tests with fixtures. A well-known landmark and a country flag both download, and their credit is stored.
 - Landscape photos are placed correctly. The README explains the licence and credit handling.
 
-## 16. [ ] Visited countries map
+## 16. [x] Visited countries map (cda7ca3)
 
 **Why:** a world map with visited countries coloured in is one of the most common travel spreads, and drawing one by hand is hard.
 
-**Done in branch `feat/visited-map`** (see `odd/tasks/visited-map.md`):
+**Done in branch `feat/visited-map`**, merged in cda7ca3 (see `odd/tasks/visited-map.md`):
 - Map data: Natural Earth 1:50m admin-0 countries v5.1.2, simplified and quantized by `internal/sheet/mapgen` into the embedded `internal/sheet/mapdata/countries.bin` (147 KB), with its binary format and decoder (b509bb0); country matching by English or Spanish name, ISO alpha-2/alpha-3 code and aliases (817fd6f).
 - Projections: Natural Earth for the world, Lambert azimuthal equal-area per continent, region views and far-ring culling (6269630).
 - Page kind: `map` in `PageKinds` with filled and Colour-in drawing, small-country dots, the country list, localized labels and a default title (739b04d).

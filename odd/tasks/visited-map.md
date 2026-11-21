@@ -88,3 +88,4 @@ A map with the visited countries coloured in is one of the most common travel sp
 - Next: native review of the T4 slice, user GUI check, then local `--no-ff` merge to main and mark item 16 done.
 - Review `e5b6f37..424421a` (T4, medium, 431 lines): consent granted; reliability lens approved; acknowledged (authority burned). Reviewed boundary `424421a`. Its SUGGESTION R3-contract-test-silent-skip (`mapcontract_test.go:39`) fixed inline in `0e6b9c9` (a missing form source now fails instead of skipping); `go test ./internal/sheet/` 1504 passed.
 - Ready for the user's GUI check (binary `build/bin/bujo-helper`). Polish candidates to judge there: empty lower half on A4 world maps with short lists, no frame on continent views, overlapping Caribbean dots, swatch look.
+- Done: user GUI-checked; merged to main in `cda7ca3`; ROADMAP item 16 marked `[x]`.
