@@ -219,7 +219,8 @@ const moonForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
 // The visited map's regions and fill colours (Go: sheet.MapRegions and
 // sheet.MapColours), by value, with their labels' message keys and, for the
 // colours, the swatch Go fills with; and the ones a form starts with when
-// Go's default is not one of them.
+// Go's default is not one of them. internal/sheet/mapcontract_test.go reads
+// these two arrays and fails when they drift from Go.
 const MAP_REGIONS: Array<[value: string, label: MessageKey]> = [
     ['world', 'pages.regionWorld'],
     ['africa', 'pages.regionAfrica'],
