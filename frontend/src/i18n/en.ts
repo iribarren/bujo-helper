@@ -207,6 +207,12 @@ export const en = {
     'pages.hemisphereTitle': 'Flips which side of the moon is lit.',
     'pages.north': 'North',
     'pages.south': 'South',
+    'pages.weekStart': 'Week starts on',
+    'pages.weekStartTitle': 'The weekday in the first column of the calendar.',
+    'pages.weekMonday': 'Monday',
+    'pages.weekSunday': 'Sunday',
+    'pages.habits': 'Habits, one per line',
+    'pages.habitsHint': 'Up to 40 habits of 60 characters. Leave it empty to write them by hand.',
     'pages.mapRegion': 'Region',
     'pages.mapRegionTitle': 'The world or one continent.',
     'pages.regionWorld': 'World',
@@ -264,6 +270,8 @@ export const en = {
     // Page kinds (Go: sheet.PageKinds), by ID.
     'pageKind.dotgrid': 'Dot grid',
     'pageKind.moon': 'Moon calendar',
+    'pageKind.calendar': 'Month calendar',
+    'pageKind.habits': 'Habit tracker',
     'pageKind.map': 'Visited map',
 
     // Print formats (Go: sheet.Formats), by ID, and what each prints.

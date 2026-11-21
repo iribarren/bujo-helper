@@ -982,8 +982,9 @@ textarea {
     flex-shrink: 0;
 }
 
-/* Visited countries: a short list in the UI font that wraps. */
-.map-countries-field textarea {
+/* Visited countries and habits: a short list in the UI font that wraps. */
+.map-countries-field textarea,
+.habits-field textarea {
     height: auto;
     min-height: 0;
     font-family: inherit;
@@ -992,7 +993,8 @@ textarea {
     white-space: pre-wrap;
 }
 
-.map-countries-field .field-hint {
+.map-countries-field .field-hint,
+.habits-field .field-hint {
     margin: 0;
 }
 

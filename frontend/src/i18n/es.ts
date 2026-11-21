@@ -201,6 +201,12 @@ export const es: Messages = {
     'pages.hemisphereTitle': 'Cambia qué lado de la luna aparece iluminado.',
     'pages.north': 'Norte',
     'pages.south': 'Sur',
+    'pages.weekStart': 'La semana empieza el',
+    'pages.weekStartTitle': 'El día de la semana de la primera columna del calendario.',
+    'pages.weekMonday': 'Lunes',
+    'pages.weekSunday': 'Domingo',
+    'pages.habits': 'Hábitos, uno por línea',
+    'pages.habitsHint': 'Hasta 40 hábitos de 60 caracteres. Déjalo vacío para escribirlos a mano.',
     'pages.mapRegion': 'Región',
     'pages.mapRegionTitle': 'El mundo o un continente.',
     'pages.regionWorld': 'Mundo',
@@ -257,6 +263,8 @@ export const es: Messages = {
     // Page kinds (Go: sheet.PageKinds), by ID.
     'pageKind.dotgrid': 'Cuadrícula de puntos',
     'pageKind.moon': 'Calendario lunar',
+    'pageKind.calendar': 'Calendario mensual',
+    'pageKind.habits': 'Registro de hábitos',
     'pageKind.map': 'Mapa de viajes',
 
     // Print formats (Go: sheet.Formats), by ID, and what each prints.

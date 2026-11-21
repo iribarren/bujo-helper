@@ -97,9 +97,9 @@ func TestMapRegistryEntry(t *testing.T) {
 	if n, err := PageCount(MapKind, PageSettings{}, nil); n != 1 || err != nil {
 		t.Errorf("PageCount = %d, %v", n, err)
 	}
-	// After the moon calendar.
-	if i := len(PageKinds) - 1; PageKinds[i].ID != MapKind || PageKinds[i-1].ID != MoonKind {
-		t.Errorf("map kind not listed after the moon calendar")
+	// Last; TestCalendarRegistryEntry checks the full order.
+	if PageKinds[len(PageKinds)-1].ID != MapKind {
+		t.Errorf("map kind not listed last")
 	}
 }
 

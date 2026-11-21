@@ -628,6 +628,58 @@ How the phases are computed:
 
 The cut mode does not apply.
 
+### Month calendar
+
+A month grid with a box per day to write in, for any month from 1900 to 2100, weeks starting on Monday or Sunday. It fits one page.
+
+To make one: open **Make pages**, pick **Month calendar**, choose the month, year and week start, and click **Export PDF…**.
+
+| Setting        | Rule |
+|----------------|------|
+| Month          | January to December; starts on the current month |
+| Year           | 1900 to 2100; starts on the current year, with the same typing rules as the [moon calendar](#moon-calendar) |
+| Week starts on | **Monday** (default) or Sunday: the weekday in the first column |
+| Title          | the shared **Title**, in the chosen [lettering font](#lettering), outlined with [Colour-in](#colour-in); empty prints the month and year ("March 2024", in Spanish "Marzo 2024") |
+| Labels         | short weekday names (Mon, Tue, …; in Spanish Lun, Mar, …) and day numbers follow the UI language, in the Go font |
+| Paper          | any; within 8 mm margins, below a 12 mm title band |
+
+How the grid is drawn:
+
+- 7 columns as wide as the area, under an 8 pt weekday header row, and as many week rows as the month spans (4 to 6).
+- Rows share the height below the header, but a cell is never taller than 1.5 times its width; on tall paper the grid is then centred down the page.
+- Each day is a box with a thin grey border (0.2 mm) and its number at the top left, 9 pt. The empty cells before the first day and after the last have no box.
+- Dates are checked for leap years (2024, 2000, 1900 and 2100) and both week starts.
+
+The cut mode does not apply.
+
+### Habit tracker
+
+A habit per row and a box per day of the month, to tick off each day you keep it. With no habits it prints blank rows to write them in by hand.
+
+To make one: open **Make pages**, pick **Habit tracker**, choose the month and year, type your habits one per line, and click **Export PDF…**.
+
+| Setting | Rule |
+|---------|------|
+| Month, Year | as on the [month calendar](#month-calendar); the month sets the number of day columns (28 to 31) |
+| Habits, one per line | up to 40 habits of up to 60 characters each; spaces at either end are trimmed and blank lines are dropped. More is an error, shown in the preview |
+| Title | the shared **Title**, in the chosen [lettering font](#lettering), outlined with [Colour-in](#colour-in); empty prints "Habits ·" and the month ("Habits · November", in Spanish "Hábitos · Noviembre") |
+| Paper | any; within 8 mm margins, below a 12 mm title band |
+
+How the tracker is drawn:
+
+| Part | Rule |
+|------|------|
+| Day header | the day numbers over their columns, 6 pt, shrinking to 4 pt to fit narrow boxes |
+| Name column | as wide as the longest habit name, between 20 mm and 30 % of the width (30 % with no habits); it also takes any width the boxes leave. Names print at 7 pt, in the Go font; a name that does not fit ends with "…" |
+| Boxes | square, sharing the rest of the width, at most 6 mm |
+| Rows | 1.5 times the box size, at least 6 mm, from the top of the area down |
+| No habits | one page filled with blank rows, each a writing line in the name column and a box per day |
+| More rows than fit | the rest go on further pages, each with the title and the day header. with 40 habits, two pages on every paper; the page count follows the paper |
+
+Habit names are cleaned before they are counted and printed: each run of tabs, line breaks, other invisible control characters or spaces becomes one space, so `Read`, a tab and `books` print as "Read books", and a habit of only such characters is dropped like a blank line. A list pasted from a spreadsheet or another app can carry characters you cannot see; turning them into a space is kinder than an error that names an invisible character.
+
+The cut mode does not apply.
+
 ### Visited map
 
 A vector map of the world or of one continent with the countries you have visited filled in, and optionally their names listed below it. The map data is embedded in the app: no network, no API key.
@@ -684,9 +736,9 @@ Each tab keeps its own font and Colour-in until the app closes. With the **Defau
 
 | Text | Font |
 |------|------|
-| Full page and Checklist headers, Dot grid, Moon calendar and Visited map titles | the chosen font, outlined with Colour-in |
+| Full page and Checklist headers, Dot grid, Moon calendar, Month calendar, Habit tracker and Visited map titles | the chosen font, outlined with Colour-in |
 | Review card titles | the chosen font, always filled: at 9.5 pt they are too small for outlines |
-| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels, visited map country lists | always the Go font |
+| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels, month calendar weekdays and day numbers, habit names and day numbers, visited map country lists | always the Go font |
 
 Headers still shrink from 20 pt down to 12 pt to fit, then end with "…". A bundled font fits into 96 % of the width, leaving room for swashes; the Default (Go) font keeps its bold header and the full width.
 
@@ -700,7 +752,7 @@ Colour-in prints letters as black outlines (PDF text rendering mode 1) instead o
 | **hollow** | Bungee Outline, Londrina Outline | outlined by design, never stroked again; the box shows checked, and your own choice comes back with the next font |
 | **no outline** | Sacramento, Amatic SC | too thin to outline: letters stay filled |
 
-On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font. On a [visited map](#visited-map), it draws the countries as black outlines with no fills, the visited ones heavier.
+On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font. On a [visited map](#visited-map), it draws the countries as black outlines with no fills, the visited ones heavier. On a [month calendar](#month-calendar) and a [habit tracker](#habit-tracker), only the title changes: their boxes are already outlines.
 
 ### Bundled fonts
 
@@ -851,7 +903,7 @@ internal/
   gallery/             print sheet: folder listing and thumbnails for the UI
   preview/             in-memory store of preview PDFs served at /preview
   fonts/               serves the lettering fonts and their licences at /fonts/
-  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid, moon calendar with Meeus moon phases, visited map with country matching and projections); the lettering font registry and hollow text
+  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid, moon calendar with Meeus moon phases, month calendar and habit tracker with shared calendar math, visited map with country matching and projections); the lettering font registry and hollow text
     fonts/<id>/        the bundled lettering fonts (TTF) and their licence files, embedded
     mapdata/           the embedded Natural Earth country map (countries.bin) and its binary format
     mapgen/            the generator of countries.bin (`go generate` in internal/sheet)

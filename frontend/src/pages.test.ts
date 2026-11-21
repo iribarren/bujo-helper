@@ -23,6 +23,14 @@ const {kinds, papers, cuts, fonts} = vi.hoisted(() => ({
             defaults: '{"month":0,"year":0,"layout":"grid","hemisphere":"north"}', default: false,
         },
         {
+            id: 'calendar', label: 'Month calendar', usesCut: false, usesTitle: true,
+            defaults: '{"month":0,"year":0,"weekStart":"mon"}', default: false,
+        },
+        {
+            id: 'habits', label: 'Habit tracker', usesCut: false, usesTitle: true,
+            defaults: '{"month":0,"year":0,"habits":[]}', default: false,
+        },
+        {
             id: 'map', label: 'Visited map', usesCut: false, usesTitle: true,
             defaults: '{"region":"world","countries":[],"colour":"teal","list":true}', default: false,
         },
@@ -141,7 +149,7 @@ describe('page kinds', () => {
     it('are listed from PageKinds in a radio group, the default checked', () => {
         const group = el('pages-kinds');
         expect(group.getAttribute('role')).toBe('radiogroup');
-        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Visited map', 'Cut-out']);
+        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Month calendar', 'Habit tracker', 'Visited map', 'Cut-out']);
         expect(checked('pages-kinds')).toBe('dotgrid');
         expect(el('pages-kind-title').textContent).toBe('Dot grid');
     });
@@ -168,6 +176,8 @@ describe('page kinds', () => {
             expect(radio('pages-kinds', 'dotgrid').textContent).toBe('Cuadrícula de puntos');
             expect(el('pages-kind-title').textContent).toBe('Cuadrícula de puntos');
             expect(radio('pages-kinds', 'moon').textContent).toBe('Calendario lunar');
+            expect(radio('pages-kinds', 'calendar').textContent).toBe('Calendario mensual');
+            expect(radio('pages-kinds', 'habits').textContent).toBe('Registro de hábitos');
             expect(radio('pages-kinds', 'map').textContent).toBe('Mapa de viajes');
             // A kind without a translation keeps the Go label.
             expect(radio('pages-kinds', 'cutout').textContent).toBe('Cut-out');
@@ -295,6 +305,94 @@ describe('moon calendar form', () => {
         await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('moon'));
         expect(JSON.parse(lastPreviewPage()[2])).toEqual(chosen);
         expect(el<HTMLInputElement>('pages-moon-year').value).toBe('2001');
+    });
+});
+
+describe('month calendar form', () => {
+    // The tab builds the form on first use, under a clock in March 2024;
+    // each test leaves it at these options again.
+    const defaults = {month: 3, year: 2024, weekStart: 'mon'};
+
+    function setCalendar(options: {month: number; year: number; weekStart: string}) {
+        const month = el<HTMLSelectElement>('pages-calendar-month');
+        month.value = String(options.month);
+        month.dispatchEvent(new Event('change'));
+        const year = el<HTMLInputElement>('pages-calendar-year');
+        year.value = String(options.year);
+        year.dispatchEvent(new Event('change'));
+        radio('pages-calendar-weekStart', options.weekStart).click();
+    }
+
+    beforeEach(() => {
+        vi.useFakeTimers({toFake: ['Date']});
+        vi.setSystemTime(new Date(2024, 2, 15, 12));
+        radio('pages-kinds', 'calendar').click();
+    });
+
+    afterEach(() => {
+        setCalendar(defaults);
+        vi.useRealTimers();
+    });
+
+    it('previews the current month and year from Monday by default', async () => {
+        expect(el('pages-kind-title').textContent).toBe('Month calendar');
+        expect(el('pages-form-calendar').hidden).toBe(false);
+        expect(checked('pages-calendar-weekStart')).toBe('mon');
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('calendar'));
+        expect(JSON.parse(lastPreviewPage()[2])).toEqual(defaults);
+        expect(el('pages-title-field').hidden).toBe(false);
+    });
+
+    it('previews and exports the chosen options', async () => {
+        const want = {month: 9, year: 2024, weekStart: 'sun'};
+        setCalendar(want);
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual(want));
+        expect(lastPreviewPage()[0]).toBe('calendar');
+
+        vi.mocked(ExportPage).mockResolvedValueOnce('/out/calendar_A5.pdf');
+        await previewDone();
+        el('pages-export').click();
+        await vi.waitFor(() => expect(el('pages-status').textContent).toBe('Saved calendar_A5.pdf: 1 page'));
+        const [kind, , , options] = vi.mocked(ExportPage).mock.calls.at(-1)!;
+        expect(kind).toBe('calendar');
+        expect(JSON.parse(options)).toEqual(want);
+    });
+});
+
+describe('habit tracker form', () => {
+    // The tab builds the form on first use, under a clock in March 2024;
+    // each test leaves it with no habits again.
+    beforeEach(() => {
+        vi.useFakeTimers({toFake: ['Date']});
+        vi.setSystemTime(new Date(2024, 2, 15, 12));
+        radio('pages-kinds', 'habits').click();
+    });
+
+    function setHabits(text: string) {
+        const habits = el<HTMLTextAreaElement>('pages-habits-habits');
+        habits.value = text;
+        habits.dispatchEvent(new Event('input'));
+    }
+
+    afterEach(() => {
+        setHabits('');
+        vi.useRealTimers();
+    });
+
+    it('previews the current month with no habits by default', async () => {
+        expect(el('pages-kind-title').textContent).toBe('Habit tracker');
+        expect(el('pages-form-habits').hidden).toBe(false);
+        expect(el('pages-form-calendar').hidden).toBe(true);
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('habits'));
+        expect(JSON.parse(lastPreviewPage()[2])).toEqual({month: 3, year: 2024, habits: []});
+        expect(el('pages-title-field').hidden).toBe(false);
+    });
+
+    it('previews the typed habits, one per line', async () => {
+        setHabits('Read\n\n  Walk  \nWater');
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2]))
+            .toEqual({month: 3, year: 2024, habits: ['Read', 'Walk', 'Water']}));
+        expect(lastPreviewPage()[0]).toBe('habits');
     });
 });
 

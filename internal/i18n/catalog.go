@@ -53,6 +53,9 @@ var catalogs = map[Lang]map[string]string{
 		// list.
 		"pdf.mapTitle":   "Places I've been",
 		"pdf.mapVisited": "Countries visited",
+		// The habit tracker's default title: "{month}" is replaced by the
+		// month name (it is not a format string).
+		"pdf.habitsTitle": "Habits · {month}",
 	},
 	ES: {
 		"dialog.importCSV":          "Importar CSV",
@@ -94,5 +97,7 @@ var catalogs = map[Lang]map[string]string{
 
 		"pdf.mapTitle":   "Lugares que he visitado",
 		"pdf.mapVisited": "Países visitados",
+
+		"pdf.habitsTitle": "Hábitos · {month}",
 	},
 }

@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {applyDom, setLang} from './i18n';
-import {pageForms, type PageForm} from './pageForms';
+import {habitList, pageForms, type PageForm} from './pageForms';
 import {parseDefaults} from './pages';
 
 // The moon kind's defaults as PageKinds sends them (Go: sheet.MoonKind).
@@ -404,5 +404,183 @@ describe('visited map form', () => {
         setLang('es');
         expect(region().options[0].textContent).toBe('World');
         expect(swatch('teal').getAttribute('aria-label')).toBe('Teal');
+    });
+});
+
+// kindForm builds the form of kind from defaults (JSON), as the tab does,
+// with element IDs prefixed "test-<kind>".
+function kindForm(kind: string, defaults: string): PageForm {
+    box = document.createElement('div');
+    document.body.replaceChildren(box);
+    onChange = vi.fn();
+    const form = pageForms[kind](box, `test-${kind}`, parseDefaults(defaults), onChange);
+    built.push(form);
+    return form;
+}
+
+describe('month calendar form', () => {
+    // The calendar kind's defaults as PageKinds sends them (Go: sheet.CalendarKind).
+    const CALENDAR_DEFAULTS = '{"month":0,"year":0,"weekStart":"mon"}';
+    const calendarForm = (defaults = CALENDAR_DEFAULTS) => kindForm('calendar', defaults);
+    const weekRadio = (value: string) => q<HTMLButtonElement>(`#test-calendar-weekStart [role="radio"][data-value="${value}"]`);
+    const weekStart = () => box.querySelector<HTMLElement>('#test-calendar-weekStart [role="radio"][aria-checked="true"]')?.dataset.value ?? '';
+
+    it('has Month and Year on one row and Week starts on, the current month and year and Monday by default', () => {
+        const form = calendarForm();
+        const month = q<HTMLSelectElement>('#test-calendar-month');
+        const year = q<HTMLInputElement>('#test-calendar-year');
+        expect(month.closest('.field-pair')).toBe(year.closest('.field-pair'));
+        expect(month.options[10].textContent).toBe('November');
+        expect([month.value, year.value]).toEqual(['11', '2026']);
+
+        const group = q('#test-calendar-weekStart');
+        expect(group.getAttribute('role')).toBe('radiogroup');
+        expect(group.classList.contains('segmented')).toBe(true);
+        expect(document.getElementById(group.getAttribute('aria-labelledby') ?? '')?.textContent).toBe('Week starts on');
+        expect(Array.from(group.querySelectorAll<HTMLElement>('[role="radio"]'), (r) => [r.dataset.value, r.textContent]))
+            .toEqual([['mon', 'Monday'], ['sun', 'Sunday']]);
+        expect(weekStart()).toBe('mon');
+        expect(form.options()).toEqual({month: 11, year: 2026, weekStart: 'mon'});
+    });
+
+    it('starts from explicit defaults and falls back on unknown ones', () => {
+        expect(calendarForm('{"month":2,"year":2024,"weekStart":"sun"}').options()).toEqual({month: 2, year: 2024, weekStart: 'sun'});
+        expect(calendarForm('{"month":13,"year":"soon","weekStart":"wed"}').options()).toEqual({month: 11, year: 2026, weekStart: 'mon'});
+        expect(calendarForm('{"month":').options()).toEqual({month: 11, year: 2026, weekStart: 'mon'});
+    });
+
+    it('sends every change and reports it', () => {
+        const form = calendarForm();
+        const month = q<HTMLSelectElement>('#test-calendar-month');
+        month.value = '2';
+        month.dispatchEvent(new Event('change'));
+        const year = q<HTMLInputElement>('#test-calendar-year');
+        year.value = '2028';
+        year.dispatchEvent(new Event('input'));
+        weekRadio('sun').click();
+        expect(onChange).toHaveBeenCalledTimes(3);
+        expect(form.options()).toEqual({month: 2, year: 2028, weekStart: 'sun'});
+    });
+
+    it('follows a language change, keeping the options, until disposed', () => {
+        const form = calendarForm();
+        weekRadio('sun').click();
+        setLang('es');
+        applyDom(box);
+        expect(q('#test-calendar-month').querySelector('option')?.textContent).toBe('Enero');
+        expect(document.getElementById(q('#test-calendar-weekStart').getAttribute('aria-labelledby') ?? '')?.textContent)
+            .toBe('La semana empieza el');
+        expect(Array.from(q('#test-calendar-weekStart').children, (r) => r.textContent)).toEqual(['Lunes', 'Domingo']);
+        expect(weekStart()).toBe('sun');
+        expect(form.options()).toEqual({month: 11, year: 2026, weekStart: 'sun'});
+
+        form.dispose?.();
+        setLang('en');
+        expect(q('#test-calendar-month').querySelector('option')?.textContent).toBe('Enero');
+        expect(Array.from(q('#test-calendar-weekStart').children, (r) => r.textContent)).toEqual(['Lunes', 'Domingo']);
+    });
+});
+
+describe('habit tracker form', () => {
+    // The habits kind's defaults as PageKinds sends them (Go: sheet.HabitsKind).
+    const HABITS_DEFAULTS = '{"month":0,"year":0,"habits":[]}';
+    const habitsForm = (defaults = HABITS_DEFAULTS) => kindForm('habits', defaults);
+    const habits = () => q<HTMLTextAreaElement>('#test-habits-habits');
+
+    function typeHabits(text: string) {
+        habits().value = text;
+        habits().dispatchEvent(new Event('input'));
+    }
+
+    it('has Month and Year on one row and a Habits textarea, the current month and year and no habits by default', () => {
+        const form = habitsForm();
+        const month = q<HTMLSelectElement>('#test-habits-month');
+        const year = q<HTMLInputElement>('#test-habits-year');
+        expect(month.closest('.field-pair')).toBe(year.closest('.field-pair'));
+        expect([month.value, year.value]).toEqual(['11', '2026']);
+
+        expect(habits().tagName).toBe('TEXTAREA');
+        expect(habits().rows).toBe(5);
+        expect(habits().value).toBe('');
+        expect(habits().closest('.habits-field')).not.toBeNull();
+        expect(box.querySelector(`label[for="${habits().id}"]`)?.textContent).toBe('Habits, one per line');
+        const hint = document.getElementById(habits().getAttribute('aria-describedby') ?? '');
+        expect(hint?.classList.contains('muted')).toBe(true);
+        expect(hint?.textContent).toBe('Up to 40 habits of 60 characters. Leave it empty to write them by hand.');
+        expect(form.options()).toEqual({month: 11, year: 2026, habits: []});
+    });
+
+    it('starts from explicit defaults and falls back on unknown ones', () => {
+        const form = habitsForm('{"month":2,"year":2024,"habits":[" Read ","","Walk"]}');
+        expect(form.options()).toEqual({month: 2, year: 2024, habits: ['Read', 'Walk']});
+        expect(habits().value).toBe('Read\nWalk');
+        expect(habitsForm('{"month":0,"year":0,"habits":"Read"}').options()).toEqual({month: 11, year: 2026, habits: []});
+        expect(habitsForm('{"habits":[1,"Read",null]}').options().habits).toEqual(['Read']);
+        expect(habitsForm('{"month":').options()).toEqual({month: 11, year: 2026, habits: []});
+    });
+
+    const splits: Array<[typed: string, sent: string[]]> = [
+        ['Read\nWalk\nWater', ['Read', 'Walk', 'Water']],
+        ['  Read  \n\n\n Walk \n', ['Read', 'Walk']],
+        ['Read, then sleep', ['Read, then sleep']],
+        ['', []],
+        ['  \n\t\n', []],
+    ];
+    it.each(splits)('sends %j as the habits %j', (typed, sent) => {
+        const form = habitsForm();
+        typeHabits(typed);
+        expect(form.options().habits).toEqual(sent);
+        // The field keeps what the user typed.
+        expect(habits().value).toBe(typed);
+    });
+
+    it('splits Windows and old Mac line breaks too', () => {
+        expect(habitList('Read\r\nWalk\rWater\r\n')).toEqual(['Read', 'Walk', 'Water']);
+    });
+
+    // Go rejects more than 40 habits or a habit over 60 characters: the
+    // form sends what was typed, so the preview shows Go's error instead
+    // of a page silently missing habits.
+    it('sends habits beyond the limits as typed', () => {
+        const form = habitsForm();
+        const many = Array.from({length: 41}, (_, i) => `Habit ${i + 1}`);
+        typeHabits(many.join('\n'));
+        expect(form.options().habits).toEqual(many);
+        const long = 'x'.repeat(61);
+        typeHabits(long);
+        expect(form.options().habits).toEqual([long]);
+    });
+
+    it('reports a change only when the habits change', () => {
+        const form = habitsForm();
+        typeHabits('Read');
+        expect(onChange).toHaveBeenCalledTimes(1);
+        typeHabits('Read\n');
+        typeHabits('Read\n  ');
+        expect(onChange).toHaveBeenCalledTimes(1);
+        typeHabits('Read\nW');
+        expect(onChange).toHaveBeenCalledTimes(2);
+        const month = q<HTMLSelectElement>('#test-habits-month');
+        month.value = '2';
+        month.dispatchEvent(new Event('change'));
+        expect(onChange).toHaveBeenCalledTimes(3);
+        expect(form.options()).toEqual({month: 2, year: 2026, habits: ['Read', 'W']});
+    });
+
+    it('follows a language change, keeping the options, until disposed', () => {
+        const form = habitsForm();
+        typeHabits('Read\nWalk');
+        setLang('es');
+        applyDom(box);
+        expect(q('#test-habits-month').querySelector('option')?.textContent).toBe('Enero');
+        expect(box.querySelector(`label[for="${habits().id}"]`)?.textContent).toBe('Hábitos, uno por línea');
+        expect(document.getElementById(habits().getAttribute('aria-describedby') ?? '')?.textContent)
+            .toBe('Hasta 40 hábitos de 60 caracteres. Déjalo vacío para escribirlos a mano.');
+        expect(habits().value).toBe('Read\nWalk');
+        expect(form.options()).toEqual({month: 11, year: 2026, habits: ['Read', 'Walk']});
+
+        form.dispose?.();
+        setLang('en');
+        expect(q('#test-habits-month').querySelector('option')?.textContent).toBe('Enero');
     });
 });

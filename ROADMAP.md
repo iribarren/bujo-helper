@@ -453,6 +453,20 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 
 **Weakness:** they are generic, free templates are everywhere, and they aren't image-based.
 
+**Done in branch `feat/calendars`** (see `odd/tasks/calendars.md`):
+- Calendar math: days in month (leap years) and a month's week rows for a week start in `internal/sheet/calendar.go` (a57b5fa).
+- Page kinds: `calendar` (Month calendar) with Monday or Sunday week starts (7d8ffdb) and `habits` (Habit tracker) with paginated rows, blank rows when empty and a default title (d7a6b6c); the page count follows the paper through an optional `paperPager.pagesOn`.
+- Make pages forms: Month and Year fields shared with the moon form (88bf494); Week starts on, and Habits one per line with a limits hint, in English and Spanish (b9afcc9).
+- Review fixes: habit names with control characters are normalised, and the habit tracker's A4 page count is never below 1 (7750464).
+- README Month calendar and Habit tracker sections (the `docs:` commit after 7750464).
+- Decisions:
+  - Kind ids `calendar` and `habits`, registered after `moon` and before `map`. Options `month` (1–12), `year` (1900–2100), plus `weekStart` (`mon` | `sun`) or `habits` (a list); a month or year of 0 means the current one, resolved in Go through the injectable clock the moon uses.
+  - At most 40 habits of 60 characters, else an error; the form sends what was typed and Go's error shows in the preview. Each run of control characters or spaces in a habit becomes one space, then the name is trimmed; a habit of only such characters is dropped like a blank.
+  - Default titles: "<Month> <Year>", and "Habits · <Month>" ("Hábitos · <Mes>"); the label is substituted with `strings.ReplaceAll`, never a format string. Titles use the lettering font; weekday names, day numbers and habit names stay in the Go font.
+  - Calendar cells are at most 1.5 times as tall as wide, and the grid is centred; empty leading and trailing cells have no box.
+  - Habit tracker: the name column fits the longest name between 20 mm and 30 % of the width; boxes are square, at most 6 mm; rows are 1.5 boxes high, at least 6 mm; rows that do not fit go on further pages under the repeated title.
+  - Out of scope: weekly spreads, a yearly calendar, days as rows, holidays.
+
 **Scope**
 - Generated print formats **Month calendar** (any month/year; week start Monday or Sunday) and **Habit tracker** (a habit list × the days of the month grid).
 - Sized to fit common bujo pages (A5, B5) and the page sizes the app supports.
