@@ -42,10 +42,16 @@ Quotes and lyrics pages are common bujo collections. Typing quotes by hand is th
 - RDD on (global). First reviewed boundary: `777a3b8`.
 
 ## Tasks
-- [ ] T1 Wikiquote search: `internal/quotes` (client, HTML parsing, section filter, cleaning, limits) with recorded fixtures; `SearchQuotes` binding in `app.go` with a test; regenerated bindings. Route: delegated writer (writer trigger: 3+ non-trivial files).
+- [x] T1 Wikiquote search: `internal/quotes` (client, HTML parsing, section filter, cleaning, limits) with recorded fixtures; `SearchQuotes` binding in `app.go` with a test; regenerated bindings. Route: delegated writer (writer trigger: 3+ non-trivial files).
 - [ ] T2 Page kind `quotes`: `internal/sheet/quotespage.go`, registry entry, `QuotesTitle`/`QuotesCredit` labels wired from i18n; tests. Route: delegated writer.
 - [ ] T3 Make pages form: search, results checklist, own quotes, style, cards per page; i18n EN/ES; vitest. Route: delegated writer.
 - [ ] T4 Docs + verify: README Quote cards section with the licence findings, ROADMAP item 27 notes, full checks, `wails build`. Route: delegated writer + inline state checks.
 
 ## Progress
 - Feature doc created; branch `feat/quote-cards` from `777a3b8`.
+- T1 done (delegated writer). Commits: `8c95a68` feat(quotes): Wikiquote search; `68fe75a` feat(app): SearchQuotes binding. ~1050 authored lines (≈56 % tests; fixtures and generated bindings excluded): over the 400 heuristic because the parser, client and their table tests form one unit.
+  - RED: `go test -tags webkit2_41 ./internal/quotes/` → build failed (undefined: maxQuotes, excludedSection, …); `go test -tags webkit2_41 . -run SearchQuotes` → build failed (a.quotes, a.SearchQuotes undefined).
+  - GREEN: both pass; `go test -tags webkit2_41 ./...` ok, `go vet` clean, `npx tsc --noEmit` clean, no mode changes since `777a3b8`.
+  - Fixtures (`internal/quotes/testdata/`, recorded 2026-11-21 with the contact UA): en/es search "Einstein", en/es parse "Albert Einstein" (en trimmed to 156 KB: figures dropped, ≤4 lists/items per section, every section kept), en no-hit search.
+  - Decisions: headings wrapped in frame divs (en Disputed/Misattributed sit inside `div.disputed-begin-frame`) are walked into so sections still switch. Generic headings (See also, Notes, References, Sources, Bibliography, Further reading and ES equivalents) match exactly, so "Notes from Underground" stays; Disputed/Misattributed/Attributed/Quotes about/About …/Citas sobre/Sobre …/Atribuidas/Dudosas match by prefix, so "Attributed in posthumous publications" is excluded too. Wrapping marks stripped: `" “” „“ «» ‘’`; a full stop after the closing mark (Spanish «…».) moves inside; text with several quoted parts is left alone. `<br>` becomes a space. Matches exclude both the searched best title and the resolved title. Added `ErrEmptyQuery` and i18n keys `err.noQuotes` (`{query}` replaced) and `err.quoteQuery`. `App.quotes` (`*quotes.Client`) is built from the app's HTTP client; SearchQuotes uses a 20 s timeout from `a.ctx` (Background in tests).
+  - Next: T2 page kind `quotes`.
