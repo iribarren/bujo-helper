@@ -90,6 +90,20 @@ func (fs *fixtureServer) parsedPages() []string {
 	return slices.Clone(fs.pages)
 }
 
+// requestPaths returns the path of each request so far.
+func (fs *fixtureServer) requestPaths() []string {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	return slices.Clone(fs.paths)
+}
+
+// userAgents returns the User-Agent of each request so far.
+func (fs *fixtureServer) userAgents() []string {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	return slices.Clone(fs.agents)
+}
+
 func (fs *fixtureServer) client() *Client {
 	return &Client{HTTP: fs.Server.Client(), APIURL: func(lang string) string { return fs.URL + "/" + lang }}
 }
@@ -176,8 +190,8 @@ func TestSearchFindsQuotes(t *testing.T) {
 					}
 				}
 			}
-			if !slices.Equal(fs.pages, []string{"Albert Einstein"}) {
-				t.Errorf("parsed pages %q, want the best search title", fs.pages)
+			if pages := fs.parsedPages(); !slices.Equal(pages, []string{"Albert Einstein"}) {
+				t.Errorf("parsed pages %q, want the best search title", pages)
 			}
 		})
 	}
@@ -188,10 +202,11 @@ func TestSearchSendsContactUserAgent(t *testing.T) {
 	if _, err := fs.client().Search(context.Background(), "Einstein", "en"); err != nil {
 		t.Fatal(err)
 	}
-	if len(fs.agents) != 2 {
-		t.Fatalf("got %d requests, want search + parse", len(fs.agents))
+	agents := fs.userAgents()
+	if len(agents) != 2 {
+		t.Fatalf("got %d requests, want search + parse", len(agents))
 	}
-	for _, ua := range fs.agents {
+	for _, ua := range agents {
 		if ua != web.ContactUserAgent {
 			t.Errorf("User-Agent = %q, want %q", ua, web.ContactUserAgent)
 		}
@@ -206,8 +221,9 @@ func TestSearchFallsBackToEnglish(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !strings.HasPrefix(got.URL, "https://en.wikiquote.org/") || fs.paths[0] != "/en" {
-				t.Errorf("URL %q, request path %q; want English", got.URL, fs.paths[0])
+			paths := fs.requestPaths()
+			if !strings.HasPrefix(got.URL, "https://en.wikiquote.org/") || len(paths) == 0 || paths[0] != "/en" {
+				t.Errorf("URL %q, request paths %q; want English", got.URL, paths)
 			}
 		})
 	}
@@ -277,8 +293,8 @@ func TestSearchEmptyQueryMakesNoRequest(t *testing.T) {
 	if !errors.Is(err, ErrEmptyQuery) {
 		t.Errorf("err = %v, want ErrEmptyQuery", err)
 	}
-	if len(fs.paths) != 0 {
-		t.Errorf("made %d requests, want none", len(fs.paths))
+	if paths := fs.requestPaths(); len(paths) != 0 {
+		t.Errorf("made %d requests, want none", len(paths))
 	}
 }
 

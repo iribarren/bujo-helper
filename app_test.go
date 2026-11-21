@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -1983,8 +1984,9 @@ func TestDefaultAppNatureUsesTheSavedBHLKey(t *testing.T) {
 // wikiquoteStub answers the Wikiquote API: a search for "Einstein" finds
 // one page with one quote, "Quiet" finds two pages without quotes and
 // anything else finds nothing. It records the
-// language path of each request.
-func wikiquoteStub(t *testing.T) (*httptest.Server, *[]string) {
+// language path of each request; the returned function reads them under
+// the handler's lock.
+func wikiquoteStub(t *testing.T) (*httptest.Server, func() []string) {
 	t.Helper()
 	var mu sync.Mutex
 	var langs []string
@@ -2007,7 +2009,11 @@ func wikiquoteStub(t *testing.T) (*httptest.Server, *[]string) {
 		}
 	}))
 	t.Cleanup(srv.Close)
-	return srv, &langs
+	return srv, func() []string {
+		mu.Lock()
+		defer mu.Unlock()
+		return slices.Clone(langs)
+	}
 }
 
 func TestSearchQuotes(t *testing.T) {
@@ -2049,8 +2055,8 @@ func TestSearchQuotes(t *testing.T) {
 					t.Errorf("SearchQuotes = %+v, want %+v", got, want)
 				}
 			}
-			if tt.wantLang != "" && (len(*langs) == 0 || (*langs)[0] != tt.wantLang) {
-				t.Errorf("requests went to %q, want %q", *langs, tt.wantLang)
+			if got := langs(); tt.wantLang != "" && (len(got) == 0 || got[0] != tt.wantLang) {
+				t.Errorf("requests went to %q, want %q", got, tt.wantLang)
 			}
 		})
 	}
