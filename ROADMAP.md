@@ -277,11 +277,11 @@ There is a reliable image source, and the item fits how the app already works: a
 
 Useful, but either demand is less proven or the item adds a new kind of printable to the app.
 
-## 18. [ ] Moon phase calendar
+## 18. [x] Moon phase calendar (82e96c5)
 
 **Why:** moon phase trackers are a common bujo spread (no search result confirmed it). They need no network and no licensing.
 
-**Done in branch `feat/moon-calendar`** (see `odd/tasks/moon-calendar.md`):
+**Done in branch `feat/moon-calendar`**, merged in 82e96c5 (see `odd/tasks/moon-calendar.md`):
 - Phases: true new and full moons and the per-day phase in `internal/sheet/moon.go`, checked against the USNO 2024 table (86f7cc8).
 - Page kind: `moon` in `PageKinds` with the Row, Grid and Year layouts, hemisphere mirroring, Colour-in outline moons, localized labels and a default title (2819df6); a current year outside 1900–2100 (a wrong clock) is an error (bf57b36).
 - Make pages form: Month, Year, Layout and Hemisphere, in English and Spanish (2aa7b00); a partial year commit restores the last valid year, and the form's language listener can be disposed (c257874); order-independent tab tests (6164387).
