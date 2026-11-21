@@ -982,6 +982,34 @@ textarea {
     flex-shrink: 0;
 }
 
+/* Visited countries: a short list in the UI font that wraps. */
+.map-countries-field textarea {
+    height: auto;
+    min-height: 0;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    white-space: pre-wrap;
+}
+
+.map-countries-field .field-hint {
+    margin: 0;
+}
+
+/* A segmented radio that shows a colour dot instead of a label. */
+.segmented .swatch-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 15%);
+}
+
 /* Why an option group has nothing to set, e.g. a format without a header. */
 .group-hint {
     margin: 0;
@@ -1118,12 +1146,15 @@ textarea {
     color: var(--muted);
 }
 
-/* Colour-in: the checkbox and its label, then a hint under the label. */
-.field.colour-in-field {
+/* Colour-in, List countries: the checkbox and its label, then a hint
+   under the label. */
+.field.colour-in-field,
+.field.check-hint-field {
     gap: 2px;
 }
 
-.colour-in-field .check-row {
+.colour-in-field .check-row,
+.check-hint-field .check-row {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1132,14 +1163,16 @@ textarea {
     cursor: pointer;
 }
 
-.colour-in-field .check-row input {
+.colour-in-field .check-row input,
+.check-hint-field .check-row input {
     width: 16px;
     height: 16px;
     margin: 0;
     accent-color: var(--accent);
 }
 
-.colour-in-field .field-hint {
+.colour-in-field .field-hint,
+.check-hint-field .field-hint {
     margin: 0 0 0 24px;
     font-size: 12px;
 }

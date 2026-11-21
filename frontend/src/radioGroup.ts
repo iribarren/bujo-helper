@@ -8,6 +8,9 @@ export interface RadioOption {
     label: string;
     // The tooltip; the label when there is none.
     title?: string;
+    // A CSS colour: the radio shows a dot of it instead of the label, which
+    // becomes its accessible name.
+    swatch?: string;
 }
 
 export interface RadioGroup {
@@ -65,7 +68,17 @@ export function initRadioGroup(container: HTMLElement, onChange: () => void): Ra
             radio.className = 'radio-button';
             radio.setAttribute('role', 'radio');
             radio.dataset.value = option.value;
-            radio.textContent = option.label;
+            if (option.swatch === undefined) {
+                radio.textContent = option.label;
+            } else {
+                radio.classList.add('swatch-button');
+                radio.setAttribute('aria-label', option.label);
+                const dot = document.createElement('span');
+                dot.className = 'swatch';
+                dot.setAttribute('aria-hidden', 'true');
+                dot.style.backgroundColor = option.swatch;
+                radio.append(dot);
+            }
             radio.title = option.title ?? option.label;
             radio.disabled = disabled;
             radio.addEventListener('click', () => pick(i, false));

@@ -22,6 +22,10 @@ const {kinds, papers, cuts, fonts} = vi.hoisted(() => ({
             id: 'moon', label: 'Moon calendar', usesCut: false, usesTitle: true,
             defaults: '{"month":0,"year":0,"layout":"grid","hemisphere":"north"}', default: false,
         },
+        {
+            id: 'map', label: 'Visited map', usesCut: false, usesTitle: true,
+            defaults: '{"region":"world","countries":[],"colour":"teal","list":true}', default: false,
+        },
         {id: 'cutout', label: 'Cut-out', usesCut: true, usesTitle: false, defaults: '{}', default: false},
     ],
     papers: [
@@ -137,7 +141,7 @@ describe('page kinds', () => {
     it('are listed from PageKinds in a radio group, the default checked', () => {
         const group = el('pages-kinds');
         expect(group.getAttribute('role')).toBe('radiogroup');
-        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Cut-out']);
+        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Visited map', 'Cut-out']);
         expect(checked('pages-kinds')).toBe('dotgrid');
         expect(el('pages-kind-title').textContent).toBe('Dot grid');
     });
@@ -164,6 +168,7 @@ describe('page kinds', () => {
             expect(radio('pages-kinds', 'dotgrid').textContent).toBe('Cuadrícula de puntos');
             expect(el('pages-kind-title').textContent).toBe('Cuadrícula de puntos');
             expect(radio('pages-kinds', 'moon').textContent).toBe('Calendario lunar');
+            expect(radio('pages-kinds', 'map').textContent).toBe('Mapa de viajes');
             // A kind without a translation keeps the Go label.
             expect(radio('pages-kinds', 'cutout').textContent).toBe('Cut-out');
         } finally {
@@ -290,6 +295,62 @@ describe('moon calendar form', () => {
         await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('moon'));
         expect(JSON.parse(lastPreviewPage()[2])).toEqual(chosen);
         expect(el<HTMLInputElement>('pages-moon-year').value).toBe('2001');
+    });
+});
+
+describe('visited map form', () => {
+    const defaults = {region: 'world', countries: [], colour: 'teal', list: true};
+
+    // setMap sets the map form's options as the user does.
+    function setMap(options: {region: string; countries: string; colour: string; list: boolean}) {
+        const region = el<HTMLSelectElement>('pages-map-region');
+        region.value = options.region;
+        region.dispatchEvent(new Event('change'));
+        const countries = el<HTMLTextAreaElement>('pages-map-countries');
+        countries.value = options.countries;
+        countries.dispatchEvent(new Event('input'));
+        radio('pages-map-colour', options.colour).click();
+        const list = el<HTMLInputElement>('pages-map-list');
+        if (list.checked !== options.list) list.click();
+    }
+
+    // The tab builds the form on first use, in whichever test runs first;
+    // each test leaves it at its defaults again.
+    beforeEach(() => {
+        radio('pages-kinds', 'map').click();
+    });
+
+    afterEach(() => {
+        setMap({region: 'world', countries: '', colour: 'teal', list: true});
+    });
+
+    it('previews the world with no countries by default', async () => {
+        expect(el('pages-kind-title').textContent).toBe('Visited map');
+        expect(el('pages-form-map').hidden).toBe(false);
+        expect(el('pages-form-moon').hidden).toBe(true);
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('map'));
+        expect(JSON.parse(lastPreviewPage()[2])).toEqual(defaults);
+        // The map prints the shared title.
+        expect(el('pages-title-field').hidden).toBe(false);
+    });
+
+    it('previews the chosen options', async () => {
+        setMap({region: 'europe', countries: 'Spain, Portugal\nFR', colour: 'coral', list: false});
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2]))
+            .toEqual({region: 'europe', countries: ['Spain', 'Portugal', 'FR'], colour: 'coral', list: false}));
+        expect(lastPreviewPage()[0]).toBe('map');
+    });
+
+    it('keeps its options while another kind is shown', async () => {
+        setMap({region: 'oceania', countries: 'Australia; NZ', colour: 'lavender', list: false});
+        const chosen = {region: 'oceania', countries: ['Australia', 'NZ'], colour: 'lavender', list: false};
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual(chosen));
+        radio('pages-kinds', 'dotgrid').click();
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('dotgrid'));
+        radio('pages-kinds', 'map').click();
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('map'));
+        expect(JSON.parse(lastPreviewPage()[2])).toEqual(chosen);
+        expect(el<HTMLTextAreaElement>('pages-map-countries').value).toBe('Australia; NZ');
     });
 });
 

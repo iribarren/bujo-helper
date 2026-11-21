@@ -106,4 +106,29 @@ describe('initRadioGroup', () => {
         group.disabled = false;
         for (const option of OPTIONS) expect(radio(option.value).disabled).toBe(false);
     });
+
+    it('shows a colour dot named by its label for a swatch option', () => {
+        group.replaceOptions([
+            {value: 'teal', label: 'Teal', swatch: '#2a9d8f'},
+            {value: 'coral', label: 'Coral', title: 'Coral fill', swatch: '#ee8466'},
+        ]);
+        const teal = radio('teal');
+        expect(teal.classList.contains('swatch-button')).toBe(true);
+        expect(teal.getAttribute('aria-label')).toBe('Teal');
+        expect(teal.title).toBe('Teal');
+        expect(radio('coral').title).toBe('Coral fill');
+        const dot = teal.querySelector<HTMLElement>('.swatch');
+        expect(dot?.getAttribute('aria-hidden')).toBe('true');
+        expect(dot?.style.backgroundColor).toBe('rgb(42, 157, 143)');
+        expect(teal.textContent).toBe('');
+        radio('coral').click();
+        expect(group.value).toBe('coral');
+        expect(radio('coral').getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('keeps plain options as text buttons', () => {
+        expect(radio('books').classList.contains('swatch-button')).toBe(false);
+        expect(radio('books').hasAttribute('aria-label')).toBe(false);
+        expect(radio('books').children).toHaveLength(0);
+    });
 });

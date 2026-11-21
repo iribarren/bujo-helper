@@ -1089,13 +1089,17 @@ func (a *App) withLabels(opts sheet.Options) sheet.Options {
 }
 
 // withPageLabels returns page with the labels of generated pages (month and
-// weekday names, moon marks) in the UI language.
+// weekday names, moon marks, the visited map's title and caption) and the
+// language of country names in the UI language.
 func (a *App) withPageLabels(page sheet.PageSettings) sheet.PageSettings {
 	page.Labels = sheet.PageLabels{
-		Months:   strings.Split(a.t("pdf.months"), ","),
-		Weekdays: strings.Split(a.t("pdf.weekdays"), ","),
-		NewMoon:  a.t("pdf.moonNew"),
-		FullMoon: a.t("pdf.moonFull"),
+		Months:     strings.Split(a.t("pdf.months"), ","),
+		Weekdays:   strings.Split(a.t("pdf.weekdays"), ","),
+		NewMoon:    a.t("pdf.moonNew"),
+		FullMoon:   a.t("pdf.moonFull"),
+		MapTitle:   a.t("pdf.mapTitle"),
+		MapVisited: a.t("pdf.mapVisited"),
+		Language:   string(a.language()),
 	}
 	return page
 }
