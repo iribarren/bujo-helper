@@ -62,3 +62,4 @@ Monthly calendars and habit trackers are core bujo pages. Drawing a correct grid
 - Next: parent RDD assessment of `b8a6f76..` the T3 record commit (base: the last reviewed boundary `b8a6f76`), then the user's GUI check and the local `--no-ff` merge; add the merge commit to ROADMAP item 28 and check it.
 - Assess `b8a6f76..607819c` (T3, medium, 189 lines): `review_due` false, `under_budget`, so the slice stays pending below the delivery budget and no review ran. Parent spot check: `go test ./internal/sheet/` 1709 passed.
 - Next: the user checks the app by hand, then a local `--no-ff` merge to main, then ROADMAP item 28 is marked `[x]` with the merge hash.
+- Done: user GUI-checked; merged to main in `e2502a4`; ROADMAP item 28 marked `[x]`.

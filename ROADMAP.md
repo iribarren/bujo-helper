@@ -447,13 +447,13 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 **Acceptance**
 - Text auto-fits each card without overflow. Layout tests.
 
-## 28. [ ] Habit trackers and calendars
+## 28. [x] Habit trackers and calendars (e2502a4)
 
 **Why:** monthly calendars and habit trackers are core bujo pages.
 
 **Weakness:** they are generic, free templates are everywhere, and they aren't image-based.
 
-**Done in branch `feat/calendars`** (see `odd/tasks/calendars.md`):
+**Done in branch `feat/calendars`**, merged in e2502a4 (see `odd/tasks/calendars.md`):
 - Calendar math: days in month (leap years) and a month's week rows for a week start in `internal/sheet/calendar.go` (a57b5fa).
 - Page kinds: `calendar` (Month calendar) with Monday or Sunday week starts (7d8ffdb) and `habits` (Habit tracker) with paginated rows, blank rows when empty and a default title (d7a6b6c); the page count follows the paper through an optional `paperPager.pagesOn`.
 - Make pages forms: Month and Year fields shared with the moon form (88bf494); Week starts on, and Habits one per line with a limits hint, in English and Spanish (b9afcc9).
