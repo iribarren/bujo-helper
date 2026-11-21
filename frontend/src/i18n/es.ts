@@ -188,6 +188,19 @@ export const es: Messages = {
     'pages.noTitle': 'Esta página no imprime título.',
     'pages.dotSpacing': 'Separación de puntos',
     'pages.dotSpacingTitle': 'Distancia entre los centros de los puntos.',
+    'pages.month': 'Mes',
+    'pages.year': 'Año',
+    'pages.yearTitle': 'Un año entre 1900 y 2100.',
+    'pages.months': 'Enero,Febrero,Marzo,Abril,Mayo,Junio,Julio,Agosto,Septiembre,Octubre,Noviembre,Diciembre',
+    'pages.moonLayout': 'Diseño',
+    'pages.moonLayoutTitle': 'Fila: una línea por día. Cuadrícula: un calendario del mes. Año: el año entero, una fila por mes.',
+    'pages.layoutRow': 'Fila',
+    'pages.layoutGrid': 'Cuadrícula',
+    'pages.layoutYear': 'Año',
+    'pages.hemisphere': 'Hemisferio',
+    'pages.hemisphereTitle': 'Cambia qué lado de la luna aparece iluminado.',
+    'pages.north': 'Norte',
+    'pages.south': 'Sur',
     'pages.saved': 'Guardado {file}: {pages}',
     'pages.savedFile': 'Guardado {file}',
     'pages.errKinds': 'No se han podido cargar los tipos de página: {error}',
@@ -223,6 +236,7 @@ export const es: Messages = {
 
     // Page kinds (Go: sheet.PageKinds), by ID.
     'pageKind.dotgrid': 'Cuadrícula de puntos',
+    'pageKind.moon': 'Calendario lunar',
 
     // Print formats (Go: sheet.Formats), by ID, and what each prints.
     'format.covers': 'Hoja de portadas',

@@ -170,6 +170,14 @@ describe('dictionaries', () => {
         }
     });
 
+    it('name the twelve months, in order, in both languages', () => {
+        for (const messages of [en, es]) {
+            const months = messages['pages.months'].split(',');
+            expect(months).toHaveLength(12);
+            for (const name of months) expect(name.trim()).toBe(name);
+        }
+    });
+
     it('give every plural an _other form', () => {
         for (const key of Object.keys(en)) {
             if (key.endsWith('_one')) expect(en, key).toHaveProperty([key.replace(/_one$/, '_other')]);
