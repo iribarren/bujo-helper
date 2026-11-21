@@ -538,11 +538,11 @@ Order: 29 → 30 → 31, then the generated printables.
 **Acceptance**
 - The preview matches the exported PDF (same bytes for the same options). Changing an option updates it within about a second for a one-page document. The licence for pdf.js is recorded in the README.
 
-## 31. [ ] Lettering fonts and hollow letters
+## 31. [x] Lettering fonts and hollow letters (d492a1d)
 
 **Why:** hand lettering is central to bujo headers, and printed headers in a plain sans font look out of place on a hand-drawn spread. Hollow (outline-only) letters let the user colour headers by hand, the same way they colour bubble lettering drawn with a pen.
 
-**Done in branch `feat/lettering-fonts`** (see `odd/tasks/lettering-fonts.md`):
+**Done in branch `feat/lettering-fonts`**, merged in d492a1d (see `odd/tasks/lettering-fonts.md`):
 - Registry and delivery: ten fonts embedded in `internal/sheet/fonts/<id>/` with their licences, a registry (`LetteringFonts`, `LetteringFont`, `LetteringFontByID`), the `LetteringFonts()` binding, and `internal/fonts` serving `/fonts/<id>.ttf` and `/fonts/<id>/licence` next to `/thumbs` and `/preview` (6266d44); a content-hash ETag so cached fonts revalidate after an upgrade, and the id charset asserted (64c77bb).
 - PDF: `Font` and `ColourIn` on `Options` and `PageSettings`; Full page and Checklist headers, the Dot grid title and Review card titles draw in the chosen font, hollow with Colour-in; the credits page gains a Fonts section (867dd0a).
 - UI: the font picker listbox and Colour-in controls (7ce9e03), wired into the Lettering fieldset of Print covers and Make pages (b22d7e7).
