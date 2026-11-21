@@ -43,6 +43,14 @@ type PageLabels struct {
 	Weekdays []string // the 7 short weekday names, Monday first
 	NewMoon  string   // the new moon mark; "New"
 	FullMoon string   // the full moon mark; "Full"
+	// MapTitle is the visited map's default title; "Places I've been".
+	MapTitle string
+	// MapVisited is the caption of the visited map's country list;
+	// "Countries visited".
+	MapVisited string
+	// Language is the language of country names: "es" prints the Spanish
+	// ones, anything else the English ones ("en").
+	Language string
 }
 
 // englishWeekdays are the default short weekday names, Monday first.
@@ -72,11 +80,23 @@ func (l PageLabels) resolved() PageLabels {
 		months[i] = time.Month(i + 1).String()
 	}
 	return PageLabels{
-		Months:   list(l.Months, months),
-		Weekdays: list(l.Weekdays, englishWeekdays),
-		NewMoon:  or(l.NewMoon, "New"),
-		FullMoon: or(l.FullMoon, "Full"),
+		Months:     list(l.Months, months),
+		Weekdays:   list(l.Weekdays, englishWeekdays),
+		NewMoon:    or(l.NewMoon, "New"),
+		FullMoon:   or(l.FullMoon, "Full"),
+		MapTitle:   or(l.MapTitle, "Places I've been"),
+		MapVisited: or(l.MapVisited, "Countries visited"),
+		Language:   nameLanguage(l.Language),
 	}
+}
+
+// nameLanguage is "es" for Spanish (any case, spaces trimmed) and "en" for
+// anything else.
+func nameLanguage(s string) string {
+	if strings.EqualFold(strings.TrimSpace(s), "es") {
+		return "es"
+	}
+	return "en"
 }
 
 // PageKind is a kind of generated page.
@@ -133,6 +153,14 @@ var PageKinds = []PageKind{
 		UsesTitle: true,
 		Defaults:  defaultMoon,
 		decode:    decodeMoon,
+	},
+	{
+		ID:        MapKind,
+		Label:     "Visited map",
+		FileTag:   "map",
+		UsesTitle: true,
+		Defaults:  defaultMap,
+		decode:    decodeMap,
 	},
 }
 

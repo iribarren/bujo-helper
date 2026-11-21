@@ -161,6 +161,8 @@ func TestPreviewPageRejectsBadSettings(t *testing.T) {
 		{"unknown option", "dotgrid", sheet.PageSettings{}, `{"dots":"round"}`, `"dots"`},
 		{"bad spacing", "dotgrid", sheet.PageSettings{}, `{"spacing":8}`, "8"},
 		{"not JSON", "dotgrid", sheet.PageSettings{}, `{`, "page options"},
+		{"unknown country", "map", sheet.PageSettings{}, `{"countries":["Atlantis"]}`, `"Atlantis"`},
+		{"unknown map region", "map", sheet.PageSettings{}, `{"region":"mars"}`, `"mars"`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

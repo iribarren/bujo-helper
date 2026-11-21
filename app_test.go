@@ -646,6 +646,7 @@ func TestPageKinds(t *testing.T) {
 	want := []PageKindInfo{
 		{ID: "dotgrid", Label: "Dot grid", UsesTitle: true, Defaults: `{"spacing":5}`, Default: true},
 		{ID: "moon", Label: "Moon calendar", UsesTitle: true, Defaults: `{"month":0,"year":0,"layout":"grid","hemisphere":"north"}`},
+		{ID: "map", Label: "Visited map", UsesTitle: true, Defaults: `{"region":"world","countries":[],"colour":"teal","list":true}`},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("PageKinds()= %+v, want %+v", got, want)
@@ -1812,6 +1813,40 @@ func TestPageLabelsFollowTheUILanguage(t *testing.T) {
 	}
 	if got.Paper != page.Paper || got.Title != page.Title {
 		t.Errorf("withPageLabels changed the other settings: %+v", got)
+	}
+	if en.MapTitle != "Places I've been" || en.MapVisited != "Countries visited" || en.Language != "en" {
+		t.Errorf("English map labels = %+v", en)
+	}
+	if es.MapTitle != "Lugares que he visitado" || es.MapVisited != "Países visitados" || es.Language != "es" {
+		t.Errorf("Spanish map labels = %+v", es)
+	}
+}
+
+// A visited map previews exactly as it exports, and its default title,
+// caption and country names follow the UI language.
+func TestPreviewVisitedMap(t *testing.T) {
+	pinPDFOutput(t)
+	const options = `{"region":"europe","countries":["Spain","Germany"]}`
+	page := sheet.PageSettings{Paper: "a5"}
+	render := func(lang string) []byte {
+		a := newApp(media.NewRegistry(), http.DefaultClient)
+		a.SetLanguage(lang)
+		info, err := a.PreviewPage("map", page, options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.Pages != 1 {
+			t.Errorf("%s: Pages = %d, want 1", lang, info.Pages)
+		}
+		_, _, got := fetch(t, a, info.URL)
+		want := exportBytes(t, func() (string, error) { return a.ExportPage("map", "", page, options) })
+		if !bytes.Equal(got, want) {
+			t.Errorf("%s: preview (%d bytes) differs from the export (%d bytes)", lang, len(got), len(want))
+		}
+		return got
+	}
+	if bytes.Equal(render("en"), render("es")) {
+		t.Error("the Spanish visited map is the English one")
 	}
 }
 

@@ -49,6 +49,10 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.weekdays": "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
 		"pdf.moonNew":  "New",
 		"pdf.moonFull": "Full",
+		// The visited map's default title and the caption of its country
+		// list.
+		"pdf.mapTitle":   "Places I've been",
+		"pdf.mapVisited": "Countries visited",
 	},
 	ES: {
 		"dialog.importCSV":          "Importar CSV",
@@ -87,5 +91,8 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.weekdays": "Lun,Mar,Mié,Jue,Vie,Sáb,Dom",
 		"pdf.moonNew":  "Nueva",
 		"pdf.moonFull": "Llena",
+
+		"pdf.mapTitle":   "Lugares que he visitado",
+		"pdf.mapVisited": "Países visitados",
 	},
 }
