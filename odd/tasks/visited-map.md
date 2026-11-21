@@ -43,10 +43,16 @@ A map with the visited countries coloured in is one of the most common travel sp
 - RDD on (global). First reviewed boundary: `b954bbe`.
 
 ## Tasks
-- [ ] T1 Map data: generator (download pinned NE 50m, simplify, quantize, encode), embedded dataset, decoder, country matching + aliases; tests (decode integrity, matching EN/ES/ISO/aliases/unknown/ambiguous). Route: delegated writer (writer trigger: generator + data + matcher + tests).
+- [x] T1 Map data: generator (download pinned NE 50m, simplify, quantize, encode), embedded dataset, decoder, country matching + aliases; tests (decode integrity, matching EN/ES/ISO/aliases/unknown/ambiguous). Route: delegated writer (writer trigger: generator + data + matcher + tests).
 - [ ] T2 Map page kind: projections, region views, clipping, drawing, small-country markers, country list, labels + app wiring, registry entry; tests (projection, bounds per region × paper, filled countries, Colour-in, default title). Route: delegated writer.
 - [ ] T3 Make pages form: Region / Visited countries / Colour / List, i18n EN/ES, vitest. Route: delegated writer.
 - [ ] T4 Docs + verify: README Visited map section (data source, licence, projections, matching), ROADMAP item 16 notes, full checks, `wails build`. Route: delegated writer + inline state checks.
 
 ## Progress
 - Feature doc created; branch `feat/visited-map` from `b954bbe`.
+- T1 done (delegated writer). Commits `b509bb0` feat(sheet): embedded Natural Earth country data; `817fd6f` feat(sheet): visited country matching. ~1370 authored lines incl. tests (over the 400 heuristic: generator + format + matcher + tests are one data unit).
+  - Files: `internal/sheet/mapdata/format.go` (package `mapdata`: `Encode`/`Decode`, shared by generator and sheet), `internal/sheet/mapdata/countries.bin` (embedded), `internal/sheet/mapgen/main.go` (`//go:build ignore`, `go generate` in `internal/sheet`), `internal/sheet/mapdata.go` (`mapCountries()`, `mapCountryByISO3`), `internal/sheet/mapmatch.go` (`matchCountries`, `normalizeCountry`, `countryAliases`).
+  - Data: natural-earth-vector **v5.1.2** `ne_50m_admin_0_countries.geojson` (sha256 3e458fc0...7fdeb); 241 countries (ATA dropped), 1502 rings, 48917 points; Douglas–Peucker 0.02°, quantized 0.001° (0.01° would erase Vatican/Monaco), zigzag-delta varints, gzip: **146,630 bytes**. Deterministic (download and local runs byte-identical). Decoded rings are closed; outer rings and holes are flat per country (fill with even-odd). Micro-states whose rings all collapse keep their largest ring unsimplified.
+  - ISO codes: `_EH` fallback only when no other feature owns the code natively (Indian Ocean Ter. and Ashmore and Cartier lose AU/AUS); Taiwan TW (NE ISO_A2 is "CN-TW"); Kosovo XK, no ISO3 (alias XKX); Somaliland, N. Cyprus, Siachen have no codes (match by name).
+  - Matching: x/text `norm` (already a direct dep) + small fold table; `&` = "and", leading "the" dropped. Only NE key collision: ES "San Martín" (Saint Martin / Sint Maarten), left ambiguous. "Congo" = Republic of the Congo. Aliases keyed by NE NAME, test checks targets exist and no alias shadows another country.
+  - RED/GREEN: format, data and matching tests each failed to compile first, then passed. Checks: `go test -tags webkit2_41 ./...` 1818 passed; `go vet` clean; `gofmt -l internal/` empty.
