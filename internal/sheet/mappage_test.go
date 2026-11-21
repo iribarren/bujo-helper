@@ -419,7 +419,8 @@ func TestMapSheetListOverflow(t *testing.T) {
 
 // When no size and column count fit, layoutMapList cuts names too wide for
 // their column with an ellipsis and, when they still do not all fit, ends
-// with "+K", the K names left out. No text leaves the box or its width.
+// with "+K", the K names left out; a box too short for one row of names
+// holds the caption alone. No text ever leaves the box or its own width.
 func TestLayoutMapListTruncates(t *testing.T) {
 	labels := PageLabels{}.resolved()
 	numbered := func(n, runes int) []string {
@@ -441,6 +442,8 @@ func TestLayoutMapListTruncates(t *testing.T) {
 		{"too wide: ellipsis", numbered(4, 60), 10, []string{"00x…", "01x…", "02x…", "03x…"}},
 		{"too many: +K", numbered(20, 6), 3, append(numbered(11, 6), "+9")},
 		{"too wide and too many", numbered(9, 60), 2, []string{"00x…", "01x…", "02x…", "03x…", "04x…", "05x…", "06x…", "+2"}},
+		{"no room for a row", numbered(5, 6), 0.5, nil},
+		{"no room at all", numbered(5, 6), 0, nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

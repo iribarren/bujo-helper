@@ -323,7 +323,8 @@ func sortedNames(names []string) []string {
 // down to mapListMinSize) at which every name fits. If none does, the
 // names take mapMaxColumns at mapListMinSize at most, cut short with an
 // ellipsis, and when they still do not all fit, the last cell reads "+K",
-// the K names left out.
+// the K names left out. A box too short for one row holds the caption
+// alone: no text ever leaves the box.
 func layoutMapList(box Box, labels PageLabels, names []string, measure measureFunc) []moonText {
 	texts := []moonText{{
 		Text: labels.MapVisited + ": " + strconv.Itoa(len(names)),
@@ -363,7 +364,12 @@ func layoutMapList(box Box, labels PageLabels, names []string, measure measureFu
 			}
 		}
 	}
-	rows := max(int(avail/lineHeight(mapListMinSize)+1e-9), 1)
+	rows := int(avail/lineHeight(mapListMinSize) + 1e-9)
+	if rows < 1 {
+		// No room for a row: the caption alone (it has the count). The
+		// sheet leaves the list far more room than this; see sheet.
+		return texts
+	}
 	cols := mapMinColumns
 	for cols < mapMaxColumns && n > rows*cols {
 		cols++
