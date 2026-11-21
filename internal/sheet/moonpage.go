@@ -76,7 +76,8 @@ type MoonOptions struct {
 var defaultMoon = MoonOptions{Layout: MoonGrid, Hemisphere: MoonNorth}
 
 // decodeMoon decodes moon calendar options, like decodeOptions, and
-// resolves a month or year of 0 to the current one in moonLocation.
+// resolves a month or year of 0 to the current one in moonLocation. A
+// current year outside MinMoonYear–MaxMoonYear (a wrong clock) is an error.
 func decodeMoon(raw json.RawMessage) (pageDoc, error) {
 	doc, err := decodeOptions(defaultMoon)(raw)
 	if err != nil {
@@ -89,6 +90,9 @@ func decodeMoon(raw json.RawMessage) (pageDoc, error) {
 	}
 	if o.Year == 0 {
 		o.Year = now.Year()
+		if o.Year < MinMoonYear || o.Year > MaxMoonYear {
+			return nil, fmt.Errorf("moon calendar: the current year %d is not %d to %d; choose a year", o.Year, MinMoonYear, MaxMoonYear)
+		}
 	}
 	return o, nil
 }

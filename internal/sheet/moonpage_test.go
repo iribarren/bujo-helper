@@ -90,6 +90,37 @@ func TestMoonOptionsCurrentMonthInTheLocalZone(t *testing.T) {
 	}
 }
 
+// A current year outside 1900–2100 (a wrong system clock) is rejected like
+// an explicit one; an explicit year does not depend on the clock.
+func TestMoonOptionsCurrentYearOutOfRange(t *testing.T) {
+	tests := []struct {
+		name    string
+		now     time.Time
+		raw     string
+		wantErr string // part of the error; "" for none
+	}{
+		{"clock before 1900", time.Date(1899, 6, 1, 12, 0, 0, 0, time.UTC), `{"year":0}`, "1899"},
+		{"clock after 2100", time.Date(2101, 6, 1, 12, 0, 0, 0, time.UTC), "", "2101"},
+		{"explicit year, clock after 2100", time.Date(2150, 6, 1, 12, 0, 0, 0, time.UTC), `{"month":1,"year":2024}`, ""},
+		{"clock on the last year", time.Date(2100, 12, 31, 12, 0, 0, 0, time.UTC), "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fixMoonClock(t, tt.now)
+			_, err := decodeMoon(json.RawMessage(tt.raw))
+			if tt.wantErr == "" {
+				if err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("err = %v, want one containing %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestMoonRegistryEntry(t *testing.T) {
 	k, err := PageKindByID(MoonKind)
 	if err != nil {
