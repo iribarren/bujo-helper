@@ -155,7 +155,7 @@ func TestPreviewPageRejectsBadSettings(t *testing.T) {
 		options string
 		want    string
 	}{
-		{"unknown kind", "moon", sheet.PageSettings{}, "", `"moon"`},
+		{"unknown kind", "starmap", sheet.PageSettings{}, "", `"starmap"`},
 		{"unknown paper", "dotgrid", sheet.PageSettings{Paper: "a3"}, "", `"a3"`},
 		{"unknown cut", "dotgrid", sheet.PageSettings{Cut: "zigzag"}, "", `"zigzag"`},
 		{"unknown option", "dotgrid", sheet.PageSettings{}, `{"dots":"round"}`, `"dots"`},

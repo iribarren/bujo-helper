@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
+	"time"
 
 	"github.com/go-pdf/fpdf"
 )
@@ -28,6 +30,53 @@ type PageSettings struct {
 	// ColourIn draws hollow letters (and, for kinds that have them,
 	// outlines without fills) to colour in by hand.
 	ColourIn bool `json:"colourIn"`
+	// Labels are the fixed words kinds print, in the UI language. The app
+	// fills them in; the zero value prints English.
+	Labels PageLabels `json:"-"`
+}
+
+// PageLabels are the fixed words generated pages print, such as month
+// names. An empty (or blank) entry, or a list of the wrong length, keeps
+// its English default.
+type PageLabels struct {
+	Months   []string // the 12 month names, January first
+	Weekdays []string // the 7 short weekday names, Monday first
+	NewMoon  string   // the new moon mark; "New"
+	FullMoon string   // the full moon mark; "Full"
+}
+
+// englishWeekdays are the default short weekday names, Monday first.
+var englishWeekdays = []string{"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
+
+// resolved returns l trimmed, with every missing label set to its English
+// default.
+func (l PageLabels) resolved() PageLabels {
+	or := func(s, def string) string {
+		if s = strings.TrimSpace(s); s == "" {
+			return def
+		}
+		return s
+	}
+	list := func(in, defaults []string) []string {
+		out := make([]string, len(defaults))
+		for i, def := range defaults {
+			out[i] = def
+			if len(in) == len(defaults) {
+				out[i] = or(in[i], def)
+			}
+		}
+		return out
+	}
+	months := make([]string, 12)
+	for i := range months {
+		months[i] = time.Month(i + 1).String()
+	}
+	return PageLabels{
+		Months:   list(l.Months, months),
+		Weekdays: list(l.Weekdays, englishWeekdays),
+		NewMoon:  or(l.NewMoon, "New"),
+		FullMoon: or(l.FullMoon, "Full"),
+	}
 }
 
 // PageKind is a kind of generated page.
@@ -54,9 +103,17 @@ type pageDoc interface {
 	// pages is how many pages the document has.
 	pages() int
 	// draw adds the pages to pdf, a document of page-sized pages; title is
-	// the shared title, "" if none or if the kind does not use it, and l
-	// the lettering of its title, whose font is added when there is one.
-	draw(pdf *fpdf.Fpdf, page Page, title string, l lettering) error
+	// the shared title (or the kind's default title), "" if none or if the
+	// kind does not use it, l the lettering of its title, whose font is
+	// added when there is one, and labels the resolved fixed words.
+	draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, labels PageLabels) error
+}
+
+// defaultTitler is a pageDoc that prints a title of its own when the
+// shared title is empty, such as a moon calendar's month and year.
+type defaultTitler interface {
+	// defaultTitle is the title in the resolved labels.
+	defaultTitle(labels PageLabels) string
 }
 
 // PageKinds lists the page kinds.
@@ -68,6 +125,14 @@ var PageKinds = []PageKind{
 		UsesTitle: true,
 		Defaults:  defaultDotGrid,
 		decode:    decodeOptions(defaultDotGrid),
+	},
+	{
+		ID:        MoonKind,
+		Label:     "Moon calendar",
+		FileTag:   "moon",
+		UsesTitle: true,
+		Defaults:  defaultMoon,
+		decode:    decodeMoon,
 	},
 }
 
@@ -163,10 +228,14 @@ func buildPage(kind string, s PageSettings, options json.RawMessage) (*fpdf.Fpdf
 	if err != nil {
 		return nil, err
 	}
+	labels := s.Labels.resolved()
 	title := ""
 	if k.UsesTitle {
 		// The header's own rules: trimmed, runs of spaces collapsed.
 		title = Options{Header: s.Title}.header()
+		if d, ok := doc.(defaultTitler); ok && title == "" {
+			title = Options{Header: d.defaultTitle(labels)}.header()
+		}
 	}
 	l := newLettering(s.Font, s.ColourIn)
 	pdf := newPDF(paper.Page)
@@ -175,7 +244,7 @@ func buildPage(kind string, s PageSettings, options json.RawMessage) (*fpdf.Fpdf
 			return nil, err
 		}
 	}
-	if err := doc.draw(pdf, paper.Page, title, l); err != nil {
+	if err := doc.draw(pdf, paper.Page, title, l, labels); err != nil {
 		return nil, err
 	}
 	if err := pdf.Error(); err != nil {

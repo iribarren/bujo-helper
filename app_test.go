@@ -645,9 +645,10 @@ func TestPageKinds(t *testing.T) {
 	got := NewApp().PageKinds()
 	want := []PageKindInfo{
 		{ID: "dotgrid", Label: "Dot grid", UsesTitle: true, Defaults: `{"spacing":5}`, Default: true},
+		{ID: "moon", Label: "Moon calendar", UsesTitle: true, Defaults: `{"month":0,"year":0,"layout":"grid","hemisphere":"north"}`},
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("PageKinds() = %+v, want %+v", got, want)
+		t.Errorf("PageKinds()= %+v, want %+v", got, want)
 	}
 }
 
@@ -725,7 +726,10 @@ func TestPagePages(t *testing.T) {
 	}{
 		{"default dot grid", "dotgrid", sheet.PageSettings{}, "", 1, ""},
 		{"dot grid with options", "dotgrid", sheet.PageSettings{Paper: "b5", Title: "Ideas"}, `{"spacing":6}`, 1, ""},
-		{"unknown kind", "moon", sheet.PageSettings{}, "", 0, `"moon"`},
+		{"default moon calendar", "moon", sheet.PageSettings{}, "", 1, ""},
+		{"moon year on A5", "moon", sheet.PageSettings{Paper: "a5"}, `{"month":2,"year":2024,"layout":"year","hemisphere":"south"}`, 1, ""},
+		{"moon year out of range", "moon", sheet.PageSettings{}, `{"year":1800}`, 0, "1800"},
+		{"unknown kind", "starmap", sheet.PageSettings{}, "", 0, `"starmap"`},
 		{"unknown paper", "dotgrid", sheet.PageSettings{Paper: "a3"}, "", 0, `"a3"`},
 		{"unknown option", "dotgrid", sheet.PageSettings{}, `{"pitch":5}`, 0, `"pitch"`},
 	}
@@ -753,7 +757,7 @@ func TestExportPageRejectsBadSettingsBeforeAsking(t *testing.T) {
 		options string
 		want    string
 	}{
-		{"unknown kind", "moon", sheet.PageSettings{}, "", `"moon"`},
+		{"unknown kind", "starmap", sheet.PageSettings{}, "", `"starmap"`},
 		{"unknown paper", "dotgrid", sheet.PageSettings{Paper: "a3"}, "", `"a3"`},
 		{"unknown cut", "dotgrid", sheet.PageSettings{Cut: "zigzag"}, "", `"zigzag"`},
 		{"unknown option", "dotgrid", sheet.PageSettings{}, `{"spacing":5,"dots":"round"}`, `"dots"`},
@@ -1790,6 +1794,52 @@ func TestPDFLabelsFollowTheUILanguage(t *testing.T) {
 	}
 	if got.Format != opts.Format || got.DateLabel != opts.DateLabel {
 		t.Errorf("withLabels changed the other options: %+v", got)
+	}
+}
+
+func TestPageLabelsFollowTheUILanguage(t *testing.T) {
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	page := sheet.PageSettings{Paper: "a5", Title: "Luna"}
+	en := a.withPageLabels(page).Labels
+	if len(en.Months) != 12 || en.Months[0] != "January" || len(en.Weekdays) != 7 || en.Weekdays[0] != "Mon" || en.NewMoon != "New" || en.FullMoon != "Full" {
+		t.Errorf("English page labels = %+v", en)
+	}
+	a.SetLanguage("es")
+	got := a.withPageLabels(page)
+	es := got.Labels
+	if len(es.Months) != 12 || es.Months[1] != "Febrero" || len(es.Weekdays) != 7 || es.Weekdays[2] != "Mié" || es.NewMoon != "Nueva" || es.FullMoon != "Llena" {
+		t.Errorf("Spanish page labels = %+v", es)
+	}
+	if got.Paper != page.Paper || got.Title != page.Title {
+		t.Errorf("withPageLabels changed the other settings: %+v", got)
+	}
+}
+
+// A moon calendar previews exactly as it exports, and its default title
+// and labels follow the UI language.
+func TestPreviewMoonCalendar(t *testing.T) {
+	pinPDFOutput(t)
+	const options = `{"month":2,"year":2024,"layout":"grid","hemisphere":"north"}`
+	page := sheet.PageSettings{Paper: "a5"}
+	render := func(lang string) []byte {
+		a := newApp(media.NewRegistry(), http.DefaultClient)
+		a.SetLanguage(lang)
+		info, err := a.PreviewPage("moon", page, options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.Pages != 1 {
+			t.Errorf("%s: Pages = %d, want 1", lang, info.Pages)
+		}
+		_, _, got := fetch(t, a, info.URL)
+		want := exportBytes(t, func() (string, error) { return a.ExportPage("moon", "", page, options) })
+		if !bytes.Equal(got, want) {
+			t.Errorf("%s: preview (%d bytes) differs from the export (%d bytes)", lang, len(got), len(want))
+		}
+		return got
+	}
+	if bytes.Equal(render("en"), render("es")) {
+		t.Error("the Spanish moon calendar is the English one")
 	}
 }
 

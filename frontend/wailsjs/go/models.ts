@@ -348,6 +348,24 @@ export namespace sheet {
 	        this.credits = source["credits"];
 	    }
 	}
+	export class PageLabels {
+	    Months: string[];
+	    Weekdays: string[];
+	    NewMoon: string;
+	    FullMoon: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PageLabels(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Months = source["Months"];
+	        this.Weekdays = source["Weekdays"];
+	        this.NewMoon = source["NewMoon"];
+	        this.FullMoon = source["FullMoon"];
+	    }
+	}
 	export class PageSettings {
 	    paper: string;
 	    cut: string;

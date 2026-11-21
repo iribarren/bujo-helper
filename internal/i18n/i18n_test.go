@@ -3,6 +3,7 @@ package i18n
 import (
 	"regexp"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -114,6 +115,24 @@ func TestCatalogsMatchTheEnglishKeysAndVerbs(t *testing.T) {
 			for _, v := range verbs(msg) {
 				if v[len(v)-1] == 'w' {
 					t.Errorf("%s %q uses %s; wrap errors at the call site instead", lang, key, v)
+				}
+			}
+		}
+	}
+}
+
+// The month and weekday lists have one non-blank entry per month and day
+// in every language.
+func TestCalendarListsAreComplete(t *testing.T) {
+	for lang := range catalogs {
+		for key, n := range map[string]int{"pdf.months": 12, "pdf.weekdays": 7} {
+			items := strings.Split(T(lang, key), ",")
+			if len(items) != n {
+				t.Errorf("%s %q: %d entries, want %d", lang, key, len(items), n)
+			}
+			for i, item := range items {
+				if strings.TrimSpace(item) == "" {
+					t.Errorf("%s %q: entry %d is blank", lang, key, i)
 				}
 			}
 		}

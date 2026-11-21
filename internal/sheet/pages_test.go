@@ -40,7 +40,7 @@ func TestPageKindsRegistry(t *testing.T) {
 }
 
 func TestPageKindByIDRejectsUnknownKinds(t *testing.T) {
-	for _, id := range []string{"", "moon", "DotGrid"} {
+	for _, id := range []string{"", "starmap", "DotGrid"} {
 		if _, err := PageKindByID(id); err == nil || !strings.Contains(err.Error(), `"`+id+`"`) {
 			t.Errorf("PageKindByID(%q): error %v, want one naming the kind", id, err)
 		}
@@ -105,7 +105,7 @@ func TestPageCount(t *testing.T) {
 	}{
 		{"default dot grid", DotGridKind, PageSettings{}, "", 1, ""},
 		{"dot grid with a title on B5", DotGridKind, PageSettings{Paper: "b5", Title: "Notes"}, `{"spacing":4}`, 1, ""},
-		{"unknown kind", "moon", PageSettings{}, "", 0, `"moon"`},
+		{"unknown kind", "starmap", PageSettings{}, "", 0, `"starmap"`},
 		{"unknown paper", DotGridKind, PageSettings{Paper: "a3"}, "", 0, `"a3"`},
 		{"unknown cut", DotGridKind, PageSettings{Cut: "zigzag"}, "", 0, `"zigzag"`},
 		{"bad options", DotGridKind, PageSettings{}, `{"spacing":9}`, 0, "9"},
@@ -133,7 +133,7 @@ func TestBuildPageWritesNothingOnError(t *testing.T) {
 		page    PageSettings
 		options string
 	}{
-		{"moon", PageSettings{}, ""},
+		{"starmap", PageSettings{}, ""},
 		{DotGridKind, PageSettings{Paper: "a3"}, ""},
 		{DotGridKind, PageSettings{}, `{"spacing":5,"x":1}`},
 	} {
