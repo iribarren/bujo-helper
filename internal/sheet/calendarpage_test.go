@@ -82,7 +82,7 @@ func TestCalendarCurrentMonthInTheLocalZone(t *testing.T) {
 }
 
 // A current year outside 1900–2100 (a wrong system clock) is rejected; an
-// explicit year does not depend on the clock.
+// explicit year does not depend on the clock. Both kinds share the rule.
 func TestCalendarCurrentYearOutOfRange(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -95,7 +95,7 @@ func TestCalendarCurrentYearOutOfRange(t *testing.T) {
 		{"explicit year, clock after 2100", time.Date(2150, 6, 1, 12, 0, 0, 0, time.UTC), `{"month":1,"year":2024}`, ""},
 		{"clock on the last year", time.Date(2100, 12, 31, 12, 0, 0, 0, time.UTC), "", ""},
 	}
-	for _, kind := range []string{CalendarKind} {
+	for _, kind := range []string{CalendarKind, HabitsKind} {
 		k, err := PageKindByID(kind)
 		if err != nil {
 			t.Fatal(err)
@@ -130,12 +130,12 @@ func TestCalendarRegistryEntry(t *testing.T) {
 	if string(raw) != `{"month":0,"year":0,"weekStart":"mon"}` {
 		t.Errorf("defaults %s", raw)
 	}
-	// Moon, then the month calendar, then the map.
+	// Moon, then the month calendar and the habit tracker, then the map.
 	var ids []string
 	for _, k := range PageKinds {
 		ids = append(ids, k.ID)
 	}
-	if got := strings.Join(ids, ","); got != "dotgrid,moon,calendar,map" {
+	if got := strings.Join(ids, ","); got != "dotgrid,moon,calendar,habits,map" {
 		t.Errorf("page kinds in order %s", got)
 	}
 }

@@ -48,6 +48,10 @@ type PageLabels struct {
 	// MapVisited is the caption of the visited map's country list;
 	// "Countries visited".
 	MapVisited string
+	// HabitsTitle is the habit tracker's default title, with "{month}"
+	// where the month name goes; "Habits · {month}". It is not a format
+	// string: only "{month}" is replaced.
+	HabitsTitle string
 	// Language is the language of country names: "es" prints the Spanish
 	// ones, anything else the English ones ("en").
 	Language string
@@ -80,13 +84,14 @@ func (l PageLabels) resolved() PageLabels {
 		months[i] = time.Month(i + 1).String()
 	}
 	return PageLabels{
-		Months:     list(l.Months, months),
-		Weekdays:   list(l.Weekdays, englishWeekdays),
-		NewMoon:    or(l.NewMoon, "New"),
-		FullMoon:   or(l.FullMoon, "Full"),
-		MapTitle:   or(l.MapTitle, "Places I've been"),
-		MapVisited: or(l.MapVisited, "Countries visited"),
-		Language:   nameLanguage(l.Language),
+		Months:      list(l.Months, months),
+		Weekdays:    list(l.Weekdays, englishWeekdays),
+		NewMoon:     or(l.NewMoon, "New"),
+		FullMoon:    or(l.FullMoon, "Full"),
+		MapTitle:    or(l.MapTitle, "Places I've been"),
+		MapVisited:  or(l.MapVisited, "Countries visited"),
+		HabitsTitle: or(l.HabitsTitle, "Habits · {month}"),
+		Language:    nameLanguage(l.Language),
 	}
 }
 
@@ -129,6 +134,14 @@ type pageDoc interface {
 	draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, labels PageLabels) error
 }
 
+// paperPager is a pageDoc whose page count depends on the paper, such as
+// a habit tracker whose rows run over pages; PageCount asks it rather than
+// pages.
+type paperPager interface {
+	// pagesOn is how many pages the document has on page.
+	pagesOn(page Page) (int, error)
+}
+
 // defaultTitler is a pageDoc that prints a title of its own when the
 // shared title is empty, such as a moon calendar's month and year.
 type defaultTitler interface {
@@ -161,6 +174,14 @@ var PageKinds = []PageKind{
 		UsesTitle: true,
 		Defaults:  defaultCalendar,
 		decode:    decodeCalendar,
+	},
+	{
+		ID:        HabitsKind,
+		Label:     "Habit tracker",
+		FileTag:   "habits",
+		UsesTitle: true,
+		Defaults:  defaultHabits,
+		decode:    decodeHabits,
 	},
 	{
 		ID:        MapKind,
@@ -233,9 +254,12 @@ func preparePage(kind string, s PageSettings, options json.RawMessage) (PageKind
 // settings s and its options, a JSON object (empty for the defaults). It
 // returns an error for an unknown kind, setting or option.
 func PageCount(kind string, s PageSettings, options json.RawMessage) (int, error) {
-	_, _, doc, err := preparePage(kind, s, options)
+	_, paper, doc, err := preparePage(kind, s, options)
 	if err != nil {
 		return 0, err
+	}
+	if p, ok := doc.(paperPager); ok {
+		return p.pagesOn(paper.Page)
 	}
 	return doc.pages(), nil
 }

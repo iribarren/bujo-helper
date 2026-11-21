@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
@@ -647,6 +648,7 @@ func TestPageKinds(t *testing.T) {
 		{ID: "dotgrid", Label: "Dot grid", UsesTitle: true, Defaults: `{"spacing":5}`, Default: true},
 		{ID: "moon", Label: "Moon calendar", UsesTitle: true, Defaults: `{"month":0,"year":0,"layout":"grid","hemisphere":"north"}`},
 		{ID: "calendar", Label: "Month calendar", UsesTitle: true, Defaults: `{"month":0,"year":0,"weekStart":"mon"}`},
+		{ID: "habits", Label: "Habit tracker", UsesTitle: true, Defaults: `{"month":0,"year":0,"habits":[]}`},
 		{ID: "map", Label: "Visited map", UsesTitle: true, Defaults: `{"region":"world","countries":[],"colour":"teal","list":true}`},
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -732,6 +734,9 @@ func TestPagePages(t *testing.T) {
 		{"moon year on A5", "moon", sheet.PageSettings{Paper: "a5"}, `{"month":2,"year":2024,"layout":"year","hemisphere":"south"}`, 1, ""},
 		{"moon year out of range", "moon", sheet.PageSettings{}, `{"year":1800}`, 0, "1800"},
 		{"month calendar from Sunday", "calendar", sheet.PageSettings{Paper: "letter"}, `{"month":9,"year":2024,"weekStart":"sun"}`, 1, ""},
+		{"no habits", "habits", sheet.PageSettings{Paper: "a5"}, "", 1, ""},
+		{"40 habits on A5", "habits", sheet.PageSettings{Paper: "a5"}, `{"habits":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40"]}`, 2, ""},
+		{"too many habits", "habits", sheet.PageSettings{}, `{"habits":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41"]}`, 0, "41"},
 		{"unknown kind", "starmap", sheet.PageSettings{}, "", 0, `"starmap"`},
 		{"unknown paper", "dotgrid", sheet.PageSettings{Paper: "a3"}, "", 0, `"a3"`},
 		{"unknown option", "dotgrid", sheet.PageSettings{}, `{"pitch":5}`, 0, `"pitch"`},
@@ -1822,6 +1827,9 @@ func TestPageLabelsFollowTheUILanguage(t *testing.T) {
 	if es.MapTitle != "Lugares que he visitado" || es.MapVisited != "Países visitados" || es.Language != "es" {
 		t.Errorf("Spanish map labels = %+v", es)
 	}
+	if en.HabitsTitle != "Habits · {month}" || es.HabitsTitle != "Hábitos · {month}" {
+		t.Errorf("habit tracker titles = %q, %q", en.HabitsTitle, es.HabitsTitle)
+	}
 }
 
 // A visited map previews exactly as it exports, and its default title,
@@ -1849,6 +1857,43 @@ func TestPreviewVisitedMap(t *testing.T) {
 	}
 	if bytes.Equal(render("en"), render("es")) {
 		t.Error("the Spanish visited map is the English one")
+	}
+}
+
+// A habit tracker previews exactly as it exports, over as many pages as
+// PagePages reports, and its default title follows the UI language.
+func TestPreviewHabitTracker(t *testing.T) {
+	pinPDFOutput(t)
+	habits := make([]string, 40)
+	for i := range habits {
+		habits[i] = fmt.Sprintf("Habit %d", i+1)
+	}
+	raw, _ := json.Marshal(habits)
+	options := `{"month":2,"year":2024,"habits":` + string(raw) + `}`
+	page := sheet.PageSettings{Paper: "a5"}
+	render := func(lang string) []byte {
+		a := newApp(media.NewRegistry(), http.DefaultClient)
+		a.SetLanguage(lang)
+		info, err := a.PreviewPage("habits", page, options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pages, err := a.PagePages("habits", page, options)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.Pages != pages || pages < 2 {
+			t.Errorf("%s: Pages = %d, PagePages = %d, want the same, several", lang, info.Pages, pages)
+		}
+		_, _, got := fetch(t, a, info.URL)
+		want := exportBytes(t, func() (string, error) { return a.ExportPage("habits", "", page, options) })
+		if !bytes.Equal(got, want) {
+			t.Errorf("%s: preview (%d bytes) differs from the export (%d bytes)", lang, len(got), len(want))
+		}
+		return got
+	}
+	if bytes.Equal(render("en"), render("es")) {
+		t.Error("the Spanish habit tracker is the English one")
 	}
 }
 

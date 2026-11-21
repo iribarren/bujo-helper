@@ -138,3 +138,13 @@ func TestCalendarListsAreComplete(t *testing.T) {
 		}
 	}
 }
+
+// The habit tracker title marks where the month name goes with "{month}"
+// in every language.
+func TestHabitsTitleHasTheMonth(t *testing.T) {
+	for lang := range catalogs {
+		if msg := T(lang, "pdf.habitsTitle"); strings.Count(msg, "{month}") != 1 {
+			t.Errorf("%s %q: want one {month}", lang, msg)
+		}
+	}
+}

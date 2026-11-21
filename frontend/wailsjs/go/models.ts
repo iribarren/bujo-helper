@@ -355,6 +355,7 @@ export namespace sheet {
 	    FullMoon: string;
 	    MapTitle: string;
 	    MapVisited: string;
+	    HabitsTitle: string;
 	    Language: string;
 	
 	    static createFrom(source: any = {}) {
@@ -369,6 +370,7 @@ export namespace sheet {
 	        this.FullMoon = source["FullMoon"];
 	        this.MapTitle = source["MapTitle"];
 	        this.MapVisited = source["MapVisited"];
+	        this.HabitsTitle = source["HabitsTitle"];
 	        this.Language = source["Language"];
 	    }
 	}
