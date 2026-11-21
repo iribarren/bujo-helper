@@ -628,6 +628,48 @@ How the phases are computed:
 
 The cut mode does not apply.
 
+### Visited map
+
+A vector map of the world or of one continent with the countries you have visited filled in, and optionally their names listed below it. The map data is embedded in the app: no network, no API key.
+
+To make one: open **Make pages**, pick **Visited map**, choose the region, type the countries you have visited (for example `Spain, Japan, MX, Perú`), and click **Export PDF…**.
+
+| Setting           | Rule |
+|-------------------|------|
+| Region            | **World** (default), Africa, Asia, Europe, North America, South America or Oceania |
+| Visited countries | names or ISO codes, separated by commas, semicolons or new lines (see [matching](#how-countries-are-matched) below); blanks are ignored and duplicates count once |
+| Colour            | the fill of visited countries: **teal** (#2a9d8f, default), coral (#ee8466), sage (#8fae7e) or lavender (#a393c9) |
+| List countries    | on by default: prints "Countries visited: N" and the names under the map, in the UI language and the Go font |
+| Title             | the shared **Title**, in the chosen [lettering font](#lettering); empty prints "Places I've been" ("Lugares que he visitado" in Spanish) |
+| Font, Colour-in   | the shared [Lettering](#lettering) controls; Colour-in also changes the map, see below |
+| Paper             | any; the page is portrait, within 8 mm margins, below a 12 mm title band |
+
+The map fills the width at the top of the area. With the list, it shrinks (down to 60 % of the area's height) to leave room for the names, which take 2 to 4 columns at 9 pt, shrinking to 6 pt. If they still do not fit, long names end with "…" and the last cell reads "+K" for the K names left out. Without the list, or with no countries, the map is centred. The cut mode does not apply.
+
+#### How countries are matched
+
+- Each entry is an English or Spanish country name (`Germany`, `Alemania`, `United States`, `Estados Unidos`) or an ISO 3166-1 code, alpha-2 or alpha-3 (`DE`, `DEU`).
+- Case, accents and punctuation are ignored (`peru`, `Perú` and `PERU` are the same); `&` reads as "and" and a leading "The" is dropped.
+- Common other names work too: USA, UK, England and Scotland (the United Kingdom), Holland, Czech Republic, Ivory Coast, Burma, Türkiye, Korea (South Korea), DPRK, Holy See, DRC, Swaziland, Malvinas, and a few more.
+- An entry that matches no country is an error, `unknown country "X"`; one that matches two is an error naming both. The only such name is the Spanish "San Martín" (Saint Martin and Sint Maarten): use the English name or the ISO code. The preview shows the error and export is blocked until it is fixed.
+
+#### How the map is drawn
+
+| Part | Rule |
+|------|------|
+| World | the Natural Earth projection (Šavrič et al.), from 58° S to 84° N: Antarctica is left out; a thin frame outlines the projection |
+| Continents | Lambert azimuthal equal-area, centred on the continent; the view is a fixed longitude/latitude box per region, and neighbouring countries in view are drawn like the rest |
+| Filled | unvisited land light grey (#e3e6ea), visited countries in the chosen colour, thin white borders |
+| [Colour-in](#colour-in) | no fills: thin black outlines, the visited countries with a heavier outline, ready to colour by hand |
+| Small countries | a visited country smaller than 1.5 mm both ways (Malta, Singapore, Vatican on the world map) also gets a dot at its centre, filled, or outlined with Colour-in |
+
+#### Map data
+
+- Natural Earth [1:50m Cultural Vectors, Admin 0 – Countries](https://www.naturalearthdata.com/downloads/50m-cultural-vectors/), release v5.1.2 (241 countries, Antarctica dropped). Natural Earth is in the public domain: its [terms of use](https://www.naturalearthdata.com/about/terms-of-use/) say the data may be used "in any manner, including modifying the content and design", that no permission is needed and that crediting the authors is unnecessary. Its multilingual names, including the Spanish ones, come from Wikidata (CC0).
+- Borders are Natural Earth's default, de facto ones; disputed areas are drawn as Natural Earth draws them. Kosovo, Taiwan and Somaliland are their own entries.
+- The embedded file `internal/sheet/mapdata/countries.bin` (about 150 KB) is the GeoJSON simplified (Douglas–Peucker, 0.02°), quantized to 0.001° and compressed. To regenerate it, run `go generate` in `internal/sheet`: it downloads the pinned release, checks its SHA-256, and writes the same bytes every time.
+- Maps of a single country's regions (US states, provinces) are a planned follow-up.
+
 ## Lettering
 
 Headers and titles can print in one of ten bundled lettering fonts instead of the plain Go sans, and as hollow outlines to colour in by hand, the way bubble letters drawn with a pen are coloured. The controls sit in the **Lettering** fieldset of [Print sheet](#print-sheet) (for **Full page**, **Checklist** and **Review cards**) and [Make pages](#generated-pages) (every page kind).
@@ -642,9 +684,9 @@ Each tab keeps its own font and Colour-in until the app closes. With the **Defau
 
 | Text | Font |
 |------|------|
-| Full page and Checklist headers, Dot grid and Moon calendar titles | the chosen font, outlined with Colour-in |
+| Full page and Checklist headers, Dot grid, Moon calendar and Visited map titles | the chosen font, outlined with Colour-in |
 | Review card titles | the chosen font, always filled: at 9.5 pt they are too small for outlines |
-| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels | always the Go font |
+| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels, visited map country lists | always the Go font |
 
 Headers still shrink from 20 pt down to 12 pt to fit, then end with "…". A bundled font fits into 96 % of the width, leaving room for swashes; the Default (Go) font keeps its bold header and the full width.
 
@@ -658,7 +700,7 @@ Colour-in prints letters as black outlines (PDF text rendering mode 1) instead o
 | **hollow** | Bungee Outline, Londrina Outline | outlined by design, never stroked again; the box shows checked, and your own choice comes back with the next font |
 | **no outline** | Sacramento, Amatic SC | too thin to outline: letters stay filled |
 
-On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font.
+On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font. On a [visited map](#visited-map), it draws the countries as black outlines with no fills, the visited ones heavier.
 
 ### Bundled fonts
 
@@ -809,8 +851,10 @@ internal/
   gallery/             print sheet: folder listing and thumbnails for the UI
   preview/             in-memory store of preview PDFs served at /preview
   fonts/               serves the lettering fonts and their licences at /fonts/
-  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid, moon calendar with Meeus moon phases); the lettering font registry and hollow text
+  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid, moon calendar with Meeus moon phases, visited map with country matching and projections); the lettering font registry and hollow text
     fonts/<id>/        the bundled lettering fonts (TTF) and their licence files, embedded
+    mapdata/           the embedded Natural Earth country map (countries.bin) and its binary format
+    mapgen/            the generator of countries.bin (`go generate` in internal/sheet)
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
 legacy/                the original Python script
 ```
@@ -838,5 +882,6 @@ That's all. The UI lists media types from the registry and uses the creator labe
 | Lettering fonts: Kaushan Script, Pacifico, Sacramento, Patrick Hand, Amatic SC, Titan One, Bungee, Bungee Outline, Londrina Outline (9 fonts, from [Google Fonts](https://github.com/google/fonts)) | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) | [lettering](#lettering) of headers and titles; embedded unmodified, subset into each PDF |
 | Luckiest Guy (from [Google Fonts](https://github.com/google/fonts)) | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) | [lettering](#lettering) of headers and titles; embedded unmodified, subset into each PDF |
 | [Go fonts](https://go.dev/blog/go-fonts) (Go Regular, Go Bold) | BSD 3-Clause | every PDF's text and the Default lettering font |
+| [Natural Earth](https://www.naturalearthdata.com/) 1:50m Admin 0 – Countries, v5.1.2 (names from Wikidata, CC0) | [public domain](https://www.naturalearthdata.com/about/terms-of-use/) | the [visited map](#map-data); simplified and embedded |
 
 Each font's licence file ships in `internal/sheet/fonts/<id>/` and can be read in **Settings → About**, which also names pdf.js.

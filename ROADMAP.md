@@ -247,6 +247,22 @@ There is a reliable image source, and the item fits how the app already works: a
 
 **Why:** a world map with visited countries coloured in is one of the most common travel spreads, and drawing one by hand is hard.
 
+**Done in branch `feat/visited-map`** (see `odd/tasks/visited-map.md`):
+- Map data: Natural Earth 1:50m admin-0 countries v5.1.2, simplified and quantized by `internal/sheet/mapgen` into the embedded `internal/sheet/mapdata/countries.bin` (147 KB), with its binary format and decoder (b509bb0); country matching by English or Spanish name, ISO alpha-2/alpha-3 code and aliases (817fd6f).
+- Projections: Natural Earth for the world, Lambert azimuthal equal-area per continent, region views and far-ring culling (6269630).
+- Page kind: `map` in `PageKinds` with filled and Colour-in drawing, small-country dots, the country list, localized labels and a default title (739b04d).
+- Make pages form: Region, Visited countries, Colour swatches and List countries, in English and Spanish (937f902).
+- Review fixes: decode validation tests, trailing data rejected, Encode limits matching Decode, a verified (SHA-256) Natural Earth download, list truncation tests, a list that never overflows its box, and a Go test that keeps the form's regions and colours in step with Go (85e0d24..9ed3c90).
+- README Visited map section and the Natural Earth licence (the `docs:` commit after 9ed3c90).
+- Decisions:
+  - Scope change (user decision 2026-11-21): world and continent maps now; single-country maps (US states, provinces) are a follow-up. No Antarctica, no picking countries by clicking the map.
+  - Kind id `map`, options `region` (`world` | `africa` | `asia` | `europe` | `north-america` | `south-america` | `oceania`), `countries` (names or codes), `colour` (`teal` | `coral` | `sage` | `lavender`), `list` (default on). Default title "Places I've been" / "Lugares que he visitado".
+  - Unknown and ambiguous entries are errors that block export; the only ambiguous name is the Spanish "San Martín" (Saint Martin / Sint Maarten).
+  - Natural Earth (public domain; names from Wikidata, CC0) at 1:50m keeps the small states; de facto borders as Natural Earth draws them. Douglas–Peucker 0.02°, quantized 0.001° (0.01° would erase Vatican and Monaco); output is deterministic and the download is pinned by SHA-256.
+  - The world view stops at 58° S; a continent is only a view (neighbours in the box are drawn the same way), and rings more than 100° from its centre are skipped.
+  - A visited country smaller than 1.5 mm both ways gets a dot. The list shrinks from 9 pt to 6 pt in 2–4 columns, then ellipsizes and ends with "+K"; the map keeps at least 60 % of the area.
+  - The form mirrors Go's regions and colours by hand; `internal/sheet/mapcontract_test.go` reads `frontend/src/pageForms.ts` and fails on drift.
+
 **Scope**
 - A generated print format **Map**: the user picks or types the visited countries, and the app draws a world map with those countries filled. A page title is optional.
 - Map data: a public-domain dataset (for example Natural Earth admin-0 countries, simplified), embedded in the binary. No network at print time.
