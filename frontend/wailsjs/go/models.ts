@@ -353,6 +353,9 @@ export namespace sheet {
 	    Weekdays: string[];
 	    NewMoon: string;
 	    FullMoon: string;
+	    MapTitle: string;
+	    MapVisited: string;
+	    Language: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PageLabels(source);
@@ -364,6 +367,9 @@ export namespace sheet {
 	        this.Weekdays = source["Weekdays"];
 	        this.NewMoon = source["NewMoon"];
 	        this.FullMoon = source["FullMoon"];
+	        this.MapTitle = source["MapTitle"];
+	        this.MapVisited = source["MapVisited"];
+	        this.Language = source["Language"];
 	    }
 	}
 	export class PageSettings {
