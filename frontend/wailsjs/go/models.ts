@@ -413,6 +413,8 @@ export namespace sheet {
 	    MapTitle: string;
 	    MapVisited: string;
 	    HabitsTitle: string;
+	    QuotesTitle: string;
+	    QuotesCredit: string;
 	    Language: string;
 	
 	    static createFrom(source: any = {}) {
@@ -428,6 +430,8 @@ export namespace sheet {
 	        this.MapTitle = source["MapTitle"];
 	        this.MapVisited = source["MapVisited"];
 	        this.HabitsTitle = source["HabitsTitle"];
+	        this.QuotesTitle = source["QuotesTitle"];
+	        this.QuotesCredit = source["QuotesCredit"];
 	        this.Language = source["Language"];
 	    }
 	}

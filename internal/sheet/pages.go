@@ -52,6 +52,11 @@ type PageLabels struct {
 	// where the month name goes; "Habits · {month}". It is not a format
 	// string: only "{month}" is replaced.
 	HabitsTitle string
+	// QuotesTitle is the quote cards' default title; "Words to keep".
+	QuotesTitle string
+	// QuotesCredit is the caption of quote card pages holding a Wikiquote
+	// quote; "Quotes from Wikiquote (CC BY-SA 4.0)".
+	QuotesCredit string
 	// Language is the language of country names: "es" prints the Spanish
 	// ones, anything else the English ones ("en").
 	Language string
@@ -84,14 +89,16 @@ func (l PageLabels) resolved() PageLabels {
 		months[i] = time.Month(i + 1).String()
 	}
 	return PageLabels{
-		Months:      list(l.Months, months),
-		Weekdays:    list(l.Weekdays, englishWeekdays),
-		NewMoon:     or(l.NewMoon, "New"),
-		FullMoon:    or(l.FullMoon, "Full"),
-		MapTitle:    or(l.MapTitle, "Places I've been"),
-		MapVisited:  or(l.MapVisited, "Countries visited"),
-		HabitsTitle: or(l.HabitsTitle, "Habits · {month}"),
-		Language:    nameLanguage(l.Language),
+		Months:       list(l.Months, months),
+		Weekdays:     list(l.Weekdays, englishWeekdays),
+		NewMoon:      or(l.NewMoon, "New"),
+		FullMoon:     or(l.FullMoon, "Full"),
+		MapTitle:     or(l.MapTitle, "Places I've been"),
+		MapVisited:   or(l.MapVisited, "Countries visited"),
+		HabitsTitle:  or(l.HabitsTitle, "Habits · {month}"),
+		QuotesTitle:  or(l.QuotesTitle, "Words to keep"),
+		QuotesCredit: or(l.QuotesCredit, "Quotes from Wikiquote (CC BY-SA 4.0)"),
+		Language:     nameLanguage(l.Language),
 	}
 }
 
@@ -182,6 +189,14 @@ var PageKinds = []PageKind{
 		UsesTitle: true,
 		Defaults:  defaultHabits,
 		decode:    decodeHabits,
+	},
+	{
+		ID:        QuotesKind,
+		Label:     "Quote cards",
+		FileTag:   "quotes",
+		UsesTitle: true,
+		Defaults:  defaultQuotes,
+		decode:    decodeQuotes,
 	},
 	{
 		ID:        MapKind,
