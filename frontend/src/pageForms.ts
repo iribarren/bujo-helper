@@ -216,7 +216,120 @@ const moonForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
     };
 };
 
+// The visited map's regions and fill colours (Go: sheet.MapRegions and
+// sheet.MapColours), by value, with their labels' message keys and, for the
+// colours, the swatch Go fills with; and the ones a form starts with when
+// Go's default is not one of them.
+const MAP_REGIONS: Array<[value: string, label: MessageKey]> = [
+    ['world', 'pages.regionWorld'],
+    ['africa', 'pages.regionAfrica'],
+    ['asia', 'pages.regionAsia'],
+    ['europe', 'pages.regionEurope'],
+    ['north-america', 'pages.regionNorthAmerica'],
+    ['south-america', 'pages.regionSouthAmerica'],
+    ['oceania', 'pages.regionOceania'],
+];
+const MAP_COLOURS: Array<[value: string, label: MessageKey, swatch: string]> = [
+    ['teal', 'pages.colourTeal', '#2a9d8f'],
+    ['coral', 'pages.colourCoral', '#ee8466'],
+    ['sage', 'pages.colourSage', '#8fae7e'],
+    ['lavender', 'pages.colourLavender', '#a393c9'],
+];
+const DEFAULT_REGION = 'world';
+const DEFAULT_COLOUR = 'teal';
+
+// countryList is the countries typed in text: split on commas, semicolons
+// and new lines, trimmed, blanks dropped. Go matches each name or code.
+export function countryList(text: string): string[] {
+    return text.split(/[,;\n\r]/).map((s) => s.trim()).filter((s) => s !== '');
+}
+
+// mapForm is the visited map's form: Region (a select), Visited countries
+// (a textarea of names or ISO codes, sent as a list as it is typed, the
+// text left as typed), Colour (segmented swatches) and List countries (a
+// checkbox). The labels follow the UI language, keeping the options.
+const mapForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
+    const regionField = document.createElement('label');
+    regionField.className = 'field';
+    const region = titled(document.createElement('select'), 'pages.mapRegionTitle');
+    region.id = `${idPrefix}-region`;
+    region.append(...MAP_REGIONS.map(([value]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        return option;
+    }));
+    regionField.append(translated(document.createElement('span'), 'pages.mapRegion'), region);
+
+    const countriesField = document.createElement('div');
+    countriesField.className = 'field map-countries-field';
+    const countriesLabel = document.createElement('label');
+    countriesLabel.htmlFor = `${idPrefix}-countries`;
+    countriesLabel.append(translated(document.createElement('span'), 'pages.mapCountries'));
+    const countries = document.createElement('textarea');
+    countries.id = `${idPrefix}-countries`;
+    countries.rows = 4;
+    countries.spellcheck = false;
+    countries.dataset.i18nPlaceholder = 'pages.mapCountriesPlaceholder';
+    countries.placeholder = t('pages.mapCountriesPlaceholder');
+    const countriesHint = translated(document.createElement('p'), 'pages.mapCountriesHint');
+    countriesHint.className = 'field-hint muted';
+    countriesHint.id = `${idPrefix}-countries-hint`;
+    countries.setAttribute('aria-describedby', countriesHint.id);
+    countriesField.append(countriesLabel, countries, countriesHint);
+    container.append(regionField, countriesField);
+
+    const colour = segmentedField(container, idPrefix, 'colour', 'pages.mapColour', 'pages.mapColourTitle', onChange);
+
+    const listField = document.createElement('div');
+    listField.className = 'field check-hint-field';
+    const listRow = document.createElement('label');
+    listRow.className = 'check-row';
+    const list = document.createElement('input');
+    list.type = 'checkbox';
+    list.id = `${idPrefix}-list`;
+    listRow.append(list, translated(document.createElement('span'), 'pages.mapList'));
+    const listHint = translated(document.createElement('p'), 'pages.mapListHint');
+    listHint.className = 'field-hint muted';
+    listHint.id = `${idPrefix}-list-hint`;
+    list.setAttribute('aria-describedby', listHint.id);
+    listField.append(listRow, listHint);
+    container.append(listField);
+
+    function relabel() {
+        Array.from(region.options).forEach((option, i) => {
+            option.textContent = t(MAP_REGIONS[i][1]);
+        });
+        colour.replaceOptions(MAP_COLOURS.map(([value, key, swatch]) => ({value, label: t(key), swatch})));
+    }
+    relabel();
+    const stopRelabel = onLangChange(relabel);
+
+    region.value = offered(MAP_REGIONS, defaults.region, DEFAULT_REGION);
+    colour.value = MAP_COLOURS.some(([v]) => v === defaults.colour) ? String(defaults.colour) : DEFAULT_COLOUR;
+    list.checked = typeof defaults.list === 'boolean' ? defaults.list : true;
+    // The countries Go gets, kept apart from the text being typed.
+    let sent = Array.isArray(defaults.countries)
+        ? defaults.countries.filter((c): c is string => typeof c === 'string' && c.trim() !== '').map((c) => c.trim())
+        : [];
+    countries.value = sent.join(', ');
+
+    region.addEventListener('change', onChange);
+    list.addEventListener('change', onChange);
+    countries.addEventListener('input', () => {
+        const next = countryList(countries.value);
+        if (next.length === sent.length && next.every((c, i) => c === sent[i])) return;
+        sent = next;
+        onChange();
+    });
+
+    return {
+        options: () => ({region: region.value, countries: [...sent], colour: colour.value, list: list.checked}),
+        dispose: stopRelabel,
+    };
+};
+
 export const pageForms: Record<string, PageFormBuilder> = {
     dotgrid: dotGridForm,
     moon: moonForm,
+    map: mapForm,
 };

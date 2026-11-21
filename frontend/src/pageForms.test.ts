@@ -236,3 +236,173 @@ describe('moon calendar form', () => {
         expect(Array.from(q('#test-moon-layout').children, (r) => r.textContent)).toEqual(['Row', 'Grid', 'Year']);
     });
 });
+
+describe('visited map form', () => {
+    // The map kind's defaults as PageKinds sends them (Go: sheet.MapKind).
+    const MAP_DEFAULTS = '{"region":"world","countries":[],"colour":"teal","list":true}';
+
+    function mapForm(defaults = MAP_DEFAULTS): PageForm {
+        box = document.createElement('div');
+        document.body.replaceChildren(box);
+        onChange = vi.fn();
+        const form = pageForms.map(box, 'test-map', parseDefaults(defaults), onChange);
+        built.push(form);
+        return form;
+    }
+
+    const region = () => q<HTMLSelectElement>('#test-map-region');
+    const countries = () => q<HTMLTextAreaElement>('#test-map-countries');
+    const list = () => q<HTMLInputElement>('#test-map-list');
+    const swatch = (value: string) => q<HTMLButtonElement>(`#test-map-colour [role="radio"][data-value="${value}"]`);
+    const colour = () => box.querySelector<HTMLElement>('#test-map-colour [role="radio"][aria-checked="true"]')?.dataset.value ?? '';
+
+    function typeCountries(text: string) {
+        countries().value = text;
+        countries().dispatchEvent(new Event('input'));
+    }
+
+    // labelOf is the text of the label tied to control.
+    function labelOf(control: HTMLElement): string {
+        const tied = control.closest('label') ?? box.querySelector(`label[for="${control.id}"]`);
+        return tied?.querySelector('span')?.textContent ?? '';
+    }
+
+    it('has Region, Visited countries, Colour and List countries, from the defaults', () => {
+        const form = mapForm();
+        expect(Array.from(region().options, (o) => [o.value, o.textContent])).toEqual([
+            ['world', 'World'], ['africa', 'Africa'], ['asia', 'Asia'], ['europe', 'Europe'],
+            ['north-america', 'North America'], ['south-america', 'South America'], ['oceania', 'Oceania'],
+        ]);
+        expect(region().value).toBe('world');
+        expect(labelOf(region())).toBe('Region');
+
+        expect(countries().tagName).toBe('TEXTAREA');
+        expect(countries().rows).toBe(4);
+        expect(countries().value).toBe('');
+        expect(countries().placeholder).toBe('Spain, Portugal, FR, Japan, Mexico');
+        expect(labelOf(countries())).toBe('Visited countries (names or ISO codes)');
+        const hint = document.getElementById(countries().getAttribute('aria-describedby') ?? '');
+        expect(hint?.textContent).toContain('English or Spanish');
+
+        const group = q('#test-map-colour');
+        expect(group.getAttribute('role')).toBe('radiogroup');
+        expect(group.classList.contains('segmented')).toBe(true);
+        expect(document.getElementById(group.getAttribute('aria-labelledby') ?? '')?.textContent).toBe('Colour');
+        expect(Array.from(group.querySelectorAll<HTMLElement>('[role="radio"]'), (r) => [r.dataset.value, r.getAttribute('aria-label')]))
+            .toEqual([['teal', 'Teal'], ['coral', 'Coral'], ['sage', 'Sage'], ['lavender', 'Lavender']]);
+        expect(swatch('coral').querySelector<HTMLElement>('.swatch')?.style.backgroundColor).toBe('rgb(238, 132, 102)');
+        expect(colour()).toBe('teal');
+
+        expect(list().type).toBe('checkbox');
+        expect(list().checked).toBe(true);
+        expect(labelOf(list())).toBe('List countries');
+        expect(document.getElementById(list().getAttribute('aria-describedby') ?? '')?.textContent)
+            .toBe('Prints the visited countries under the map.');
+
+        expect(form.options()).toEqual({region: 'world', countries: [], colour: 'teal', list: true});
+    });
+
+    it('starts from explicit defaults and falls back on unknown ones', () => {
+        const form = mapForm('{"region":"europe","countries":["Spain","FR"],"colour":"sage","list":false}');
+        expect(form.options()).toEqual({region: 'europe', countries: ['Spain', 'FR'], colour: 'sage', list: false});
+        expect(countries().value).toBe('Spain, FR');
+        expect(mapForm('{"region":"antarctica","countries":"Spain","colour":"red","list":"yes"}').options())
+            .toEqual({region: 'world', countries: [], colour: 'teal', list: true});
+        expect(mapForm('{"region":').options()).toEqual({region: 'world', countries: [], colour: 'teal', list: true});
+    });
+
+    it('sends each region', () => {
+        const form = mapForm();
+        const values = ['world', 'africa', 'asia', 'europe', 'north-america', 'south-america', 'oceania'];
+        for (const value of [...values.slice(1), 'world']) {
+            region().value = value;
+            region().dispatchEvent(new Event('change'));
+            expect(form.options().region).toBe(value);
+        }
+        expect(onChange).toHaveBeenCalledTimes(values.length);
+    });
+
+    const splits: Array<[typed: string, sent: string[]]> = [
+        ['Spain, Portugal, FR', ['Spain', 'Portugal', 'FR']],
+        ['Spain; Portugal;FR', ['Spain', 'Portugal', 'FR']],
+        ['Spain\nPortugal\n\nFR\n', ['Spain', 'Portugal', 'FR']],
+        ['  United States ,\n\n  Japan  ;; , ', ['United States', 'Japan']],
+        ['', []],
+        [' , ;\n', []],
+        ['Côte d’Ivoire', ['Côte d’Ivoire']],
+    ];
+    it.each(splits)('sends %j as the countries %j', (typed, sent) => {
+        const form = mapForm();
+        typeCountries(typed);
+        expect(form.options().countries).toEqual(sent);
+        // The field keeps what the user typed.
+        expect(countries().value).toBe(typed);
+    });
+
+    it('reports a change only when the countries change', () => {
+        mapForm();
+        typeCountries('Spain');
+        expect(onChange).toHaveBeenCalledTimes(1);
+        typeCountries('Spain,');
+        typeCountries('Spain, ');
+        expect(onChange).toHaveBeenCalledTimes(1);
+        typeCountries('Spain, J');
+        expect(onChange).toHaveBeenCalledTimes(2);
+    });
+
+    it('sends the chosen colour and marks it checked', () => {
+        const form = mapForm();
+        swatch('lavender').click();
+        expect(form.options().colour).toBe('lavender');
+        expect(swatch('lavender').getAttribute('aria-checked')).toBe('true');
+        expect(swatch('teal').getAttribute('aria-checked')).toBe('false');
+        expect(onChange).toHaveBeenCalledTimes(1);
+        // One tab stop; the arrow keys move along the swatches.
+        expect(swatch('lavender').tabIndex).toBe(0);
+        swatch('lavender').dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true, cancelable: true}));
+        expect(form.options().colour).toBe('teal');
+        expect(document.activeElement).toBe(swatch('teal'));
+    });
+
+    it('toggles List countries', () => {
+        const form = mapForm();
+        list().click();
+        expect(form.options().list).toBe(false);
+        list().click();
+        expect(form.options().list).toBe(true);
+        expect(onChange).toHaveBeenCalledTimes(2);
+    });
+
+    it('follows a language change, keeping the options', () => {
+        const form = mapForm();
+        region().value = 'south-america';
+        region().dispatchEvent(new Event('change'));
+        typeCountries('Spain;\nJapan');
+        swatch('sage').click();
+        list().click();
+
+        setLang('es');
+        applyDom(box);
+        expect(Array.from(region().options, (o) => o.textContent)).toEqual([
+            'Mundo', 'África', 'Asia', 'Europa', 'América del Norte', 'América del Sur', 'Oceanía',
+        ]);
+        expect(labelOf(region())).toBe('Región');
+        expect(labelOf(countries())).toBe('Países visitados (nombres o códigos ISO)');
+        expect(countries().placeholder).toBe('España, Portugal, FR, Japón, México');
+        expect(Array.from(q('#test-map-colour').children, (r) => r.getAttribute('aria-label')))
+            .toEqual(['Verde azulado', 'Coral', 'Salvia', 'Lavanda']);
+        expect(labelOf(list())).toBe('Lista de países');
+        expect(countries().value).toBe('Spain;\nJapan');
+        expect(colour()).toBe('sage');
+        expect(form.options()).toEqual({region: 'south-america', countries: ['Spain', 'Japan'], colour: 'sage', list: false});
+    });
+
+    it('stops following the language once disposed', () => {
+        const form = mapForm();
+        expect(form.dispose).toBeTypeOf('function');
+        form.dispose?.();
+        setLang('es');
+        expect(region().options[0].textContent).toBe('World');
+        expect(swatch('teal').getAttribute('aria-label')).toBe('Teal');
+    });
+});
