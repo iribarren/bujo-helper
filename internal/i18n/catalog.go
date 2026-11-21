@@ -59,6 +59,10 @@ var catalogs = map[Lang]map[string]string{
 		// The habit tracker's default title: "{month}" is replaced by the
 		// month name (it is not a format string).
 		"pdf.habitsTitle": "Habits · {month}",
+		// The quote cards' default title and the caption of pages holding
+		// a Wikiquote quote.
+		"pdf.quotesTitle":  "Words to keep",
+		"pdf.quotesCredit": "Quotes from Wikiquote (CC BY-SA 4.0)",
 	},
 	ES: {
 		"dialog.importCSV":          "Importar CSV",
@@ -104,5 +108,8 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.mapVisited": "Países visitados",
 
 		"pdf.habitsTitle": "Hábitos · {month}",
+
+		"pdf.quotesTitle":  "Palabras para guardar",
+		"pdf.quotesCredit": "Citas de Wikiquote (CC BY-SA 4.0)",
 	},
 }

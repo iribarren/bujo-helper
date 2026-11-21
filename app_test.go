@@ -1830,6 +1830,12 @@ func TestPageLabelsFollowTheUILanguage(t *testing.T) {
 	if es.MapTitle != "Lugares que he visitado" || es.MapVisited != "Países visitados" || es.Language != "es" {
 		t.Errorf("Spanish map labels = %+v", es)
 	}
+	if en.QuotesTitle != "Words to keep" || en.QuotesCredit != "Quotes from Wikiquote (CC BY-SA 4.0)" {
+		t.Errorf("English quote labels = %q, %q", en.QuotesTitle, en.QuotesCredit)
+	}
+	if es.QuotesTitle != "Palabras para guardar" || es.QuotesCredit != "Citas de Wikiquote (CC BY-SA 4.0)" {
+		t.Errorf("Spanish quote labels = %q, %q", es.QuotesTitle, es.QuotesCredit)
+	}
 	if en.HabitsTitle != "Habits · {month}" || es.HabitsTitle != "Hábitos · {month}" {
 		t.Errorf("habit tracker titles = %q, %q", en.HabitsTitle, es.HabitsTitle)
 	}
