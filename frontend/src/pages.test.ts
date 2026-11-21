@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 
-import {afterAll, afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest';
 
 import {ExportPage, OpenFile, PreviewPage} from '../wailsjs/go/main/App';
 import {useLanguage} from './language';
@@ -218,30 +218,47 @@ describe('dot grid form', () => {
 });
 
 describe('moon calendar form', () => {
-    // The first test builds the form, on first use, with this clock.
-    beforeAll(() => {
+    // The moon options a form starts with under the test clock.
+    const defaults = {month: 3, year: 2024, layout: 'grid', hemisphere: 'north'};
+
+    // setMoon sets the moon form's options as the user does.
+    function setMoon(options: {month: number; year: number; layout: string; hemisphere: string}) {
+        const month = el<HTMLSelectElement>('pages-moon-month');
+        month.value = String(options.month);
+        month.dispatchEvent(new Event('change'));
+        const year = el<HTMLInputElement>('pages-moon-year');
+        year.value = String(options.year);
+        year.dispatchEvent(new Event('change'));
+        radio('pages-moon-layout', options.layout).click();
+        radio('pages-moon-hemisphere', options.hemisphere).click();
+    }
+
+    // Every test shows the moon kind under a clock in March 2024: the tab
+    // builds the form on first use, in whichever test runs first, and each
+    // test leaves the form at its defaults again.
+    beforeEach(() => {
         vi.useFakeTimers({toFake: ['Date']});
         vi.setSystemTime(new Date(2024, 2, 15, 12));
+        radio('pages-kinds', 'moon').click();
     });
 
-    afterAll(() => {
+    afterEach(() => {
+        setMoon(defaults);
         vi.useRealTimers();
     });
 
     it('previews the current month and year in a grid by default', async () => {
-        radio('pages-kinds', 'moon').click();
         expect(el('pages-form-moon').hidden).toBe(false);
         expect(el('pages-form-dotgrid').hidden).toBe(true);
         expect(el<HTMLSelectElement>('pages-moon-month').value).toBe('3');
         expect(el<HTMLInputElement>('pages-moon-year').value).toBe('2024');
-        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('moon'));
-        expect(JSON.parse(lastPreviewPage()[2])).toEqual({month: 3, year: 2024, layout: 'grid', hemisphere: 'north'});
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual(defaults));
+        expect(lastPreviewPage()[0]).toBe('moon');
         // The moon prints the shared title.
         expect(el('pages-title-field').hidden).toBe(false);
     });
 
     it('previews and exports the chosen options', async () => {
-        radio('pages-kinds', 'moon').click();
         const month = el<HTMLSelectElement>('pages-moon-month');
         month.value = '7';
         month.dispatchEvent(new Event('change'));
@@ -264,9 +281,15 @@ describe('moon calendar form', () => {
     });
 
     it('keeps its options while another kind is shown', async () => {
+        const chosen = {month: 11, year: 2001, layout: 'row', hemisphere: 'south'};
+        setMoon(chosen);
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual(chosen));
+        radio('pages-kinds', 'dotgrid').click();
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('dotgrid'));
         radio('pages-kinds', 'moon').click();
         await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('moon'));
-        expect(JSON.parse(lastPreviewPage()[2])).toEqual({month: 7, year: 2030, layout: 'year', hemisphere: 'south'});
+        expect(JSON.parse(lastPreviewPage()[2])).toEqual(chosen);
+        expect(el<HTMLInputElement>('pages-moon-year').value).toBe('2001');
     });
 });
 
