@@ -44,6 +44,9 @@ func TestDecodeHabitsOptions(t *testing.T) {
 		{"explicit", `{"month":2,"year":2024,"habits":["Read","Walk"]}`, HabitsOptions{2, 2024, []string{"Read", "Walk"}}, ""},
 		{"trimmed, blanks dropped", `{"habits":["  Read ", "", "   ", "\tWalk\n"]}`, HabitsOptions{11, 2026, []string{"Read", "Walk"}}, ""},
 		{"only blanks", `{"habits":[" ", ""]}`, HabitsOptions{11, 2026, []string{}}, ""},
+		{"control characters become one space", `{"habits":["Read\tbooks", "Drink\r\n water", "Walk\u0007\u0000daily", "\u0085Stretch\u001b"]}`, HabitsOptions{11, 2026, []string{"Read books", "Drink water", "Walk daily", "Stretch"}}, ""},
+		{"only control characters dropped", `{"habits":["\u0000\u0007", "\t\r\n", "Read"]}`, HabitsOptions{11, 2026, []string{"Read"}}, ""},
+		{"60 runes after control characters collapse", `{"habits":["` + strings.Repeat("é", 30) + `\t\n` + strings.Repeat("é", 29) + `"]}`, HabitsOptions{11, 2026, []string{strings.Repeat("é", 30) + " " + strings.Repeat("é", 29)}}, ""},
 		{"40 habits", `{"habits":` + habitsJSON(habitList(MaxHabits)) + `}`, HabitsOptions{11, 2026, habitList(MaxHabits)}, ""},
 		{"40 habits and blanks", `{"habits":` + habitsJSON(blanks) + `}`, HabitsOptions{11, 2026, habitList(MaxHabits)}, ""},
 		{"41 habits", `{"habits":` + habitsJSON(habitList(MaxHabits+1)) + `}`, HabitsOptions{}, "41"},
@@ -290,6 +293,55 @@ func TestHabitsPagination(t *testing.T) {
 	}
 	if n, err := PageCount(HabitsKind, PageSettings{Paper: "a5"}, json.RawMessage(`{"habits":["Read"]}`)); n != 1 || err != nil {
 		t.Errorf("one habit: PageCount = %d, %v", n, err)
+	}
+}
+
+// A habit with control characters prints with a space in their place, and
+// is measured that way.
+func TestHabitsControlCharactersPrintAsSpaces(t *testing.T) {
+	kind, err := PageKindByID(HabitsKind)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := kind.decode(json.RawMessage(`{"month":1,"year":2023,"habits":["Read\tbooks"]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pdf := newPDF(A4)
+	if err := addTextFonts(pdf); err != nil {
+		t.Fatal(err)
+	}
+	measure := pdfMeasure(pdf)
+	o := doc.(HabitsOptions)
+	var names []string
+	for _, tx := range o.sheets(A4, measure)[0].Texts {
+		if !tx.Centred {
+			names = append(names, tx.Text)
+		}
+	}
+	if !reflect.DeepEqual(names, []string{"Read books"}) {
+		t.Errorf("printed %q, want [\"Read books\"]", names)
+	}
+	spaced := HabitsOptions{Month: 1, Year: 2023, Habits: []string{"Read books"}}
+	if got, want := o.layout(A4, measure), spaced.layout(A4, measure); got != want {
+		t.Errorf("layout %+v, want the layout of \"Read books\" %+v", got, want)
+	}
+}
+
+// pages, the A4 count of the pageDoc interface, is the A4 page count and
+// never below 1, so a caller that asks it never gets an empty document.
+// (PageCount asks pagesOn; pagesOn fails only if the embedded Go font does
+// not load, which a test cannot provoke.)
+func TestHabitsPagesOnA4(t *testing.T) {
+	for _, habits := range [][]string{{}, {"Read"}, habitList(MaxHabits)} {
+		o := HabitsOptions{Month: 1, Year: 2023, Habits: habits}
+		want, err := o.pagesOn(A4)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := o.pages(); got != want || got < 1 {
+			t.Errorf("%d habits: pages() = %d, pagesOn(A4) = %d", len(habits), got, want)
+		}
 	}
 }
 

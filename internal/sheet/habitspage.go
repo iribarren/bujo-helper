@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/go-pdf/fpdf"
@@ -40,16 +41,16 @@ const (
 type HabitsOptions struct {
 	Month int `json:"month"` // 1–12; 0 means the current month
 	Year  int `json:"year"`  // MinCalendarYear–MaxCalendarYear; 0 means the current year
-	// Habits are the rows, trimmed, blank ones dropped: at most MaxHabits
-	// of at most MaxHabitRunes characters. None prints blank rows to write
-	// habits in by hand.
+	// Habits are the rows, normalised by normalizeHabit, blank ones
+	// dropped: at most MaxHabits of at most MaxHabitRunes characters. None
+	// prints blank rows to write habits in by hand.
 	Habits []string `json:"habits"`
 }
 
 var defaultHabits = HabitsOptions{Habits: []string{}}
 
 // decodeHabits decodes habit tracker options, like decodeOptions, with the
-// habits trimmed and blank ones dropped, and resolves a month or year of 0
+// habits normalised and blank ones dropped, and resolves a month or year of 0
 // to the current one.
 func decodeHabits(raw json.RawMessage) (pageDoc, error) {
 	doc, err := decodeOptions(defaultHabits)(raw)
@@ -64,20 +65,43 @@ func decodeHabits(raw json.RawMessage) (pageDoc, error) {
 	return o, nil
 }
 
-// normalizeHabits returns habits trimmed, without the blank ones; never
-// nil.
+// normalizeHabits returns habits normalised by normalizeHabit, without the
+// blank ones; never nil.
 func normalizeHabits(habits []string) []string {
 	out := []string{}
 	for _, h := range habits {
-		if h = strings.TrimSpace(h); h != "" {
+		if h = normalizeHabit(h); h != "" {
 			out = append(out, h)
 		}
 	}
 	return out
 }
 
+// normalizeHabit returns h with each run of control or space characters
+// (tabs, new lines, any unicode.IsControl rune) replaced by one space and
+// none at either end, so "Read\tbooks" prints as "Read books" and a habit
+// of only such characters is blank. A pasted list can carry tabs or stray
+// control codes the user cannot see; printing a space is kinder than an
+// error naming an invisible character.
+func normalizeHabit(h string) string {
+	var b strings.Builder
+	gap := false
+	for _, r := range h {
+		if unicode.IsControl(r) || unicode.IsSpace(r) {
+			gap = true
+			continue
+		}
+		if gap && b.Len() > 0 {
+			b.WriteByte(' ')
+		}
+		gap = false
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
 // validate checks the month, the year and the habits as they print:
-// trimmed, blank ones dropped.
+// normalised, blank ones dropped.
 func (o HabitsOptions) validate() error {
 	if err := validateMonth(o.Month, o.Year, "habit tracker"); err != nil {
 		return err
@@ -94,11 +118,17 @@ func (o HabitsOptions) validate() error {
 	return nil
 }
 
-// pages is the page count on A4, the default paper; PageCount asks pagesOn
-// for the chosen paper.
+// pages is the page count on A4, the default paper, and at least 1: it has
+// no error to return, so if pagesOn fails (only if the embedded Go font
+// does not load) it reports the one page the tracker always takes. PageCount
+// does not use it: it asks pagesOn for the chosen paper and returns its
+// error.
 func (o HabitsOptions) pages() int {
-	n, _ := o.pagesOn(A4)
-	return n
+	n, err := o.pagesOn(A4)
+	if err != nil {
+		return 1
+	}
+	return max(1, n)
 }
 
 // pagesOn is how many pages the tracker takes on page: its rows run over
