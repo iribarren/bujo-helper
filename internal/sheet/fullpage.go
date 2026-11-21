@@ -97,8 +97,9 @@ type headerLine struct {
 	Size float64 // font size, pt
 }
 
-// layoutFullPageHeader fits text, bold and its runs of spaces collapsed, on
-// one line no wider than width, as measured by measure: at
+// layoutFullPageHeader fits text, in the header style and its runs of
+// spaces collapsed, on one line no wider than width, as measured by
+// measure: at
 // maxHeaderFontSize if it fits, else shrunk to fit down to
 // minHeaderFontSize, then cut with "…". Empty text, or a width too narrow
 // for "…", gives no text.
@@ -130,28 +131,30 @@ func pdfMeasure(pdf *fpdf.Fpdf) measureFunc {
 	}
 }
 
-// fitHeader fits header on one line of width in the text fonts of pdf,
-// which must be added, as layoutFullPageHeader does.
-func fitHeader(pdf *fpdf.Fpdf, header string, width float64) headerLine {
-	return layoutFullPageHeader(header, width, pdfMeasure(pdf))
+// fitHeader fits header on one line of width in the lettering l, whose
+// font must be added to pdf, as layoutFullPageHeader does; a bundled font
+// keeps a safety margin for swashes (see lettering.fitWidth).
+func fitHeader(pdf *fpdf.Fpdf, l lettering, header string, width float64) headerLine {
+	return layoutFullPageHeader(header, l.fitWidth(width), l.measure(pdf))
 }
 
-// drawHeader writes line, bold, centred in band; nothing if it is empty.
-func drawHeader(pdf *fpdf.Fpdf, band Box, line headerLine) {
+// drawHeader writes line in the lettering l, centred in band; nothing if
+// it is empty.
+func drawHeader(pdf *fpdf.Fpdf, l lettering, band Box, line headerLine) {
 	if line.Text == "" {
 		return
 	}
 	pdf.SetTextColor(titleGrey, titleGrey, titleGrey)
-	pdf.SetFont(textFont, "B", line.Size)
+	l.setFont(pdf, line.Size)
 	x := band.X + (band.W-pdf.GetStringWidth(line.Text))/2
 	top := band.Y + (band.H-lineHeight(line.Size))/2
-	pdf.Text(x, baseline(top, line.Size), line.Text)
+	l.text(pdf, x, baseline(top, line.Size), line.Size, line.Text)
 }
 
 // buildFullPage draws full pages of covers on page: header, if not empty,
-// centred on every page, and the covers below it in the grid
-// NewFullPageGrid derives for their count, without borders.
-func buildFullPage(page Page, paths []string, ratios []float64, header string) (*fpdf.Fpdf, error) {
+// centred on every page in the lettering l, and the covers below it in the
+// grid NewFullPageGrid derives for their count, without borders.
+func buildFullPage(page Page, paths []string, ratios []float64, header string, l lettering) (*fpdf.Fpdf, error) {
 	grid, err := NewFullPageGrid(page, len(paths), header != "")
 	if err != nil {
 		return nil, err
@@ -173,17 +176,18 @@ func buildFullPage(page Page, paths []string, ratios []float64, header string) (
 	band, hasHeader := fullPageHeaderBox(grid, header != "")
 	var line headerLine
 	if hasHeader {
-		if err := addTextFonts(pdf); err != nil {
+		// The header is the only text: only its font is embedded.
+		if err := l.add(pdf); err != nil {
 			return nil, err
 		}
-		line = fitHeader(pdf, header, band.W)
+		line = fitHeader(pdf, l, header, band.W)
 	}
 	imgOpts := fpdf.ImageOptions{ImageType: "JPG"}
 
 	i := 0
 	for _, p := range pages {
 		pdf.AddPage()
-		drawHeader(pdf, band, line)
+		drawHeader(pdf, l, band, line)
 		for _, box := range p {
 			name := fmt.Sprintf("cover-%d", i)
 			pdf.RegisterImageOptionsReader(name, imgOpts, bytes.NewReader(images[i].jpeg))

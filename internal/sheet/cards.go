@@ -25,8 +25,8 @@ const (
 )
 
 // buildCards draws a review card per image on grid: the cut border, the
-// cover, its title and creator (from the file name), the date field, empty
-// stars and writing lines.
+// cover, its title (in the lettering of opts) and creator (from the file
+// name), the date field, empty stars and writing lines.
 func buildCards(grid Grid, paths []string, ratios []float64, opts Options) (*fpdf.Fpdf, error) {
 	pages, err := grid.Cells(len(paths))
 	if err != nil {
@@ -50,6 +50,11 @@ func buildCards(grid Grid, paths []string, ratios []float64, opts Options) (*fpd
 	if err := addTextFonts(pdf); err != nil {
 		return nil, err
 	}
+	l := opts.lettering()
+	// Re-adding the default font is a no-op.
+	if err := l.add(pdf); err != nil {
+		return nil, err
+	}
 	imgOpts := fpdf.ImageOptions{ImageType: "JPG"}
 	label := opts.dateLabel()
 
@@ -60,7 +65,7 @@ func buildCards(grid Grid, paths []string, ratios []float64, opts Options) (*fpd
 			name := fmt.Sprintf("cover-%d", i)
 			pdf.RegisterImageOptionsReader(name, imgOpts, bytes.NewReader(images[i].jpeg))
 			title, creator := ParseName(paths[i])
-			drawCard(pdf, cards[i], name, imgOpts, title, creator, label)
+			drawCard(pdf, l, cards[i], name, imgOpts, title, creator, label)
 			if err := pdf.Error(); err != nil {
 				return nil, fmt.Errorf("%s: %w", filepath.Base(paths[i]), err)
 			}
@@ -80,14 +85,15 @@ func addTextFonts(pdf *fpdf.Fpdf) error {
 	return nil
 }
 
-// drawCard draws one review card with the registered cover image.
-func drawCard(pdf *fpdf.Fpdf, c cardParts, image string, imgOpts fpdf.ImageOptions, title, creator, label string) {
+// drawCard draws one review card with the registered cover image, its
+// title in the lettering l.
+func drawCard(pdf *fpdf.Fpdf, l lettering, c cardParts, image string, imgOpts fpdf.ImageOptions, title, creator, label string) {
 	pdf.SetDrawColor(borderGrey, borderGrey, borderGrey)
 	pdf.SetLineWidth(borderWidth)
 	pdf.Rect(c.Card.X, c.Card.Y, c.Card.W, c.Card.H, "D")
 	pdf.ImageOptions(image, c.Cover.X, c.Cover.Y, c.Cover.W, c.Cover.H, false, imgOpts, 0, "")
 
-	drawTitleAndCreator(pdf, c.Title, c.Creator, title, creator)
+	drawTitleAndCreator(pdf, l, c.Title, c.Creator, title, creator)
 
 	// Date label, and a rule to the right edge to write the date on.
 	pdf.SetFont(textFont, "", labelFontSize)
@@ -114,15 +120,17 @@ func drawCard(pdf *fpdf.Fpdf, c cardParts, image string, imgOpts fpdf.ImageOptio
 	}
 }
 
-// drawTitleAndCreator writes title, bold, in up to titleLines lines in
-// titleBox, then creator on one line right under the title's last line,
-// in creatorBox's width; text that does not fit ends with "…".
-func drawTitleAndCreator(pdf *fpdf.Fpdf, titleBox, creatorBox Box, title, creator string) {
+// drawTitleAndCreator writes title, in the lettering l (the default one is
+// bold Go), in up to titleLines lines in titleBox, then creator on one
+// line right under the title's last line, in creatorBox's width; text that
+// does not fit ends with "…". A bundled font keeps a safety margin for
+// swashes (see lettering.fitWidth).
+func drawTitleAndCreator(pdf *fpdf.Fpdf, l lettering, titleBox, creatorBox Box, title, creator string) {
 	pdf.SetTextColor(titleGrey, titleGrey, titleGrey)
-	pdf.SetFont(textFont, "B", titleFontSize)
+	l.setFont(pdf, titleFontSize)
 	y := titleBox.Y
-	for _, line := range fitLines(title, titleBox.W, titleLines, pdf.GetStringWidth) {
-		pdf.Text(titleBox.X, baseline(y, titleFontSize), line)
+	for _, line := range fitLines(title, l.fitWidth(titleBox.W), titleLines, pdf.GetStringWidth) {
+		l.text(pdf, titleBox.X, baseline(y, titleFontSize), titleFontSize, line)
 		y += lineHeight(titleFontSize)
 	}
 	pdf.SetTextColor(textGrey, textGrey, textGrey)

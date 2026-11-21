@@ -192,6 +192,27 @@ export const es: Messages = {
     'pages.savedFile': 'Guardado {file}',
     'pages.errKinds': 'No se han podido cargar los tipos de página: {error}',
 
+    // Rotulación (Imprimir portadas, Crear páginas): fuente y Para colorear.
+    'lettering.font': 'Fuente',
+    'lettering.fontTitle': 'Fuente del encabezado o título impreso. Los pies de foto, las fechas y los créditos mantienen la fuente predeterminada.',
+    'lettering.colourIn': 'Para colorear (solo contornos)',
+    'lettering.colourInTitle': 'Imprime contornos en lugar de letras rellenas, para colorearlas a mano.',
+    'lettering.hint.stroke': 'Imprime solo contornos, listos para colorear a mano.',
+    'lettering.hint.strokeOn': 'Las letras se imprimen como contornos, listas para colorear a mano.',
+    'lettering.hint.none': 'Esta fuente es demasiado fina para contornos; las letras se imprimen rellenas.',
+    'lettering.hint.native': 'Esta fuente es hueca por diseño, así que las letras siempre se imprimen como contornos.',
+    'lettering.badge.stroke': 'admite contorno',
+    'lettering.badge.native': 'hueca',
+    'lettering.badge.none': 'sin contorno',
+    'lettering.errFonts': 'No se han podido cargar las fuentes de rotulación: {error}',
+    'font.go': 'Predeterminada',
+    'fontGroup.sans': 'Sans serif',
+    'fontGroup.brush': 'Caligrafía de pincel',
+    'fontGroup.monoline': 'Caligrafía monolínea',
+    'fontGroup.handwritten': 'Manuscrita',
+    'fontGroup.display': 'Display gruesa',
+    'fontGroup.hollow': 'Hueca',
+
     // Vista previa del PDF (Crear páginas, Imprimir portadas).
     'preview.pageOf': 'Página {page} de {total}',
     'preview.prev': 'Página anterior',
@@ -270,4 +291,13 @@ export const es: Messages = {
     'settings.saved': 'Guardado',
     'settings.errRead': 'No se han podido leer los ajustes: {error}',
     'settings.errReload': 'Guardado, pero no se han podido volver a cargar los ajustes: {error}',
+
+    // About section of the Settings dialog.
+    'about.title': 'Acerca de',
+    'about.fontsIntro': 'Fuentes de rotulación incluidas en la aplicación, cada una con su propia licencia. Abre una para leerla.',
+    'about.goFonts': 'Fuentes Go (predeterminadas)',
+    'about.licenceTitle': 'Licencia de {font}',
+    'about.loading': 'Cargando…',
+    'about.errLicence': 'No se ha podido leer la licencia: {error}',
+    'about.pdfjs': 'La vista previa usa pdf.js de Mozilla (Apache 2.0).',
 };

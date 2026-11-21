@@ -23,6 +23,7 @@ Book covers, movie posters, TV series posters, album covers, game box art and an
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
 - **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, with your own photos centre-cropped to standard print shapes (instant mini, square, 2 × 6 in photo strips or wallet), as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. A live preview shows the PDF before you export it. See [Print sheet](#print-sheet).
+- **Lettering**: headers and titles print in one of ten bundled lettering fonts (brush and monoline script, handwritten, bubble display, hollow), optionally as outlines to colour in by hand. See [Lettering](#lettering).
 - Light and dark themes follow the system setting.
 - English and Spanish interface. It follows the system language and can be changed in **Settings**, see [Language](#language).
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
@@ -315,7 +316,7 @@ In the text box, a line is split on its **last** comma, so `Guns, Germs, and Ste
 The **Print sheet** tab turns downloaded covers into a PDF to cut out, for example for a bullet journal, on A4, US Letter, A5 or B5 paper: a sheet of small covers (or of photos [cropped](#crop-to) to standard print shapes), [review cards](#review-cards), [spines](#spines), [ticket stubs](#ticket-stubs), a [full page](#full-page) of covers under a header, with nothing to cut, a [checklist](#checklist) to tick off as you read or watch, or [polaroids](#polaroid) with the title as a caption.
 
 1. The folder defaults to the download output folder and follows it until you pick another one with **Browse…**. The covers load when the tab opens; **Refresh** reloads them.
-2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page**, **Checklist** or **Polaroid**. For review cards, pick what they are **Cards for** (Books, Movies, TV series or Albums); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** under **Lettering** (for example "Books of 2026" or "TBR 2026"), or leave it empty; for the other formats, Lettering says the format prints no header.
+2. Pick a **Format**: **Cover sheet** (the default), **Review cards**, **Spines**, **Ticket stubs**, **Full page**, **Checklist** or **Polaroid**. For review cards, pick what they are **Cards for** (Books, Movies, TV series or Albums); it follows the Download tab's media type until you change it here. For a full page or a checklist, type a **Header** under **Lettering** (for example "Books of 2026" or "TBR 2026"), or leave it empty; for the other formats, Lettering says the format prints no header. For a full page, a checklist or review cards, Lettering also has the **Font** and **Colour-in** controls (see [Lettering](#lettering)).
 3. Pick a **Paper** (buttons side by side): **A4** (the default), **US Letter**, **A5** or **B5** (176 × 250 mm, the size of many bullet journal notebooks). Each **Cover size** option shows how many covers (or spines, or polaroids) fit on that paper. On a cover sheet it follows the selection: when every selected image is square (albums), how many square covers fit; when every one gets a wide cell at that size (landscape artworks), how many images of the selection's middle shape fit, which is exact when they all share one shape; otherwise, and for mixed shapes, how many 2:3 covers fit.
 4. Pick a **Cover size**: **Mini**, **Standard** (the default) or **Large**. It applies to the cover sheet, spines and polaroids, so it is disabled for review cards, ticket stubs, full pages and checklists. On a cover sheet it is hidden for the crop modes with a fixed size (Instant mini, Photo strip and Wallet).
 5. For a cover sheet, pick what to **Crop to**: **None** (the default, whole images), **Instant mini**, **Square**, **Photo strip (3 frames)**, **Photo strip (4 frames)** or **Wallet** (see [Crop to](#crop-to)), and a **Cut mode**: **Border** (the default), **Bleed + crop marks** or **None** (see [Cut mode](#cut-mode)). The cut mode never changes how many covers fit on a page; it is hidden for Instant mini and photo strips, which always keep their frame border.
@@ -409,6 +410,7 @@ Wikimedia Commons images (see [Places](#places) and [Nature](#nature)) are often
 - Images without a credit file (books, movies, TV series, albums, games, anime, manga) are not listed. When no selected image has one, or the box is unchecked, no page is added and the PDF is exactly what it would be without the option.
 - A credit file that exists but cannot be read stops the export, naming the file, like an unreadable image.
 - Credits print in the embedded Go font, which covers Latin, Greek and Cyrillic text; characters it lacks (for example Japanese) print as empty boxes, though they can still be copied from the PDF, and emoji print as "?".
+- When the header or card titles print in a bundled [lettering font](#lettering), the credits end with a **Fonts** section ("Fuentes" in Spanish) naming that font and its licence. It is added only to a credits page that prints anyway: a font never adds a page on its own.
 
 ### Review cards
 
@@ -417,7 +419,7 @@ The **Review cards** format prints one 90 × 55 mm card per selected cover, to f
 | Part       | Content                                                                                       |
 |------------|-----------------------------------------------------------------------------------------------|
 | Left side  | the cover                                                                                     |
-| Title      | from the file name `Title - Creator.jpg`, up to 2 lines; longer text ends with "…"            |
+| Title      | from the file name `Title - Creator.jpg`, up to 2 lines; longer text ends with "…"; in the chosen [lettering font](#lettering), always filled |
 | Creator    | the author, the year for movies and TV series (`Title - Year.jpg`), or the artist for albums, on 1 line |
 | Date field | **Read on**, **Watched on** or **Listened on**, from the **Cards for** choice                 |
 | Rating     | 5 empty stars                                                                                 |
@@ -499,7 +501,7 @@ The cover size is chosen automatically, so up to 60 covers fit on one page:
 | Setting      | Rule                                                                                                     |
 |--------------|----------------------------------------------------------------------------------------------------------|
 | Margins      | at least 8 mm on every side                                                                              |
-| Header       | bold, centred, in a 12 mm band right above the covers; 20 pt, shrunk down to 12 pt to fit the width, then cut with "…". Empty: no band, the covers use the whole height |
+| Header       | bold, centred, in a 12 mm band right above the covers; 20 pt, shrunk down to 12 pt to fit the width, then cut with "…". Empty: no band, the covers use the whole height. Font and outlines: see [Lettering](#lettering) |
 | Gap          | 3 mm between covers, both ways                                                                           |
 | Cells        | 2:3 (the shape of a typical cover); every column count is tried and the one giving the tallest covers wins (on a tie, fewer empty cells, then more columns) |
 | Cover height | at most 80 mm, so a few covers do not fill the page                                                      |
@@ -518,7 +520,7 @@ The **Checklist** format prints a to-be-read list or watchlist to glue into a jo
 
 | Part      | Content                                                                                       |
 |-----------|-----------------------------------------------------------------------------------------------|
-| Header    | as on a [full page](#full-page): bold, centred, in a 12 mm band, shrunk then cut with "…" to fit; repeated on every page. Empty: no band |
+| Header    | as on a [full page](#full-page): bold, centred, in a 12 mm band, shrunk then cut with "…" to fit, in the chosen [lettering font](#lettering); repeated on every page. Empty: no band |
 | Checkbox  | a 5 mm square on the left                                                                     |
 | Thumbnail | the cover in a 2:3 box 13 mm tall, keeping its aspect ratio (square and wide images are shrunk to fit and centred) |
 | Title     | bold, from the file name `Title - Creator.jpg`, on 1 line; longer text ends with "…"          |
@@ -577,10 +579,10 @@ Some printables need no downloaded images. Each one is a **page kind** with its 
 They live in the **Make pages** tab, in three columns:
 
 - **Page**: the page kinds; pick one.
-- **Options**: the kind's own options, then **Page** (the paper, and the cut mode for kinds that are cut out) and **Lettering** (the title, for kinds that print one).
+- **Options**: the kind's own options, then **Page** (the paper, and the cut mode for kinds that are cut out) and **Lettering** (the title, for kinds that print one, and the **Font** and **Colour-in** controls, see [Lettering](#lettering)).
 - **Preview**: a live preview of the PDF, shown by default. It updates about 300 ms after the last option change and stays on the page shown (or the last one, if the PDF gets shorter); **‹** and **›** step through the pages, with "Page X of N". It is the same PDF **Export PDF…** writes. **Export PDF…** saves it, starting in the Print covers folder, and **Open PDF** opens the saved file.
 
-The preview is rendered by Go into memory (no temporary file) and served by the app's asset handler at `/preview`, which keeps only the last few renders; the frontend draws it onto a `<canvas>` with [pdf.js](#third-party-software), the same way on every platform.
+The preview is rendered by Go into memory (no temporary file) and served by the app's asset handler at `/preview`, which keeps only the last few renders; the frontend draws it onto a `<canvas>` with [pdf.js](#third-party-software), the same way on every platform. The same handler serves the cover thumbnails at `/thumbs` and the [lettering fonts](#lettering) at `/fonts/`.
 
 To make a dot grid page: open **Make pages**, pick **Dot grid**, choose the dot spacing and the paper, type a title if you want one, and click **Export PDF…**.
 
@@ -593,9 +595,61 @@ A plain grid of small grey dots, the basic bullet journal page, on one page.
 | Spacing | 4, **5** or 6 mm between dot centres                                                                   |
 | Dots    | 0.25 mm radius, mid grey (#808080)                                                                     |
 | Area    | as many dots as fit a whole number of spacings apart within 8 mm margins, centred both ways            |
-| Title   | optional, bold, in a 12 mm band at the top margin like a [full page](#full-page) header; the dots start below it |
+| Title   | optional, bold, in a 12 mm band at the top margin like a [full page](#full-page) header, in the chosen [lettering font](#lettering); the dots start below it |
 
 On A4 at 5 mm that is 39 × 57 dots (39 × 54 with a title). The cut mode does not apply.
+
+## Lettering
+
+Headers and titles can print in one of ten bundled lettering fonts instead of the plain Go sans, and as hollow outlines to colour in by hand, the way bubble letters drawn with a pen are coloured. The controls sit in the **Lettering** fieldset of [Print sheet](#print-sheet) (for **Full page**, **Checklist** and **Review cards**) and [Make pages](#generated-pages) (every page kind).
+
+1. Click **Font** (or focus it and press ↓). The button shows the chosen font in its own face; the list shows each font in its face, with its style group and a [badge](#colour-in). Arrow keys, Home and End move, Enter or Space picks, Escape closes.
+2. Check **Colour-in (outlines only)** to print outlines. The hint under it says what the chosen font does.
+3. Check the preview, then export.
+
+Each tab keeps its own font and Colour-in until the app closes. With the **Default** font and Colour-in off, every PDF is the same as before lettering existed.
+
+### What uses the font
+
+| Text | Font |
+|------|------|
+| Full page and Checklist headers, Dot grid title | the chosen font, outlined with Colour-in |
+| Review card titles | the chosen font, always filled: at 9.5 pt they are too small for outlines |
+| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits | always the Go font |
+
+Headers still shrink from 20 pt down to 12 pt to fit, then end with "…". A bundled font fits into 96 % of the width, leaving room for swashes; the Default (Go) font keeps its bold header and the full width.
+
+### Colour-in
+
+Colour-in prints letters as black outlines (PDF text rendering mode 1) instead of fills. The outline is max(0.2, 0.25 × size / 20) mm wide, so 0.25 mm at 20 pt, and the next text prints filled again. What it does depends on the font's badge:
+
+| Badge | Fonts | With Colour-in |
+|-------|-------|----------------|
+| **outline ok** | Default, Kaushan Script, Pacifico, Patrick Hand, Titan One, Bungee, Luckiest Guy | outlined at 14 pt or larger; smaller text stays filled |
+| **hollow** | Bungee Outline, Londrina Outline | outlined by design, never stroked again; the box shows checked, and your own choice comes back with the next font |
+| **no outline** | Sacramento, Amatic SC | too thin to outline: letters stay filled |
+
+### Bundled fonts
+
+| Font | Style group | Badge | Licence | Source |
+|------|-------------|-------|---------|--------|
+| Default (Go Regular, Go Bold) | Sans | outline ok | BSD 3-Clause | [`golang.org/x/image/font/gofont`](https://pkg.go.dev/golang.org/x/image/font/gofont) |
+| Kaushan Script | Brush script | outline ok | SIL OFL 1.1 | `ofl/kaushanscript` |
+| Pacifico | Brush script | outline ok | SIL OFL 1.1 | `ofl/pacifico` |
+| Sacramento | Monoline script | no outline | SIL OFL 1.1 | `ofl/sacramento` |
+| Patrick Hand | Handwritten | outline ok | SIL OFL 1.1 | `ofl/patrickhand` |
+| Amatic SC (Bold) | Handwritten | no outline | SIL OFL 1.1 | `ofl/amaticsc` |
+| Titan One | Bold display | outline ok | SIL OFL 1.1 | `ofl/titanone` |
+| Bungee | Bold display | outline ok | SIL OFL 1.1 | `ofl/bungee` |
+| Luckiest Guy | Bold display | outline ok | Apache 2.0 | `apache/luckiestguy` |
+| Bungee Outline | Hollow | hollow | SIL OFL 1.1 | `ofl/bungeeoutline` |
+| Londrina Outline | Hollow | hollow | SIL OFL 1.1 | `ofl/londrinaoutline` |
+
+- The ten lettering fonts were downloaded on 2026-11-20 from [`github.com/google/fonts`](https://github.com/google/fonts) (branch `main`, the paths above) and ship unmodified, as static TrueType (`glyf`) files, in `internal/sheet/fonts/<id>/` next to their licence (`OFL.txt`, or `LICENSE.txt` for Luckiest Guy; `go/LICENSE` for the Go fonts). fpdf embeds only the glyphs each PDF uses.
+- Every font covers the English and Spanish alphabets (á é í ó ú ñ ü ¿ ¡). Luckiest Guy and Londrina Outline lack Latin Extended letters (ő ł č), which matters only for future languages.
+- **Settings → About** lists every font with its licence name; open an entry to read the licence text.
+- There is no OpenType shaping or kerning (fpdf has none), so script fonts lose their contextual alternates.
+- The picker and the preview load the fonts from the app's asset handler at `/fonts/<id>.ttf` (licence text at `/fonts/<id>/licence`), next to `/thumbs` and `/preview`, so the frontend bundle holds no copy.
 
 ## Using the command line
 
@@ -707,7 +761,7 @@ The root package embeds `frontend/dist`, so build the frontend once first (`cd f
 ```
 main.go, app.go        Wails entry point and the methods bound to the UI
 frontend/              Vanilla TypeScript + Vite UI
-  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), preview.ts (live PDF preview) and style.css
+  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), preview.ts (live PDF preview), lettering.ts (font picker and Colour-in), settings.ts (Settings dialog and About) and style.css
   wailsjs/             generated bindings (committed)
 cmd/covers/            command-line tool
 internal/
@@ -723,7 +777,9 @@ internal/
   settings/            user settings file (TMDB API key)
   gallery/             print sheet: folder listing and thumbnails for the UI
   preview/             in-memory store of preview PDFs served at /preview
-  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid)
+  fonts/               serves the lettering fonts and their licences at /fonts/
+  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid); the lettering font registry and hollow text
+    fonts/<id>/        the bundled lettering fonts (TTF) and their licence files, embedded
 build/                 Wails build assets (icons, manifests); binaries go to build/bin/
 legacy/                the original Python script
 ```
@@ -748,3 +804,8 @@ That's all. The UI lists media types from the registry and uses the creator labe
 | Component | Licence | Use |
 |-----------|---------|-----|
 | [pdf.js](https://github.com/mozilla/pdf.js) (`pdfjs-dist`) | [Apache License 2.0](https://github.com/mozilla/pdf.js/blob/master/LICENSE) | draws the live PDF preview; bundled into the app by Vite with its worker, not loaded from a CDN |
+| Lettering fonts: Kaushan Script, Pacifico, Sacramento, Patrick Hand, Amatic SC, Titan One, Bungee, Bungee Outline, Londrina Outline (9 fonts, from [Google Fonts](https://github.com/google/fonts)) | [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/) | [lettering](#lettering) of headers and titles; embedded unmodified, subset into each PDF |
+| Luckiest Guy (from [Google Fonts](https://github.com/google/fonts)) | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) | [lettering](#lettering) of headers and titles; embedded unmodified, subset into each PDF |
+| [Go fonts](https://go.dev/blog/go-fonts) (Go Regular, Go Bold) | BSD 3-Clause | every PDF's text and the Default lettering font |
+
+Each font's licence file ships in `internal/sheet/fonts/<id>/` and can be read in **Settings → About**, which also names pdf.js.

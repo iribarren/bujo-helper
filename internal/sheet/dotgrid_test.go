@@ -109,6 +109,8 @@ func renderPage(t *testing.T, kind string, page PageSettings, options string) []
 		t.Fatal(err)
 	}
 	pdf.SetCompression(false)
+	// Fonts are written in map order unless sorted.
+	pdf.SetCatalogSort(true)
 	when := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	pdf.SetCreationDate(when)
 	pdf.SetModificationDate(when)

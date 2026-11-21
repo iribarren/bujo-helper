@@ -36,6 +36,32 @@ export namespace main {
 	        this.creator = source["creator"];
 	    }
 	}
+	export class LetteringFontInfo {
+	    id: string;
+	    label: string;
+	    group: string;
+	    hollow: string;
+	    licence: string;
+	    url: string;
+	    licenceUrl: string;
+	    default: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new LetteringFontInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.label = source["label"];
+	        this.group = source["group"];
+	        this.hollow = source["hollow"];
+	        this.licence = source["licence"];
+	        this.url = source["url"];
+	        this.licenceUrl = source["licenceUrl"];
+	        this.default = source["default"];
+	    }
+	}
 	export class MediaTypeInfo {
 	    id: string;
 	    label: string;
@@ -138,6 +164,7 @@ export namespace main {
 	    usesCut: boolean;
 	    usesCrop: boolean;
 	    usesHeader: boolean;
+	    usesLettering: boolean;
 	    default: boolean;
 	
 	    static createFrom(source: any = {}) {
@@ -153,6 +180,7 @@ export namespace main {
 	        this.usesCut = source["usesCut"];
 	        this.usesCrop = source["usesCrop"];
 	        this.usesHeader = source["usesHeader"];
+	        this.usesLettering = source["usesLettering"];
 	        this.default = source["default"];
 	    }
 	}
@@ -274,6 +302,7 @@ export namespace sheet {
 	    Where: string;
 	    CardDate: string;
 	    Credits: string;
+	    Fonts: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Labels(source);
@@ -286,6 +315,7 @@ export namespace sheet {
 	        this.Where = source["Where"];
 	        this.CardDate = source["CardDate"];
 	        this.Credits = source["Credits"];
+	        this.Fonts = source["Fonts"];
 	    }
 	}
 	export class Options {
@@ -296,6 +326,8 @@ export namespace sheet {
 	    crop: string;
 	    dateLabel: string;
 	    header: string;
+	    font: string;
+	    colourIn: boolean;
 	    credits: boolean;
 	
 	    static createFrom(source: any = {}) {
@@ -311,6 +343,8 @@ export namespace sheet {
 	        this.crop = source["crop"];
 	        this.dateLabel = source["dateLabel"];
 	        this.header = source["header"];
+	        this.font = source["font"];
+	        this.colourIn = source["colourIn"];
 	        this.credits = source["credits"];
 	    }
 	}
@@ -318,6 +352,8 @@ export namespace sheet {
 	    paper: string;
 	    cut: string;
 	    title: string;
+	    font: string;
+	    colourIn: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new PageSettings(source);
@@ -328,6 +364,8 @@ export namespace sheet {
 	        this.paper = source["paper"];
 	        this.cut = source["cut"];
 	        this.title = source["title"];
+	        this.font = source["font"];
+	        this.colourIn = source["colourIn"];
 	    }
 	}
 

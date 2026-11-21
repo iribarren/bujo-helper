@@ -117,6 +117,9 @@ type Format struct {
 	UsesCrop bool   // whether the crop mode applies
 	// UsesHeader is whether the format prints the header the user types.
 	UsesHeader bool
+	// UsesLettering is whether the format prints display text (headers,
+	// card titles) in the chosen lettering font and Colour-in mode.
+	UsesLettering bool
 	// ShapedCells is whether cells follow the shape of the image: square
 	// images get square cells and landscape images wide cells (see
 	// Grid.Flow). In other formats they shrink to fit like any image.
@@ -139,11 +142,11 @@ const (
 // Formats lists the print formats, the default first.
 var Formats = []Format{
 	{ID: DefaultFormat, Label: "Cover sheet", FileTag: "covers", Noun: "cover", UsesSize: true, UsesCut: true, UsesCrop: true, ShapedCells: true},
-	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", Noun: "card", UsesSize: false},
+	{ID: cardsFormat, Label: "Review cards", FileTag: "cards", Noun: "card", UsesSize: false, UsesLettering: true},
 	{ID: spinesFormat, Label: "Spines", FileTag: "spines", Noun: "spine", UsesSize: true},
 	{ID: stubsFormat, Label: "Ticket stubs", FileTag: "stubs", Noun: "stub", UsesSize: false},
-	{ID: fullFormat, Label: "Full page", FileTag: "fullpage", Noun: "cover", UsesHeader: true},
-	{ID: checkFormat, Label: "Checklist", FileTag: "checklist", Noun: "row", UsesHeader: true},
+	{ID: fullFormat, Label: "Full page", FileTag: "fullpage", Noun: "cover", UsesHeader: true, UsesLettering: true},
+	{ID: checkFormat, Label: "Checklist", FileTag: "checklist", Noun: "row", UsesHeader: true, UsesLettering: true},
 	{ID: polaFormat, Label: "Polaroid", FileTag: "polaroid", Noun: "polaroid", UsesSize: true},
 }
 
@@ -177,6 +180,14 @@ type Options struct {
 	// checklist, e.g. "Books of 2026" or "TBR 2026"; "" (or only spaces)
 	// means no header. Ignored by other formats.
 	Header string `json:"header"`
+	// Font is the lettering font id of the header or card titles (see
+	// LetteringFonts); "" or an unknown id means DefaultLetteringFont.
+	// Ignored by formats that do not use lettering.
+	Font string `json:"font"`
+	// ColourIn draws the header or titles hollow, to colour in by hand,
+	// when the font can be outlined and the text is large enough (see
+	// lettering.hollow). Ignored by formats that do not use lettering.
+	ColourIn bool `json:"colourIn"`
 	// Credits adds credits pages after the images: one entry per selected
 	// image with a credit sidecar (see media.CreditPath), in sheet order.
 	// Without such an image it adds nothing.
@@ -195,6 +206,7 @@ type Labels struct {
 	Where    string // the stub's where field, with its colon; "Where:"
 	CardDate string // a card's date field when DateLabel is "", without the colon; "Date"
 	Credits  string // the heading of credits pages; "Credits"
+	Fonts    string // the heading of the fonts section of credits pages; "Fonts"
 }
 
 // labels returns o.Labels, trimmed, with every empty field set to its
@@ -213,6 +225,7 @@ func (o Options) labels() Labels {
 		Where:    or(l.Where, whereText),
 		CardDate: or(l.CardDate, cardDateText),
 		Credits:  or(l.Credits, creditsText),
+		Fonts:    or(l.Fonts, fontsText),
 	}
 }
 
@@ -317,6 +330,10 @@ func (o Options) PerPage() (int, error) {
 func (o Options) header() string {
 	return strings.Join(strings.Fields(o.Header), " ")
 }
+
+// lettering is the lettering of the display text: the chosen font and
+// Colour-in mode.
+func (o Options) lettering() lettering { return newLettering(o.Font, o.ColourIn) }
 
 // dateLabel is the text of the date field of a review card, with its colon:
 // DateLabel, or the card date label when it is empty.

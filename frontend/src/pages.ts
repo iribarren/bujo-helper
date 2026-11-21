@@ -1,6 +1,7 @@
 // The "Make pages" tab: generated pages that need no images. Pick a page
 // kind (from PageKinds), set its own options (its form, see pageForms.ts)
-// and the shared Page and Lettering options, see how many pages it makes,
+// and the shared Page and Lettering options (paper, cut mode, title, font
+// and Colour-in), see how many pages it makes,
 // and export it to a PDF (see internal/sheet.BuildPage). A live preview
 // (preview.ts) draws the PDF PreviewPage renders for the current options,
 // the same one Export PDF saves.
@@ -9,6 +10,7 @@ import {ExportPage, OpenFile, PageKinds, PreviewPage, PrintCutModes, PrintPapers
 import {main, sheet} from '../wailsjs/go/models';
 import {renderSharedFieldsets, syncFieldsets} from './fieldsets';
 import {label, onLangChange, t, tn} from './i18n';
+import {letteringFonts} from './lettering';
 import {pageForms, type PageForm} from './pageForms';
 import {initPreview} from './preview';
 import {initRadioGroup} from './radioGroup';
@@ -69,8 +71,10 @@ export function initPages(deps: PagesDeps): void {
     );
     // The page kinds, a radio group; the user's choice calls update.
     const kindGroup = initRadioGroup(byId<HTMLDivElement>('pages-kinds'), () => update());
-    // Page (paper, cut mode) and Lettering (the title), as in Print covers,
-    // without a credits page: generated pages have no images to credit.
+    // Page (paper, cut mode) and Lettering (the title, font and Colour-in),
+    // as in Print covers, without a credits page: generated pages have no
+    // images to credit. Each tab keeps its own font and Colour-in, like its
+    // paper, while the user switches tabs.
     const shared = renderSharedFieldsets({
         prefix: 'pages',
         container: ui.options,
@@ -79,6 +83,7 @@ export function initPages(deps: PagesDeps): void {
         text: {id: 'title', label: 'pages.title', title: 'pages.titleTitle'},
         hint: 'pages.noTitle',
         onPaperChange: () => update(),
+        onLetteringChange: () => update(),
     });
 
     // The page kinds, papers and cut modes from Go; empty until they load.
@@ -125,10 +130,14 @@ export function initPages(deps: PagesDeps): void {
         const paper = currentPaper();
         if (!kind || !paper) return undefined;
         const form = formOf(kind).form;
+        // Every page kind uses the font and Colour-in.
+        const {font, colourIn} = shared.lettering.options();
         const settings = sheet.PageSettings.createFrom({
             paper: paper.id,
             cut: kind.usesCut ? shared.cut.value : '',
             title: kind.usesTitle ? shared.text.value.trim() : '',
+            font,
+            colourIn,
         });
         const options = form ? JSON.stringify(form.options()) : kind.defaults || '';
         return {kind, paper, settings, options, key: JSON.stringify([kind.id, settings, options])};
@@ -232,7 +241,8 @@ export function initPages(deps: PagesDeps): void {
     }
 
     async function load() {
-        const [kindList, paperList, cutList] = await Promise.allSettled([PageKinds(), PrintPapers(), PrintCutModes()]);
+        const [kindList, paperList, cutList, fontList] =
+            await Promise.allSettled([PageKinds(), PrintPapers(), PrintCutModes(), letteringFonts()]);
         if (kindList.status === 'fulfilled') {
             kinds = kindList.value ?? [];
             labelKinds();
@@ -251,6 +261,11 @@ export function initPages(deps: PagesDeps): void {
             shared.setCuts(cutList.value ?? []);
         } else {
             deps.showError(t('print.errCuts', {error: errorText(cutList.reason)}));
+        }
+        if (fontList.status === 'fulfilled') {
+            shared.lettering.setFonts(fontList.value);
+        } else {
+            deps.showError(t('lettering.errFonts', {error: errorText(fontList.reason)}));
         }
         update();
     }

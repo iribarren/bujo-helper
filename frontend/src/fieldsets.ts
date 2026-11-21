@@ -1,12 +1,14 @@
 // The Page and Lettering option groups that the Print covers and Make pages
 // tabs share: Paper (a segmented group of the Go papers), Cut mode and, for
 // Print covers, Credits page; and the tab's printed text (a header or a
-// title) or, where the format or page kind prints none, a muted hint. Each
+// title) or, where the format or page kind prints none, a muted hint, and
+// the Font picker and Colour-in checkbox (lettering.ts). Each
 // tab renders them into its options column with its own ID prefix, e.g.
 // "print-paper" and "pages-paper", and decides which fields apply.
 
 import {main} from '../wailsjs/go/models';
 import {label, t, type MessageKey} from './i18n';
+import {renderLettering, type Lettering} from './lettering';
 import {initRadioGroup, type RadioGroup} from './radioGroup';
 
 // Preset is a Go preset with an ID, an English label and a default flag.
@@ -32,6 +34,8 @@ export interface SharedFieldsetsConfig {
     hint: MessageKey;
     // Called when the user picks another paper.
     onPaperChange: () => void;
+    // Called when the user picks another font or toggles Colour-in.
+    onLetteringChange: () => void;
 }
 
 export interface SharedFieldsets {
@@ -44,12 +48,16 @@ export interface SharedFieldsets {
     text: HTMLInputElement;
     textField: HTMLLabelElement;
     hint: HTMLParagraphElement;
+    // The Font picker and Colour-in; lettering.options() is what Go gets.
+    lettering: Lettering;
     // Fills Paper from the Go papers; the first time, the default is checked.
     setPapers: (papers: main.PrintPaperInfo[]) => void;
     // Fills Cut mode from the Go cut modes, the default selected.
     setCuts: (cuts: Preset[]) => void;
     // Shows the text field when it applies, the hint otherwise.
     showText: (on: boolean) => void;
+    // Shows the Font picker and Colour-in when lettering applies.
+    showLettering: (on: boolean) => void;
     // Names the papers and cut modes in the current language.
     relabel: () => void;
 }
@@ -157,7 +165,8 @@ export function renderSharedFieldsets(config: SharedFieldsetsConfig): SharedFiel
     textField.append(translated(el('span'), config.text.label), text);
     const hint = translated(el('p', 'group-hint muted'), config.hint);
     hint.id = `${prefix}-lettering-hint`;
-    letteringGroup.append(textField, hint);
+    const lettering = renderLettering(prefix, config.onLetteringChange);
+    letteringGroup.append(textField, hint, lettering.fontField, lettering.colourInField);
 
     config.container.append(pageGroup, letteringGroup);
 
@@ -185,6 +194,7 @@ export function renderSharedFieldsets(config: SharedFieldsetsConfig): SharedFiel
         text,
         textField,
         hint,
+        lettering,
         setPapers: (list) => {
             const first = papers.length === 0;
             papers = list;
@@ -197,9 +207,11 @@ export function renderSharedFieldsets(config: SharedFieldsetsConfig): SharedFiel
             fillSelect(cut, 'cut', cuts);
         },
         showText,
+        showLettering: lettering.show,
         relabel: () => {
             labelPapers();
             labelOptions(cut, 'cut', cuts);
+            lettering.relabel();
         },
     };
 }

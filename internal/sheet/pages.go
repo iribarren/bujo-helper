@@ -22,6 +22,12 @@ type PageSettings struct {
 	Paper string `json:"paper"` // a Papers ID; "" means DefaultPaper
 	Cut   string `json:"cut"`   // a CutModes ID; "" means DefaultCut
 	Title string `json:"title"` // printed in a header band at the top
+	// Font is the lettering font id of the title (see LetteringFonts); ""
+	// or an unknown id means DefaultLetteringFont.
+	Font string `json:"font"`
+	// ColourIn draws hollow letters (and, for kinds that have them,
+	// outlines without fills) to colour in by hand.
+	ColourIn bool `json:"colourIn"`
 }
 
 // PageKind is a kind of generated page.
@@ -48,8 +54,9 @@ type pageDoc interface {
 	// pages is how many pages the document has.
 	pages() int
 	// draw adds the pages to pdf, a document of page-sized pages; title is
-	// the shared title, "" if none or if the kind does not use it.
-	draw(pdf *fpdf.Fpdf, page Page, title string) error
+	// the shared title, "" if none or if the kind does not use it, and l
+	// the lettering of its title, whose font is added when there is one.
+	draw(pdf *fpdf.Fpdf, page Page, title string, l lettering) error
 }
 
 // PageKinds lists the page kinds.
@@ -161,13 +168,14 @@ func buildPage(kind string, s PageSettings, options json.RawMessage) (*fpdf.Fpdf
 		// The header's own rules: trimmed, runs of spaces collapsed.
 		title = Options{Header: s.Title}.header()
 	}
+	l := newLettering(s.Font, s.ColourIn)
 	pdf := newPDF(paper.Page)
 	if title != "" {
-		if err := addTextFonts(pdf); err != nil {
+		if err := l.add(pdf); err != nil {
 			return nil, err
 		}
 	}
-	if err := doc.draw(pdf, paper.Page, title); err != nil {
+	if err := doc.draw(pdf, paper.Page, title, l); err != nil {
 		return nil, err
 	}
 	if err := pdf.Error(); err != nil {

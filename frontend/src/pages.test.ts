@@ -15,7 +15,7 @@ vi.mock('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url', () => ({default: '/pdf
 // The page kinds as PageKinds sends them (see app.go), plus a made-up kind
 // that uses the cut mode and prints no title, to cover the shared Page and
 // Lettering fieldsets for every kind.
-const {kinds, papers, cuts} = vi.hoisted(() => ({
+const {kinds, papers, cuts, fonts} = vi.hoisted(() => ({
     kinds: [
         {id: 'dotgrid', label: 'Dot grid', usesCut: false, usesTitle: true, defaults: '{"spacing":5}', default: true},
         {id: 'cutout', label: 'Cut-out', usesCut: true, usesTitle: false, defaults: '{}', default: false},
@@ -31,6 +31,13 @@ const {kinds, papers, cuts} = vi.hoisted(() => ({
         {id: 'bleed', label: 'Bleed + crop marks', default: false},
         {id: 'none', label: 'None', default: false},
     ],
+    fonts: [
+        ['go', 'Default', 'sans', 'stroke'],
+        ['pacifico', 'Pacifico', 'brush', 'stroke'],
+        ['londrina-outline', 'Londrina Outline', 'hollow', 'native'],
+    ].map(([id, label, group, hollow]) => ({
+        id, label, group, hollow, licence: 'OFL-1.1', url: `/fonts/${id}.ttf`, licenceUrl: `/fonts/${id}/licence`, default: id === 'go',
+    })),
 }));
 
 vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
@@ -44,6 +51,7 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     stubs.PrintCutModes = vi.fn(async () => cuts);
     stubs.PagePages = vi.fn(async () => 1);
     stubs.PreviewPage = vi.fn(async () => ({url: '/preview?id=1', pages: 1}));
+    stubs.LetteringFonts = vi.fn(async () => fonts);
     return stubs;
 });
 
@@ -72,7 +80,7 @@ function checked(groupId: string): string {
     return el(groupId).querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.dataset.value ?? '';
 }
 
-function lastPreviewPage(): [string, {paper: string; cut: string; title: string}, string] {
+function lastPreviewPage(): [string, {paper: string; cut: string; title: string; font: string; colourIn: boolean}, string] {
     const calls = vi.mocked(PreviewPage).mock.calls;
     expect(calls.length).toBeGreaterThan(0);
     return calls[calls.length - 1] as never;
@@ -81,6 +89,19 @@ function lastPreviewPage(): [string, {paper: string; cut: string; title: string}
 // previewDone waits until the preview has drawn the latest options.
 async function previewDone() {
     await vi.waitFor(() => expect(el('pages-sheet').getAttribute('aria-busy')).toBe('false'));
+}
+
+// pickFont chooses the font id in the Lettering font picker.
+function pickFont(id: string) {
+    el('pages-font').click();
+    const option = el('pages-font-list').querySelector<HTMLElement>(`[role="option"][data-value="${id}"]`);
+    if (!option) throw new Error(`missing font ${id}`);
+    option.click();
+}
+
+function setColourIn(on: boolean) {
+    const box = el<HTMLInputElement>('pages-colour-in');
+    if (box.checked !== on) box.click();
 }
 
 function setTitle(text: string) {
@@ -97,12 +118,15 @@ beforeAll(async () => {
     initPages(deps);
     await vi.waitFor(() => expect(el('pages-kinds').querySelectorAll('[role="radio"]').length).toBe(kinds.length));
     await vi.waitFor(() => expect(el('pages-paper').querySelectorAll('[role="radio"]').length).toBe(papers.length));
+    await vi.waitFor(() => expect(el('pages-font-list').querySelectorAll('[role="option"]').length).toBe(fonts.length));
 });
 
 afterEach(() => {
     radio('pages-kinds', 'dotgrid').click();
     radio('pages-paper', 'a5').click();
     setTitle('');
+    pickFont('go');
+    setColourIn(false);
 });
 
 describe('page kinds', () => {
@@ -236,7 +260,7 @@ describe('Page fieldset', () => {
     });
 
     it('has no credits page option', () => {
-        expect(el('panel-pages').querySelector('input[type="checkbox"]')).toBeNull();
+        expect(el('pages-group-page').querySelector('input[type="checkbox"]')).toBeNull();
         expect(document.getElementById('pages-credits')).toBeNull();
     });
 });
@@ -260,6 +284,30 @@ describe('Lettering fieldset', () => {
         expect(el('pages-lettering-hint').textContent).toBe('This page prints no title.');
         await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('cutout'));
         expect(lastPreviewPage()[1].title).toBe('');
+    });
+
+    for (const kind of ['dotgrid', 'cutout']) {
+        it(`${kind}: has the font picker and Colour-in, the default font chosen`, () => {
+            radio('pages-kinds', kind).click();
+            expect(el('pages-font').closest('fieldset')?.id).toBe('pages-group-lettering');
+            expect(el('pages-font-field').hidden).toBe(false);
+            expect(el('pages-colour-in-field').hidden).toBe(false);
+            expect(el('pages-font').querySelector('.font-picker-name')?.textContent).toBe('Default');
+            expect(el<HTMLInputElement>('pages-colour-in').checked).toBe(false);
+        });
+    }
+
+    it('sends the chosen font and Colour-in', async () => {
+        pickFont('pacifico');
+        setColourIn(true);
+        await vi.waitFor(() => expect(lastPreviewPage()[1]).toEqual(expect.objectContaining({font: 'pacifico', colourIn: true})));
+    });
+
+    it('sends the stored Colour-in with a hollow font', async () => {
+        pickFont('londrina-outline');
+        expect(el<HTMLInputElement>('pages-colour-in').checked).toBe(true);
+        expect(el('pages-colour-in-hint').textContent).toBe('This font is hollow by design, so letters always print as outlines.');
+        await vi.waitFor(() => expect(lastPreviewPage()[1]).toEqual(expect.objectContaining({font: 'londrina-outline', colourIn: false})));
     });
 });
 
@@ -286,9 +334,13 @@ describe('live preview', () => {
         await vi.waitFor(() => expect(vi.mocked(PreviewPage).mock.calls.length).toBe(before + 2));
         setTitle('Ideas');
         await vi.waitFor(() => expect(vi.mocked(PreviewPage).mock.calls.length).toBe(before + 3));
-        radio('pages-kinds', 'cutout').click();
+        pickFont('pacifico');
         await vi.waitFor(() => expect(vi.mocked(PreviewPage).mock.calls.length).toBe(before + 4));
-        expect(lastPreviewPage()).toEqual(['cutout', expect.objectContaining({paper: 'b5', title: ''}), '{}']);
+        setColourIn(true);
+        await vi.waitFor(() => expect(vi.mocked(PreviewPage).mock.calls.length).toBe(before + 5));
+        radio('pages-kinds', 'cutout').click();
+        await vi.waitFor(() => expect(vi.mocked(PreviewPage).mock.calls.length).toBe(before + 6));
+        expect(lastPreviewPage()).toEqual(['cutout', expect.objectContaining({paper: 'b5', title: '', font: 'pacifico', colourIn: true}), '{}']);
         radio('pages-dotgrid-spacing', '5').click();
     });
 
@@ -331,7 +383,7 @@ describe('export', () => {
         const [kind, dir, settings, options] = vi.mocked(ExportPage).mock.calls[0];
         expect(kind).toBe('dotgrid');
         expect(dir).toBe('/covers');
-        expect({...settings}).toEqual({paper: 'a5', cut: '', title: 'Notes'});
+        expect({...settings}).toEqual({paper: 'a5', cut: '', title: 'Notes', font: 'go', colourIn: false});
         expect(options).toBe('{"spacing":4}');
         expect(el('pages-open-pdf').hidden).toBe(false);
         expect(el<HTMLButtonElement>('pages-export').disabled).toBe(false);

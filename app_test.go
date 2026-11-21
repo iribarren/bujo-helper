@@ -629,11 +629,11 @@ func TestPrintFormats(t *testing.T) {
 	got := NewApp().PrintFormats()
 	want := []PrintFormatInfo{
 		{ID: "covers", Label: "Cover sheet", Noun: "cover", UsesSize: true, UsesCut: true, UsesCrop: true, Default: true},
-		{ID: "cards", Label: "Review cards", Noun: "card"},
+		{ID: "cards", Label: "Review cards", Noun: "card", UsesLettering: true},
 		{ID: "spines", Label: "Spines", Noun: "spine", UsesSize: true},
 		{ID: "stubs", Label: "Ticket stubs", Noun: "stub"},
-		{ID: "fullpage", Label: "Full page", Noun: "cover", UsesHeader: true},
-		{ID: "checklist", Label: "Checklist", Noun: "row", UsesHeader: true},
+		{ID: "fullpage", Label: "Full page", Noun: "cover", UsesHeader: true, UsesLettering: true},
+		{ID: "checklist", Label: "Checklist", Noun: "row", UsesHeader: true, UsesLettering: true},
 		{ID: "polaroid", Label: "Polaroid", Noun: "polaroid", UsesSize: true},
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -648,6 +648,69 @@ func TestPageKinds(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("PageKinds() = %+v, want %+v", got, want)
+	}
+}
+
+func TestLetteringFonts(t *testing.T) {
+	got := NewApp().LetteringFonts()
+	if len(got) != len(sheet.LetteringFonts) {
+		t.Fatalf("len = %d, want %d", len(got), len(sheet.LetteringFonts))
+	}
+	want0 := LetteringFontInfo{
+		ID: "go", Label: "Default", Group: "sans", Hollow: "stroke",
+		Licence: "BSD 3-Clause (Go fonts)", URL: "/fonts/go.ttf",
+		LicenceURL: "/fonts/go/licence", Default: true,
+	}
+	if got[0] != want0 {
+		t.Errorf("first = %+v, want %+v", got[0], want0)
+	}
+	wantLast := LetteringFontInfo{
+		ID: "londrina-outline", Label: "Londrina Outline", Group: "hollow", Hollow: "native",
+		Licence: "SIL OFL 1.1", URL: "/fonts/londrina-outline.ttf",
+		LicenceURL: "/fonts/londrina-outline/licence",
+	}
+	if last := got[len(got)-1]; last != wantLast {
+		t.Errorf("last = %+v, want %+v", last, wantLast)
+	}
+	for _, f := range got[1:] {
+		if f.Default {
+			t.Errorf("%s is marked default", f.ID)
+		}
+	}
+}
+
+func TestAssetHandlerServesFonts(t *testing.T) {
+	h := NewApp().assetHandler()
+	font := func(id string) sheet.Font {
+		f, ok := sheet.LetteringFontByID(id)
+		if !ok {
+			t.Fatalf("no lettering font %q", id)
+		}
+		return f
+	}
+	tests := []struct {
+		target, contentType string
+		want                int
+		body                []byte // the registry bytes; nil skips the check
+	}{
+		{"/fonts/pacifico.ttf", "font/ttf", http.StatusOK, font("pacifico").TTF},
+		{"/fonts/go.ttf", "font/ttf", http.StatusOK, font("go").HeaderTTF()},
+		{"/fonts/luckiest-guy/licence", "text/plain; charset=utf-8", http.StatusOK, []byte(font("luckiest-guy").LicenceText)},
+		{"/fonts/pacifico/licence", "text/plain; charset=utf-8", http.StatusOK, []byte(font("pacifico").LicenceText)},
+		{"/fonts/comic-sans.ttf", "", http.StatusNotFound, nil},
+	}
+	for _, tt := range tests {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tt.target, nil))
+		if rec.Code != tt.want {
+			t.Errorf("%s: status = %d, want %d", tt.target, rec.Code, tt.want)
+		}
+		if tt.contentType != "" && rec.Header().Get("Content-Type") != tt.contentType {
+			t.Errorf("%s: content type = %q", tt.target, rec.Header().Get("Content-Type"))
+		}
+		if tt.body != nil && !bytes.Equal(rec.Body.Bytes(), tt.body) {
+			t.Errorf("%s: body is %d bytes, want the registry's %d", tt.target, rec.Body.Len(), len(tt.body))
+		}
 	}
 }
 
@@ -1717,12 +1780,12 @@ func TestExportPDFDialogUsesTheUILanguage(t *testing.T) {
 func TestPDFLabelsFollowTheUILanguage(t *testing.T) {
 	a := newApp(media.NewRegistry(), http.DefaultClient)
 	opts := sheet.Options{Format: "stubs", DateLabel: "Leído el"}
-	if got := a.withLabels(opts); got.Labels != (sheet.Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date", Credits: "Credits"}) {
+	if got := a.withLabels(opts); got.Labels != (sheet.Labels{Admit: "ADMIT ONE", Date: "Date:", Where: "Where:", CardDate: "Date", Credits: "Credits", Fonts: "Fonts"}) {
 		t.Errorf("English labels = %+v", got.Labels)
 	}
 	a.SetLanguage("es")
 	got := a.withLabels(opts)
-	if got.Labels != (sheet.Labels{Admit: "ENTRADA", Date: "Fecha:", Where: "Lugar:", CardDate: "Fecha", Credits: "Créditos"}) {
+	if got.Labels != (sheet.Labels{Admit: "ENTRADA", Date: "Fecha:", Where: "Lugar:", CardDate: "Fecha", Credits: "Créditos", Fonts: "Fuentes"}) {
 		t.Errorf("Spanish labels = %+v", got.Labels)
 	}
 	if got.Format != opts.Format || got.DateLabel != opts.DateLabel {

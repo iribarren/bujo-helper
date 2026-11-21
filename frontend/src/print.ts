@@ -3,7 +3,8 @@
 // page, a checklist or polaroids), a paper, for a cover sheet, spines or
 // polaroids a cover size, for a cover sheet a crop mode (a standard print
 // shape the photos are cropped to) and a cut mode and, for a full page or a
-// checklist, a header, and whether to end with a credits page for the
+// checklist, a header and, for those and review cards, the lettering font
+// and Colour-in, and whether to end with a credits page for the
 // images that have a credit, and export them to a PDF on that paper (see
 // internal/sheet). The Gallery | Preview switch shows, instead of the
 // gallery, a live preview of the PDF of the selected covers (preview.ts).
@@ -12,6 +13,7 @@ import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PreviewPDF, PrintCropMode
 import {main, sheet} from '../wailsjs/go/models';
 import {fillSelect, labelOptions, renderSharedFieldsets, syncFieldsets} from './fieldsets';
 import {getLang, has, label, onLangChange, pluralKey, t, tn, type MessageKey} from './i18n';
+import {letteringFonts} from './lettering';
 import {initPreview} from './preview';
 import {initRadioGroup} from './radioGroup';
 
@@ -219,8 +221,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         pageLabel: byId<HTMLSpanElement>('print-preview-count'),
         message: byId<HTMLParagraphElement>('print-preview-message'),
     }, {delay: deps.previewDelay});
-    // Page (paper, cut mode, credits page) and Lettering (the header), as
-    // in Make pages.
+    // Page (paper, cut mode, credits page) and Lettering (the header, font
+    // and Colour-in), as in Make pages. The tab keeps its own font and
+    // Colour-in while the user switches tabs.
     const shared = renderSharedFieldsets({
         prefix: 'print',
         container: ui.options,
@@ -233,6 +236,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             updateSizeLabels();
             updateSelection();
         },
+        // The font may change the credits page's length; both are printed.
+        onLetteringChange: () => updateSelection(),
     });
     const paperGroup = shared.paper;
     const cutSelect = shared.cut;
@@ -338,13 +343,17 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             // Translated here: Go prints the label as given.
             dateLabel: layout.format.id === REVIEW_CARDS && media ? dateLabelOf(media) : '',
             header: layout.format.usesHeader ? headerInput.value.trim() : '',
+            // The default output for formats without lettering.
+            font: layout.format.usesLettering ? shared.lettering.options().font : '',
+            colourIn: layout.format.usesLettering ? shared.lettering.options().colourIn : false,
             credits: creditsBox.checked,
         });
     }
 
     // requestKey identifies a page count request: what changes the count.
     function requestKey(paths: string[], opts: sheet.Options): string {
-        return JSON.stringify([paths, opts.format, opts.size, opts.paper, opts.crop, opts.header, opts.credits]);
+        // The font joins a Fonts section to a credits page.
+        return JSON.stringify([paths, opts.format, opts.size, opts.paper, opts.crop, opts.header, opts.font, opts.credits]);
     }
 
     // pagesOf is the page count of paths with layout: exact once PrintPages
@@ -636,8 +645,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // (hidden for a crop mode with a fixed size), the crop mode for a cover
     // sheet, the cut mode for a cover sheet unless the crop mode draws a
     // frame, what the cards are for for review cards, the header for a full
-    // page or a checklist (a hint otherwise); and the option groups that
-    // have a field shown.
+    // page or a checklist (a hint otherwise), the font and Colour-in for
+    // those and review cards; and the option groups that have a field shown.
     function updateFormat() {
         const format = currentFormat();
         const crop = currentCrop();
@@ -648,8 +657,10 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         ui.cropField.hidden = !(format?.usesCrop ?? true);
         shared.cutField.hidden = !usesCutOf(format, crop);
         ui.mediaField.hidden = ui.format.value !== REVIEW_CARDS;
-        // Lettering shows the header, or a hint that the format prints none.
+        // Lettering shows the header, or a hint that the format prints none,
+        // and the font and Colour-in for the formats that print lettering.
         shared.showText(format?.usesHeader ?? false);
+        shared.showLettering(format?.usesLettering ?? false);
         headerInput.placeholder = headerExample(ui.format.value);
         syncFieldsets(ui.options);
         updateSizeLabels();
@@ -710,8 +721,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     }
 
     async function loadPresets() {
-        const [formatList, sizeList, paperList, cutList, cropList] =
-            await Promise.allSettled([PrintFormats(), PrintSizes(), PrintPapers(), PrintCutModes(), PrintCropModes()]);
+        const [formatList, sizeList, paperList, cutList, cropList, fontList] = await Promise.allSettled(
+            [PrintFormats(), PrintSizes(), PrintPapers(), PrintCutModes(), PrintCropModes(), letteringFonts()]);
         if (formatList.status === 'fulfilled') {
             formats = formatList.value ?? [];
             ui.format.replaceChildren(...formats.map((format) => {
@@ -750,6 +761,11 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             fillSelect(ui.crop, 'crop', crops);
         } else {
             deps.showError(t('print.errCrops', {error: errorText(cropList.reason)}));
+        }
+        if (fontList.status === 'fulfilled') {
+            shared.lettering.setFonts(fontList.value);
+        } else {
+            deps.showError(t('lettering.errFonts', {error: errorText(fontList.reason)}));
         }
         updateFormat();
     }

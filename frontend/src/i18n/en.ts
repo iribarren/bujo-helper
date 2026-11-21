@@ -6,7 +6,7 @@
 // Labels of Go presets are keyed by their ID: "media.<id>", "creator.<id>",
 // "date.<id>", "sample.button.<id>", "sample.title.<id>", "format.<id>",
 // "noun.<format id>_one/_other", "size.<id>", "paper.<id>", "cut.<id>",
-// "crop.<id>" and "pageKind.<id>".
+// "crop.<id>", "pageKind.<id>", "font.<id>" and "fontGroup.<group>".
 export const en = {
     // Header, tabs and banner.
     'app.mediaType': 'Media type',
@@ -198,6 +198,28 @@ export const en = {
     'pages.savedFile': 'Saved {file}',
     'pages.errKinds': 'Could not load page kinds: {error}',
 
+    // Lettering controls (Print covers, Make pages): the font picker and
+    // Colour-in. Fonts, style groups and badges are keyed by Go's IDs.
+    'lettering.font': 'Font',
+    'lettering.fontTitle': 'Font of the printed header or title. Captions, dates and credits stay in the default font.',
+    'lettering.colourIn': 'Colour-in (outlines only)',
+    'lettering.colourInTitle': 'Print outlines instead of filled letters, to colour them in by hand.',
+    'lettering.hint.stroke': 'Prints outlines only, ready to colour by hand.',
+    'lettering.hint.strokeOn': 'Letters print as outlines, ready to colour by hand.',
+    'lettering.hint.none': 'This font is too thin for outlines; letters stay filled.',
+    'lettering.hint.native': 'This font is hollow by design, so letters always print as outlines.',
+    'lettering.badge.stroke': 'outline ok',
+    'lettering.badge.native': 'hollow',
+    'lettering.badge.none': 'no outline',
+    'lettering.errFonts': 'Could not load lettering fonts: {error}',
+    'font.go': 'Default',
+    'fontGroup.sans': 'Sans',
+    'fontGroup.brush': 'Brush script',
+    'fontGroup.monoline': 'Monoline script',
+    'fontGroup.handwritten': 'Handwritten',
+    'fontGroup.display': 'Bold display',
+    'fontGroup.hollow': 'Hollow',
+
     // Live PDF preview (Make pages, Print covers).
     'preview.pageOf': 'Page {page} of {total}',
     'preview.prev': 'Previous page',
@@ -276,6 +298,16 @@ export const en = {
     'settings.saved': 'Saved',
     'settings.errRead': 'Could not read the settings: {error}',
     'settings.errReload': 'Saved, but could not reload the settings: {error}',
+
+    // About section of the Settings dialog: the bundled lettering fonts and
+    // their licences, and the other bundled software.
+    'about.title': 'About',
+    'about.fontsIntro': 'Lettering fonts bundled with the app, each under its own licence. Open one to read it.',
+    'about.goFonts': 'Go fonts (default)',
+    'about.licenceTitle': 'Licence of {font}',
+    'about.loading': 'Loading…',
+    'about.errLicence': 'Could not read the licence: {error}',
+    'about.pdfjs': 'The live preview uses pdf.js by Mozilla (Apache 2.0).',
 } as const;
 
 // MessageKey is the key of a UI message.
