@@ -9,12 +9,14 @@
 //	go run mapgen/main.go -out mapdata/countries.bin
 //
 // It downloads the GeoJSON of a pinned natural-earth-vector release (or reads
-// -in), drops Antarctica, simplifies every ring with Douglas–Peucker,
-// quantizes it and writes the mapdata binary format. The download is parsed
-// as JSON data only. Output is deterministic for a given input.
+// -in), checks its SHA-256 against the pinned one, drops Antarctica,
+// simplifies every ring with Douglas–Peucker, quantizes it and writes the
+// mapdata binary format. The download is parsed as JSON data only. Output
+// is deterministic for a given input.
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -35,7 +37,10 @@ const (
 	neVersion = "v5.1.2"
 	neURL     = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/" + neVersion +
 		"/geojson/ne_50m_admin_0_countries.geojson"
-	maxDownload = 64 << 20
+	// neSHA256 is the SHA-256 of that file; the download (or -in) must match.
+	neSHA256 = "3e458fc036ad0a66411f2c1e6cac49c5d7bfb81cb1123bc513b22511a2b7fdeb"
+	// maxDownload caps the download; the pinned file is about 3 MB.
+	maxDownload = 16 << 20
 
 	// tolerance is the Douglas–Peucker tolerance in degrees.
 	tolerance = 0.02
@@ -94,7 +99,22 @@ func main() {
 		neVersion, len(countries), rings, points, len(data), *out)
 }
 
+// readSource reads the GeoJSON from path, or downloads it, and checks it is
+// the pinned file: a failed request, an oversized or truncated body, or any
+// other change fails the SHA-256 check.
 func readSource(path string) ([]byte, error) {
+	data, err := fetch(path)
+	if err != nil {
+		return nil, err
+	}
+	if sum := fmt.Sprintf("%x", sha256.Sum256(data)); sum != neSHA256 {
+		return nil, fmt.Errorf("Natural Earth %s GeoJSON has SHA-256 %s (%d bytes), want %s: not the pinned file",
+			neVersion, sum, len(data), neSHA256)
+	}
+	return data, nil
+}
+
+func fetch(path string) ([]byte, error) {
 	if path != "" {
 		return os.ReadFile(path)
 	}
@@ -107,7 +127,14 @@ func readSource(path string) ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GET %s: %s", neURL, resp.Status)
 	}
-	return io.ReadAll(io.LimitReader(resp.Body, maxDownload))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxDownload+1))
+	if err != nil {
+		return nil, fmt.Errorf("GET %s: %w", neURL, err)
+	}
+	if len(data) > maxDownload {
+		return nil, fmt.Errorf("GET %s: body over %d bytes", neURL, maxDownload)
+	}
+	return data, nil
 }
 
 // build converts the features to countries sorted by English name.
