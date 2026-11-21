@@ -417,6 +417,66 @@ func TestMapSheetListOverflow(t *testing.T) {
 	}
 }
 
+// When no size and column count fit, layoutMapList cuts names too wide for
+// their column with an ellipsis and, when they still do not all fit, ends
+// with "+K", the K names left out. No text leaves the box or its width.
+func TestLayoutMapListTruncates(t *testing.T) {
+	labels := PageLabels{}.resolved()
+	numbered := func(n, runes int) []string {
+		var out []string
+		for i := range n {
+			out = append(out, fmt.Sprintf("%02d", i)+strings.Repeat("x", runes-2))
+		}
+		return out
+	}
+	head := lineHeight(mapCaptionSize) + 1
+	row := lineHeight(mapListMinSize)
+	tests := []struct {
+		name  string
+		names []string
+		rows  float64 // box height in rows of names at the floor size
+		want  []string
+	}{
+		// 60 runes are 60 mm at 6 pt: wider than a 48 mm column.
+		{"too wide: ellipsis", numbered(4, 60), 10, []string{"00x…", "01x…", "02x…", "03x…"}},
+		{"too many: +K", numbered(20, 6), 3, append(numbered(11, 6), "+9")},
+		{"too wide and too many", numbered(9, 60), 2, []string{"00x…", "01x…", "02x…", "03x…", "04x…", "05x…", "06x…", "+2"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			box := Box{X: 10, Y: 20, W: 100, H: head + tt.rows*row}
+			got := layoutMapList(box, labels, tt.names, fixedMeasure)
+			if len(got) == 0 || got[0].Text != fmt.Sprintf("Countries visited: %d", len(tt.names)) {
+				t.Fatalf("no caption: %+v", got)
+			}
+			var cells []string
+			for _, tx := range got[1:] {
+				// Compare ellipsized names by their number and ending.
+				c := tx.Text
+				if strings.HasSuffix(c, "…") {
+					c = c[:3] + "…"
+				}
+				cells = append(cells, c)
+				if tx.Size != mapListMinSize {
+					t.Errorf("%q at %v pt, want the floor %v pt", tx.Text, tx.Size, mapListMinSize)
+				}
+				if w := fixedMeasure(tx.Text, false, tx.Size); w > tx.Box.W+1e-9 {
+					t.Errorf("%q is %.1f mm wide in a %.1f mm column", tx.Text, w, tx.Box.W)
+				}
+			}
+			if !reflect.DeepEqual(cells, tt.want) {
+				t.Errorf("cells %q, want %q", cells, tt.want)
+			}
+			for _, tx := range got[1:] {
+				b := tx.Box
+				if b.X < box.X-1e-9 || b.X+b.W > box.X+box.W+1e-9 || b.Y < box.Y || b.Y+b.H > box.Y+box.H+1e-9 {
+					t.Errorf("%q at %+v leaves the box %+v", tx.Text, b, box)
+				}
+			}
+		})
+	}
+}
+
 // fillOps matches PDF path-painting operators that fill.
 var fillOps = paintOps
 
