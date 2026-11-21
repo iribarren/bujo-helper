@@ -155,6 +155,14 @@ var PageKinds = []PageKind{
 		decode:    decodeMoon,
 	},
 	{
+		ID:        CalendarKind,
+		Label:     "Month calendar",
+		FileTag:   "calendar",
+		UsesTitle: true,
+		Defaults:  defaultCalendar,
+		decode:    decodeCalendar,
+	},
+	{
 		ID:        MapKind,
 		Label:     "Visited map",
 		FileTag:   "map",

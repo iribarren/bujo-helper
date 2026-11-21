@@ -646,6 +646,7 @@ func TestPageKinds(t *testing.T) {
 	want := []PageKindInfo{
 		{ID: "dotgrid", Label: "Dot grid", UsesTitle: true, Defaults: `{"spacing":5}`, Default: true},
 		{ID: "moon", Label: "Moon calendar", UsesTitle: true, Defaults: `{"month":0,"year":0,"layout":"grid","hemisphere":"north"}`},
+		{ID: "calendar", Label: "Month calendar", UsesTitle: true, Defaults: `{"month":0,"year":0,"weekStart":"mon"}`},
 		{ID: "map", Label: "Visited map", UsesTitle: true, Defaults: `{"region":"world","countries":[],"colour":"teal","list":true}`},
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -730,6 +731,7 @@ func TestPagePages(t *testing.T) {
 		{"default moon calendar", "moon", sheet.PageSettings{}, "", 1, ""},
 		{"moon year on A5", "moon", sheet.PageSettings{Paper: "a5"}, `{"month":2,"year":2024,"layout":"year","hemisphere":"south"}`, 1, ""},
 		{"moon year out of range", "moon", sheet.PageSettings{}, `{"year":1800}`, 0, "1800"},
+		{"month calendar from Sunday", "calendar", sheet.PageSettings{Paper: "letter"}, `{"month":9,"year":2024,"weekStart":"sun"}`, 1, ""},
 		{"unknown kind", "starmap", sheet.PageSettings{}, "", 0, `"starmap"`},
 		{"unknown paper", "dotgrid", sheet.PageSettings{Paper: "a3"}, "", 0, `"a3"`},
 		{"unknown option", "dotgrid", sheet.PageSettings{}, `{"pitch":5}`, 0, `"pitch"`},
