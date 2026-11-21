@@ -26,6 +26,7 @@ import (
 	"bujo-helper/internal/i18n"
 	"bujo-helper/internal/media"
 	"bujo-helper/internal/providers"
+	"bujo-helper/internal/quotes"
 	"bujo-helper/internal/settings"
 	"bujo-helper/internal/sheet"
 
@@ -1976,5 +1977,83 @@ func TestDefaultAppNatureUsesTheSavedBHLKey(t *testing.T) {
 	}
 	if got := a.GetSettings().BHLAPIKey; got != "new-bhl" {
 		t.Errorf("GetSettings BHL key = %q", got)
+	}
+}
+
+// wikiquoteStub answers the Wikiquote API: a search for "Einstein" finds
+// one page with one quote, anything else finds nothing. It records the
+// language path of each request.
+func wikiquoteStub(t *testing.T) (*httptest.Server, *[]string) {
+	t.Helper()
+	var mu sync.Mutex
+	var langs []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		langs = append(langs, strings.TrimPrefix(r.URL.Path, "/"))
+		mu.Unlock()
+		q := r.URL.Query()
+		switch {
+		case q.Get("action") == "query" && q.Get("srsearch") == "Einstein":
+			w.Write([]byte(`{"query":{"search":[{"title":"Albert Einstein"},{"title":"EPR paradox"}]}}`))
+		case q.Get("action") == "query":
+			w.Write([]byte(`{"query":{"search":[]}}`))
+		default:
+			w.Write([]byte(`{"parse":{"title":"Albert Einstein","text":"<div class=\"mw-parser-output\"><h2>Quotes</h2><ul><li>Imagination is more important than knowledge.</li></ul></div>"}}`))
+		}
+	}))
+	t.Cleanup(srv.Close)
+	return srv, &langs
+}
+
+func TestSearchQuotes(t *testing.T) {
+	tests := []struct {
+		name     string
+		uiLang   string
+		query    string
+		wantLang string
+		wantErr  string
+	}{
+		{name: "english", uiLang: "en", query: "Einstein", wantLang: "en"},
+		{name: "spanish", uiLang: "es-ES", query: "Einstein", wantLang: "es"},
+		{name: "not found in english", uiLang: "en", query: "  zzqxv  ", wantLang: "en", wantErr: `no quotes found for "zzqxv"`},
+		{name: "not found in spanish", uiLang: "es", query: "zzqxv", wantLang: "es", wantErr: "no se encontraron citas de «zzqxv»"},
+		{name: "empty query", uiLang: "en", query: " ", wantErr: "enter a name to search for quotes"},
+		{name: "empty query in spanish", uiLang: "es", query: "", wantErr: "escriba un nombre para buscar citas"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, langs := wikiquoteStub(t)
+			a := newApp(media.NewRegistry(), http.DefaultClient)
+			a.quotes = &quotes.Client{HTTP: srv.Client(), APIURL: func(lang string) string { return srv.URL + "/" + lang }}
+			a.SetLanguage(tt.uiLang)
+			got, err := a.SearchQuotes(tt.query)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("SearchQuotes error = %v, want %q", err, tt.wantErr)
+				}
+			} else if err != nil {
+				t.Fatalf("SearchQuotes: %v", err)
+			} else {
+				want := quotes.Result{
+					Person:  "Albert Einstein",
+					URL:     "https://" + tt.wantLang + ".wikiquote.org/wiki/Albert_Einstein",
+					Matches: []string{"EPR paradox"},
+					Quotes:  []quotes.Quote{{Text: "Imagination is more important than knowledge.", Author: "Albert Einstein", Source: "wikiquote"}},
+				}
+				if !reflect.DeepEqual(got, want) {
+					t.Errorf("SearchQuotes = %+v, want %+v", got, want)
+				}
+			}
+			if tt.wantLang != "" && (len(*langs) == 0 || (*langs)[0] != tt.wantLang) {
+				t.Errorf("requests went to %q, want %q", *langs, tt.wantLang)
+			}
+		})
+	}
+}
+
+func TestSearchQuotesUsesDefaultClient(t *testing.T) {
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	if a.quotes == nil || a.quotes.HTTP != http.DefaultClient {
+		t.Errorf("newApp quotes client = %+v, want one using the app's HTTP client", a.quotes)
 	}
 }

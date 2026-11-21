@@ -33,6 +33,9 @@ var catalogs = map[Lang]map[string]string{
 		"err.chooseFolder":       "choose a folder",
 		"err.selectCover":        "select at least one cover",
 		"err.settingsLocation":   "save settings: the settings file location is unknown",
+		// {query} is replaced with the searched name (not a fmt verb).
+		"err.noQuotes":   `no quotes found for "{query}"`,
+		"err.quoteQuery": "enter a name to search for quotes",
 
 		// PDF labels.
 		"pdf.stubAdmit": "ADMIT ONE",
@@ -82,6 +85,8 @@ var catalogs = map[Lang]map[string]string{
 		"err.chooseFolder":       "elija una carpeta",
 		"err.selectCover":        "seleccione al menos una portada",
 		"err.settingsLocation":   "guardar ajustes: se desconoce la ubicación del archivo de ajustes",
+		"err.noQuotes":           "no se encontraron citas de «{query}»",
+		"err.quoteQuery":         "escriba un nombre para buscar citas",
 
 		"pdf.stubAdmit": "ENTRADA",
 		"pdf.stubDate":  "Fecha:",

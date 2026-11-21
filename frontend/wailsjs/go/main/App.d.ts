@@ -3,6 +3,7 @@
 import {sheet} from '../models';
 import {settings} from '../models';
 import {main} from '../models';
+import {quotes} from '../models';
 
 export function Cancel():Promise<void>;
 
@@ -51,6 +52,8 @@ export function PrintSizes():Promise<Array<main.PrintSizeInfo>>;
 export function SaveSampleCSV(arg1:string):Promise<string>;
 
 export function SaveSettings(arg1:settings.Settings):Promise<void>;
+
+export function SearchQuotes(arg1:string):Promise<quotes.Result>;
 
 export function SetLanguage(arg1:string):Promise<void>;
 
