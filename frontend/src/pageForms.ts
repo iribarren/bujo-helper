@@ -9,6 +9,7 @@ import {onLangChange, t, type MessageKey} from './i18n';
 import {monthYearField} from './monthYearField';
 import {quoteLines, quoteSearch, type Quote} from './quotesForm';
 import {initRadioGroup, type RadioGroup} from './radioGroup';
+import {recipeEditor, recipeList} from './recipesForm';
 
 export interface PageForm {
     // The kind's options, sent to Go as JSON.
@@ -409,6 +410,50 @@ const mapForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
     };
 };
 
+// The recipe card sizes (Go: sheet.RecipeSizes), by value, with their
+// labels' message keys, and the one a form starts with when Go's default is
+// not one of them.
+const RECIPE_SIZES: Array<[value: string, label: MessageKey]> = [
+    ['a6', 'pages.recipesSizeA6'],
+    ['4x6', 'pages.recipesSize4x6'],
+    ['page', 'pages.recipesSizePage'],
+];
+const DEFAULT_RECIPE_SIZE = 'a6';
+
+// recipesForm is the recipe cards' form: the recipe list and the selected
+// recipe's editor (see recipeEditor), then Card size, a segmented group. It
+// sends the recipes as typed, their lists as non-empty trimmed lines: Go
+// normalises them and enforces the limits, and its error shows in the
+// preview. No recipes prints blank cards. The labels follow the UI
+// language, keeping the options.
+const recipesForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
+    const editor = recipeEditor(container, idPrefix, recipeList(defaults.recipes), onChange);
+    const size = segmentedField(container, idPrefix, 'size', 'pages.recipesSize', 'pages.recipesSizeTitle', onChange);
+
+    const relabel = () => size.replaceOptions(choices(RECIPE_SIZES));
+    relabel();
+    const stopRelabel = onLangChange(relabel);
+    size.value = offered(RECIPE_SIZES, defaults.size, DEFAULT_RECIPE_SIZE);
+
+    return {
+        options: () => ({recipes: editor.recipes(), size: size.value}),
+        dispose: () => {
+            stopRelabel();
+            editor.dispose();
+        },
+    };
+};
+
+// conversionsForm is the kitchen conversions' form: no options, only a
+// muted line saying what the chart holds. It sends the kind's defaults.
+const conversionsForm: PageFormBuilder = (container, idPrefix, defaults) => {
+    const hint = translated(document.createElement('p'), 'pages.conversionsHint');
+    hint.className = 'field-hint muted';
+    hint.id = `${idPrefix}-hint`;
+    container.append(hint);
+    return {options: () => ({...defaults})};
+};
+
 export const pageForms: Record<string, PageFormBuilder> = {
     dotgrid: dotGridForm,
     moon: moonForm,
@@ -416,4 +461,6 @@ export const pageForms: Record<string, PageFormBuilder> = {
     habits: habitsForm,
     quotes: quotesForm,
     map: mapForm,
+    recipes: recipesForm,
+    conversions: conversionsForm,
 };

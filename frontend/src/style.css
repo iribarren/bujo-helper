@@ -1094,6 +1094,115 @@ textarea {
     overflow-wrap: anywhere;
 }
 
+/* A kind's form with no options, only a line saying what it prints. */
+.kind-form > .field-hint {
+    margin: 0;
+}
+
+/* Recipe cards: the recipe list, one pill per recipe with a remove
+   button, and the selected recipe's fields. */
+.recipes-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.recipes-list:empty {
+    display: none;
+}
+
+.recipes-item {
+    display: flex;
+    align-items: center;
+    max-width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.recipes-item:has([aria-current="true"]) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.field .recipes-pick {
+    min-width: 0;
+    height: 26px;
+    padding: 0 4px 0 10px;
+    overflow: hidden;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    text-overflow: ellipsis;
+}
+
+.field .recipes-pick[aria-current="true"] {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.recipes-list-field .field-hint {
+    margin: 0;
+}
+
+.recipes-status:empty {
+    display: none;
+}
+
+.recipes-status.error {
+    color: var(--failed);
+}
+
+.recipes-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.recipes-editor .field-pair .field {
+    flex: 1;
+    min-width: 0;
+}
+
+.recipes-ingredients-field textarea,
+.recipes-steps-field textarea {
+    height: auto;
+    min-height: 0;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    white-space: pre-wrap;
+}
+
+.recipes-ingredients-field .field-hint,
+.recipes-steps-field .field-hint {
+    margin: 0;
+}
+
+.recipes-photo-row {
+    align-items: center;
+}
+
+.recipes-photo-name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    color: var(--text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recipes-photo-name.muted {
+    color: var(--muted);
+}
+
+.field .recipes-photo-row .link-button {
+    font-size: 13px;
+}
+
 /* A segmented radio that shows a colour dot instead of a label. */
 .segmented .swatch-button {
     display: flex;
