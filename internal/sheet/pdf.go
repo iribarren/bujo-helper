@@ -143,12 +143,15 @@ func printable(s string) string {
 }
 
 // newPDF starts a document of page-sized pages, in mm, drawing cut borders.
+// Its fonts and images are written in sorted order, not map order, so the
+// same inputs (and creation date) give the same bytes.
 func newPDF(page Page) *pdfDoc {
 	pdf := fpdf.NewCustom(&fpdf.InitType{
 		OrientationStr: "P",
 		UnitStr:        "mm",
 		Size:           fpdf.SizeType{Wd: page.Width, Ht: page.Height},
 	})
+	pdf.SetCatalogSort(true)
 	pdf.SetMargins(0, 0, 0)
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.SetDrawColor(borderGrey, borderGrey, borderGrey)
