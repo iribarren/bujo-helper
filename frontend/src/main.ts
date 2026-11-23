@@ -714,6 +714,7 @@ async function init() {
         defaultDir: () => printSheet?.folder() ?? outputFolder(),
         showError,
         hideError,
+        savedPrefs: startSettings?.pages,
     });
     try {
         mediaTypes = await MediaTypes();

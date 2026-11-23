@@ -43,7 +43,7 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     }
     stubs.MediaTypes = vi.fn(async () => mediaTypes);
     // Startup reads the language and the remembered tab options.
-    stubs.GetSettings = vi.fn(async () => ({language: 'en', print: {header: 'Saved header'}}));
+    stubs.GetSettings = vi.fn(async () => ({language: 'en', print: {header: 'Saved header'}, pages: {title: 'Saved title'}}));
     stubs.DefaultOutputDir = vi.fn(async () => '/covers');
     stubs.HasBuiltInBGGToken = vi.fn(() => builtInBGGToken.answer);
     for (const name of ['PrintPapers', 'PrintFormats', 'PrintSizes', 'PrintCutModes']) {
@@ -285,6 +285,10 @@ describe('key tip', () => {
 describe('remembered options', () => {
     it('reach the Print covers tab at startup', async () => {
         await vi.waitFor(() => expect(el<HTMLInputElement>('print-header').value).toBe('Saved header'));
+    });
+
+    it('reach the Make pages tab at startup', async () => {
+        await vi.waitFor(() => expect(el<HTMLInputElement>('pages-title').value).toBe('Saved title'));
     });
 });
 

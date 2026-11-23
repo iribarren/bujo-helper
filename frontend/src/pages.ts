@@ -6,12 +6,13 @@
 // (preview.ts) draws the PDF PreviewPage renders for the current options,
 // the same one Export PDF saves.
 
-import {ExportPage, OpenFile, PageKinds, PreviewPage, PrintCutModes, PrintPapers} from '../wailsjs/go/main/App';
-import {main, sheet} from '../wailsjs/go/models';
+import {ExportPage, OpenFile, PageKinds, PreviewPage, PrintCutModes, PrintPapers, SavePagesPrefs} from '../wailsjs/go/main/App';
+import {main, settings, sheet} from '../wailsjs/go/models';
 import {renderSharedFieldsets, syncFieldsets} from './fieldsets';
 import {label, onLangChange, t, tn} from './i18n';
 import {letteringFonts} from './lettering';
 import {pageForms, type PageForm} from './pageForms';
+import {prefsSaver} from './prefs';
 import {initPreview} from './preview';
 import {initRadioGroup} from './radioGroup';
 
@@ -23,6 +24,9 @@ export interface PagesDeps {
     // The preview's debounce delay in milliseconds; preview.ts's default
     // when unset.
     previewDelay?: number;
+    // The kind and shared options remembered from the last run
+    // (GetSettings); the defaults when unset.
+    savedPrefs?: settings.PagesPrefs;
 }
 
 function byId<T extends HTMLElement>(id: string): T {
@@ -69,8 +73,17 @@ export function initPages(deps: PagesDeps): void {
         {sheet: ui.sheet, prev: ui.prev, next: ui.next, pageLabel: ui.count, message: ui.message},
         {delay: deps.previewDelay},
     );
+    // The remembered options; saving starts once they are restored. The
+    // kinds' own form options are not remembered.
+    const saved = deps.savedPrefs ?? new settings.PagesPrefs();
+    const saver = prefsSaver('Make pages', currentPrefs, SavePagesPrefs);
+    // changed previews a user change and remembers it.
+    const changed = () => {
+        update();
+        saver.save();
+    };
     // The page kinds, a radio group; the user's choice calls update.
-    const kindGroup = initRadioGroup(byId<HTMLDivElement>('pages-kinds'), () => update());
+    const kindGroup = initRadioGroup(byId<HTMLDivElement>('pages-kinds'), changed);
     // Page (paper, cut mode) and Lettering (the title, font and Colour-in),
     // as in Print covers, without a credits page: generated pages have no
     // images to credit. Each tab keeps its own font and Colour-in, like its
@@ -82,8 +95,8 @@ export function initPages(deps: PagesDeps): void {
         cutTitle: 'pages.cutTitle',
         text: {id: 'title', label: 'pages.title', title: 'pages.titleTitle'},
         hint: 'pages.noTitle',
-        onPaperChange: () => update(),
-        onLetteringChange: () => update(),
+        onPaperChange: changed,
+        onLetteringChange: changed,
     });
 
     // The page kinds, papers and cut modes from Go; empty until they load.
@@ -96,6 +109,20 @@ export function initPages(deps: PagesDeps): void {
     let lastPdf = '';
     // The last saved PDF's status, to show it again in another language.
     let lastExport: {file: string; pages?: number} | undefined;
+
+    // currentPrefs are the kind and shared options to remember: ids, never
+    // labels. A list that failed to load keeps the remembered choice.
+    function currentPrefs(): settings.PagesPrefs {
+        const {font, colourIn} = shared.lettering.options();
+        return settings.PagesPrefs.createFrom({
+            kind: kindGroup.value || saved.kind || '',
+            paper: shared.paper.value || saved.paper || '',
+            cut: shared.cut.value || saved.cut || '',
+            title: shared.text.value.trim(),
+            font: font || saved.font || '',
+            colourIn,
+        });
+    }
 
     function currentKind(): main.PageKindInfo | undefined {
         return kinds.find((k) => k.id === kindGroup.value);
@@ -132,7 +159,7 @@ export function initPages(deps: PagesDeps): void {
         const form = formOf(kind).form;
         // Every page kind uses the font and Colour-in.
         const {font, colourIn} = shared.lettering.options();
-        const settings = sheet.PageSettings.createFrom({
+        const page = sheet.PageSettings.createFrom({
             paper: paper.id,
             cut: kind.usesCut ? shared.cut.value : '',
             title: kind.usesTitle ? shared.text.value.trim() : '',
@@ -140,7 +167,7 @@ export function initPages(deps: PagesDeps): void {
             colourIn,
         });
         const options = form ? JSON.stringify(form.options()) : kind.defaults || '';
-        return {kind, paper, settings, options, key: JSON.stringify([kind.id, settings, options])};
+        return {kind, paper, settings: page, options, key: JSON.stringify([kind.id, page, options])};
     }
 
     // update shows the chosen kind's form and the shared fields it uses,
@@ -246,7 +273,8 @@ export function initPages(deps: PagesDeps): void {
         if (kindList.status === 'fulfilled') {
             kinds = kindList.value ?? [];
             labelKinds();
-            const preset = kinds.find((k) => k.default);
+            // The remembered kind, or the default when it is not offered.
+            const preset = kinds.find((k) => k.id === saved.kind) ?? kinds.find((k) => k.default);
             if (preset) kindGroup.value = preset.id;
         } else {
             deps.showError(t('pages.errKinds', {error: errorText(kindList.reason)}));
@@ -267,12 +295,22 @@ export function initPages(deps: PagesDeps): void {
         } else {
             deps.showError(t('lettering.errFonts', {error: errorText(fontList.reason)}));
         }
+        shared.restore({
+            paper: saved.paper,
+            cut: saved.cut,
+            text: saved.title,
+            font: saved.font,
+            colourIn: saved.colourIn,
+        });
         update();
+        saver.start();
     }
 
-    shared.cut.addEventListener('change', update);
-    // A title may change the page count of some kinds.
+    shared.cut.addEventListener('change', changed);
+    // A title may change the page count of some kinds; it is remembered
+    // once edited (change), not on every keystroke.
     shared.text.addEventListener('input', update);
+    shared.text.addEventListener('change', saver.save);
     ui.exportPdf.addEventListener('click', exportPage);
     ui.openPdf.addEventListener('click', openPdf);
     onLangChange(relabel);
