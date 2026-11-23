@@ -1840,6 +1840,12 @@ func TestPageLabelsFollowTheUILanguage(t *testing.T) {
 	if en.HabitsTitle != "Habits · {month}" || es.HabitsTitle != "Hábitos · {month}" {
 		t.Errorf("habit tracker titles = %q, %q", en.HabitsTitle, es.HabitsTitle)
 	}
+	if en.RecipeIngredients != "Ingredients" || en.RecipeSteps != "Steps" || en.RecipeServes != "Serves" || en.RecipeTime != "Time" || en.RecipeContinued != "continued" {
+		t.Errorf("English recipe labels = %+v", en)
+	}
+	if es.RecipeIngredients != "Ingredientes" || es.RecipeSteps != "Pasos" || es.RecipeServes != "Raciones" || es.RecipeTime != "Tiempo" || es.RecipeContinued != "continuación" {
+		t.Errorf("Spanish recipe labels = %+v", es)
+	}
 }
 
 // A visited map previews exactly as it exports, and its default title,

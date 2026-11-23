@@ -63,6 +63,14 @@ var catalogs = map[Lang]map[string]string{
 		// a Wikiquote quote.
 		"pdf.quotesTitle":  "Words to keep",
 		"pdf.quotesCredit": "Quotes from Wikiquote (CC BY-SA 4.0)",
+		// Recipe cards: the column headings, the words starting the meta
+		// line ("Serves 4 · Time 30 min") and the mark of continuation
+		// cards, printed in brackets after the title.
+		"pdf.recipeIngredients": "Ingredients",
+		"pdf.recipeSteps":       "Steps",
+		"pdf.recipeServes":      "Serves",
+		"pdf.recipeTime":        "Time",
+		"pdf.recipeContinued":   "continued",
 	},
 	ES: {
 		"dialog.importCSV":          "Importar CSV",
@@ -111,5 +119,11 @@ var catalogs = map[Lang]map[string]string{
 
 		"pdf.quotesTitle":  "Palabras para guardar",
 		"pdf.quotesCredit": "Citas de Wikiquote (CC BY-SA 4.0)",
+
+		"pdf.recipeIngredients": "Ingredientes",
+		"pdf.recipeSteps":       "Pasos",
+		"pdf.recipeServes":      "Raciones",
+		"pdf.recipeTime":        "Tiempo",
+		"pdf.recipeContinued":   "continuación",
 	},
 }

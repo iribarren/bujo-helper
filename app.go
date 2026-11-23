@@ -1096,8 +1096,8 @@ func (a *App) withLabels(opts sheet.Options) sheet.Options {
 
 // withPageLabels returns page with the labels of generated pages (month and
 // weekday names, moon marks, the visited map's title and caption, the habit
-// tracker's title, the quote cards' title and Wikiquote credit) and the
-// language of country names in the UI language.
+// tracker's title, the quote cards' title and Wikiquote credit, the recipe
+// card words) and the language of country names in the UI language.
 func (a *App) withPageLabels(page sheet.PageSettings) sheet.PageSettings {
 	page.Labels = sheet.PageLabels{
 		Months:       strings.Split(a.t("pdf.months"), ","),
@@ -1109,7 +1109,13 @@ func (a *App) withPageLabels(page sheet.PageSettings) sheet.PageSettings {
 		HabitsTitle:  a.t("pdf.habitsTitle"),
 		QuotesTitle:  a.t("pdf.quotesTitle"),
 		QuotesCredit: a.t("pdf.quotesCredit"),
-		Language:     string(a.language()),
+
+		RecipeIngredients: a.t("pdf.recipeIngredients"),
+		RecipeSteps:       a.t("pdf.recipeSteps"),
+		RecipeServes:      a.t("pdf.recipeServes"),
+		RecipeTime:        a.t("pdf.recipeTime"),
+		RecipeContinued:   a.t("pdf.recipeContinued"),
+		Language:          string(a.language()),
 	}
 	return page
 }
