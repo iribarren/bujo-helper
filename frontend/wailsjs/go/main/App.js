@@ -102,6 +102,14 @@ export function PrintSizes() {
   return window['go']['main']['App']['PrintSizes']();
 }
 
+export function SavePagesPrefs(arg1) {
+  return window['go']['main']['App']['SavePagesPrefs'](arg1);
+}
+
+export function SavePrintPrefs(arg1) {
+  return window['go']['main']['App']['SavePrintPrefs'](arg1);
+}
+
 export function SaveSampleCSV(arg1) {
   return window['go']['main']['App']['SaveSampleCSV'](arg1);
 }

@@ -9,11 +9,12 @@
 // internal/sheet). The Gallery | Preview switch shows, instead of the
 // gallery, a live preview of the PDF of the selected covers (preview.ts).
 
-import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PreviewPDF, PrintCropModes, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes} from '../wailsjs/go/main/App';
-import {main, sheet} from '../wailsjs/go/models';
+import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PreviewPDF, PrintCropModes, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes, SavePrintPrefs} from '../wailsjs/go/main/App';
+import {main, settings, sheet} from '../wailsjs/go/models';
 import {fillSelect, labelOptions, renderSharedFieldsets, syncFieldsets} from './fieldsets';
 import {getLang, has, label, onLangChange, pluralKey, t, tn, type MessageKey} from './i18n';
 import {letteringFonts} from './lettering';
+import {prefsSaver, restoreSelect} from './prefs';
 import {initPreview} from './preview';
 import {initRadioGroup} from './radioGroup';
 
@@ -30,6 +31,9 @@ export interface PrintDeps {
     // The preview's debounce delay in milliseconds; preview.ts's default
     // when unset.
     previewDelay?: number;
+    // The options remembered from the last run (GetSettings); the
+    // defaults when unset.
+    savedPrefs?: settings.PrintPrefs;
 }
 
 export interface PrintSheet {
@@ -221,6 +225,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         pageLabel: byId<HTMLSpanElement>('print-preview-count'),
         message: byId<HTMLParagraphElement>('print-preview-message'),
     }, {delay: deps.previewDelay});
+    // The remembered options; saving starts once they are restored.
+    const saved = deps.savedPrefs ?? new settings.PrintPrefs();
+    const saver = prefsSaver('Print covers', currentPrefs, SavePrintPrefs);
     // Page (paper, cut mode, credits page) and Lettering (the header, font
     // and Colour-in), as in Make pages. The tab keeps its own font and
     // Colour-in while the user switches tabs.
@@ -235,9 +242,13 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         onPaperChange: () => {
             updateSizeLabels();
             updateSelection();
+            saver.save();
         },
         // The font may change the credits page's length; both are printed.
-        onLetteringChange: () => updateSelection(),
+        onLetteringChange: () => {
+            updateSelection();
+            saver.save();
+        },
     });
     const paperGroup = shared.paper;
     const cutSelect = shared.cut;
@@ -265,6 +276,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // Whether the user picked what review cards are for in this tab; until
     // then it follows the Download tab's media type.
     let mediaChosen = false;
+    // The remembered media type of review cards, until the media types
+    // load and it is chosen (or dropped, when no longer offered).
+    let savedMedia = saved.media ?? '';
     // The page count of the selection from PrintPages, for the request it
     // answers (key: paths and settings; pathsKey: paths only; shapeKey:
     // paths, format and paper, which set its wide counts); undefined until
@@ -283,6 +297,41 @@ export function initPrint(deps: PrintDeps): PrintSheet {
 
     function currentDir(): string {
         return chosenDir || deps.outputFolder();
+    }
+
+    // currentPrefs are the options to remember: ids, never labels. A list
+    // that failed to load keeps the remembered choice.
+    function currentPrefs(): settings.PrintPrefs {
+        const lettering = shared.lettering.options();
+        return settings.PrintPrefs.createFrom({
+            format: ui.format.value || saved.format || '',
+            media: mediaChosen ? ui.media.value : savedMedia,
+            size: ui.size.value || saved.size || '',
+            crop: ui.crop.value || saved.crop || '',
+            paper: paperGroup.value || saved.paper || '',
+            cut: cutSelect.value || saved.cut || '',
+            credits: creditsBox.checked,
+            header: headerInput.value.trim(),
+            font: lettering.font || saved.font || '',
+            colourIn: lettering.colourIn,
+        });
+    }
+
+    // restorePrefs shows the remembered options once the lists have loaded;
+    // an id no longer offered keeps the default.
+    function restorePrefs() {
+        restoreSelect(ui.format, saved.format);
+        restoreSelect(ui.size, saved.size);
+        restoreSelect(ui.crop, saved.crop);
+        shared.restore({
+            paper: saved.paper,
+            cut: saved.cut,
+            credits: saved.credits,
+            text: saved.header,
+            font: saved.font,
+            colourIn: saved.colourIn,
+        });
+        syncMedia();
     }
 
     function currentFormat(): main.PrintFormatInfo | undefined {
@@ -680,6 +729,14 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             }));
             if (mediaChosen) ui.media.value = kept;
         }
+        // The remembered media type, once the media types have loaded.
+        if (savedMedia && types.length > 0) {
+            if (!mediaChosen && types.some((type) => type.id === savedMedia)) {
+                mediaChosen = true;
+                ui.media.value = savedMedia;
+            }
+            savedMedia = '';
+        }
         labelMedia();
         if (!mediaChosen) ui.media.value = deps.mediaType();
     }
@@ -767,7 +824,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         } else {
             deps.showError(t('lettering.errFonts', {error: errorText(fontList.reason)}));
         }
+        restorePrefs();
         updateFormat();
+        saver.start();
     }
 
     async function openPdf() {
@@ -790,21 +849,37 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     ui.format.addEventListener('change', () => {
         syncMedia();
         updateFormat();
+        saver.save();
     });
     ui.media.addEventListener('change', () => {
         mediaChosen = true;
         // The cards' date label is printed.
         updatePreview();
+        saver.save();
     });
     // The cut mode never changes the count, only the preview.
-    cutSelect.addEventListener('change', updatePreview);
-    ui.size.addEventListener('change', updateSelection);
+    cutSelect.addEventListener('change', () => {
+        updatePreview();
+        saver.save();
+    });
+    ui.size.addEventListener('change', () => {
+        updateSelection();
+        saver.save();
+    });
     // A crop mode shows or hides the size and cut mode, and sets the count.
-    ui.crop.addEventListener('change', updateFormat);
-    // A header may change the page count.
+    ui.crop.addEventListener('change', () => {
+        updateFormat();
+        saver.save();
+    });
+    // A header may change the page count; it is remembered once edited
+    // (change), not on every keystroke.
     headerInput.addEventListener('input', updateSelection);
+    headerInput.addEventListener('change', saver.save);
     // Credits pages follow the images when a selected image has a credit.
-    creditsBox.addEventListener('change', updateSelection);
+    creditsBox.addEventListener('change', () => {
+        updateSelection();
+        saver.save();
+    });
     onLangChange(relabel);
     labelViews();
     updateSelection();

@@ -4,9 +4,11 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestLoadMissingFileReturnsZeroSettings(t *testing.T) {
@@ -375,5 +377,94 @@ func TestSaveTrimsAndKeepsTheBGGToken(t *testing.T) {
 func TestTrimmedTrimsTheBGGToken(t *testing.T) {
 	if got := (Settings{BGGToken: "\t tok \n"}).Trimmed().BGGToken; got != "tok" {
 		t.Errorf("Trimmed BGGToken = %q, want tok", got)
+	}
+}
+
+func boolPtr(b bool) *bool { return &b }
+
+func TestSaveThenLoadThePrintAndPagesPrefs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	in := Settings{
+		Language: "es",
+		Print: PrintPrefs{
+			Format: " book\n", Media: "games", Size: "a5", Crop: "fill", Paper: "a4", Cut: "corners",
+			Credits: boolPtr(false), Header: "  My shelf ", Font: "caveat", ColourIn: true,
+		},
+		Pages: PagesPrefs{Kind: "calendar", Paper: "letter", Cut: "none", Title: " June ", Font: "amatic", ColourIn: true},
+	}
+	if err := Save(path, in); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := Settings{
+		Language: "es",
+		Print: PrintPrefs{
+			Format: "book", Media: "games", Size: "a5", Crop: "fill", Paper: "a4", Cut: "corners",
+			Credits: boolPtr(false), Header: "My shelf", Font: "caveat", ColourIn: true,
+		},
+		Pages: PagesPrefs{Kind: "calendar", Paper: "letter", Cut: "none", Title: "June", Font: "amatic", ColourIn: true},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Load = %+v, want %+v", got, want)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{`"print": {`, `"pages": {`, `"credits": false`, `"colourIn": true`} {
+		if !strings.Contains(string(b), s) {
+			t.Errorf("file = %s, want it to contain %s", b, s)
+		}
+	}
+}
+
+func TestSaveOmitsEmptyPrefs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := Save(path, Settings{TMDBAPIKey: "k"}); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{`"print"`, `"pages"`} {
+		if strings.Contains(string(b), s) {
+			t.Errorf("file = %s, want no %s object when nothing is remembered", b, s)
+		}
+	}
+}
+
+func TestLoadKeepsOlderFilesWithoutPrefs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := os.WriteFile(path, []byte(`{"tmdbApiKey": "k", "language": "en"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != (Settings{TMDBAPIKey: "k", Language: "en"}) {
+		t.Errorf("Load = %+v, want only the key and language", got)
+	}
+	// A missing credits value means "use the default" (on).
+	if got.Print.Credits != nil {
+		t.Errorf("Print.Credits = %v, want nil (default)", *got.Print.Credits)
+	}
+}
+
+func TestTrimmedCapsTheHeaderAndTitle(t *testing.T) {
+	long := strings.Repeat("é", 130)
+	got := Settings{Print: PrintPrefs{Header: long}, Pages: PagesPrefs{Title: " " + long}}.Trimmed()
+	if n := utf8.RuneCountInString(got.Print.Header); n != MaxTextLen {
+		t.Errorf("header has %d runes, want %d", n, MaxTextLen)
+	}
+	if n := utf8.RuneCountInString(got.Pages.Title); n != MaxTextLen {
+		t.Errorf("title has %d runes, want %d", n, MaxTextLen)
+	}
+	if short := (PrintPrefs{Header: " hi "}).Trimmed().Header; short != "hi" {
+		t.Errorf("short header = %q, want hi", short)
 	}
 }

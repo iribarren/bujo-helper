@@ -399,6 +399,8 @@ The **Print sheet** tab turns downloaded covers into a PDF to cut out, for examp
 
 Covers are placed in the grid order (file name, case-insensitive, numbers in natural order). JPEG, PNG, GIF and WebP images are supported.
 
+The tab remembers its options between runs: the format, what review cards are for (only once you picked it here), the cover size, crop mode, paper, cut mode, credits page, header, font and Colour-in. They are saved in the settings file (under `"print"`, see [TMDB API key](#tmdb-api-key) for where it lives) each time you change one, the header once you leave the field. An option the app no longer offers falls back to its default. The folder and the Gallery | Preview switch are not remembered.
+
 Grid per paper and cover size (columns × rows = covers per page):
 
 | Paper     | Page (mm)     | Mini (25 mm) | **Standard** (50 mm) | Large (80 mm) |
@@ -655,6 +657,8 @@ They live in the **Make pages** tab, in three columns:
 - **Preview**: a live preview of the PDF, shown by default. It updates about 300 ms after the last option change and stays on the page shown (or the last one, if the PDF gets shorter); **‹** and **›** step through the pages, with "Page X of N". It is the same PDF **Export PDF…** writes. **Export PDF…** saves it, starting in the Print covers folder, and **Open PDF** opens the saved file.
 
 The preview is rendered by Go into memory (no temporary file) and served by the app's asset handler at `/preview`, which keeps only the last few renders; the frontend draws it onto a `<canvas>` with [pdf.js](#third-party-software), the same way on every platform. The same handler serves the cover thumbnails at `/thumbs` and the [lettering fonts](#lettering) at `/fonts/`.
+
+The tab remembers the last page kind and the shared options (paper, cut mode, title, font and Colour-in) between runs, in the settings file under `"pages"`, separately from Print covers; a kind's own options (spacing, month, habits…) are not remembered.
 
 To make a dot grid page: open **Make pages**, pick **Dot grid**, choose the dot spacing and the paper, type a title if you want one, and click **Export PDF…**.
 

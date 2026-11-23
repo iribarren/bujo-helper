@@ -12,7 +12,7 @@ import {
     SaveSampleCSV,
     Start,
 } from '../wailsjs/go/main/App';
-import {main} from '../wailsjs/go/models';
+import {main, settings} from '../wailsjs/go/models';
 import {EventsOn} from '../wailsjs/runtime/runtime';
 import {applyDom, has, label, onLangChange, t, tn, type MessageKey} from './i18n';
 import {useLanguage} from './language';
@@ -668,12 +668,17 @@ window.addEventListener('keydown', (e) => {
     }
 }, true);
 
+// The settings read at startup, for the remembered tab options; undefined
+// when they cannot be read.
+let startSettings: settings.Settings | undefined;
+
 // startLanguage applies the saved language setting, or the system language
 // when there is none or it cannot be read, before any text is shown.
 async function startLanguage() {
     let setting = '';
     try {
-        setting = (await GetSettings()).language || '';
+        startSettings = await GetSettings();
+        setting = startSettings.language || '';
     } catch (err) {
         console.warn(`Could not read the language setting: ${errorText(err)}`);
     }
@@ -702,12 +707,14 @@ async function init() {
         hideError,
         mediaTypes: () => mediaTypes,
         mediaType: () => ui.mediaType.value,
+        savedPrefs: startSettings?.print,
     });
     initPages({
         // Where Print covers exports too.
         defaultDir: () => printSheet?.folder() ?? outputFolder(),
         showError,
         hideError,
+        savedPrefs: startSettings?.pages,
     });
     try {
         mediaTypes = await MediaTypes();

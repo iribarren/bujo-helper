@@ -330,6 +330,9 @@ export interface Lettering {
     show: (on: boolean) => void;
     // What Go gets: the chosen font ID and the user's Colour-in choice.
     options: () => {font: string; colourIn: boolean};
+    // Shows a remembered font, when it is listed, and Colour-in choice;
+    // call it after setFonts. It does not call onChange.
+    restore: (font: string | undefined, colourIn: boolean) => void;
     relabel: () => void;
 }
 
@@ -407,6 +410,14 @@ export function renderLettering(prefix: string, onChange: () => void): Lettering
             if (!on) picker.close();
         },
         options: () => ({font: picker.value, colourIn}),
+        restore: (font, on) => {
+            colourIn = on;
+            const before = picker.value;
+            if (font) picker.value = font;
+            // An unlisted font keeps the one shown.
+            if (!picker.current()) picker.value = before;
+            sync();
+        },
         relabel: picker.relabel,
     };
 }

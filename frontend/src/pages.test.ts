@@ -3,7 +3,8 @@ import {resolve} from 'node:path';
 
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import {ExportPage, OpenFile, PreviewPage} from '../wailsjs/go/main/App';
+import {ExportPage, OpenFile, PreviewPage, SavePagesPrefs} from '../wailsjs/go/main/App';
+import {settings} from '../wailsjs/go/models';
 import {useLanguage} from './language';
 import {pageForms} from './pageForms';
 import {initPages, parseDefaults} from './pages';
@@ -739,5 +740,116 @@ describe('export', () => {
         expect(el('pages-status').textContent).toBe('');
         expect(el('pages-open-pdf').hidden).toBe(true);
         expect(el<HTMLButtonElement>('pages-export').disabled).toBe(false);
+    });
+});
+
+describe('remembered options', () => {
+    beforeEach(() => {
+        vi.mocked(SavePagesPrefs).mockClear();
+        vi.mocked(PreviewPage).mockClear();
+        deps.showError.mockClear();
+    });
+
+    // mount shows a fresh Make pages tab that remembers prefs, and waits for
+    // its lists to load.
+    async function mount(prefs?: Partial<settings.PagesPrefs>) {
+        const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+        document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
+        initPages({...deps, savedPrefs: prefs && settings.PagesPrefs.createFrom(prefs)});
+        await vi.waitFor(() => expect(el('pages-kinds').querySelectorAll('[role="radio"]').length).toBe(kinds.length));
+        await vi.waitFor(() => expect(el('pages-font-list').children.length).toBe(fonts.length));
+        await previewDone();
+    }
+
+    const pause = () => new Promise((r) => setTimeout(r, 10));
+
+    it('restores the kind and the shared fields', async () => {
+        await mount({kind: 'cutout', paper: 'b5', cut: 'bleed', title: 'My pages', font: 'pacifico', colourIn: true});
+        expect(checked('pages-kinds')).toBe('cutout');
+        expect(checked('pages-paper')).toBe('b5');
+        expect(el<HTMLSelectElement>('pages-cut').value).toBe('bleed');
+        expect(el<HTMLInputElement>('pages-title').value).toBe('My pages');
+        expect(el<HTMLInputElement>('pages-colour-in').checked).toBe(true);
+        const [kind, page] = lastPreviewPage();
+        expect(kind).toBe('cutout');
+        // A cut-out prints no title.
+        expect(page).toMatchObject({paper: 'b5', cut: 'bleed', title: '', font: 'pacifico', colourIn: true});
+        expect(el<HTMLButtonElement>('pages-export').disabled).toBe(false);
+    });
+
+    it('falls back to the defaults for ids no longer offered', async () => {
+        await mount({kind: 'gone', paper: 'a3', cut: 'zigzag', font: 'nope'});
+        expect(checked('pages-kinds')).toBe('dotgrid');
+        expect(checked('pages-paper')).toBe('a5');
+        expect(el<HTMLSelectElement>('pages-cut').value).toBe('border');
+        const [kind, page] = lastPreviewPage();
+        expect(kind).toBe('dotgrid');
+        expect(page).toMatchObject({paper: 'a5', font: 'go', colourIn: false});
+        expect(el<HTMLButtonElement>('pages-export').disabled).toBe(false);
+    });
+
+    it('starts with the defaults when nothing is saved', async () => {
+        await mount();
+        expect(checked('pages-kinds')).toBe('dotgrid');
+        expect(checked('pages-paper')).toBe('a5');
+        expect(el<HTMLInputElement>('pages-title').value).toBe('');
+    });
+
+    it('saves nothing while starting up', async () => {
+        await mount({kind: 'calendar', paper: 'letter', title: 'June'});
+        await pause();
+        expect(SavePagesPrefs).not.toHaveBeenCalled();
+    });
+
+    it('saves the ids on each change', async () => {
+        await mount({title: 'Kept'});
+        radio('pages-kinds', 'calendar').click();
+        await vi.waitFor(() => expect(SavePagesPrefs).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SavePagesPrefs).mock.lastCall![0]).toEqual(settings.PagesPrefs.createFrom({
+            kind: 'calendar', paper: 'a5', cut: 'border', title: 'Kept', font: 'go', colourIn: false,
+        }));
+
+        radio('pages-paper', 'letter').click();
+        await vi.waitFor(() => expect(vi.mocked(SavePagesPrefs).mock.lastCall![0].paper).toBe('letter'));
+
+        const cut = el<HTMLSelectElement>('pages-cut');
+        cut.value = 'none';
+        cut.dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(vi.mocked(SavePagesPrefs).mock.lastCall![0].cut).toBe('none'));
+
+        pickFont('pacifico');
+        await vi.waitFor(() => expect(vi.mocked(SavePagesPrefs).mock.lastCall![0].font).toBe('pacifico'));
+
+        setColourIn(true);
+        await vi.waitFor(() => expect(vi.mocked(SavePagesPrefs).mock.lastCall![0].colourIn).toBe(true));
+    });
+
+    it('does not remember the page kinds\' own form options', async () => {
+        await mount();
+        radio('pages-dotgrid-spacing', '6').click();
+        await vi.waitFor(() => expect(lastPreviewPage()[2]).toBe('{"spacing":6}'));
+        await pause();
+        expect(SavePagesPrefs).not.toHaveBeenCalled();
+    });
+
+    it('saves the title on change, not on every keystroke', async () => {
+        await mount();
+        setTitle('Ju');
+        setTitle('June ');
+        await pause();
+        expect(SavePagesPrefs).not.toHaveBeenCalled();
+        el('pages-title').dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(SavePagesPrefs).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SavePagesPrefs).mock.lastCall![0].title).toBe('June');
+    });
+
+    it('logs a failed save without showing an error', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        vi.mocked(SavePagesPrefs).mockRejectedValueOnce(new Error('disk full'));
+        await mount();
+        radio('pages-paper', 'b5').click();
+        await vi.waitFor(() => expect(warn).toHaveBeenCalledWith(expect.stringContaining('disk full')));
+        expect(deps.showError).not.toHaveBeenCalled();
+        warn.mockRestore();
     });
 });

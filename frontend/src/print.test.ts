@@ -1,10 +1,10 @@
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 
-import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import {ExportPDF, PreviewPDF, PrintPages} from '../wailsjs/go/main/App';
-import {main} from '../wailsjs/go/models';
+import {ExportPDF, PreviewPDF, PrintCropModes, PrintPages, PrintSizes, SavePrintPrefs} from '../wailsjs/go/main/App';
+import {main, settings, sheet} from '../wailsjs/go/models';
 import {useLanguage} from './language';
 import {activeCrop, initPrint, perPageOf, sizePerPageOf, usesCutOf, usesSizeOf, type SelectionShape} from './print';
 import {fakePdf, renders, resetFakePdfs} from './previewMock';
@@ -607,5 +607,191 @@ describe('Print covers tab', () => {
                 await useLanguage('en');
             }
         });
+    });
+});
+
+describe('Print covers remembered options', () => {
+    function el<T extends HTMLElement>(id: string): T {
+        const node = document.getElementById(id);
+        if (!node) throw new Error(`missing #${id}`);
+        return node as T;
+    }
+
+    const mediaTypes = [
+        main.MediaTypeInfo.createFrom({id: 'books', label: 'Books', dateLabel: 'Read on'}),
+        main.MediaTypeInfo.createFrom({id: 'games', label: 'Games', dateLabel: 'Played on'}),
+    ];
+    const sizes = [
+        {id: 'standard', label: 'Standard', coverHeight: 70, default: true},
+        {id: 'large', label: 'Large', coverHeight: 100, default: false},
+    ];
+    const crops = [
+        {id: 'none', label: 'None', usesSize: true, usesCut: true, frames: 1, default: true},
+        {id: 'square', label: 'Square', usesSize: true, usesCut: true, frames: 1, default: false},
+    ];
+
+    beforeEach(() => {
+        vi.mocked(SavePrintPrefs).mockClear();
+        vi.mocked(PrintPages).mockClear();
+    });
+
+    // mount shows a fresh Print covers tab that remembers prefs, and waits
+    // for its lists to load and the gallery to fill.
+    async function mount(prefs?: Partial<settings.PrintPrefs>, showError: (message: string) => void = () => {}) {
+        vi.mocked(PrintSizes).mockResolvedValueOnce(sizes.map((s) => main.PrintSizeInfo.createFrom(s)));
+        vi.mocked(PrintCropModes).mockResolvedValueOnce(crops.map((c) => main.PrintCropModeInfo.createFrom(c)));
+        const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+        document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
+        const tab = initPrint({
+            outputFolder: () => '/covers',
+            showError,
+            hideError: () => {},
+            mediaTypes: () => mediaTypes,
+            mediaType: () => 'books',
+            previewDelay: 0,
+            savedPrefs: prefs && settings.PrintPrefs.createFrom(prefs),
+        });
+        await vi.waitFor(() => expect(el<HTMLSelectElement>('print-size').options.length).toBe(sizes.length));
+        await vi.waitFor(() => expect(el('print-font-list').children.length).toBe(fontList.length));
+        tab.activate();
+        await vi.waitFor(() => expect(el('gallery').children.length).toBe(coverList.length));
+        return tab;
+    }
+
+    function checkedPaper(): string | undefined {
+        return el('print-paper').querySelector<HTMLElement>('[aria-checked="true"]')?.dataset.value;
+    }
+
+    // lastOptions are the options of the latest PrintPages request, with
+    // every cover selected.
+    async function lastOptions(): Promise<sheet.Options> {
+        el('select-all').click();
+        await vi.waitFor(() => expect(PrintPages).toHaveBeenCalled());
+        return vi.mocked(PrintPages).mock.lastCall![1];
+    }
+
+    it('restores every saved option', async () => {
+        await mount({
+            format: 'fullpage', media: 'games', size: 'large', crop: 'square', paper: 'b5', cut: 'bleed',
+            credits: false, header: 'My shelf', font: 'titan-one', colourIn: true,
+        });
+        expect(el<HTMLSelectElement>('print-format').value).toBe('fullpage');
+        expect(el<HTMLSelectElement>('print-media').value).toBe('games');
+        expect(el<HTMLSelectElement>('print-size').value).toBe('large');
+        expect(el<HTMLSelectElement>('print-crop').value).toBe('square');
+        expect(checkedPaper()).toBe('b5');
+        expect(el<HTMLSelectElement>('print-cut').value).toBe('bleed');
+        expect(el<HTMLInputElement>('print-credits').checked).toBe(false);
+        expect(el<HTMLInputElement>('print-header').value).toBe('My shelf');
+        expect(el<HTMLInputElement>('print-colour-in').checked).toBe(true);
+        // The header and lettering apply to a full page.
+        expect(el('print-header-field').hidden).toBe(false);
+        const opts = await lastOptions();
+        expect(opts).toMatchObject({format: 'fullpage', paper: 'b5', header: 'My shelf', font: 'titan-one', colourIn: true, credits: false});
+        expect(el<HTMLButtonElement>('export-pdf').disabled).toBe(false);
+    });
+
+    it('keeps following the Download tab without a saved media type', async () => {
+        await mount({format: 'cards'});
+        expect(el<HTMLSelectElement>('print-format').value).toBe('cards');
+        expect(el<HTMLSelectElement>('print-media').value).toBe('books');
+    });
+
+    it('falls back to the defaults for ids no longer offered', async () => {
+        await mount({
+            format: 'gone', media: 'films', size: 'huge', crop: 'oval', paper: 'a3', cut: 'zigzag', font: 'nope',
+        });
+        expect(el<HTMLSelectElement>('print-format').value).toBe('covers');
+        expect(el<HTMLSelectElement>('print-media').value).toBe('books');
+        expect(el<HTMLSelectElement>('print-size').value).toBe('standard');
+        expect(el<HTMLSelectElement>('print-crop').value).toBe('none');
+        expect(checkedPaper()).toBe('a4');
+        expect(el<HTMLSelectElement>('print-cut').value).toBe('border');
+        expect(el<HTMLInputElement>('print-credits').checked).toBe(true);
+        const opts = await lastOptions();
+        expect(opts).toMatchObject({format: 'covers', size: 'standard', paper: 'a4', cut: 'border', credits: true});
+        expect(el<HTMLButtonElement>('export-pdf').disabled).toBe(false);
+    });
+
+    it('starts with the defaults when nothing is saved', async () => {
+        await mount();
+        expect(el<HTMLSelectElement>('print-format').value).toBe('covers');
+        expect(checkedPaper()).toBe('a4');
+        expect(el<HTMLInputElement>('print-credits').checked).toBe(true);
+    });
+
+    it('saves nothing while starting up', async () => {
+        await mount({format: 'cards', paper: 'letter'});
+        await new Promise((r) => setTimeout(r, 10));
+        expect(SavePrintPrefs).not.toHaveBeenCalled();
+    });
+
+    it('saves the ids on each change', async () => {
+        await mount({format: 'cards', header: 'Old'});
+        el<HTMLButtonElement>('print-paper').querySelector<HTMLButtonElement>('[data-value="letter"]')!.click();
+        await vi.waitFor(() => expect(SavePrintPrefs).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SavePrintPrefs).mock.lastCall![0]).toEqual(settings.PrintPrefs.createFrom({
+            format: 'cards', media: '', size: 'standard', crop: 'none', paper: 'letter', cut: 'border',
+            credits: true, header: 'Old', font: 'go', colourIn: false,
+        }));
+
+        const media = el<HTMLSelectElement>('print-media');
+        media.value = 'games';
+        media.dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].media).toBe('games'));
+
+        const credits = el<HTMLInputElement>('print-credits');
+        credits.click();
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].credits).toBe(false));
+
+        const format = el<HTMLSelectElement>('print-format');
+        format.value = 'covers';
+        format.dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].format).toBe('covers'));
+    });
+
+    it('saves the size, crop, font and Colour-in on change', async () => {
+        await mount({format: 'cards'});
+        const size = el<HTMLSelectElement>('print-size');
+        size.value = 'large';
+        size.dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall?.[0].size).toBe('large'));
+
+        const crop = el<HTMLSelectElement>('print-crop');
+        crop.value = 'square';
+        crop.dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].crop).toBe('square'));
+
+        el('print-font').click();
+        el('print-font-list').querySelector<HTMLElement>('[role="option"][data-value="titan-one"]')!.click();
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].font).toBe('titan-one'));
+
+        el<HTMLInputElement>('print-colour-in').click();
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].colourIn).toBe(true));
+    });
+
+    it('saves the header on change, not on every keystroke', async () => {
+        await mount({format: 'fullpage'});
+        const header = el<HTMLInputElement>('print-header');
+        header.value = 'My';
+        header.dispatchEvent(new Event('input'));
+        header.value = 'My list ';
+        header.dispatchEvent(new Event('input'));
+        await new Promise((r) => setTimeout(r, 10));
+        expect(SavePrintPrefs).not.toHaveBeenCalled();
+        header.dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(SavePrintPrefs).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].header).toBe('My list');
+    });
+
+    it('logs a failed save without showing an error', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const showError = vi.fn();
+        vi.mocked(SavePrintPrefs).mockRejectedValueOnce(new Error('disk full'));
+        await mount(undefined, showError);
+        el<HTMLButtonElement>('print-paper').querySelector<HTMLButtonElement>('[data-value="a5"]')!.click();
+        await vi.waitFor(() => expect(warn).toHaveBeenCalledWith(expect.stringContaining('disk full')));
+        expect(showError).not.toHaveBeenCalled();
+        warn.mockRestore();
     });
 });
