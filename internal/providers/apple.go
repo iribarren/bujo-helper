@@ -16,7 +16,7 @@ import (
 )
 
 // Apple searches the public iTunes Search API: Apple Books by default, or
-// music albums. It returns the original artwork resolution.
+// music albums or podcasts. It returns the original artwork resolution.
 type Apple struct {
 	Client  *http.Client
 	BaseURL string
@@ -42,16 +42,30 @@ func NewAppleAlbums(client *http.Client) *Apple {
 	return a
 }
 
+// NewApplePodcasts returns an Apple provider that searches podcast shows.
+func NewApplePodcasts(client *http.Client) *Apple {
+	a := NewApple(client)
+	a.Media = "podcast"
+	return a
+}
+
 // albums reports whether a searches music albums rather than tracks or books.
 func (a *Apple) albums() bool { return a.Entity == "album" }
+
+// podcasts reports whether a searches podcast shows.
+func (a *Apple) podcasts() bool { return a.Media == "podcast" }
 
 // Name implements media.Provider.
 func (a *Apple) Name() string { return "apple" }
 
-// Label implements media.Labeler: Apple Books, or Apple Music for albums.
+// Label implements media.Labeler: Apple Books, Apple Music for albums or
+// Apple Podcasts.
 func (a *Apple) Label() string {
-	if a.albums() {
+	switch {
+	case a.albums():
 		return "Apple Music"
+	case a.podcasts():
+		return "Apple Podcasts"
 	}
 	return "Apple Books"
 }
@@ -59,7 +73,8 @@ func (a *Apple) Label() string {
 type appleResponse struct {
 	Results []struct {
 		TrackName string `json:"trackName"`
-		// CollectionName is the album title in album searches.
+		// CollectionName is the album or show title in album and podcast
+		// searches.
 		CollectionName string `json:"collectionName"`
 		ArtistName     string `json:"artistName"`
 		ReleaseDate    string `json:"releaseDate"`
@@ -96,7 +111,7 @@ func (a *Apple) Search(ctx context.Context, item media.Item, opts media.Options)
 			ImageURLs: []string{strings.Replace(r.ArtworkURL100, "100x100bb", "10000x10000bb", 1)},
 			Source:    a.Name(),
 		}
-		if a.albums() {
+		if a.albums() || a.podcasts() {
 			c.Title = r.CollectionName
 		} else {
 			// The artwork file is usually named after the edition ISBN-13.

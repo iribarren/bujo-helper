@@ -30,6 +30,7 @@ const {mediaTypes, builtInBGGToken} = vi.hoisted(() => {
         {id: 'unlabelled', label: 'Unlabelled'},
         {id: 'blank', label: 'Blank', creatorLabel: '  '},
         {id: 'boardgames', label: 'Board games', creatorLabel: 'Year', sources: ['BoardGameGeek']},
+        {id: 'podcasts', label: 'Podcasts', creatorLabel: 'Host', sources: ['Apple Podcasts']},
     ],
     };
 });
@@ -133,6 +134,7 @@ beforeAll(async () => {
 describe('items placeholder', () => {
     const cases: Array<[name: string, type: string, want: string]> = [
         ['a creator column asks for "Title, Author"', 'books', 'Title, Author'],
+        ['a host column asks for "Title, Host"', 'podcasts', 'Title, Host'],
         ['an empty creator label asks for a name alone', 'nature', 'Name\nOne per line'],
         ['a missing creator label asks for a name alone', 'unlabelled', 'Name\nOne per line'],
         ['a blank creator label asks for a name alone', 'blank', 'Name\nOne per line'],
@@ -157,6 +159,11 @@ describe('items placeholder', () => {
             expect(placeholder).toContain(example);
         });
     }
+
+    it('gives a show and host example for podcasts', () => {
+        selectType('podcasts');
+        expect(el<HTMLTextAreaElement>('items').placeholder).toContain('The Daily, The New York Times');
+    });
 });
 
 describe('tabs', () => {

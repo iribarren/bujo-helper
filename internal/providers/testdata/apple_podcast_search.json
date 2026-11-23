@@ -1,0 +1,69 @@
+{
+  "resultCount": 4,
+  "results": [
+    {
+      "wrapperType": "track",
+      "kind": "podcast",
+      "collectionId": 1200361736,
+      "trackId": 1200361736,
+      "artistName": "The New York Times",
+      "collectionName": "The Daily",
+      "trackName": "The Daily",
+      "feedUrl": "https://feeds.simplecast.com/Sl5CSM3S",
+      "releaseDate": "2026-11-23T10:45:00Z",
+      "artworkUrl30": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/ab/64/66/ab6466a9-9a7d-e20e-7a3d-bc5be37d29ce/mza_15084852813176276273.jpg/30x30bb.jpg",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/ab/64/66/ab6466a9-9a7d-e20e-7a3d-bc5be37d29ce/mza_15084852813176276273.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/ab/64/66/ab6466a9-9a7d-e20e-7a3d-bc5be37d29ce/mza_15084852813176276273.jpg/100x100bb.jpg",
+      "artworkUrl600": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/ab/64/66/ab6466a9-9a7d-e20e-7a3d-bc5be37d29ce/mza_15084852813176276273.jpg/600x600bb.jpg",
+      "primaryGenreName": "Daily News"
+    },
+    {
+      "wrapperType": "track",
+      "kind": "podcast",
+      "collectionId": 1758855019,
+      "trackId": 1758855019,
+      "artistName": "The New York Times",
+      "collectionName": "The Headlines",
+      "trackName": "The Headlines",
+      "feedUrl": "https://feeds.simplecast.com/ydACIPHO",
+      "releaseDate": "2026-11-23T11:00:00Z",
+      "artworkUrl30": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/fc/8a/52/fc8a527d-8979-adf2-977b-06304a816969/mza_684749869280596722.jpg/30x30bb.jpg",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/fc/8a/52/fc8a527d-8979-adf2-977b-06304a816969/mza_684749869280596722.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/fc/8a/52/fc8a527d-8979-adf2-977b-06304a816969/mza_684749869280596722.jpg/100x100bb.jpg",
+      "artworkUrl600": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/fc/8a/52/fc8a527d-8979-adf2-977b-06304a816969/mza_684749869280596722.jpg/600x600bb.jpg",
+      "primaryGenreName": "Daily News"
+    },
+    {
+      "wrapperType": "track",
+      "kind": "podcast",
+      "collectionId": 1884114247,
+      "trackId": 1884114247,
+      "artistName": "The New York Times One",
+      "collectionName": "The Daily",
+      "trackName": "The Daily",
+      "feedUrl": "https://feeds.acast.com/public/shows/69b065f4a54b09a74a524aa6",
+      "releaseDate": "2026-03-10T09:45:00Z",
+      "artworkUrl30": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/00/50/15/005015f2-a5ca-10a1-287b-0783e203d0f4/mza_16107376200112124335.jpg/30x30bb.jpg",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/00/50/15/005015f2-a5ca-10a1-287b-0783e203d0f4/mza_16107376200112124335.jpg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/00/50/15/005015f2-a5ca-10a1-287b-0783e203d0f4/mza_16107376200112124335.jpg/100x100bb.jpg",
+      "artworkUrl600": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/00/50/15/005015f2-a5ca-10a1-287b-0783e203d0f4/mza_16107376200112124335.jpg/600x600bb.jpg",
+      "primaryGenreName": "Daily News"
+    },
+    {
+      "wrapperType": "track",
+      "kind": "podcast",
+      "collectionId": 1496873135,
+      "trackId": 1496873135,
+      "artistName": "The New York Times",
+      "collectionName": "The Field",
+      "trackName": "The Field",
+      "feedUrl": "https://feeds.simplecast.com/F1q0__jZ",
+      "releaseDate": "2021-01-05T15:01:00Z",
+      "artworkUrl30": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/63/9a/6d/639a6de5-9ea6-779f-6893-b470a4f1b82d/mza_5481462862547349806.jpeg/30x30bb.jpg",
+      "artworkUrl60": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/63/9a/6d/639a6de5-9ea6-779f-6893-b470a4f1b82d/mza_5481462862547349806.jpeg/60x60bb.jpg",
+      "artworkUrl100": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/63/9a/6d/639a6de5-9ea6-779f-6893-b470a4f1b82d/mza_5481462862547349806.jpeg/100x100bb.jpg",
+      "artworkUrl600": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts211/v4/63/9a/6d/639a6de5-9ea6-779f-6893-b470a4f1b82d/mza_5481462862547349806.jpeg/600x600bb.jpg",
+      "primaryGenreName": "Daily News"
+    }
+  ]
+}

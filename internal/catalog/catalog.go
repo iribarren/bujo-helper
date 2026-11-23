@@ -259,6 +259,24 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "Azul", Creator: "2017"},
 		},
 	})
+	// Podcast show artwork is square. iTunes is the only source: there is
+	// no keyless fallback (an RSS feed needs the iTunes lookup anyway).
+	mustRegister(reg, media.MediaType{
+		ID:           "podcasts",
+		Label:        "Podcasts",
+		CreatorLabel: "Host",
+		DateLabel:    "Listened on",
+		Providers: []media.Provider{
+			providers.NewApplePodcasts(client),
+		},
+		Samples: []media.Item{
+			{Title: "The Daily", Creator: "The New York Times"},
+			{Title: "Radiolab", Creator: "WNYC Studios"},
+			{Title: "This American Life", Creator: "This American Life"},
+			{Title: "Serial", Creator: "Serial Productions"},
+			{Title: "Hardcore History", Creator: "Dan Carlin"},
+		},
+	})
 	return reg
 }
 
