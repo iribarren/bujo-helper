@@ -209,14 +209,25 @@ func offImageURL(base, code, key, rev string) string {
 }
 
 // offQuery is the Search-a-licious (Lucene) query for a name and brand:
-// the name with special characters escaped, then a brands phrase.
+// the name with special characters escaped and the operator words AND,
+// OR and NOT lowercased (Lucene only reads them as operators in capitals,
+// and the search ignores case), then a brands phrase.
 func offQuery(name, brand string) string {
 	var b strings.Builder
-	for _, r := range strings.TrimSpace(name) {
-		if strings.ContainsRune(`+-&|!(){}[]^"~*?:\/`, r) {
-			b.WriteByte('\\')
+	for i, word := range strings.Fields(name) {
+		if i > 0 {
+			b.WriteByte(' ')
 		}
-		b.WriteRune(r)
+		switch word {
+		case "AND", "OR", "NOT":
+			word = strings.ToLower(word)
+		}
+		for _, r := range word {
+			if strings.ContainsRune(`+-&|!(){}[]^"~*?:\/`, r) {
+				b.WriteByte('\\')
+			}
+			b.WriteRune(r)
+		}
 	}
 	if brand = strings.TrimSpace(brand); brand != "" {
 		if b.Len() > 0 {

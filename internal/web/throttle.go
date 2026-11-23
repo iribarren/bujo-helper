@@ -100,10 +100,11 @@ var DefaultThrottle = &Throttle{
 		"www.biodiversitylibrary.org":              500 * time.Millisecond,
 		"bhl-open-data.s3.us-east-2.amazonaws.com": 500 * time.Millisecond,
 		// Open Food Facts allows 15 product reads and 10 searches per
-		// minute per IP (going over can get the IP banned); its image
-		// host publishes no limit and is spaced like the others.
-		"world.openfoodfacts.org":  4 * time.Second,
-		"search.openfoodfacts.org": 6 * time.Second,
+		// minute per IP (going over can get the IP banned), so the
+		// spacing keeps a margin under both; its image host publishes
+		// no limit and is spaced like the others.
+		"world.openfoodfacts.org":  4500 * time.Millisecond,
+		"search.openfoodfacts.org": 6500 * time.Millisecond,
 		"images.openfoodfacts.org": 500 * time.Millisecond,
 	},
 }

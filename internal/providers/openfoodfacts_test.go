@@ -92,12 +92,29 @@ func TestOFFQuery(t *testing.T) {
 			"", `a\+b\-c\&\&d\|\|e\!\(f\)\{g\}\[h\]\^\"i\"\~j\*k\?l\:m\\n\/o`},
 		{"quote and backslash in the brand", "Tea", `Ben "&" Jerry\s`, `Tea brands:"Ben \"&\" Jerry\\s"`},
 		{"brand only", "", "Acme", `brands:"Acme"`},
+		{"operator words lowercased", "Salt AND Vinegar OR NOT Crisps", "", "Salt and Vinegar or not Crisps"},
+		{"operator-like words kept", "ANDES Notes ORANGE", "", "ANDES Notes ORANGE"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := offQuery(tt.title, tt.brand); got != tt.want {
 				t.Errorf("offQuery(%q, %q) = %q, want %q", tt.title, tt.brand, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestOFFNotFoundNamesAtMostFiveProducts(t *testing.T) {
+	skipped := []string{"a (1): x", "b (2): x", "c (3): x", "d (4): x", "e (5): x", "f (6): x", "g (7): x"}
+	err := offNotFound(`for "tea"`, skipped)
+	if !errors.Is(err, media.ErrNotFound) {
+		t.Fatalf("offNotFound() = %v, want ErrNotFound", err)
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "e (5): x; and 2 more") {
+		t.Errorf("offNotFound() = %q, want the first five reasons then \"and 2 more\"", msg)
+	}
+	if strings.Contains(msg, "f (6)") {
+		t.Errorf("offNotFound() = %q names more than five products", msg)
 	}
 }
 

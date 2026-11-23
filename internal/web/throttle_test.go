@@ -521,9 +521,10 @@ func TestNewClientUsesTheSharedThrottle(t *testing.T) {
 		"www.biodiversitylibrary.org":              500 * time.Millisecond,
 		"bhl-open-data.s3.us-east-2.amazonaws.com": 500 * time.Millisecond,
 		// Open Food Facts allows 15 product reads and 10 searches per
-		// minute; its image host is spaced like the other image hosts.
-		"world.openfoodfacts.org":  4 * time.Second,
-		"search.openfoodfacts.org": 6 * time.Second,
+		// minute; the spacing keeps a margin under both, and its image
+		// host is spaced like the other image hosts.
+		"world.openfoodfacts.org":  4500 * time.Millisecond,
+		"search.openfoodfacts.org": 6500 * time.Millisecond,
 		"images.openfoodfacts.org": 500 * time.Millisecond,
 	} {
 		if got := DefaultThrottle.MinInterval[host]; got != want {
