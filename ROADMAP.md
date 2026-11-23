@@ -344,6 +344,7 @@ Useful, but either demand is less proven or the item adds a new kind of printabl
 - Source: iTunes Search API with `media=podcast`, artwork scaled to a large size. Reuse the Apple provider's helpers.
 - Artwork is square: follow the **Non-2:3 images** convention.
 - Media type selector, sample CSV and CLI support.
+- **Decision (2026-11-23):** one source, the existing Apple provider with `media=podcast` (show title from `collectionName`, host from `artistName`, artwork at its original size, usually 3000 × 3000). No keyless fallback: the RSS feed is found through the same iTunes lookup, and Podcast Index needs a key. Registered last, as `podcasts`; item 12's square cells already place the artwork.
 
 **Acceptance**
 - Provider tests with fixtures. Square artwork prints in square cells.
