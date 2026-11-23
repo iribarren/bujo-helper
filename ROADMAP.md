@@ -414,7 +414,7 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 **Acceptance**
 - Provider tests with fixtures. A common product returns a usable front image with its credit stored.
 
-## 24. [ ] Board games media type
+## 24. [x] Board games media type (e0382aa)
 
 **Why:** board game trackers exist among hobby journalers.
 
