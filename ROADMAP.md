@@ -435,13 +435,13 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 **Acceptance**
 - Only images marked public domain are downloaded, and everything else is skipped with a clear reason.
 
-## 27. [ ] Quote cards
+## 27. [x] Quote cards (615bbab)
 
 **Why:** quotes and lyrics pages are common bujo collections.
 
 **Weakness:** there are no images to fetch, and free versions are everywhere, so the app adds little.
 
-**Done in branch `feat/quote-cards`** (see `odd/tasks/quote-cards.md`):
+**Done in branch `feat/quote-cards`**, merged in 615bbab (see `odd/tasks/quote-cards.md`):
 - User extension (2026-11-21): search an author or personality and tick their quotes, instead of only typing or importing them. That is what makes the kind worth having over the free templates.
 - Wikiquote search: `internal/quotes` (MediaWiki full-text search, page HTML parsing, section filter, text cleaning, limits) with recorded en/es fixtures (8c95a68, fixtures trimmed in 99ff3b7); the `SearchQuotes` binding in the UI language (68fe75a); a best page without quotes falls back to the next matches and keeps the other matches (7404937), and a failed fallback keeps the best page (eecc949); race-free test request logs (92f7a54).
 - Page kind: `quotes` in `PageKinds` with the Classic, Bold and Framed styles, 4/6/8 cards a page, fitted text, empty card frames and the Wikiquote credit (852d0e7); its title and credit in the UI language (d23384c).
