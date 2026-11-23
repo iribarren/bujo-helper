@@ -1,0 +1,42 @@
+# Remember Print covers and Make pages options
+
+## Objective
+The Print covers options and the shared Make pages options survive an app restart (follow-up item 2 from the ranked review follow-up list; source places.md:65/76).
+
+## Problem / why
+Every option in both tabs is an in-memory closure or DOM value, re-seeded from the Go defaults at each launch (`frontend/src/print.ts:189`, `frontend/src/pages.ts:54`). Users re-pick paper, format, font and the credits checkbox every time. The only remembered state is the UI language in `settings.json`.
+
+## Scope (user decision 2026-11-23: "Print + shared Pages")
+- Print covers: format, cards-for media (review cards; the media id, only once the user picked one), size, crop, paper, cut, credits, header, font, colour-in (the user's choice, `options().colourIn`, not `box.checked`).
+- Make pages: last kind, paper, cut, title, font, colour-in.
+- Out: folders, the Gallery/Preview view, each page kind's own form options, month/year.
+
+## Constraints / design
+- Storage: `internal/settings.Settings` gains `print` and `pages` sub-objects (omitempty; older files load with zero values). Same atomic save (temp + fsync + rename).
+- `SaveSettings` (Settings dialog) replaces the whole struct with six fields only, so it must keep the stored print/pages prefs. New bindings `SavePrintPrefs` and `SavePagesPrefs` merge one sub-object under `settingsMu`. `GetSettings` returns them for startup.
+- Restore after the Go lists load (`loadPresets`, `print.ts:723`; pages kinds/papers/cuts/fonts). A saved id not offered falls back to the default; empty prefs leave today's defaults (credits stays on by default).
+- Save on each user change; free text (header, title) saves on `change`/debounced input, not every keystroke. A failed save is logged, never shown as an error.
+- IDs are saved, never labels (i18n re-labels). Header/title keep the 120-char limit.
+
+## Tasks
+- [ ] T1 Go: settings sub-structs + `Trimmed`, `SaveSettings` keeps prefs, `SavePrintPrefs`/`SavePagesPrefs` bindings, regenerated Wails bindings, Go tests. Route: delegated writer.
+- [ ] T2 Print covers: restore saved prefs after presets load with fallback, save on change, vitest tests. Route: delegated writer.
+- [ ] T3 Make pages: restore kind + shared fields, save on change, vitest tests. Route: delegated writer.
+- [ ] T4 README: what is remembered and where. Route: same writer.
+
+Route evidence: writer trigger (Go settings + app + bindings + print.ts + pages.ts + fieldsets/lettering + tests).
+
+## Acceptance
+- Restarting shows the last Print covers options and the last Make pages kind and shared fields.
+- Saving the Settings dialog doesn't wipe them.
+- A stale or unknown saved id falls back to the default; export never ends up disabled by a restored value.
+- Checks: `go build ./...`, `go vet ./...`, `go test ./...`, `gofmt -l internal app.go cmd`, `cd frontend && npx tsc --noEmit && npx vitest run && npm run build`.
+
+## Delivery
+Strategy: `ask-on-risk`. Forecast ~700 authored lines (about half tests).
+
+## Progress
+- 2026-11-23: branch `feat/remember-print-options`; doc written.
+
+## Next step
+T1–T4 via one delegated writer.
