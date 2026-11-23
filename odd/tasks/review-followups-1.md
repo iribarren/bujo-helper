@@ -43,5 +43,7 @@ Strategy: `ask-on-risk`. Forecast ~300 authored lines (mostly tests): single PR/
 
 - Full-branch review `main..b5a0847` (stop-hook preflight, medium, 591 lines): consent granted; reliability approved; acknowledged, lineage `review-4d760db860558ae7`. Same single advisory R3-pdfdoc-partial-chokepoint.
 
+- R3-pdfdoc-partial-chokepoint closed (route: inline, one test file): `internal/sheet/textguard_test.go` parses the package's non-test files and fails on calls to fpdf text methods pdfDoc does not sanitize (Cell, Cellf, CellFormat, MultiCell, Write with 2 args, Writef, WriteAligned, WriteLink*, SplitText, SplitLines); io.Writer's one-arg Write passes. RED: a planted `d.MultiCell(...)` in a temp file failed the guard; a synthetic-source test pins each detected kind. GREEN: guard passes on the package; `go test -count=1 ./...` all 19 packages ok; build, vet, gofmt clean.
+
 ## Next step
-Done. Not merged. Follow-up: R3-pdfdoc-partial-chokepoint.
+Done; merged to main.
