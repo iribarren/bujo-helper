@@ -8,9 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"unicode/utf8"
-
-	"github.com/go-pdf/fpdf"
 
 	"bujo-helper/internal/media"
 )
@@ -62,19 +59,6 @@ func readCredits(paths []string) ([]credit, error) {
 		credits = append(credits, credit{Name: printable(creditName(p)), Text: text})
 	}
 	return credits, nil
-}
-
-// printable returns s with invalid UTF-8 and runes outside the Basic
-// Multilingual Plane (emoji, rare CJK) replaced by "?": the PDF's UTF-8
-// fonts index glyph widths by 16-bit rune and fail on anything above.
-// Runes in the plane that the text font lacks print as empty boxes.
-func printable(s string) string {
-	return strings.Map(func(r rune) rune {
-		if r == utf8.RuneError || r > 0xFFFF {
-			return '?'
-		}
-		return r
-	}, s)
 }
 
 // creditName is how the credits page names the image at path: "Title —
@@ -233,7 +217,7 @@ func (o Options) CreditPages(paths []string) (int, error) {
 // pages of page size, when opts.Credits is on and an image has a credit
 // sidecar; otherwise it leaves pdf untouched, so the sheet is exactly what
 // it was without credits.
-func addCredits(pdf *fpdf.Fpdf, page Page, paths []string, opts Options) error {
+func addCredits(pdf *pdfDoc, page Page, paths []string, opts Options) error {
 	if !opts.Credits {
 		return nil
 	}

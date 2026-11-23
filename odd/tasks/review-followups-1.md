@@ -1,0 +1,49 @@
+# Review follow-ups 1 (emoji titles, PDF determinism, backend hardening)
+
+## Objective
+Close three open review follow-ups chosen by the user from the ranked follow-up list (items 1, 3, 4).
+
+## Problem / why
+- Titles from file names (and other drawn text) can contain runes above U+FFFF (emoji). fpdf's UTF-8 fonts index widths by 16-bit rune and panic. Only the credits page sanitizes (`printable()`, `internal/sheet/credits.go:71`). Sources: places.md:67/76, nature.md:101.
+- The same checklist of repeated landscape images renders different bytes twice in one process. Likely cause: `newPDF` (`internal/sheet/pdf.go:118`) never calls `SetCatalogSort(true)`; only tests do. Source: artworks.md:67/74.
+- Backend hardening from media-cover-downloader.md review suggestions: `OpenFile` opens any regular file (`app.go` OpenFile); thumbnail decodes have no pixel cap (`internal/gallery/thumbs.go`, only concurrency capped); `Start` creates the output folder before checking whether a job is already running (`app.go` Start).
+
+## Scope
+- In: sanitize every fpdf-drawn text that can carry non-BMP runes (single chokepoint preferred); deterministic PDF output; OpenFile limited to `.pdf` (its only callers open exported PDFs: `frontend/src/print.ts:775`, `frontend/src/pages.ts:220`); thumbnail pixel cap via `image.DecodeConfig` before the full decode; running check before `MkdirAll` in `Start`.
+- Out: Print option persistence (item 2), frontend test gaps, anything else in the follow-up list.
+
+## Constraints / decisions
+- Non-BMP runes print as `?` (same rule as the credits page); file names on disk are untouched.
+- Thumbnail cap: 50 megapixels; larger images get no thumbnail (handler error, like an unreadable file), the print export still uses them.
+- OpenFile: `.pdf` only (case-insensitive); anything else returns an error without calling the opener.
+
+## Tasks
+- [x] T1 Sanitize drawn text for non-BMP runes in all formats and page kinds. Route: delegated writer (sheet package, several formats). Check: RED test exporting each format/page kind with an emoji title panics or fails; GREEN after.
+- [x] T2 Deterministic PDFs: `SetCatalogSort(true)` in `newPDF`; test that the same checklist with repeated landscape images renders identical bytes twice (fixed creation date). Route: delegated writer (same writer, separate commit).
+- [x] T3 Backend hardening: OpenFile `.pdf` only; thumbnail 50 MP cap; Start running check before MkdirAll (no folder created when a job runs). Route: delegated writer (app.go + gallery).
+
+Route evidence: writer trigger (2+ non-trivial files across sheet, app.go, gallery). One writer, one commit per task.
+
+## Acceptance
+- No export panics on an emoji in a title, creator, typed page title or quote text.
+- Same inputs give byte-identical PDFs (fixed creation date).
+- OpenFile refuses non-PDF files; oversized images get no thumbnail; Start with a running job creates no folder.
+- `go build ./...`, `go vet ./...`, `go test ./...`, `gofmt -l` clean.
+
+## Delivery
+Strategy: `ask-on-risk`. Forecast ~300 authored lines (mostly tests): single PR/merge.
+
+## Progress
+- 2026-11-23: branch `fix/review-followups` created; doc written.
+- T1 (delegated writer): chokepoint is a `pdfDoc` wrapper (`internal/sheet/pdf.go`) embedding `*fpdf.Fpdf` and shadowing `Text` and `GetStringWidth` with `printable()`; `newPDF` returns it and every draw function takes it, so all text reaches fpdf through it (measured as drawn). Inputs and file names untouched. RED: `emoji_test.go` panicked `index out of range [65536] with length 65536` in every format except covers/crops (no text; credits page already safe) and in every page kind with a typed title, label-based default title (habits, quotes, map, conversions) or typed text (habits, quotes, recipes). GREEN: `go test ./internal/sheet` 2380 passed. Checks: build, vet, `go test ./...` (3440 passed), gofmt clean.
+- T2 (delegated writer): `newPDF` calls `SetCatalogSort(true)` (it is the only fpdf constructor in production code). RED: `TestBuildIsDeterministic` (checklist, full page, cards of repeated landscape images, built twice with fixed dates, no sort set by the test) failed in 3 of 3 runs of `-count=5` (checklist/fullpage/cards bytes differ, same length). GREEN: `-count=30` passed. Checks: build, vet, `go test ./...`, gofmt clean.
+- T3 (delegated writer): `OpenFile` refuses anything but a `.pdf` (any case) with the new `err.notPDF` key (EN/ES) before stat or opener; `openWithSystem` became a variable so tests stub it. Thumbnails read `image.DecodeConfig` first and refuse over `maxThumbPixels` (50 MP; a variable so tests lower it), then rewind and decode. `Start` reserves the running slot under the lock before `MkdirAll` and frees it (and cancels) if the folder fails. RED: `TestOpenFileOpensOnlyPDFs` (5 non-PDFs opened), `TestBindingErrorsUseTheUILanguage/not_a_PDF`, `TestStartWhileRunningCreatesNoFolder` (folder created), `TestThumbsRefuseOversizedImages` (cap lowered to 100x100: 101x100 and 50x201 served 200). Guards that passed before the fix: `TestStartFolderFailureStartsNoJob`, `TestThumbsRefuseHugeHeaders` (100k x 100k header, no pixel data: the full decode already failed, so it guards the header-only path without a huge allocation). GREEN: all pass; `go test -race . -run TestStart -count=3` passed. Checks: build, vet, `go test ./...`, gofmt clean.
+
+- Review `4ac5233..4b0c81d` (medium, 27 files, 557 lines, `slice_budget_reached`): consent granted; lens review-reliability approved; acknowledged (authority burned), lineage `review-4ee7b6653db070d4`. Parent spot check: `go test ./internal/sheet/ ./internal/gallery/ .` 2645 passed. Advisory SUGGESTION R3-pdfdoc-partial-chokepoint (`internal/sheet/pdf.go:119-130`): `pdfDoc` shadows only `Text` and `GetStringWidth`; other promoted fpdf text methods (Cell, CellFormat, MultiCell, Write, SplitText, SplitLines) stay reachable unsanitized, so a future caller could reintroduce the panic. Left as a follow-up (guard test or shadow the other methods).
+
+- Full-branch review `main..b5a0847` (stop-hook preflight, medium, 591 lines): consent granted; reliability approved; acknowledged, lineage `review-4d760db860558ae7`. Same single advisory R3-pdfdoc-partial-chokepoint.
+
+- R3-pdfdoc-partial-chokepoint closed (route: inline, one test file): `internal/sheet/textguard_test.go` parses the package's non-test files and fails on calls to fpdf text methods pdfDoc does not sanitize (Cell, Cellf, CellFormat, MultiCell, Write with 2 args, Writef, WriteAligned, WriteLink*, SplitText, SplitLines); io.Writer's one-arg Write passes. RED: a planted `d.MultiCell(...)` in a temp file failed the guard; a synthetic-source test pins each detected kind. GREEN: guard passes on the package; `go test -count=1 ./...` all 19 packages ok; build, vet, gofmt clean.
+
+## Next step
+Done; merged to main.

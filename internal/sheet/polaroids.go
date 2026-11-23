@@ -11,7 +11,7 @@ import (
 // buildPolaroids draws a polaroid per image on grid: the frame's cut
 // border, the image in its window and the title (from the file name) as a
 // caption in the band below.
-func buildPolaroids(grid Grid, paths []string, ratios []float64) (*fpdf.Fpdf, error) {
+func buildPolaroids(grid Grid, paths []string, ratios []float64) (*pdfDoc, error) {
 	pages, err := grid.Cells(len(paths))
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func buildPolaroids(grid Grid, paths []string, ratios []float64) (*fpdf.Fpdf, er
 // drawPolaroid draws one polaroid with the registered image: the frame's
 // grey cut border, the image and the title, regular, centred in up to
 // polaroidCaptionLines lines in the caption.
-func drawPolaroid(pdf *fpdf.Fpdf, p polaroidParts, image string, imgOpts fpdf.ImageOptions, title string) {
+func drawPolaroid(pdf *pdfDoc, p polaroidParts, image string, imgOpts fpdf.ImageOptions, title string) {
 	pdf.SetDrawColor(borderGrey, borderGrey, borderGrey)
 	pdf.SetLineWidth(borderWidth)
 	pdf.Rect(p.Frame.X, p.Frame.Y, p.Frame.W, p.Frame.H, "D")

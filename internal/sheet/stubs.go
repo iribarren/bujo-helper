@@ -23,7 +23,7 @@ const (
 // outline, the dashed perforation, the poster, its title and creator (from
 // the file name), the date and where fields, empty stars and "ADMIT ONE" on
 // the stub end, with labels.
-func buildStubs(grid Grid, paths []string, ratios []float64, labels Labels) (*fpdf.Fpdf, error) {
+func buildStubs(grid Grid, paths []string, ratios []float64, labels Labels) (*pdfDoc, error) {
 	pages, err := grid.Cells(len(paths))
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func buildStubs(grid Grid, paths []string, ratios []float64, labels Labels) (*fp
 // drawStub draws one ticket stub with the registered poster image. The
 // labels are cut short with "…" if they do not fit; the default ones and
 // the app's translations always fit.
-func drawStub(pdf *fpdf.Fpdf, s stubParts, image string, imgOpts fpdf.ImageOptions, title, creator string, labels Labels) {
+func drawStub(pdf *pdfDoc, s stubParts, image string, imgOpts fpdf.ImageOptions, title, creator string, labels Labels) {
 	pdf.SetDrawColor(borderGrey, borderGrey, borderGrey)
 	pdf.SetLineWidth(borderWidth)
 	drawStubOutline(pdf, s)
@@ -127,7 +127,7 @@ func drawStub(pdf *fpdf.Fpdf, s stubParts, image string, imgOpts fpdf.ImageOptio
 // drawStubOutline strokes the cut line of a stub: its rectangle with a
 // semicircular notch cut into the top and bottom edges at the perforation.
 // Arc angles run anticlockwise from 3 o'clock, as seen on the page.
-func drawStubOutline(pdf *fpdf.Fpdf, s stubParts) {
+func drawStubOutline(pdf *pdfDoc, s stubParts) {
 	b, r := s.Stub, s.NotchRadius
 	top, bottom := s.Notches[0], s.Notches[1]
 	pdf.MoveTo(b.X, b.Y)

@@ -9,8 +9,6 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/go-pdf/fpdf"
 )
 
 // HabitsKind is the ID of the habit tracker page kind: a habit per row and
@@ -150,7 +148,7 @@ func (o HabitsOptions) defaultTitle(labels PageLabels) string {
 
 // draw draws the pages, each with the title centred in its band at the top
 // in the lettering l and the tracker rows below it.
-func (o HabitsOptions) draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, _ PageLabels) error {
+func (o HabitsOptions) draw(pdf *pdfDoc, page Page, title string, l lettering, _ PageLabels) error {
 	if err := addRegularTextFont(pdf); err != nil {
 		return err
 	}

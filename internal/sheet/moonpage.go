@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-pdf/fpdf"
 	"golang.org/x/image/font/gofont/goregular"
 )
 
@@ -137,7 +136,7 @@ func (o MoonOptions) defaultTitle(labels PageLabels) string {
 
 // draw draws the page: the title centred in its band at the top in the
 // lettering l, and the calendar below it, its days in moonLocation.
-func (o MoonOptions) draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, labels PageLabels) error {
+func (o MoonOptions) draw(pdf *pdfDoc, page Page, title string, l lettering, labels PageLabels) error {
 	// Labels are all regular: only that face of the text font is embedded
 	// (the default lettering font adds its bold face for the title).
 	pdf.AddUTF8FontFromBytes(textFont, "", goregular.TTF)
@@ -391,7 +390,7 @@ func moonLitPath(c Point, r, p float64, south bool) moonPath {
 // dark outline; with colourIn, no fills, only the disc's outline and the
 // lit part's (the terminator). It restores the fill and draw colours and
 // the line width.
-func drawMoon(pdf *fpdf.Fpdf, m moonCircle, south, colourIn bool) {
+func drawMoon(pdf *pdfDoc, m moonCircle, south, colourIn bool) {
 	fr, fg, fb := pdf.GetFillColor()
 	dr, dg, db := pdf.GetDrawColor()
 	width := pdf.GetLineWidth()

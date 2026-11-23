@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/go-pdf/fpdf"
 )
 
 // ConversionsKind is the ID of the kitchen conversions page kind: a chart
@@ -351,7 +349,7 @@ func fitConversionText(text string, width, maxPt, minPt float64, measure measure
 
 // draw draws the page: the title centred in its band at the top in the
 // lettering l, then the tables below it, their headings in l too.
-func (o ConversionsOptions) draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, labels PageLabels) error {
+func (o ConversionsOptions) draw(pdf *pdfDoc, page Page, title string, l lettering, labels PageLabels) error {
 	if err := addRegularTextFont(pdf); err != nil {
 		return err
 	}

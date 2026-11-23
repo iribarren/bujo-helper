@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/go-pdf/fpdf"
 	"golang.org/x/image/font/gofont/goregular"
 )
 
@@ -114,7 +113,7 @@ func (o MapOptions) defaultTitle(labels PageLabels) string { return labels.MapTi
 // draw draws the page: the title centred in its band at the top in the
 // lettering l, the map below it and, with List, the visited countries
 // under the map.
-func (o MapOptions) draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, labels PageLabels) error {
+func (o MapOptions) draw(pdf *pdfDoc, page Page, title string, l lettering, labels PageLabels) error {
 	if _, err := mapCountries(); err != nil {
 		return fmt.Errorf("map data: %w", err)
 	}
@@ -402,7 +401,7 @@ func fitText(text string, w, size float64, measure measureFunc) string {
 // and the markers in the visited colour; with colourIn, no fills: thin
 // black outlines, the visited countries' and markers' heavier, drawn last.
 // It restores the fill and draw colours and the line width.
-func drawMapShapes(pdf *fpdf.Fpdf, s mapSheet, colourIn bool) {
+func drawMapShapes(pdf *pdfDoc, s mapSheet, colourIn bool) {
 	fr, fg, fb := pdf.GetFillColor()
 	dr, dg, db := pdf.GetDrawColor()
 	width := pdf.GetLineWidth()
@@ -475,7 +474,7 @@ func drawMapShapes(pdf *fpdf.Fpdf, s mapSheet, colourIn bool) {
 }
 
 // tracePath adds rings to the current path, each closed.
-func tracePath(pdf *fpdf.Fpdf, rings [][]Point) {
+func tracePath(pdf *pdfDoc, rings [][]Point) {
 	for _, ring := range rings {
 		pdf.MoveTo(ring[0].X, ring[0].Y)
 		for _, q := range ring[1:] {

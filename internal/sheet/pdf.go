@@ -11,7 +11,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
+	"unicode/utf8"
 
 	// Decoders for the supported cover formats.
 	_ "image/gif"
@@ -59,7 +61,7 @@ func Build(w io.Writer, paths []string, opts Options) error {
 }
 
 // build draws the document Build writes.
-func build(paths []string, opts Options) (*fpdf.Fpdf, error) {
+func build(paths []string, opts Options) (*pdfDoc, error) {
 	if len(paths) == 0 {
 		return nil, errors.New("no covers selected")
 	}
@@ -80,7 +82,7 @@ func build(paths []string, opts Options) (*fpdf.Fpdf, error) {
 		return nil, err
 	}
 
-	var pdf *fpdf.Fpdf
+	var pdf *pdfDoc
 	switch format.ID {
 	case cardsFormat:
 		pdf, err = buildCards(grid, paths, ratios, opts)
@@ -114,23 +116,52 @@ func build(paths []string, opts Options) (*fpdf.Fpdf, error) {
 	return pdf, nil
 }
 
+// pdfDoc is the document every sheet and page draws on. Text reaches fpdf
+// only through its Text and GetStringWidth, which make the text printable
+// first, so titles from file names and text the user types cannot carry a
+// rune the UTF-8 fonts fail on, whatever format or page kind draws them.
+type pdfDoc struct{ *fpdf.Fpdf }
+
+// Text writes s, made printable, with its baseline starting at (x, y).
+func (d *pdfDoc) Text(x, y float64, s string) { d.Fpdf.Text(x, y, printable(s)) }
+
+// GetStringWidth measures s, made printable, in the current font, so text
+// is measured as it is drawn.
+func (d *pdfDoc) GetStringWidth(s string) float64 { return d.Fpdf.GetStringWidth(printable(s)) }
+
+// printable returns s with invalid UTF-8 and runes outside the Basic
+// Multilingual Plane (emoji, rare CJK) replaced by "?", one per rune: the
+// PDF's UTF-8 fonts index glyph widths by 16-bit rune and fail on anything
+// above. Runes in the plane that the font lacks print as empty boxes.
+func printable(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == utf8.RuneError || r > 0xFFFF {
+			return '?'
+		}
+		return r
+	}, s)
+}
+
 // newPDF starts a document of page-sized pages, in mm, drawing cut borders.
-func newPDF(page Page) *fpdf.Fpdf {
+// Its fonts and images are written in sorted order, not map order, so the
+// same inputs (and creation date) give the same bytes.
+func newPDF(page Page) *pdfDoc {
 	pdf := fpdf.NewCustom(&fpdf.InitType{
 		OrientationStr: "P",
 		UnitStr:        "mm",
 		Size:           fpdf.SizeType{Wd: page.Width, Ht: page.Height},
 	})
+	pdf.SetCatalogSort(true)
 	pdf.SetMargins(0, 0, 0)
 	pdf.SetAutoPageBreak(false, 0)
 	pdf.SetDrawColor(borderGrey, borderGrey, borderGrey)
 	pdf.SetLineWidth(borderWidth)
-	return pdf
+	return &pdfDoc{pdf}
 }
 
 // buildCovers draws a cover sheet: each image in its cell as grid.Flow
 // lays them out, prepared for cutting as cut says (see drawCovers).
-func buildCovers(grid Grid, paths []string, ratios []float64, cut CutMode) (*fpdf.Fpdf, error) {
+func buildCovers(grid Grid, paths []string, ratios []float64, cut CutMode) (*pdfDoc, error) {
 	pages, err := grid.Flow(ratios)
 	if err != nil {
 		return nil, err
@@ -151,7 +182,7 @@ func buildCovers(grid Grid, paths []string, ratios []float64, cut CutMode) (*fpd
 // grey line on its cut box; None draws the image alone; Bleed runs the
 // image Bleed past its cut box, by repeating its edge pixels, and adds crop
 // marks.
-func drawCovers(page Page, paths []string, pages [][]Box, images []printed, cut CutMode) (*fpdf.Fpdf, error) {
+func drawCovers(page Page, paths []string, pages [][]Box, images []printed, cut CutMode) (*pdfDoc, error) {
 	pdf := newPDF(page)
 	if cut.ID == bleedCut {
 		pdf.SetDrawColor(0, 0, 0)

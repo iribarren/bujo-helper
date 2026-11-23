@@ -27,7 +27,7 @@ const (
 // buildCards draws a review card per image on grid: the cut border, the
 // cover, its title (in the lettering of opts) and creator (from the file
 // name), the date field, empty stars and writing lines.
-func buildCards(grid Grid, paths []string, ratios []float64, opts Options) (*fpdf.Fpdf, error) {
+func buildCards(grid Grid, paths []string, ratios []float64, opts Options) (*pdfDoc, error) {
 	pages, err := grid.Cells(len(paths))
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func buildCards(grid Grid, paths []string, ratios []float64, opts Options) (*fpd
 }
 
 // addTextFonts embeds the regular and bold text fonts in pdf.
-func addTextFonts(pdf *fpdf.Fpdf) error {
+func addTextFonts(pdf *pdfDoc) error {
 	pdf.AddUTF8FontFromBytes(textFont, "", goregular.TTF)
 	pdf.AddUTF8FontFromBytes(textFont, "B", gobold.TTF)
 	if err := pdf.Error(); err != nil {
@@ -87,7 +87,7 @@ func addTextFonts(pdf *fpdf.Fpdf) error {
 
 // drawCard draws one review card with the registered cover image, its
 // title in the lettering l.
-func drawCard(pdf *fpdf.Fpdf, l lettering, c cardParts, image string, imgOpts fpdf.ImageOptions, title, creator, label string) {
+func drawCard(pdf *pdfDoc, l lettering, c cardParts, image string, imgOpts fpdf.ImageOptions, title, creator, label string) {
 	pdf.SetDrawColor(borderGrey, borderGrey, borderGrey)
 	pdf.SetLineWidth(borderWidth)
 	pdf.Rect(c.Card.X, c.Card.Y, c.Card.W, c.Card.H, "D")
@@ -125,7 +125,7 @@ func drawCard(pdf *fpdf.Fpdf, l lettering, c cardParts, image string, imgOpts fp
 // line right under the title's last line, in creatorBox's width; text that
 // does not fit ends with "…". A bundled font keeps a safety margin for
 // swashes (see lettering.fitWidth).
-func drawTitleAndCreator(pdf *fpdf.Fpdf, l lettering, titleBox, creatorBox Box, title, creator string) {
+func drawTitleAndCreator(pdf *pdfDoc, l lettering, titleBox, creatorBox Box, title, creator string) {
 	pdf.SetTextColor(titleGrey, titleGrey, titleGrey)
 	l.setFont(pdf, titleFontSize)
 	y := titleBox.Y

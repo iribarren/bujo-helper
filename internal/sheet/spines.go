@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"image/color"
 	"path/filepath"
-
-	"github.com/go-pdf/fpdf"
 )
 
 // buildSpines draws a book spine per image on grid: a strip filled with the
 // cover's dominant colour, outlined by its cut border, with the title and
 // creator (from the file name) reading top to bottom in black or white,
 // whichever contrasts more.
-func buildSpines(grid Grid, paths []string) (*fpdf.Fpdf, error) {
+func buildSpines(grid Grid, paths []string) (*pdfDoc, error) {
 	pages, err := grid.Cells(len(paths))
 	if err != nil {
 		return nil, err
@@ -74,7 +72,7 @@ func fontStyle(bold bool) string {
 
 // drawSpine fills spine with bg, outlines it with the cut border and writes
 // lines on it, rotated a quarter turn clockwise to read top to bottom.
-func drawSpine(pdf *fpdf.Fpdf, spine Box, bg color.RGBA, lines []spineLine) {
+func drawSpine(pdf *pdfDoc, spine Box, bg color.RGBA, lines []spineLine) {
 	pdf.SetFillColor(int(bg.R), int(bg.G), int(bg.B))
 	pdf.SetDrawColor(borderGrey, borderGrey, borderGrey)
 	pdf.SetLineWidth(borderWidth)

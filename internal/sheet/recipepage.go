@@ -583,7 +583,7 @@ func (o RecipesOptions) blankCard(card Box, measure measureFunc, labels PageLabe
 // draw draws the pages of cards. The page has no shared title (the kind
 // does not use it), so the lettering's font is added here for the recipe
 // titles.
-func (o RecipesOptions) draw(pdf *fpdf.Fpdf, page Page, _ string, l lettering, labels PageLabels) error {
+func (o RecipesOptions) draw(pdf *pdfDoc, page Page, _ string, l lettering, labels PageLabels) error {
 	if err := addRegularTextFont(pdf); err != nil {
 		return err
 	}
@@ -605,7 +605,7 @@ func (o RecipesOptions) draw(pdf *fpdf.Fpdf, page Page, _ string, l lettering, l
 // card's photo, writing lines, title (in the lettering l, hollow at 14 pt
 // or more with Colour-in) and texts. User text is drawn as text only. A
 // photo that cannot be read is an error naming its recipe.
-func (o RecipesOptions) drawSheet(pdf *fpdf.Fpdf, s recipesSheet, l lettering) error {
+func (o RecipesOptions) drawSheet(pdf *pdfDoc, s recipesSheet, l lettering) error {
 	pdf.SetLineWidth(quotesCutWidth)
 	pdf.SetDrawColor(quotesCutR, quotesCutG, quotesCutB)
 	dashed := false
@@ -652,7 +652,7 @@ func (o RecipesOptions) drawSheet(pdf *fpdf.Fpdf, s recipesSheet, l lettering) e
 
 // drawPhoto draws card c's photo, read now and centre-cropped to fill its
 // box.
-func (o RecipesOptions) drawPhoto(pdf *fpdf.Fpdf, c recipeCard) error {
+func (o RecipesOptions) drawPhoto(pdf *pdfDoc, c recipeCard) error {
 	path := o.Recipes[c.Recipe-1].Photo
 	img, err := printCroppedImage(path, c.Photo, false)
 	if err != nil {

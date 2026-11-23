@@ -595,14 +595,14 @@ func (a *App) Start(req StartRequest) ([]ItemView, error) {
 	if outDir == "" {
 		return nil, errors.New(a.t("err.chooseOutputFolder"))
 	}
-	if err := os.MkdirAll(outDir, 0o755); err != nil {
-		return nil, fmt.Errorf("%s: %w", a.t("err.createOutputFolder"), err)
-	}
 	country := strings.ToLower(strings.TrimSpace(req.Country))
 	if country == "" {
 		country = defaultCountry
 	}
 
+	// Take the running slot before touching the disk, so a Start refused
+	// for a running job creates no folder; give it back if the folder
+	// cannot be made.
 	a.mu.Lock()
 	if a.cancel != nil {
 		a.mu.Unlock()
@@ -611,6 +611,13 @@ func (a *App) Start(req StartRequest) ([]ItemView, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	a.cancel = cancel
 	a.mu.Unlock()
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		a.mu.Lock()
+		a.cancel = nil
+		a.mu.Unlock()
+		cancel()
+		return nil, fmt.Errorf("%s: %w", a.t("err.createOutputFolder"), err)
+	}
 
 	views := make([]ItemView, len(items))
 	for i, it := range items {
@@ -1488,11 +1495,16 @@ func writeFileAtomic(path, kind string, write func(io.Writer) error) error {
 	return nil
 }
 
-// OpenFile opens the file at path with its default application.
+// OpenFile opens the PDF file at path with its default application. It
+// only opens exported PDFs, so any other path (another kind of file, a
+// folder) is an error and nothing is launched.
 func (a *App) OpenFile(path string) error {
 	path = strings.TrimSpace(path)
 	if path == "" {
 		return errors.New(a.t("err.noFileToOpen"))
+	}
+	if !strings.EqualFold(filepath.Ext(path), ".pdf") {
+		return errors.New(a.t("err.notPDF", filepath.Base(path)))
 	}
 	info, err := os.Stat(path)
 	if err != nil {
@@ -1508,7 +1520,9 @@ func (a *App) OpenFile(path string) error {
 }
 
 // openWithSystem hands path to the system opener without waiting for it.
-func openWithSystem(path string) error {
+// It is a variable so tests can check what is opened without launching
+// anything.
+var openWithSystem = func(path string) error {
 	var cmd *exec.Cmd
 	switch goruntime.GOOS {
 	case "windows":
