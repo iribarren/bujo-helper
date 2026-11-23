@@ -3,8 +3,6 @@ package sheet
 import (
 	"fmt"
 	"math"
-
-	"github.com/go-pdf/fpdf"
 )
 
 // DotGridKind is the ID of the dot grid page kind: a plain grid of small
@@ -47,7 +45,7 @@ func (o DotGridOptions) pages() int { return 1 }
 
 // draw draws one page: the title, if any, centred in its band at the top
 // in the lettering l, and the dots below it. A dot grid prints no labels.
-func (o DotGridOptions) draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, _ PageLabels) error {
+func (o DotGridOptions) draw(pdf *pdfDoc, page Page, title string, l lettering, _ PageLabels) error {
 	pdf.AddPage()
 	if title != "" {
 		band := dotGridTitleBand(page)

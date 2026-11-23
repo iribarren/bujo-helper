@@ -210,7 +210,7 @@ func printCroppedImages(paths []string, windows []Box, bleed bool) ([]printed, e
 // piece may be partial. Pieces the photo fills are prepared for cutting as
 // cut says, like the covers of a cover sheet; framed pieces get the grey
 // cut border around the frame.
-func buildCrops(grid Grid, paths []string, crop CropMode, cut CutMode) (*fpdf.Fpdf, error) {
+func buildCrops(grid Grid, paths []string, crop CropMode, cut CutMode) (*pdfDoc, error) {
 	pieces := (len(paths) + crop.Frames - 1) / crop.Frames
 	cells, err := grid.Cells(pieces)
 	if err != nil {

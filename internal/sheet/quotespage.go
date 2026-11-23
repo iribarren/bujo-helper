@@ -6,8 +6,6 @@ import (
 	"math"
 	"slices"
 	"unicode/utf8"
-
-	"github.com/go-pdf/fpdf"
 )
 
 // QuotesKind is the ID of the quote cards page kind: quotes laid out as
@@ -165,7 +163,7 @@ func quotesMaxSize(perPage int, style string) float64 {
 
 // draw draws the pages, each with the title centred in its band at the top
 // in the lettering l and a full grid of cards below it.
-func (o QuotesOptions) draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, labels PageLabels) error {
+func (o QuotesOptions) draw(pdf *pdfDoc, page Page, title string, l lettering, labels PageLabels) error {
 	if err := addRegularTextFont(pdf); err != nil {
 		return err
 	}
@@ -327,7 +325,7 @@ func (o QuotesOptions) layoutCard(c *quoteCardSheet, q QuoteCard, l lettering, q
 // line and frame, its quote in the lettering l (hollow at 14 pt or more
 // with Colour-in) and its author in the Go font, then the credit caption.
 // User text is drawn as text only.
-func drawQuotesSheet(pdf *fpdf.Fpdf, s quotesSheet, l lettering) {
+func drawQuotesSheet(pdf *pdfDoc, s quotesSheet, l lettering) {
 	pdf.SetLineWidth(quotesCutWidth)
 	pdf.SetDrawColor(quotesCutR, quotesCutG, quotesCutB)
 	pdf.SetDashPattern([]float64{quotesDash, quotesDashSpace}, 0)

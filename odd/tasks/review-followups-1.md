@@ -18,7 +18,7 @@ Close three open review follow-ups chosen by the user from the ranked follow-up 
 - OpenFile: `.pdf` only (case-insensitive); anything else returns an error without calling the opener.
 
 ## Tasks
-- [ ] T1 Sanitize drawn text for non-BMP runes in all formats and page kinds. Route: delegated writer (sheet package, several formats). Check: RED test exporting each format/page kind with an emoji title panics or fails; GREEN after.
+- [x] T1 Sanitize drawn text for non-BMP runes in all formats and page kinds. Route: delegated writer (sheet package, several formats). Check: RED test exporting each format/page kind with an emoji title panics or fails; GREEN after.
 - [ ] T2 Deterministic PDFs: `SetCatalogSort(true)` in `newPDF`; test that the same checklist with repeated landscape images renders identical bytes twice (fixed creation date). Route: delegated writer (same writer, separate commit).
 - [ ] T3 Backend hardening: OpenFile `.pdf` only; thumbnail 50 MP cap; Start running check before MkdirAll (no folder created when a job runs). Route: delegated writer (app.go + gallery).
 
@@ -35,6 +35,7 @@ Strategy: `ask-on-risk`. Forecast ~300 authored lines (mostly tests): single PR/
 
 ## Progress
 - 2026-11-23: branch `fix/review-followups` created; doc written.
+- T1 (delegated writer): chokepoint is a `pdfDoc` wrapper (`internal/sheet/pdf.go`) embedding `*fpdf.Fpdf` and shadowing `Text` and `GetStringWidth` with `printable()`; `newPDF` returns it and every draw function takes it, so all text reaches fpdf through it (measured as drawn). Inputs and file names untouched. RED: `emoji_test.go` panicked `index out of range [65536] with length 65536` in every format except covers/crops (no text; credits page already safe) and in every page kind with a typed title, label-based default title (habits, quotes, map, conversions) or typed text (habits, quotes, recipes). GREEN: `go test ./internal/sheet` 2380 passed. Checks: build, vet, `go test ./...` (3440 passed), gofmt clean.
 
 ## Next step
 T1–T3 via one delegated writer.

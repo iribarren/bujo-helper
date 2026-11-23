@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-pdf/fpdf"
 	"golang.org/x/image/font/gofont/goregular"
 )
 
@@ -125,7 +124,7 @@ func calendarWeekday(weekStart string) time.Weekday {
 
 // draw draws the page: the title centred in its band at the top in the
 // lettering l, and the month grid below it.
-func (o CalendarOptions) draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, labels PageLabels) error {
+func (o CalendarOptions) draw(pdf *pdfDoc, page Page, title string, l lettering, labels PageLabels) error {
 	if err := addRegularTextFont(pdf); err != nil {
 		return err
 	}
@@ -183,7 +182,7 @@ type gridSheet struct {
 // addRegularTextFont embeds the regular text font in pdf: the labels of
 // the calendar kinds are all regular, so only that face is embedded (the
 // default lettering font adds its bold face for the title).
-func addRegularTextFont(pdf *fpdf.Fpdf) error {
+func addRegularTextFont(pdf *pdfDoc) error {
 	pdf.AddUTF8FontFromBytes(textFont, "", goregular.TTF)
 	if err := pdf.Error(); err != nil {
 		return fmt.Errorf("load fonts: %w", err)
@@ -193,7 +192,7 @@ func addRegularTextFont(pdf *fpdf.Fpdf) error {
 
 // drawPageTitle draws title, if any, centred in its band at the top of
 // page in the lettering l.
-func drawPageTitle(pdf *fpdf.Fpdf, page Page, title string, l lettering) {
+func drawPageTitle(pdf *pdfDoc, page Page, title string, l lettering) {
 	if title == "" {
 		return
 	}
@@ -202,7 +201,7 @@ func drawPageTitle(pdf *fpdf.Fpdf, page Page, title string, l lettering) {
 }
 
 // drawGridSheet draws s on the current page.
-func drawGridSheet(pdf *fpdf.Fpdf, s gridSheet) {
+func drawGridSheet(pdf *pdfDoc, s gridSheet) {
 	pdf.SetDrawColor(writingGrey, writingGrey, writingGrey)
 	pdf.SetLineWidth(calendarLineWidth)
 	for _, b := range s.Boxes {

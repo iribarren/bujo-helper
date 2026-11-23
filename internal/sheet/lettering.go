@@ -4,7 +4,6 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/go-pdf/fpdf"
 	"golang.org/x/image/font/gofont/gobold"
 	"golang.org/x/image/font/gofont/goregular"
 )
@@ -142,7 +141,7 @@ func LetteringFont(id string) Font {
 // face with style "" and its bold face, if any, with style "B". Adding a
 // face that is already registered is a no-op, so the default font can be
 // added on top of addTextFonts.
-func addLetteringFont(pdf *fpdf.Fpdf, f Font) error {
+func addLetteringFont(pdf *pdfDoc, f Font) error {
 	pdf.AddUTF8FontFromBytes(f.ID, "", f.TTF)
 	if f.Bold != nil {
 		pdf.AddUTF8FontFromBytes(f.ID, "B", f.Bold)
@@ -210,17 +209,17 @@ func (l lettering) fitWidth(width float64) float64 {
 }
 
 // add registers l's font in pdf.
-func (l lettering) add(pdf *fpdf.Fpdf) error { return addLetteringFont(pdf, l.font) }
+func (l lettering) add(pdf *pdfDoc) error { return addLetteringFont(pdf, l.font) }
 
 // setFont selects l's font, in its header style, at pt points; it must be
 // added.
-func (l lettering) setFont(pdf *fpdf.Fpdf, pt float64) {
+func (l lettering) setFont(pdf *pdfDoc, pt float64) {
 	pdf.SetFont(l.font.ID, l.font.HeaderStyle(), pt)
 }
 
 // measure measures text in l's font, which must be added. The bold flag of
 // measureFunc is ignored: display text always uses the header style.
-func (l lettering) measure(pdf *fpdf.Fpdf) measureFunc {
+func (l lettering) measure(pdf *pdfDoc) measureFunc {
 	return func(text string, _ bool, pt float64) float64 {
 		l.setFont(pdf, pt)
 		return pdf.GetStringWidth(text)
@@ -229,7 +228,7 @@ func (l lettering) measure(pdf *fpdf.Fpdf) measureFunc {
 
 // text writes s with its baseline at (x, y) in the current font, which is
 // l's at pt points: hollow if l.hollow(pt), else filled.
-func (l lettering) text(pdf *fpdf.Fpdf, x, y, pt float64, s string) {
+func (l lettering) text(pdf *pdfDoc, x, y, pt float64, s string) {
 	if !l.hollow(pt) {
 		pdf.Text(x, y, s)
 		return
@@ -246,7 +245,7 @@ func hollowStrokeWidth(pt float64) float64 {
 // outline as wide as hollowStrokeWidth for pt. It always restores mode 0,
 // which fpdf does not track, and the line width and draw colour, so the
 // text and lines drawn after it are unaffected.
-func hollowText(pdf *fpdf.Fpdf, x, y, pt float64, s string) {
+func hollowText(pdf *pdfDoc, x, y, pt float64, s string) {
 	width := pdf.GetLineWidth()
 	r, g, b := pdf.GetDrawColor()
 	defer func() {

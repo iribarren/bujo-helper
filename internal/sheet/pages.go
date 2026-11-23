@@ -8,8 +8,6 @@ import (
 	"io"
 	"strings"
 	"time"
-
-	"github.com/go-pdf/fpdf"
 )
 
 // Generated pages are printables drawn without images, such as a dot grid
@@ -164,7 +162,7 @@ type pageDoc interface {
 	// the shared title (or the kind's default title), "" if none or if the
 	// kind does not use it, l the lettering of its title, whose font is
 	// added when there is one, and labels the resolved fixed words.
-	draw(pdf *fpdf.Fpdf, page Page, title string, l lettering, labels PageLabels) error
+	draw(pdf *pdfDoc, page Page, title string, l lettering, labels PageLabels) error
 }
 
 // paperPager is a pageDoc whose page count depends on the paper, such as
@@ -339,7 +337,7 @@ func BuildPage(w io.Writer, kind string, s PageSettings, options json.RawMessage
 }
 
 // buildPage draws the document BuildPage writes.
-func buildPage(kind string, s PageSettings, options json.RawMessage) (*fpdf.Fpdf, error) {
+func buildPage(kind string, s PageSettings, options json.RawMessage) (*pdfDoc, error) {
 	k, paper, doc, err := preparePage(kind, s, options)
 	if err != nil {
 		return nil, err

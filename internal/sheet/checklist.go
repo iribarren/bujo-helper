@@ -123,7 +123,7 @@ func fitChecklistText(title, creator string, width float64, measure measureFunc)
 // lettering l, then per
 // row a checkbox, the thumbnail, the title and creator (from the file name)
 // and a rule under the row. There are no cut borders.
-func buildChecklist(grid Grid, paths []string, ratios []float64, header string, l lettering) (*fpdf.Fpdf, error) {
+func buildChecklist(grid Grid, paths []string, ratios []float64, header string, l lettering) (*pdfDoc, error) {
 	pages, err := grid.Cells(len(paths))
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ func buildChecklist(grid Grid, paths []string, ratios []float64, header string, 
 
 // drawChecklistRow draws one checklist row with the registered thumbnail
 // image and the title and creator lines, already fitted.
-func drawChecklistRow(pdf *fpdf.Fpdf, r checklistRow, image string, imgOpts fpdf.ImageOptions, title, creator string) {
+func drawChecklistRow(pdf *pdfDoc, r checklistRow, image string, imgOpts fpdf.ImageOptions, title, creator string) {
 	pdf.SetDrawColor(checkboxGrey, checkboxGrey, checkboxGrey)
 	pdf.SetLineWidth(checkboxLineWidth)
 	pdf.Rect(r.Check.X, r.Check.Y, r.Check.W, r.Check.H, "D")
