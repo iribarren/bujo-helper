@@ -335,7 +335,7 @@ Useful, but either demand is less proven or the item adds a new kind of printabl
 **Acceptance**
 - Provider tests with fixtures, and a well-known title downloads. Rate limits are handled through the existing throttle.
 
-## 20. [ ] Podcasts media type
+## 20. [x] Podcasts media type (75f9e9f)
 
 **Why:** podcast trackers sit next to reading and watching logs. The iTunes Search API the app already uses returns podcast artwork.
 
