@@ -237,6 +237,30 @@ func TestConversionTables(t *testing.T) {
 	}
 }
 
+// The tables do not rely on resolved labels: an ingredient list of the
+// wrong length (none, or short) prints the English names instead of
+// indexing past its end.
+func TestConversionTablesUnresolvedIngredients(t *testing.T) {
+	short := spanishConversionLabels
+	short.Ingredients = []string{"Harina"}
+	for name, labels := range map[string]PageLabels{
+		"no ingredients":    {},
+		"short ingredients": {Conversions: short},
+	} {
+		t.Run(name, func(t *testing.T) {
+			cups := conversionTables(labels)[3]
+			if len(cups.Rows) != len(conversionFigures.Cups) {
+				t.Fatalf("%d rows, want %d", len(cups.Rows), len(conversionFigures.Cups))
+			}
+			for i, row := range cups.Rows {
+				if row[0] != englishIngredients[i] {
+					t.Errorf("row %d names %q, want %q", i, row[0], englishIngredients[i])
+				}
+			}
+		})
+	}
+}
+
 // The conversion chart words come from the labels, English by default; a
 // list of ingredients of the wrong length keeps the English names.
 func TestConversionLabels(t *testing.T) {

@@ -177,7 +177,8 @@ func (t conversionTable) units() int {
 // conversionTables are the four tables, volume, weight, oven and cups to
 // grams, in the resolved labels. Fractions are written with a slash: the
 // Go font has ½ ¼ ¾ but not ⅓ or ⅔, and mixed forms would read unevenly.
-// Spanish decimals take a comma.
+// Spanish decimals take a comma. An ingredient list of the wrong length
+// prints the English names, so unresolved labels are safe too.
 func conversionTables(labels PageLabels) [4]conversionTable {
 	c := labels.Conversions
 	number := func(v float64) string {
@@ -207,8 +208,9 @@ func conversionTables(labels PageLabels) [4]conversionTable {
 		oven.Rows = append(oven.Rows, []string{strconv.Itoa(o.C), strconv.Itoa(o.F), strconv.Itoa(o.Gas)})
 	}
 	cups := conversionTable{Heading: c.CupsToGrams, Header: []string{"", "1 " + c.Cup}, Cols: []float64{0.62, 0.38}, LeftFirst: true}
+	ingredients := labelList(c.Ingredients, englishIngredients)
 	for i, g := range f.Cups {
-		cups.Rows = append(cups.Rows, []string{c.Ingredients[i], fmt.Sprintf("%d g", g)})
+		cups.Rows = append(cups.Rows, []string{ingredients[i], fmt.Sprintf("%d g", g)})
 	}
 	return [4]conversionTable{volume, weight, oven, cups}
 }
