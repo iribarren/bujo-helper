@@ -365,13 +365,13 @@ Useful, but either demand is less proven or the item adds a new kind of printabl
 
 There's a source or licensing problem, or the item isn't image-based. Kept for completeness; check the notes before choosing one.
 
-## 22. [ ] Recipe cards
+## 22. [x] Recipe cards (878e701)
 
 **Why:** recipe collections are a classic bujo spread. They include recipe cards, recipes-tried ratings and conversion charts.
 
 **Weakness:** TheMealDB's free tier is for development and educational use, and its image licence is unclear. The better version doesn't download anything.
 
-**Done in branch `feat/recipe-cards`**, merged in … (see `odd/tasks/recipe-cards.md`):
+**Done in branch `feat/recipe-cards`**, merged in 878e701 (see `odd/tasks/recipe-cards.md`):
 - Page kind: `recipes` (Recipe cards) with A6, 4 × 6 in and Full page sizes, fitted titles, shrinking body text, continuation cards, the photo, blank cards and the limits (b41e92e); its labels in the UI language (9934ed6).
 - Markdown import: `ParseRecipesMarkdown` with English and Spanish headings and keys (1b34272); the `ImportRecipes` and `ChooseRecipePhoto` bindings (3914b7c).
 - Page kind: `conversions` (Kitchen conversions) with the volume, weight, oven and cups-to-grams tables on every paper (a1dedf6); its labels in the UI language (e2cbaa7).
