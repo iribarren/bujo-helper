@@ -84,6 +84,7 @@ export const es: Messages = {
     'media.nature': 'Naturaleza',
     'media.products': 'Productos',
     'media.boardgames': 'Juegos de mesa',
+    'media.podcasts': 'Pódcasts',
     'creator.books': 'Autor',
     'creator.movies': 'Año',
     'creator.tv': 'Año',
@@ -95,6 +96,7 @@ export const es: Messages = {
     'creator.places': 'País',
     'creator.products': 'Marca',
     'creator.boardgames': 'Año',
+    'creator.podcasts': 'Presentador',
     'date.books': 'Leído el',
     'date.movies': 'Visto el',
     'date.tv': 'Visto el',
@@ -107,6 +109,7 @@ export const es: Messages = {
     'date.nature': 'Visto el',
     'date.products': 'Probado el',
     'date.boardgames': 'Jugado el',
+    'date.podcasts': 'Escuchado el',
 
     // The sample CSV button, per media type, and its fallbacks.
     'sample.button': 'CSV de ejemplo',
@@ -124,6 +127,7 @@ export const es: Messages = {
     'sample.button.nature': 'CSV de ejemplo de naturaleza',
     'sample.button.products': 'CSV de ejemplo de productos',
     'sample.button.boardgames': 'CSV de ejemplo de juegos de mesa',
+    'sample.button.podcasts': 'CSV de ejemplo de pódcasts',
     'sample.title.books': 'Guarda un CSV de ejemplo de libros (Título, Autor) como referencia para Importar CSV',
     'sample.title.movies': 'Guarda un CSV de ejemplo de películas (Título, Año) como referencia para Importar CSV',
     'sample.title.tv': 'Guarda un CSV de ejemplo de series (Título, Año) como referencia para Importar CSV',
@@ -136,6 +140,7 @@ export const es: Messages = {
     'sample.title.nature': 'Guarda un CSV de ejemplo de naturaleza (Nombre) como referencia para Importar CSV',
     'sample.title.products': 'Guarda un CSV de ejemplo de productos (Producto, Marca) como referencia para Importar CSV',
     'sample.title.boardgames': 'Guarda un CSV de ejemplo de juegos de mesa (Título, Año) como referencia para Importar CSV',
+    'sample.title.podcasts': 'Guarda un CSV de ejemplo de pódcasts (Pódcast, Presentador) como referencia para Importar CSV',
 
     // Print covers tab.
     'print.groupCovers': 'Portadas',

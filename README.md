@@ -5,11 +5,11 @@ Formerly "Cover Downloader".
 A desktop app for Windows, macOS and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
 
-Book covers, movie posters, TV series posters, album covers, game box art, anime and manga covers and board game box art are supported. The core is media-agnostic, so other media can be added later as new providers.
+Book covers, movie posters, TV series posters, album covers, podcast artwork, game box art, anime and manga covers and board game box art are supported. The core is media-agnostic, so other media can be added later as new providers.
 
 ## Features
 
-- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series, games, anime and manga, board games), `Album, Artist` (albums), `Title, Artist` (artworks), `Place, Country` (places), a plant or animal `Name` (nature) or `Product, Brand` or a barcode (products) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series, games, anime and manga, board games), `Album, Artist` (albums), `Podcast, Host` (podcasts), `Title, Artist` (artworks), `Place, Country` (places), a plant or animal `Name` (nature) or `Product, Brand` or a barcode (products) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
@@ -104,6 +104,8 @@ Album covers are square, unlike the 2:3 book covers and posters, so a cover shee
 MusicBrainz data is CC0, but the Cover Art Archive images carry no licence of their own: its documentation says to use them at your own risk. Apple's terms allow iTunes artwork only to promote the store's content, the same terms as the Apple Books and Apple TV sources above. Downloaded covers are for personal use.
 
 MusicBrainz allows at most one request per second and asks every client for a User-Agent with contact information. The app sends `bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )` and spaces its MusicBrainz requests one second apart, so a long album list takes at least a second per album.
+
+Podcasts have one source: **Apple Podcasts** (iTunes Search API, podcast search, no key). Write `Podcast, Host` (`The Daily, The New York Times`); the host is the name the show is published under in Apple Podcasts, and it is optional, but it helps when several shows share a title. The show's artwork comes at its original size (usually 3000 × 3000). It uses the store country. Podcast artwork is square, so a cover sheet gives it square cells, like album covers. There is no keyless fallback: the show's RSS feed is found through the same iTunes lookup, and Podcast Index needs a key. Apple's terms are the same as for the Apple Books and Apple Music sources above; the artwork belongs to each show, and downloads are for personal use.
 
 Sources are tried in this order for games (the year is the first release year, and it is optional):
 
@@ -362,19 +364,19 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies, TV series, games, anime and manga, `album,artist` for albums, `title,artist` for artworks, `place,country` for places, a single `name` column for nature, `title,brand` for products (a barcode with no brand also works), and `title,year` for board games. The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies, TV series, games, anime and manga, `album,artist` for albums, `title,host` for podcasts, `title,artist` for artworks, `place,country` for places, a single `name` column for nature, `title,brand` for products (a barcode with no brand also works), and `title,year` for board games. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, anime, manga, artworks, places, nature, products or board games).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, anime, manga, artworks, places, nature, products, board games or podcasts).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
 ## Using the app
 
-1. Choose the media type: **Books**, **Movies**, **TV series**, **Albums** or **Games**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters; for games, add IGDB credentials for box art beyond PC games; for nature, a BHL API key adds plates when Commons has none. The line under the media type buttons lists the sources tried for that type, in order (for books: Apple Books, Open Library, Amazon).
+1. Choose the media type, such as **Books**, **Movies**, **TV series**, **Albums**, **Podcasts** or **Games**. For movies and TV series, optionally add a TMDB API key in **Settings** for the best posters; for games, add IGDB credentials for box art beyond PC games; for nature, a BHL API key adds plates when Commons has none. The line under the media type buttons lists the sources tried for that type, in order (for books: Apple Books, Open Library, Amazon).
 2. Type or paste items, one per line, or click **Import CSV…**.
 3. Check the output folder (default: `~/Pictures/Covers`, or `%USERPROFILE%\Pictures\Covers` on Windows), and change it with **Browse…** if needed.
 4. Optionally change the two-letter store country (default `es`, which prefers Spanish editions).
@@ -420,7 +422,7 @@ How the grid is derived from the cover height *h* and the page width *W* and hei
 | Top/bottom margin | whatever height is left, split equally, so the grid is centred                             |
 | Cut border        | 0.2 mm grey (#999) line exactly around each cover, in the default [cut mode](#cut-mode)    |
 
-- **Square cells:** a square cover (width / height within about 10 % of 1, such as album art) gets a square cell, *h* × *h*, instead of a column. Cells flow left to right, 4 mm apart, and a row wraps when the next cell does not fit, so a folder of books and albums mixes both kinds of cell. The rows per page stay the same. Each row is centred, and a short row is centred as if it were filled with more cells like its last one, so the last row lines up with the full rows above it. A sheet whose covers all fit the 2:3 column keeps the grid in the table above.
+- **Square cells:** a square cover (width / height within about 10 % of 1, such as album art or podcast artwork) gets a square cell, *h* × *h*, instead of a column. Cells flow left to right, 4 mm apart, and a row wraps when the next cell does not fit, so a folder of books and albums mixes both kinds of cell. The rows per page stay the same. Each row is centred, and a short row is centred as if it were filled with more cells like its last one, so the last row lines up with the full rows above it. A sheet whose covers all fit the 2:3 column keeps the grid in the table above.
 - **Wide cells:** a cover wider than the column at full height that is not square gets a wide cell, as wide as the cover at height *h*: a 3:2 painting at Standard size gets a 75 × 50 mm cell, a 4:5 portrait 40 × 50 mm. Wide cells flow, wrap and centre like square cells. No cell is wider than the space between the side margins: a panorama wider than that shrinks to fit, so it is shorter than *h* and centred in its row (a 5:1 panorama on A4 Standard is 194 × 38.8 mm). Whether a 4:5 portrait needs a wide cell depends on the column: on A5 Standard and Large it fits the column.
 - **3:2 covers per page:** A4 4 × 9 = 36 (Mini), 2 × 5 = 10 (Standard), 1 × 3 = 3 (Large); US Letter 4 × 9 = 36, 2 × 4 = 8, 1 × 3 = 3; A5 3 × 6 = 18, 1 × 3 = 3, 1 × 2 = 2; B5 3 × 8 = 24, 2 × 4 = 8, 1 × 2 = 2.
 - **Square covers per page:** A4 6 × 9 = 54 (Mini), 3 × 5 = 15 (Standard), 2 × 3 = 6 (Large); US Letter 7 × 9 = 63, 3 × 4 = 12, 2 × 3 = 6; A5 4 × 6 = 24, 2 × 3 = 6, 1 × 2 = 2; B5 5 × 8 = 40, 3 × 4 = 12, 1 × 2 = 2.
@@ -477,7 +479,7 @@ The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, s
 
 Wikimedia Commons images (see [Places](#places) and [Nature](#nature)) are often CC BY or CC BY-SA, and Open Food Facts images (see [Products](#products)) are CC BY-SA, which require credit and the licence wherever the image is reproduced, printed sheets included; artworks are public domain, but credit is still good practice. With **Credits page** checked (the default), the PDF ends with one or more pages titled "Credits" ("Créditos" in Spanish), on the same paper, listing every selected image that has a credit file (`<image>.credit.txt`, see [Artworks](#artworks), [Places](#places), [Nature](#nature), [Products](#products) and [Board games](#board-games)): a number, the image's title and creator from its file name, and the credit text, wrapped to the page width, in the order the images appear in the sheet.
 
-- Images without a credit file (books, movies, TV series, albums, games, anime, manga) are not listed. When no selected image has one, or the box is unchecked, no page is added and the PDF is exactly what it would be without the option.
+- Images without a credit file (books, movies, TV series, albums, podcasts, games, anime, manga) are not listed. When no selected image has one, or the box is unchecked, no page is added and the PDF is exactly what it would be without the option.
 - A credit file that exists but cannot be read stops the export, naming the file, like an unreadable image.
 - Credits print in the embedded Go font, which covers Latin, Greek and Cyrillic text; characters it lacks (for example Japanese) print as empty boxes, though they can still be copied from the PDF, and emoji print as "?".
 - When the header or card titles print in a bundled [lettering font](#lettering), the credits end with a **Fonts** section ("Fuentes" in Spanish) naming that font and its licence. It is added only to a credits page that prints anyway: a font never adds a page on its own.
@@ -1067,13 +1069,14 @@ go run ./cmd/covers -type nature -o nature "Robin" "Monstera deliciosa" "Barn ow
 BHL_API_KEY=<key> go run ./cmd/covers -type nature -o nature "Barn owl"
 go run ./cmd/covers -type products -o products "Nutella, Ferrero" "Earl Grey, Twinings" "3017620422003"
 BGG_TOKEN=<token> go run ./cmd/covers -type boardgames -o boardgames "Catan, 1995" "Wingspan, 2019"
+go run ./cmd/covers -type podcasts -o podcasts "The Daily, The New York Times" "Radiolab, WNYC Studios"
 ```
 
 Flags must come before the items:
 
 | Flag           | Default  | Meaning                                                    |
 |----------------|----------|------------------------------------------------------------|
-| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `anime`, `manga`, `artworks`, `places`, `nature`, `products` or `boardgames` |
+| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `anime`, `manga`, `artworks`, `places`, `nature`, `products`, `boardgames` or `podcasts` |
 | `-o`           | `covers` | Output folder                                              |
 | `-country`     | `es`     | Store country code; its editions are preferred             |
 | `-csv`         | (none)   | CSV file, added after the positional items                 |
@@ -1177,7 +1180,7 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; anime and manga: AniList; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons; nature: Wikidata taxa → Wikimedia Commons; products: Open Food Facts; board games: BoardGameGeek
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; podcasts: iTunes; games: IGDB, Steam; anime and manga: AniList; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons; nature: Wikidata taxa → Wikimedia Commons; products: Open Food Facts; board games: BoardGameGeek
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming, credit files

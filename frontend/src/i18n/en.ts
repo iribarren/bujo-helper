@@ -90,6 +90,7 @@ export const en = {
     'media.nature': 'Nature',
     'media.products': 'Products',
     'media.boardgames': 'Board games',
+    'media.podcasts': 'Podcasts',
     'creator.books': 'Author',
     'creator.movies': 'Year',
     'creator.tv': 'Year',
@@ -101,6 +102,7 @@ export const en = {
     'creator.places': 'Country',
     'creator.products': 'Brand',
     'creator.boardgames': 'Year',
+    'creator.podcasts': 'Host',
     'date.books': 'Read on',
     'date.movies': 'Watched on',
     'date.tv': 'Watched on',
@@ -113,6 +115,7 @@ export const en = {
     'date.nature': 'Seen on',
     'date.products': 'Tried on',
     'date.boardgames': 'Played on',
+    'date.podcasts': 'Listened on',
 
     // The sample CSV button, per media type, and its fallbacks.
     'sample.button': 'Sample CSV',
@@ -130,6 +133,7 @@ export const en = {
     'sample.button.nature': 'Sample nature CSV',
     'sample.button.products': 'Sample products CSV',
     'sample.button.boardgames': 'Sample board games CSV',
+    'sample.button.podcasts': 'Sample podcasts CSV',
     'sample.title.books': 'Save an example books CSV (Title, Author) to use as a reference for Import CSV',
     'sample.title.movies': 'Save an example movies CSV (Title, Year) to use as a reference for Import CSV',
     'sample.title.tv': 'Save an example TV series CSV (Title, Year) to use as a reference for Import CSV',
@@ -142,6 +146,7 @@ export const en = {
     'sample.title.nature': 'Save an example nature CSV (Name) to use as a reference for Import CSV',
     'sample.title.products': 'Save an example products CSV (Product, Brand) to use as a reference for Import CSV',
     'sample.title.boardgames': 'Save an example board games CSV (Title, Year) to use as a reference for Import CSV',
+    'sample.title.podcasts': 'Save an example podcasts CSV (Podcast, Host) to use as a reference for Import CSV',
 
     // Print covers tab.
     'print.groupCovers': 'Covers',

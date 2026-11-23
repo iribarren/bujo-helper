@@ -2,7 +2,7 @@
 //
 // Usage:
 //
-//	covers [-type books|movies|tv|albums|games|anime|manga|artworks|places|nature|products|boardgames] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] [-bhl-key key] [-bgg-token token] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" | "Name" | "Product, Brand" | "Barcode" ...]
+//	covers [-type books|movies|tv|albums|games|anime|manga|artworks|places|nature|products|boardgames|podcasts] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] [-bhl-key key] [-bgg-token token] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" | "Name" | "Product, Brand" | "Barcode" | "Podcast, Host" ...]
 //
 // The TMDB API key (used by -type movies and -type tv) comes from -tmdb-key, else the
 // TMDB_API_KEY environment variable, else the settings file the GUI writes.
@@ -19,8 +19,9 @@
 // games, anime, manga and board games, "Album, Artist" for albums, "Title, Artist" for
 // artworks and "Place, Country" (the country is optional) or "Flag of
 // Country" for places, a plant or animal "Name" (common or scientific)
-// alone for nature, and "Product, Brand" (the brand is optional) or a
-// barcode alone for products. Each artwork, place, nature, product and
+// alone for nature, "Product, Brand" (the brand is optional) or a
+// barcode alone for products, and "Podcast, Host" (the host is optional)
+// for podcasts. Each artwork, place, nature, product and
 // board game image gets a "<image file>.credit.txt" sidecar with its credit.
 // Items from -csv are added after them. Flags must come before the items. The exit code is 1 when any item failed and 2 on usage errors.
 package main
@@ -78,7 +79,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 
 	fs := flag.NewFlagSet("covers", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie, TV, game, anime, manga and board game items are "Title, Year", albums "Album, Artist", artworks "Title, Artist", places "Place, Country" or "Flag of Country", nature "Name", products "Product, Brand" or a barcode`)
+	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie, TV, game, anime, manga and board game items are "Title, Year", albums "Album, Artist", artworks "Title, Artist", places "Place, Country" or "Flag of Country", nature "Name", products "Product, Brand" or a barcode, podcasts "Podcast, Host"`)
 	outDir := fs.String("o", "covers", "output directory")
 	country := fs.String("country", "es", "store country code (es, us, gb, de, ...); books prefer local editions")
 	csvPath := fs.String("csv", "", "CSV file with title and creator (author, year or artist) columns")
@@ -88,7 +89,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 	bhlFlag := fs.String("bhl-key", "", "Biodiversity Heritage Library API key, for nature (default: $BHL_API_KEY, then the saved settings)")
 	bggFlag := fs.String("bgg-token", "", "BoardGameGeek XML API token, for board games (default: $BGG_TOKEN, then the saved settings, then the built-in token)")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] [-bhl-key key] [-bgg-token token] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" | "Name" | "Product, Brand" | "Barcode" ...]`)
+		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] [-bhl-key key] [-bgg-token token] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" | "Name" | "Product, Brand" | "Barcode" | "Podcast, Host" ...]`)
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {

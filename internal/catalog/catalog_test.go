@@ -24,7 +24,7 @@ func TestDefault(t *testing.T) {
 	for _, mt := range reg.List() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games", "anime", "manga", "artworks", "places", "nature", "products", "boardgames"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "anime", "manga", "artworks", "places", "nature", "products", "boardgames", "podcasts"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 
@@ -232,6 +232,28 @@ func TestDefault(t *testing.T) {
 	}
 	if !reflect.DeepEqual(boardgames.Samples, wantBoardGames) {
 		t.Errorf("boardgames samples = %+v, want %+v", boardgames.Samples, wantBoardGames)
+	}
+
+	// Square show artwork from the iTunes podcast search; no fallback.
+	podcasts, _ := reg.Get("podcasts")
+	if podcasts.Label != "Podcasts" || podcasts.CreatorLabel != "Host" || podcasts.DateLabel != "Listened on" || podcasts.LocalEditions {
+		t.Errorf("podcasts = %+v", podcasts)
+	}
+	if want := []string{"apple"}; !reflect.DeepEqual(providerNames(podcasts), want) {
+		t.Errorf("podcasts providers = %q, want %q", providerNames(podcasts), want)
+	}
+	if apple, ok := podcasts.Providers[0].(*providers.Apple); !ok || apple.Media != "podcast" || apple.Entity != "" {
+		t.Errorf("podcasts provider = %#v, want Apple in podcast mode with no entity", podcasts.Providers[0])
+	}
+	wantPodcasts := []media.Item{
+		{Title: "The Daily", Creator: "The New York Times"},
+		{Title: "Radiolab", Creator: "WNYC Studios"},
+		{Title: "This American Life", Creator: "This American Life"},
+		{Title: "Serial", Creator: "Serial Productions"},
+		{Title: "Hardcore History", Creator: "Dan Carlin"},
+	}
+	if !reflect.DeepEqual(podcasts.Samples, wantPodcasts) {
+		t.Errorf("podcasts samples = %+v, want %+v", podcasts.Samples, wantPodcasts)
 	}
 
 	if Default(nil, Keys{}) == nil {

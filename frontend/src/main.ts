@@ -66,6 +66,7 @@ const EXAMPLES: Record<string, string> = {
     nature: 'Robin',
     products: 'Nutella, Ferrero',
     boardgames: 'Catan, 1995',
+    podcasts: 'The Daily, The New York Times',
 };
 
 // The tip shown above the list for media types whose best source needs a
