@@ -20,7 +20,7 @@ Every option in both tabs is an in-memory closure or DOM value, re-seeded from t
 
 ## Tasks
 - [x] T1 Go: settings sub-structs + `Trimmed`, `SaveSettings` keeps prefs, `SavePrintPrefs`/`SavePagesPrefs` bindings, regenerated Wails bindings, Go tests. Route: delegated writer.
-- [ ] T2 Print covers: restore saved prefs after presets load with fallback, save on change, vitest tests. Route: delegated writer.
+- [x] T2 Print covers: restore saved prefs after presets load with fallback, save on change, vitest tests. Route: delegated writer.
 - [ ] T3 Make pages: restore kind + shared fields, save on change, vitest tests. Route: delegated writer.
 - [ ] T4 README: what is remembered and where. Route: same writer.
 
@@ -37,7 +37,8 @@ Strategy: `ask-on-risk`. Forecast ~700 authored lines (about half tests).
 
 ## Progress
 - 2026-11-23: branch `feat/remember-print-options`; doc written.
-- 2026-11-23 T1 (delegated writer): `settings.PrintPrefs`/`PagesPrefs` (`print`/`pages`, `omitzero`; `Credits *bool`, nil = default on; header/title capped at `MaxTextLen` = 120 runes), `SaveSettings` keeps them, `SavePrintPrefs`/`SavePagesPrefs` merge under `settingsMu` via `saveSettingsLocked`; bindings regenerated (modes 644, runtime reverted). RED: `go test ./internal/settings/ ./` build failed (undefined `PrintPrefs`, `SavePrintPrefs`). GREEN: both packages ok. Checks: go build/vet ok, go test 3460 passed, gofmt empty, tsc ok, vitest 368/368, npm run build ok. Commit: recorded in the T2 entry.
+- 2026-11-23 T1 (delegated writer): `settings.PrintPrefs`/`PagesPrefs` (`print`/`pages`, `omitzero`; `Credits *bool`, nil = default on; header/title capped at `MaxTextLen` = 120 runes), `SaveSettings` keeps them, `SavePrintPrefs`/`SavePagesPrefs` merge under `settingsMu` via `saveSettingsLocked`; bindings regenerated (modes 644, runtime reverted). RED: `go test ./internal/settings/ ./` build failed (undefined `PrintPrefs`, `SavePrintPrefs`). GREEN: both packages ok. Checks: go build/vet ok, go test 3460 passed, gofmt empty, tsc ok, vitest 368/368, npm run build ok. Commit `348bb3f`.
+- 2026-11-24 T2 (delegated writer): new `frontend/src/prefs.ts` (`restoreSelect`, `prefsSaver`: starts after restore, skips unchanged values, one save at a time with the latest last, failures `console.warn`); `SharedFieldsets.restore` and `Lettering.restore` (user Colour-in choice kept, unlisted font keeps the shown one); Print covers restores in `loadPresets` before `updateFormat`, media only once offered (sets `mediaChosen`), saves on every option change and the header on `change`; `main.ts` keeps the startup `GetSettings` result and passes `savedPrefs`. RED: `prefs.test.ts` failed to resolve `./prefs`; print.test 5 failed / 58 passed; main.test 1 failed; lettering.test 3 failed without `restore`. GREEN: vitest 385/385. Checks: tsc ok, npm run build ok, go build/vet ok. Commit: recorded in the T3 entry.
 
 ## Next step
 T1–T4 via one delegated writer.

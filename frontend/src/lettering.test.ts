@@ -270,6 +270,27 @@ describe('Lettering controls', () => {
             expect(lettering.options()).toEqual({font: 'titan-one', colourIn: false});
         });
 
+        it('restores a remembered font and choice without reporting a change', () => {
+            lettering.restore('titan-one', true);
+            expect(lettering.options()).toEqual({font: 'titan-one', colourIn: true});
+            expect(lettering.colourIn.checked).toBe(true);
+            expect(hint()).toBe('Letters print as outlines, ready to colour by hand.');
+            expect(onChange).not.toHaveBeenCalled();
+        });
+
+        it('keeps the font shown for a remembered font no longer listed', () => {
+            lettering.restore('gone', false);
+            expect(lettering.options()).toEqual({font: 'go', colourIn: false});
+            lettering.restore(undefined, true);
+            expect(lettering.options()).toEqual({font: 'go', colourIn: true});
+        });
+
+        it('restores the choice under a hollow font, which shows checked', () => {
+            lettering.restore('bungee-outline', false);
+            expect(lettering.colourIn.checked).toBe(true);
+            expect(lettering.options()).toEqual({font: 'bungee-outline', colourIn: false});
+        });
+
         it('hides with the font picker where lettering does not apply', () => {
             lettering.show(false);
             expect(lettering.fontField.hidden).toBe(true);

@@ -9,6 +9,7 @@
 import {main} from '../wailsjs/go/models';
 import {label, t, type MessageKey} from './i18n';
 import {renderLettering, type Lettering} from './lettering';
+import {restoreSelect} from './prefs';
 import {initRadioGroup, type RadioGroup} from './radioGroup';
 
 // Preset is a Go preset with an ID, an English label and a default flag.
@@ -38,6 +39,17 @@ export interface SharedFieldsetsConfig {
     onLetteringChange: () => void;
 }
 
+// SharedPrefs are the remembered values of the shared fields; an unset or
+// unlisted one keeps the default.
+export interface SharedPrefs {
+    paper?: string;
+    cut?: string;
+    credits?: boolean;
+    text?: string;
+    font?: string;
+    colourIn?: boolean;
+}
+
 export interface SharedFieldsets {
     pageGroup: HTMLFieldSetElement;
     letteringGroup: HTMLFieldSetElement;
@@ -58,6 +70,9 @@ export interface SharedFieldsets {
     showText: (on: boolean) => void;
     // Shows the Font picker and Colour-in when lettering applies.
     showLettering: (on: boolean) => void;
+    // Shows remembered values; call it after the lists are set. It calls
+    // no change callback.
+    restore: (prefs: SharedPrefs) => void;
     // Names the papers and cut modes in the current language.
     relabel: () => void;
 }
@@ -208,6 +223,13 @@ export function renderSharedFieldsets(config: SharedFieldsetsConfig): SharedFiel
         },
         showText,
         showLettering: lettering.show,
+        restore: (prefs) => {
+            if (prefs.paper && papers.some((p) => p.id === prefs.paper)) paper.value = prefs.paper;
+            restoreSelect(cut, prefs.cut);
+            if (credits && prefs.credits !== undefined) credits.checked = prefs.credits;
+            if (prefs.text) text.value = prefs.text;
+            lettering.restore(prefs.font, prefs.colourIn ?? false);
+        },
         relabel: () => {
             labelPapers();
             labelOptions(cut, 'cut', cuts);
