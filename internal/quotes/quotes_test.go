@@ -448,16 +448,64 @@ func TestSearchCapsParseRequests(t *testing.T) {
 }
 
 func TestSearchFallbackStopsOnError(t *testing.T) {
-	fs := newFixtureServer(t)
-	ok := fallbackHandler([]string{"A", "B"}, nil, nil)
-	fs.override = func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("page") == "B" {
-			http.Error(w, "oops", http.StatusInternalServerError)
-			return
-		}
-		ok(w, r)
+	tests := []struct {
+		name      string
+		failPage  string
+		wantErr   bool
+		wantPages []string
+	}{
+		{name: "fallback parse fails keeps the best page", failPage: "B", wantPages: []string{"A", "B"}},
+		{name: "first parse fails", failPage: "A", wantErr: true, wantPages: []string{"A"}},
 	}
-	if _, err := fs.client().Search(context.Background(), "x", "en"); err == nil || !strings.Contains(err.Error(), "HTTP 500") {
-		t.Errorf("err = %v, want the HTTP 500 of the second parse", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs := newFixtureServer(t)
+			ok := fallbackHandler([]string{"A", "B", "C"}, map[string][]string{"C": {"A quote long enough to be kept."}}, nil)
+			fs.override = func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Query().Get("page") == tt.failPage {
+					http.Error(w, "oops", http.StatusInternalServerError)
+					return
+				}
+				ok(w, r)
+			}
+			got, err := fs.client().Search(context.Background(), "x", "en")
+			if tt.wantErr {
+				if err == nil || !strings.Contains(err.Error(), "HTTP 500") {
+					t.Errorf("err = %v, want the HTTP 500 of the first parse", err)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("Search: %v", err)
+				}
+				if got.Person != "A" || got.Quotes == nil || len(got.Quotes) != 0 || !slices.Equal(got.Matches, []string{"B", "C"}) {
+					t.Errorf("got %+v, want A with no quotes and matches B, C", got)
+				}
+			}
+			if pages := fs.parsedPages(); !slices.Equal(pages, tt.wantPages) {
+				t.Errorf("parsed pages %q, want %q (no request after the failure)", pages, tt.wantPages)
+			}
+		})
+	}
+}
+
+func TestSearchSkipsRepeatedTitles(t *testing.T) {
+	const quote = "Imagination is more important than knowledge."
+	fs := newFixtureServer(t)
+	// "Einstein" redirects, so its resolved title differs from the search
+	// title; the repeated hit must not spend a parse.
+	fs.override = fallbackHandler(
+		[]string{"Einstein", "Einstein", "B", "C"},
+		map[string][]string{"C": {quote}},
+		map[string]string{"Einstein": "Albert Einstein"},
+	)
+	got, err := fs.client().Search(context.Background(), "Einstein", "en")
+	if err != nil {
+		t.Fatalf("Search: %v", err)
+	}
+	if got.Person != "C" || !slices.Equal(quoteTexts(got.Quotes), []string{quote}) {
+		t.Errorf("got %+v, want the quotes of C", got)
+	}
+	if pages := fs.parsedPages(); !slices.Equal(pages, []string{"Einstein", "B", "C"}) {
+		t.Errorf("parsed pages %q, want Einstein, B, C", pages)
 	}
 }

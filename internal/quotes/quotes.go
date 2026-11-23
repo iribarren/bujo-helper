@@ -91,8 +91,9 @@ func pageURL(lang, title string) string {
 // page has no quotes, the next search titles are read in order (at most
 // maxParses pages) and the first with quotes is used. When none has quotes,
 // the result names the best page with no quotes and a nil error, so the
-// caller can offer the other matches. A query without any page gives an
-// error wrapping ErrNotFound.
+// caller can offer the other matches; a failure reading a fallback page
+// gives that same result, and only a failure on the first page is an error.
+// A query without any page gives an error wrapping ErrNotFound.
 func (c *Client) Search(ctx context.Context, query, lang string) (Result, error) {
 	query = cleanText(query)
 	if query == "" {
@@ -113,7 +114,7 @@ func (c *Client) Search(ctx context.Context, query, lang string) (Result, error)
 		return Result{}, fmt.Errorf("%w: no Wikiquote page for %q", ErrNotFound, query)
 	}
 	var first wikiPage
-	read := map[string]bool{} // resolved titles already read
+	read := map[string]bool{} // search and resolved titles already read
 	parses := 0
 	for _, title := range titles {
 		if parses == maxParses {
@@ -125,8 +126,12 @@ func (c *Client) Search(ctx context.Context, query, lang string) (Result, error)
 		parses++
 		p, err := c.readPage(ctx, endpoint, title)
 		if err != nil {
-			return Result{}, err
+			if first.person == "" {
+				return Result{}, err
+			}
+			break // keep the best page already read
 		}
+		read[title] = true
 		read[p.person] = true
 		if first.person == "" {
 			first = p
