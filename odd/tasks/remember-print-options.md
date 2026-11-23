@@ -42,5 +42,8 @@ Strategy: `ask-on-risk`. Forecast ~700 authored lines (about half tests).
 - 2026-11-24 T3 (delegated writer): Make pages restores the remembered kind (default when not offered) and the shared paper, cut, title, font and Colour-in after its lists load, saves on kind, paper, cut, font and Colour-in changes and the title on `change`; the kinds' own form options are not saved; `main.ts` passes `savedPrefs: startSettings?.pages`. RED: pages.test 5 failed, main.test 1 failed (title not restored). GREEN: vitest 394/394. Checks: tsc exit 0, npm run build ok. Commit `a4c156e`.
 - 2026-11-24 T4 (same writer): README Print sheet and Generated pages sections say what each tab remembers, where (`"print"`/`"pages"` in the settings file), the default fallback and what is not remembered. Passive docs: no RED; structural readback. Final checks: go build ok, go vet ok, go test 3460 passed, gofmt empty, tsc exit 0, vitest 394/394, npm run build ok, git status clean. Commit `af817ba`.
 
+- Review `8b73c9e..622a3b9` (medium, 20 files, 1076 lines, `slice_budget_reached`): consent granted; reliability approved; acknowledged, lineage `review-29a5463d9bfe7c47`. Advisory R3-001 (`print.ts:865-868`: size, crop, font and Colour-in saves untested) closed inline: new test `saves the size, crop, font and Colour-in on change`. RED: removing the size handler's `saver.save()` failed it; restored, GREEN. vitest 395/395, tsc ok.
+- Delivery: local merge to main (no PR), as for earlier features, once the user has tried it.
+
 ## Next step
-All tasks done; native review of the slice and delivery are the user's decision.
+User tries it in the app; then merge to main.

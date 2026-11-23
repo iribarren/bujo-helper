@@ -750,6 +750,26 @@ describe('Print covers remembered options', () => {
         await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].format).toBe('covers'));
     });
 
+    it('saves the size, crop, font and Colour-in on change', async () => {
+        await mount({format: 'cards'});
+        const size = el<HTMLSelectElement>('print-size');
+        size.value = 'large';
+        size.dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall?.[0].size).toBe('large'));
+
+        const crop = el<HTMLSelectElement>('print-crop');
+        crop.value = 'square';
+        crop.dispatchEvent(new Event('change'));
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].crop).toBe('square'));
+
+        el('print-font').click();
+        el('print-font-list').querySelector<HTMLElement>('[role="option"][data-value="titan-one"]')!.click();
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].font).toBe('titan-one'));
+
+        el<HTMLInputElement>('print-colour-in').click();
+        await vi.waitFor(() => expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].colourIn).toBe(true));
+    });
+
     it('saves the header on change, not on every keystroke', async () => {
         await mount({format: 'fullpage'});
         const header = el<HTMLInputElement>('print-header');
