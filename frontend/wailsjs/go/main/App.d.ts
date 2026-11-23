@@ -9,6 +9,8 @@ export function Cancel():Promise<void>;
 
 export function ChooseFolder(arg1:string):Promise<string>;
 
+export function ChooseRecipePhoto():Promise<string>;
+
 export function DefaultOutputDir():Promise<string>;
 
 export function ExportPDF(arg1:Array<string>,arg2:string,arg3:sheet.Options):Promise<string>;
@@ -18,6 +20,8 @@ export function ExportPage(arg1:string,arg2:string,arg3:sheet.PageSettings,arg4:
 export function GetSettings():Promise<settings.Settings>;
 
 export function ImportCSV():Promise<string>;
+
+export function ImportRecipes():Promise<Array<sheet.Recipe>>;
 
 export function LetteringFonts():Promise<Array<main.LetteringFontInfo>>;
 

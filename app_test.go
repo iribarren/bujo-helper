@@ -307,6 +307,134 @@ func TestImportCSVFile(t *testing.T) {
 	}
 }
 
+func TestImportRecipesFile(t *testing.T) {
+	dir := t.TempDir()
+	good := filepath.Join(dir, "recipes.md")
+	md := "# Pancakes\nServes: 4\nPhoto: img/pancakes.jpg\n## Ingredients\n- flour\n## Steps\n1. Fry.\n"
+	if err := os.WriteFile(good, []byte(md), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := importRecipesFile(good, i18n.EN)
+	if err != nil {
+		t.Fatalf("importRecipesFile: %v", err)
+	}
+	want := []sheet.Recipe{{
+		Title: "Pancakes", Servings: "4", Photo: filepath.Join(dir, "img", "pancakes.jpg"),
+		Ingredients: []string{"flour"}, Steps: []string{"Fry."},
+	}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %#v, want %#v", got, want)
+	}
+
+	empty := filepath.Join(dir, "notes.md")
+	if err := os.WriteFile(empty, []byte("Just notes.\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, lang := range []i18n.Lang{i18n.EN, i18n.ES} {
+		_, err := importRecipesFile(empty, lang)
+		if want := i18n.T(lang, "err.noRecipesInFile", "notes.md"); err == nil || err.Error() != want {
+			t.Errorf("importRecipesFile(notes.md, %s) err = %v, want %q", lang, err, want)
+		}
+	}
+
+	long := filepath.Join(dir, "long.md")
+	if err := os.WriteFile(long, []byte("# "+strings.Repeat("t", sheet.MaxRecipeTitleRunes+1)+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{long, filepath.Join(dir, "missing.md")} {
+		if _, err := importRecipesFile(path, i18n.EN); err == nil || !strings.HasPrefix(err.Error(), filepath.Base(path)+": ") {
+			t.Errorf("importRecipesFile(%s) err = %v, want it prefixed with the file name", filepath.Base(path), err)
+		}
+	}
+}
+
+// stubOpenDialog replaces the native open-file dialog for one test.
+func stubOpenDialog(t *testing.T, open func(runtime.OpenDialogOptions) (string, error)) {
+	t.Helper()
+	old := openFileDialog
+	t.Cleanup(func() { openFileDialog = old })
+	openFileDialog = func(_ context.Context, o runtime.OpenDialogOptions) (string, error) {
+		return open(o)
+	}
+}
+
+func TestImportRecipes(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "recipes.md")
+	if err := os.WriteFile(path, []byte("# Toast\n## Ingredients\n- bread\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a := NewApp()
+	a.SetLanguage("es")
+	var opts runtime.OpenDialogOptions
+	stubOpenDialog(t, func(o runtime.OpenDialogOptions) (string, error) {
+		opts = o
+		return path, nil
+	})
+	got, err := a.ImportRecipes()
+	if err != nil {
+		t.Fatalf("ImportRecipes: %v", err)
+	}
+	if len(got) != 1 || got[0].Title != "Toast" {
+		t.Errorf("got %#v, want the Toast recipe", got)
+	}
+	if want := i18n.T(i18n.ES, "dialog.importRecipes"); opts.Title != want {
+		t.Errorf("title = %q, want %q", opts.Title, want)
+	}
+	wantFilters := []runtime.FileFilter{
+		{DisplayName: i18n.T(i18n.ES, "filter.markdown"), Pattern: "*.md;*.markdown;*.txt"},
+		{DisplayName: i18n.T(i18n.ES, "filter.all"), Pattern: "*.*"},
+	}
+	if !reflect.DeepEqual(opts.Filters, wantFilters) {
+		t.Errorf("filters = %#v, want %#v", opts.Filters, wantFilters)
+	}
+
+	stubOpenDialog(t, func(runtime.OpenDialogOptions) (string, error) { return "", nil })
+	if got, err := a.ImportRecipes(); got != nil || err != nil {
+		t.Errorf("cancelled: got %#v, %v, want nil, nil", got, err)
+	}
+	boom := errors.New("boom")
+	stubOpenDialog(t, func(runtime.OpenDialogOptions) (string, error) { return "", boom })
+	if got, err := a.ImportRecipes(); got != nil || !errors.Is(err, boom) {
+		t.Errorf("dialog error: got %#v, %v, want nil, boom", got, err)
+	}
+}
+
+func TestChooseRecipePhoto(t *testing.T) {
+	a := NewApp()
+	photo := filepath.Join(t.TempDir(), "soup.jpg")
+	var opts runtime.OpenDialogOptions
+	stubOpenDialog(t, func(o runtime.OpenDialogOptions) (string, error) {
+		opts = o
+		return photo, nil
+	})
+	got, err := a.ChooseRecipePhoto()
+	if err != nil || got != photo {
+		t.Errorf("ChooseRecipePhoto = %q, %v, want %q", got, err, photo)
+	}
+	if want := i18n.T(i18n.EN, "dialog.recipePhoto"); opts.Title != want {
+		t.Errorf("title = %q, want %q", opts.Title, want)
+	}
+	wantFilters := []runtime.FileFilter{{DisplayName: i18n.T(i18n.EN, "filter.images"), Pattern: "*.jpg;*.jpeg;*.png"}}
+	if !reflect.DeepEqual(opts.Filters, wantFilters) {
+		t.Errorf("filters = %#v, want %#v", opts.Filters, wantFilters)
+	}
+
+	stubOpenDialog(t, func(runtime.OpenDialogOptions) (string, error) { return "soup.jpg", nil })
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := a.ChooseRecipePhoto(); err != nil || got != filepath.Join(wd, "soup.jpg") {
+		t.Errorf("relative pick = %q, %v, want it made absolute", got, err)
+	}
+
+	stubOpenDialog(t, func(runtime.OpenDialogOptions) (string, error) { return "", nil })
+	if got, err := a.ChooseRecipePhoto(); got != "" || err != nil {
+		t.Errorf("cancelled: got %q, %v, want \"\", nil", got, err)
+	}
+}
+
 // optsProvider records the options of its searches and finds nothing.
 type optsProvider struct {
 	mu   sync.Mutex

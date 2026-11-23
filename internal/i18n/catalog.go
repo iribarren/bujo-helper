@@ -14,6 +14,10 @@ var catalogs = map[Lang]map[string]string{
 		"filter.csv":                "CSV files (*.csv)",
 		"filter.all":                "All files (*.*)",
 		"filter.pdf":                "PDF files (*.pdf)",
+		"dialog.importRecipes":      "Import recipes",
+		"dialog.recipePhoto":        "Choose recipe photo",
+		"filter.markdown":           "Markdown files (*.md, *.markdown, *.txt)",
+		"filter.images":             "Images (*.jpg, *.jpeg, *.png)",
 
 		// The prompt before replacing an existing file.
 		"replace.title":   "Replace file?",
@@ -23,6 +27,7 @@ var catalogs = map[Lang]map[string]string{
 
 		// Errors returned to the UI.
 		"err.noItemsInFile":      "%s: no items found",
+		"err.noRecipesInFile":    "%s: no recipes found",
 		"err.unknownMediaType":   "unknown media type %q",
 		"err.noItems":            `no items: enter one "Title, Creator" per line`,
 		"err.chooseOutputFolder": "choose an output folder",
@@ -80,6 +85,10 @@ var catalogs = map[Lang]map[string]string{
 		"filter.csv":                "Archivos CSV (*.csv)",
 		"filter.all":                "Todos los archivos (*.*)",
 		"filter.pdf":                "Archivos PDF (*.pdf)",
+		"dialog.importRecipes":      "Importar recetas",
+		"dialog.recipePhoto":        "Elegir foto de la receta",
+		"filter.markdown":           "Archivos Markdown (*.md, *.markdown, *.txt)",
+		"filter.images":             "Imágenes (*.jpg, *.jpeg, *.png)",
 
 		"replace.title":   "¿Reemplazar el archivo?",
 		"replace.message": "%s ya existe. ¿Desea reemplazarlo?",
@@ -87,6 +96,7 @@ var catalogs = map[Lang]map[string]string{
 		"replace.cancel":  "Cancelar",
 
 		"err.noItemsInFile":      "%s: no se han encontrado elementos",
+		"err.noRecipesInFile":    "%s: no se han encontrado recetas",
 		"err.unknownMediaType":   "tipo de medio desconocido: %q",
 		"err.noItems":            `no hay elementos: escriba uno por línea con el formato "Título, Autor"`,
 		"err.chooseOutputFolder": "elija una carpeta de destino",

@@ -410,9 +410,65 @@ func importCSVFile(path string, lang i18n.Lang) (string, error) {
 
 // The native dialogs, as variables so tests can replace them.
 var (
+	openFileDialog = runtime.OpenFileDialog
 	saveFileDialog = runtime.SaveFileDialog
 	messageDialog  = runtime.MessageDialog
 )
+
+// ImportRecipes asks for a Markdown file and returns its recipes, as
+// sheet.ParseRecipesMarkdown reads them. It returns nil with no error when
+// the dialog is cancelled.
+func (a *App) ImportRecipes() ([]sheet.Recipe, error) {
+	path, err := openFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: a.t("dialog.importRecipes"),
+		Filters: []runtime.FileFilter{
+			{DisplayName: a.t("filter.markdown"), Pattern: "*.md;*.markdown;*.txt"},
+			{DisplayName: a.t("filter.all"), Pattern: "*.*"},
+		},
+	})
+	if err != nil || path == "" {
+		return nil, err
+	}
+	return importRecipesFile(path, a.language())
+}
+
+// importRecipesFile reads the recipes of the Markdown file at path, photo
+// paths relative to its folder. A file with no recipes is an error, in
+// lang; other errors are prefixed with the file name.
+func importRecipesFile(path string, lang i18n.Lang) ([]sheet.Recipe, error) {
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
+	name := filepath.Base(path)
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", name, err)
+	}
+	defer f.Close()
+	recipes, err := sheet.ParseRecipesMarkdown(f, filepath.Dir(path))
+	if errors.Is(err, sheet.ErrNoRecipes) {
+		return nil, errors.New(i18n.T(lang, "err.noRecipesInFile", name))
+	}
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", name, err)
+	}
+	return recipes, nil
+}
+
+// ChooseRecipePhoto asks for a JPEG or PNG image and returns its absolute
+// path, or "" with no error when the dialog is cancelled.
+func (a *App) ChooseRecipePhoto() (string, error) {
+	path, err := openFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: a.t("dialog.recipePhoto"),
+		Filters: []runtime.FileFilter{
+			{DisplayName: a.t("filter.images"), Pattern: "*.jpg;*.jpeg;*.png"},
+		},
+	})
+	if err != nil || path == "" {
+		return "", err
+	}
+	return filepath.Abs(path)
+}
 
 // SaveSampleCSV asks where to save a sample CSV for the media type with the
 // given ID, which the user can use as a reference for Import CSV. It returns

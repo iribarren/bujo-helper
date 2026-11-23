@@ -465,6 +465,28 @@ export namespace sheet {
 	        this.colourIn = source["colourIn"];
 	    }
 	}
+	export class Recipe {
+	    title: string;
+	    servings: string;
+	    time: string;
+	    ingredients: string[];
+	    steps: string[];
+	    photo: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Recipe(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.title = source["title"];
+	        this.servings = source["servings"];
+	        this.time = source["time"];
+	        this.ingredients = source["ingredients"];
+	        this.steps = source["steps"];
+	        this.photo = source["photo"];
+	    }
+	}
 
 }
 
