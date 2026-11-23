@@ -31,6 +31,10 @@ const {kinds, papers, cuts, fonts} = vi.hoisted(() => ({
             defaults: '{"month":0,"year":0,"habits":[]}', default: false,
         },
         {
+            id: 'quotes', label: 'Quote cards', usesCut: false, usesTitle: true,
+            defaults: '{"quotes":[],"style":"classic","perPage":6}', default: false,
+        },
+        {
             id: 'map', label: 'Visited map', usesCut: false, usesTitle: true,
             defaults: '{"region":"world","countries":[],"colour":"teal","list":true}', default: false,
         },
@@ -149,7 +153,7 @@ describe('page kinds', () => {
     it('are listed from PageKinds in a radio group, the default checked', () => {
         const group = el('pages-kinds');
         expect(group.getAttribute('role')).toBe('radiogroup');
-        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Month calendar', 'Habit tracker', 'Visited map', 'Cut-out']);
+        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Month calendar', 'Habit tracker', 'Quote cards', 'Visited map', 'Cut-out']);
         expect(checked('pages-kinds')).toBe('dotgrid');
         expect(el('pages-kind-title').textContent).toBe('Dot grid');
     });
@@ -178,6 +182,7 @@ describe('page kinds', () => {
             expect(radio('pages-kinds', 'moon').textContent).toBe('Calendario lunar');
             expect(radio('pages-kinds', 'calendar').textContent).toBe('Calendario mensual');
             expect(radio('pages-kinds', 'habits').textContent).toBe('Registro de hábitos');
+            expect(radio('pages-kinds', 'quotes').textContent).toBe('Tarjetas de citas');
             expect(radio('pages-kinds', 'map').textContent).toBe('Mapa de viajes');
             // A kind without a translation keeps the Go label.
             expect(radio('pages-kinds', 'cutout').textContent).toBe('Cut-out');
@@ -393,6 +398,41 @@ describe('habit tracker form', () => {
         await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2]))
             .toEqual({month: 3, year: 2024, habits: ['Read', 'Walk', 'Water']}));
         expect(lastPreviewPage()[0]).toBe('habits');
+    });
+});
+
+describe('quote cards form', () => {
+    beforeEach(() => {
+        radio('pages-kinds', 'quotes').click();
+    });
+
+    afterEach(() => {
+        const own = el<HTMLTextAreaElement>('pages-quotes-own');
+        own.value = '';
+        own.dispatchEvent(new Event('input'));
+        radio('pages-quotes-style', 'classic').click();
+        radio('pages-quotes-perPage', '6').click();
+    });
+
+    it('previews no quotes, classic, six per page by default', async () => {
+        expect(el('pages-kind-title').textContent).toBe('Quote cards');
+        expect(el('pages-form-quotes').hidden).toBe(false);
+        expect(el('pages-form-habits').hidden).toBe(true);
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('quotes'));
+        expect(JSON.parse(lastPreviewPage()[2])).toEqual({quotes: [], style: 'classic', perPage: 6});
+        // The cards print the shared title; they have their own cut lines.
+        expect(el('pages-title-field').hidden).toBe(false);
+    });
+
+    it('previews the typed quotes and the chosen layout', async () => {
+        const own = el<HTMLTextAreaElement>('pages-quotes-own');
+        own.value = 'Less is more, Mies';
+        own.dispatchEvent(new Event('input'));
+        radio('pages-quotes-style', 'framed').click();
+        radio('pages-quotes-perPage', '4').click();
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2]))
+            .toEqual({quotes: [{text: 'Less is more', author: 'Mies', source: ''}], style: 'framed', perPage: 4}));
+        expect(lastPreviewPage()[0]).toBe('quotes');
     });
 });
 
