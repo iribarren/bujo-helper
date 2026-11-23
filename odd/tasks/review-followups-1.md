@@ -41,5 +41,7 @@ Strategy: `ask-on-risk`. Forecast ~300 authored lines (mostly tests): single PR/
 
 - Review `4ac5233..4b0c81d` (medium, 27 files, 557 lines, `slice_budget_reached`): consent granted; lens review-reliability approved; acknowledged (authority burned), lineage `review-4ee7b6653db070d4`. Parent spot check: `go test ./internal/sheet/ ./internal/gallery/ .` 2645 passed. Advisory SUGGESTION R3-pdfdoc-partial-chokepoint (`internal/sheet/pdf.go:119-130`): `pdfDoc` shadows only `Text` and `GetStringWidth`; other promoted fpdf text methods (Cell, CellFormat, MultiCell, Write, SplitText, SplitLines) stay reachable unsanitized, so a future caller could reintroduce the panic. Left as a follow-up (guard test or shadow the other methods).
 
+- Full-branch review `main..b5a0847` (stop-hook preflight, medium, 591 lines): consent granted; reliability approved; acknowledged, lineage `review-4d760db860558ae7`. Same single advisory R3-pdfdoc-partial-chokepoint.
+
 ## Next step
 Done. Not merged. Follow-up: R3-pdfdoc-partial-chokepoint.
