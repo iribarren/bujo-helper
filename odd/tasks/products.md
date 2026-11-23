@@ -60,6 +60,7 @@ Tea, coffee, wine, beer and snack logs glue in product or label pictures. Open F
 - T3 checks (parent): `go test -tags webkit2_41 ./...` 3257 passed (19 packages); `go vet` clean; `gofmt -l` empty; `tsc --noEmit` clean; `vitest run` 355 passed (15 files). Live smoke (CLI, country es): `Nutella, Ferrero` (752×752), `3017620422003` (952×1135, saved as `3017620422003.jpg`) and `Earl Grey, Twinings` (500×600) downloaded with correct CC BY-SA credit sidecars; `Zzqxv Nonexistent, Nobrand` failed with "no Open Food Facts product matches …".
 - Open point: `web.ContactUserAgent` gives a GitHub URL as contact; OFF asks for `AppName/Version (ContactEmail)`. Left as is (no email added without the user's say-so).
 - Final review of the slice `4ce1fb9..217c039` (T2, T1b, T3; RDD, consent granted): one reliability lens, approved with no findings, acknowledged (lineage `review-9cc22438d707c9c0`, authority burned).
+- User GUI-checked ("works fine"); merged to `main` with `--no-ff` in `4d4506b`; ROADMAP item 23 marked done.
 
 ## Next step
-User GUI-checks the Products type (Download tab, sample CSV, Print covers credits page), then local `--no-ff` merge to `main` and the merge hash on ROADMAP item 23.
+None: feature complete. Follow-up idea: name barcode downloads after the product; decide whether the contact User-Agent should carry an email.

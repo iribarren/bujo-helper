@@ -399,7 +399,7 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 - Long ingredient lists flow to a second card, or shrink within limits. Text never overflows.
 - Layout tests. The README shows the input format.
 
-## 23. [ ] Food and drink log images (Open Food Facts)
+## 23. [x] Food and drink log images (Open Food Facts) (4d4506b)
 
 **Why:** tea, coffee, wine, beer and snack logs glue in product or label pictures.
 
