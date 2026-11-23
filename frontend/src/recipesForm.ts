@@ -178,6 +178,9 @@ export function recipeEditor(container: HTMLElement, idPrefix: string, initial: 
 
     const drafts: Draft[] = initial.map(draftOf);
     let current: Draft | undefined = drafts[0];
+    // disposed is set by dispose: a dialog that answers afterwards is
+    // dropped, touching neither the recipes nor the page.
+    let disposed = false;
 
     const nameOf = (d: Draft) => d.title.trim() || t('pages.recipesUntitled');
 
@@ -254,7 +257,9 @@ export function recipeEditor(container: HTMLElement, idPrefix: string, initial: 
     importButton.addEventListener('click', async () => {
         importButton.disabled = true;
         try {
-            const imported = recipeList(await ImportRecipes());
+            const result = await ImportRecipes();
+            if (disposed) return;
+            const imported = recipeList(result);
             setStatus();
             if (imported.length === 0) return;
             const added = imported.map(draftOf);
@@ -262,29 +267,31 @@ export function recipeEditor(container: HTMLElement, idPrefix: string, initial: 
             select(added[0]);
             onChange();
         } catch (err) {
-            setStatus(errorText(err));
+            if (!disposed) setStatus(errorText(err));
         } finally {
-            importButton.disabled = false;
+            if (!disposed) importButton.disabled = false;
         }
     });
 
     choose.addEventListener('click', async () => {
         // The photo is the recipe's that was selected when Choose… was
-        // clicked, even if another one is selected by the time it is picked.
+        // clicked, even if another one is selected by the time it is picked;
+        // dropped if that recipe was removed meanwhile.
         const target = current;
         if (!target) return;
         choose.disabled = true;
         try {
             const path = await ChooseRecipePhoto();
+            if (disposed) return;
             setStatus();
-            if (!path || path === target.photo) return;
+            if (!path || path === target.photo || !drafts.includes(target)) return;
             target.photo = path;
             renderPhoto();
             onChange();
         } catch (err) {
-            setStatus(errorText(err));
+            if (!disposed) setStatus(errorText(err));
         } finally {
-            choose.disabled = false;
+            if (!disposed) choose.disabled = false;
         }
     });
 
@@ -304,6 +311,9 @@ export function recipeEditor(container: HTMLElement, idPrefix: string, initial: 
 
     return {
         recipes: () => drafts.map(recipeOf),
-        dispose: stopRelabel,
+        dispose: () => {
+            disposed = true;
+            stopRelabel();
+        },
     };
 }

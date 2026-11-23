@@ -89,6 +89,9 @@ async function importing(result: unknown) {
     await vi.waitFor(() => expect(importButton().disabled).toBe(false));
 }
 
+// settle lets pending promise callbacks run.
+const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
 beforeEach(() => {
     vi.mocked(ImportRecipes).mockReset();
     vi.mocked(ChooseRecipePhoto).mockReset();
@@ -156,7 +159,7 @@ describe('recipe cards form', () => {
         expect(field('ingredients').value).toBe('  200 g flour \n\n2 eggs\n   \n');
     });
 
-    it('selects a recipe with a click or the keyboard and edits that one', () => {
+    it('selects a recipe with a click and edits that one', () => {
         const form = recipesForm(JSON.stringify({recipes: [recipe('A'), recipe('B')], size: 'a6'}));
         pills()[1].click();
         expect(selected()).toBe(1);
@@ -165,15 +168,25 @@ describe('recipe cards form', () => {
         expect(pillTexts()).toEqual(['A', 'Bread']);
         expect(sent(form).recipes.map((r) => r.title)).toEqual(['A', 'Bread']);
 
-        // Each pill and remove button is a button, reachable with Tab.
-        expect(pills().every((p) => p.tagName === 'BUTTON' && p.type === 'button')).toBe(true);
-        pills()[0].focus();
-        pills()[0].dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
         pills()[0].click();
         expect(selected()).toBe(0);
         expect(field('title').value).toBe('A');
         // Selecting changes no option.
         expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    // Keyboard selection is the browser's own: Tab reaches a native
+    // <button type="button"> and Enter or Space activates it as a click.
+    it('makes each recipe pill and remove button a focusable native button', () => {
+        recipesForm(JSON.stringify({recipes: [recipe('A'), recipe('B')], size: 'a6'}));
+        for (const b of [...pills(), ...removes()]) {
+            expect(b).toBeInstanceOf(HTMLButtonElement);
+            expect(b.type).toBe('button');
+            expect(b.disabled).toBe(false);
+            expect(b.tabIndex).toBe(0);
+            b.focus();
+            expect(document.activeElement).toBe(b);
+        }
     });
 
     it('removes a recipe and selects its neighbour', () => {
@@ -292,6 +305,69 @@ describe('recipe cards form', () => {
         photoChoose().click();
         await vi.waitFor(() => expect(status().textContent).toBe('dialog failed'));
         expect(status().classList.contains('error')).toBe(true);
+    });
+
+    it('drops an import that ends after the form is disposed', async () => {
+        const form = recipesForm(JSON.stringify({recipes: [recipe('Mine')], size: 'a6'}));
+        const ok = deferred<unknown>();
+        vi.mocked(ImportRecipes).mockReturnValueOnce(ok.promise as never);
+        importButton().click();
+        form.dispose?.();
+        ok.resolve([recipe('Toast')]);
+        await settle();
+        expect(pillTexts()).toEqual(['Mine']);
+        expect(sent(form).recipes).toEqual([recipe('Mine')]);
+        expect(onChange).not.toHaveBeenCalled();
+        // No DOM write: the button stays as it was left.
+        expect(importButton().disabled).toBe(true);
+
+        const failed = recipesForm();
+        const bad = deferred<never>();
+        vi.mocked(ImportRecipes).mockReturnValueOnce(bad.promise);
+        importButton().click();
+        failed.dispose?.();
+        bad.reject('recipes.md: no recipes found');
+        await settle();
+        expect(status().textContent).toBe('');
+        expect(importButton().disabled).toBe(true);
+    });
+
+    it('drops a photo picked after the form is disposed', async () => {
+        const form = recipesForm(JSON.stringify({recipes: [recipe('A')], size: 'a6'}));
+        const pending = deferred<string>();
+        vi.mocked(ChooseRecipePhoto).mockReturnValueOnce(pending.promise);
+        photoChoose().click();
+        form.dispose?.();
+        pending.resolve('/p/a.jpg');
+        await settle();
+        expect(sent(form).recipes[0].photo).toBe('');
+        expect(photoName().textContent).toBe('No photo');
+        expect(onChange).not.toHaveBeenCalled();
+        expect(photoChoose().disabled).toBe(true);
+    });
+
+    it('drops a photo picked for a recipe removed meanwhile, keeping it for one still there', async () => {
+        const form = recipesForm(JSON.stringify({recipes: [recipe('A'), recipe('B'), recipe('C')], size: 'a6'}));
+        const gone = deferred<string>();
+        vi.mocked(ChooseRecipePhoto).mockReturnValueOnce(gone.promise);
+        photoChoose().click();
+        removes()[0].click();
+        expect(onChange).toHaveBeenCalledTimes(1);
+        gone.resolve('/p/a.jpg');
+        await vi.waitFor(() => expect(photoChoose().disabled).toBe(false));
+        expect(sent(form).recipes.map((r) => r.photo)).toEqual(['', '']);
+        expect(photoName().textContent).toBe('No photo');
+        expect(onChange).toHaveBeenCalledTimes(1);
+
+        // Positive control: removing another recipe keeps the pick.
+        const kept = deferred<string>();
+        vi.mocked(ChooseRecipePhoto).mockReturnValueOnce(kept.promise);
+        photoChoose().click();
+        removes()[1].click();
+        kept.resolve('/p/b.jpg');
+        await vi.waitFor(() => expect(sent(form).recipes.map((r) => r.photo)).toEqual(['/p/b.jpg']));
+        expect(photoName().textContent).toBe('b.jpg');
+        expect(onChange).toHaveBeenCalledTimes(3);
     });
 
     it('sends the chosen card size', () => {
