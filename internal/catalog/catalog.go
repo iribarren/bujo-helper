@@ -222,6 +222,24 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "Monarch butterfly"},
 		},
 	})
+	// Food and drink product pictures (front of the pack) from Open Food
+	// Facts, found by "Product, Brand" or by a barcode alone. The images
+	// are CC BY-SA, so each gets a credit sidecar.
+	mustRegister(reg, media.MediaType{
+		ID:           "products",
+		Label:        "Products",
+		CreatorLabel: "Brand",
+		DateLabel:    "Tried on",
+		Providers: []media.Provider{
+			providers.NewOpenFoodFacts(client),
+		},
+		Samples: []media.Item{
+			{Title: "Nutella", Creator: "Ferrero"},
+			{Title: "Earl Grey", Creator: "Twinings"},
+			{Title: "Coca-Cola Zero", Creator: "Coca-Cola"},
+			{Title: "3017620422003"},
+		},
+	})
 	return reg
 }
 

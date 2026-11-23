@@ -44,13 +44,16 @@ Tea, coffee, wine, beer and snack logs glue in product or label pictures. Open F
 
 ## Tasks
 - [x] T1 Provider `OpenFoodFacts` (Go): barcode lookup, Search-a-licious search, front image choice, min resolution, credit, UA + throttle; fixtures and tests. Route: delegated writer (writer trigger: provider + web + tests + fixtures).
-- [ ] T2 Wiring: catalog registration, app/catalog/CLI tests, CLI help, frontend example + EN/ES strings. Route: delegated writer (2+ files).
+- [x] T2 Wiring: catalog registration, app/catalog/CLI tests, CLI help, frontend example + EN/ES strings. Route: delegated writer (2+ files).
 - [ ] T3 Docs + verify: README Features/Sources/Rate limits/CSV/Credits page, ROADMAP item 23 notes, full checks, live smoke. Route: delegated writer + inline checks.
+
+- [ ] T1b Review follow-ups (T1 review advisory R3-001, R3-002): throttle margin 4.5 s / 6.5 s under the published limits; Lucene operator words AND/OR/NOT in names lowercased; tests for both plus the "and N more" skip-reason truncation (R3-003). Route: inline (two small known edits).
 
 ## Progress
 - Feature doc created; branch `feat/products` from `9cf6705`.
-- T1 done in commit `feat(providers): Open Food Facts product images` (hash: the T1 commit on `feat/products`; a commit cannot hold its own hash). Route: delegated writer. Authored: 875 lines (446 provider, 374 tests, 55 web/throttle + tests; fixtures excluded), over the ~400 heuristic because the provider has two APIs plus lenient JSON decoding, and tests were not cut. Checks: `go test -tags webkit2_41 ./...` 3253 passed; `go vet` clean; `gofmt -l internal/` empty. Fixtures: 3 live requests (Nutella product, `nutella brands:"ferrero"` search, unknown code) trimmed, plus synthetic skipped/empty searches.
+- T1 done in commit `feat(providers): Open Food Facts product images` `4ce1fb9`. Route: delegated writer. Authored: 875 lines (446 provider, 374 tests, 55 web/throttle + tests; fixtures excluded), over the ~400 heuristic because the provider has two APIs plus lenient JSON decoding, and tests were not cut. Checks: `go test -tags webkit2_41 ./...` 3253 passed; `go vet` clean; `gofmt -l internal/` empty. Fixtures: 3 live requests (Nutella product, `nutella brands:"ferrero"` search, unknown code) trimmed, plus synthetic skipped/empty searches.
 - T1 choices: a too-small or sizeless preferred front falls through to the next language (reason = first front tried); search ranking ties prefer hits with the brand anywhere in their brand list; codes that are not all digits are skipped ("invalid barcode"); language from MARC `Options.Language`, else `locale.For(Country)`.
+- T2 done in commit `feat(catalog): products media type from Open Food Facts` (hash: the T2 commit on `feat/products`). Route: delegated writer (writer trigger: catalog + CLI + app/catalog/CLI tests + frontend + EN/ES). Authored: 79 lines (64+, 15-). RED observed first: `TestDefault`, `TestDefaultAppMoviesUseTheSavedTMDBKey`, `TestMediaTypesListSourcesInOrder`, `TestUsageListsMediaTypes` failed before registration. Samples: Nutella/Ferrero, Earl Grey/Twinings, Coca-Cola Zero/Coca-Cola and barcode `3017620422003` with an empty brand (round-trips like the places flag row). CLI help: `products "Product, Brand" or a barcode`; usage `| "Product, Brand" | "Barcode"`. Checks: `go test -tags webkit2_41 ./...` 3254 passed; `go vet` clean; `gofmt -l` empty; `tsc --noEmit` clean; `vitest run` 355 passed (15 files).
 
 ## Next step
-T2.
+T1b, then T3.

@@ -80,6 +80,7 @@ export const es: Messages = {
     'media.artworks': 'Obras de arte',
     'media.places': 'Lugares',
     'media.nature': 'Naturaleza',
+    'media.products': 'Productos',
     'creator.books': 'Autor',
     'creator.movies': 'Año',
     'creator.tv': 'Año',
@@ -89,6 +90,7 @@ export const es: Messages = {
     'creator.manga': 'Año',
     'creator.artworks': 'Artista',
     'creator.places': 'País',
+    'creator.products': 'Marca',
     'date.books': 'Leído el',
     'date.movies': 'Visto el',
     'date.tv': 'Visto el',
@@ -99,6 +101,7 @@ export const es: Messages = {
     'date.artworks': 'Visto el',
     'date.places': 'Visitado el',
     'date.nature': 'Visto el',
+    'date.products': 'Probado el',
 
     // The sample CSV button, per media type, and its fallbacks.
     'sample.button': 'CSV de ejemplo',
@@ -114,6 +117,7 @@ export const es: Messages = {
     'sample.button.artworks': 'CSV de ejemplo de obras de arte',
     'sample.button.places': 'CSV de ejemplo de lugares',
     'sample.button.nature': 'CSV de ejemplo de naturaleza',
+    'sample.button.products': 'CSV de ejemplo de productos',
     'sample.title.books': 'Guarda un CSV de ejemplo de libros (Título, Autor) como referencia para Importar CSV',
     'sample.title.movies': 'Guarda un CSV de ejemplo de películas (Título, Año) como referencia para Importar CSV',
     'sample.title.tv': 'Guarda un CSV de ejemplo de series (Título, Año) como referencia para Importar CSV',
@@ -124,6 +128,7 @@ export const es: Messages = {
     'sample.title.artworks': 'Guarda un CSV de ejemplo de obras de arte (Título, Artista) como referencia para Importar CSV',
     'sample.title.places': 'Guarda un CSV de ejemplo de lugares (Lugar, País) como referencia para Importar CSV',
     'sample.title.nature': 'Guarda un CSV de ejemplo de naturaleza (Nombre) como referencia para Importar CSV',
+    'sample.title.products': 'Guarda un CSV de ejemplo de productos (Producto, Marca) como referencia para Importar CSV',
 
     // Print covers tab.
     'print.groupCovers': 'Portadas',

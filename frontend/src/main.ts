@@ -63,6 +63,7 @@ const EXAMPLES: Record<string, string> = {
     artworks: 'Wheat Field with Cypresses, Vincent van Gogh',
     places: 'Eiffel Tower, France',
     nature: 'Robin',
+    products: 'Nutella, Ferrero',
 };
 
 // The tip shown above the list for media types whose best source needs a
