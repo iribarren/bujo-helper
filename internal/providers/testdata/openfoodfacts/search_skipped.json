@@ -1,0 +1,44 @@
+{
+ "hits": [
+  {
+   "code": "12345678",
+   "product_name": "Tiny Tea",
+   "brands": ["Acme"],
+   "lang": "en",
+   "images": {
+    "front_en": {"imgid": "1", "rev": "3", "sizes": {"full": {"w": 300, "h": 250}}}
+   }
+  },
+  {
+   "code": "4000000000002",
+   "product_name": "Bare Tea",
+   "brands": ["Acme"],
+   "lang": "en",
+   "images": {
+    "ingredients_en": {"imgid": "2", "rev": "4", "sizes": {"full": {"w": 1000, "h": 1000}}}
+   }
+  },
+  {
+   "code": "4000000000019",
+   "product_name": "Sizeless Tea",
+   "brands": "Acme",
+   "lang": "en",
+   "images": {
+    "front_en": {"imgid": "5", "rev": "6"}
+   }
+  }
+,
+  {
+   "code": "abc",
+   "product_name": "Odd Tea",
+   "brands": ["Acme"],
+   "lang": "en",
+   "images": {
+    "front_en": {"imgid": "1", "rev": "2", "sizes": {"full": {"w": 1000, "h": 1000}}}
+   }
+  }
+ ],
+ "count": 4,
+ "page": 1,
+ "page_size": 10
+}

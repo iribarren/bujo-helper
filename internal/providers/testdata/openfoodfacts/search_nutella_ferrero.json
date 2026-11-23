@@ -1,0 +1,198 @@
+{
+ "hits": [
+  {
+   "code": "01056860",
+   "product_name": "nutella",
+   "brands": [
+    "Ferrero",
+    " Nutella"
+   ],
+   "lang": "en",
+   "images": {}
+  },
+  {
+   "code": "3859893512032",
+   "product_name": "Nutella",
+   "brands": [
+    "Nutella",
+    "Ferrero"
+   ],
+   "lang": "hr",
+   "images": {
+    "front_hr": {
+     "imgid": "1",
+     "rev": "6",
+     "sizes": {
+      "full": {
+       "h": 2100,
+       "w": 2325
+      }
+     }
+    },
+    "1": {
+     "uploader": "inf",
+     "uploaded_t": 1661087023
+    }
+   }
+  },
+  {
+   "code": "8000500278802",
+   "product_name": "Nutella",
+   "brands": [
+    "Ferrero",
+    "Nutella"
+   ],
+   "lang": "en",
+   "images": {
+    "front_en": {
+     "imgid": "8",
+     "rev": "33",
+     "sizes": {
+      "full": {
+       "h": 4000,
+       "w": 3000
+      }
+     }
+    },
+    "8": {
+     "uploader": "niki77",
+     "uploaded_t": 1694439367
+    },
+    "front_fr": {
+     "imgid": "1",
+     "rev": "4",
+     "sizes": {
+      "full": {
+       "h": 1360,
+       "w": 1020
+      }
+     }
+    },
+    "1": {
+     "uploader": "kiliweb",
+     "uploaded_t": "1510771977"
+    }
+   }
+  },
+  {
+   "code": "3017620420702",
+   "product_name": "Nutella pâte à tartiner aux noisettes et au cacao",
+   "brands": [
+    "Ferrero",
+    "Nutella"
+   ],
+   "lang": "fr",
+   "images": {
+    "front_en": {
+     "imgid": "30",
+     "rev": "127",
+     "sizes": {
+      "full": {
+       "h": 400,
+       "w": 264
+      }
+     }
+    },
+    "30": {
+     "uploader": "foodvisor",
+     "uploaded_t": 1691576243
+    },
+    "front_fr": {
+     "imgid": "35",
+     "rev": "147",
+     "sizes": {
+      "full": {
+       "h": 1256,
+       "w": 1168
+      }
+     }
+    },
+    "35": {
+     "uploader": "org-ferrero-france-commerciale",
+     "uploaded_t": 1730778346
+    },
+    "front_it": {
+     "imgid": "25",
+     "rev": "108",
+     "sizes": {
+      "full": {
+       "h": 4000,
+       "w": 3000
+      }
+     }
+    },
+    "25": {
+     "uploader": "openfoodfacts-contributors",
+     "uploaded_t": 1638477928
+    },
+    "front_xx": {
+     "imgid": "27",
+     "rev": "116",
+     "sizes": {
+      "full": {
+       "h": 1500,
+       "w": 1125
+      }
+     }
+    },
+    "27": {
+     "uploader": "product-scan-com",
+     "uploaded_t": 1639722622
+    }
+   }
+  },
+  {
+   "code": "18025211",
+   "product_name": "Nutella",
+   "brands": [
+    "Ferrero",
+    "Nutella"
+   ],
+   "lang": "en",
+   "images": {
+    "front_en": {
+     "imgid": "1",
+     "rev": "3",
+     "sizes": {
+      "full": {
+       "h": 3264,
+       "w": 2448
+      }
+     }
+    },
+    "1": {
+     "uploader": "openfoodfacts-contributors",
+     "uploaded_t": 1435519637
+    }
+   }
+  },
+  {
+   "code": "15002686",
+   "product_name": "Nutella",
+   "brands": [
+    "Ferrero",
+    " Nutella"
+   ],
+   "lang": "de",
+   "images": {
+    "front_de": {
+     "imgid": "2",
+     "rev": "5",
+     "sizes": {
+      "full": {
+       "h": 1000,
+       "w": 750
+      }
+     }
+    },
+    "2": {
+     "uploader": "grumpf",
+     "uploaded_t": 1598780571
+    }
+   }
+  }
+ ],
+ "count": 196,
+ "page": 1,
+ "page_size": 10
+}

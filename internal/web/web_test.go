@@ -59,13 +59,16 @@ func TestSetWikimediaHeaders(t *testing.T) {
 }
 
 // Wikimedia's media servers get the contact UA their robot policy requires,
-// even on the downloader's browser-style image requests.
-func TestSetBrowserHeadersUsesTheContactUAForWikimediaMedia(t *testing.T) {
+// even on the downloader's browser-style image requests; so does the Open
+// Food Facts image host.
+func TestSetBrowserHeadersUsesTheContactUAForContactMediaHosts(t *testing.T) {
 	for url, want := range map[string]string{
 		"https://upload.wikimedia.org/wikipedia/commons/a/a8/X.jpg":                   ContactUserAgent,
 		"https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/X.jpg/1920px-X.jpg": ContactUserAgent,
 		"https://is1-ssl.mzstatic.com/image/thumb/x/9999x9999bb.jpg":                  BrowserUserAgent,
 		"https://upload.wikimedia.org.example.com/x.jpg":                              BrowserUserAgent,
+		// Open Food Facts asks every request, images included, to name the app.
+		"https://images.openfoodfacts.org/images/products/301/762/042/2003/front_en.879.full.jpg": ContactUserAgent,
 	} {
 		req := httptest.NewRequest(http.MethodGet, url, nil)
 		SetBrowserHeaders(req)
@@ -81,6 +84,17 @@ func TestSetBrowserHeadersUsesTheContactUAForWikimediaMedia(t *testing.T) {
 func TestSetBHLHeaders(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "https://www.biodiversitylibrary.org/api3", nil)
 	SetBHLHeaders(req)
+	if got := req.Header.Get("User-Agent"); got != ContactUserAgent {
+		t.Errorf("User-Agent = %q, want the contact UA", got)
+	}
+	if got := req.Header.Get("Accept"); got != "application/json" {
+		t.Errorf("Accept = %q, want application/json", got)
+	}
+}
+
+func TestSetOFFHeaders(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "https://world.openfoodfacts.org/api/v2/product/3017620422003", nil)
+	SetOFFHeaders(req)
 	if got := req.Header.Get("User-Agent"); got != ContactUserAgent {
 		t.Errorf("User-Agent = %q, want the contact UA", got)
 	}
