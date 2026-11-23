@@ -97,9 +97,12 @@ func TestMapRegistryEntry(t *testing.T) {
 	if n, err := PageCount(MapKind, PageSettings{}, nil); n != 1 || err != nil {
 		t.Errorf("PageCount = %d, %v", n, err)
 	}
-	// Last; TestCalendarRegistryEntry checks the full order.
-	if PageKinds[len(PageKinds)-1].ID != MapKind {
-		t.Errorf("map kind not listed last")
+	// After the quote cards; TestCalendarRegistryEntry checks the full
+	// order.
+	for i, k := range PageKinds {
+		if k.ID == MapKind && (i == 0 || PageKinds[i-1].ID != QuotesKind) {
+			t.Errorf("map kind at %d, want right after the quote cards", i)
+		}
 	}
 }
 

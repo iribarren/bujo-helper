@@ -57,6 +57,17 @@ type PageLabels struct {
 	// QuotesCredit is the caption of quote card pages holding a Wikiquote
 	// quote; "Quotes from Wikiquote (CC BY-SA 4.0)".
 	QuotesCredit string
+	// RecipeIngredients and RecipeSteps are the column headings of recipe
+	// cards; "Ingredients" and "Steps".
+	RecipeIngredients string
+	RecipeSteps       string
+	// RecipeServes and RecipeTime start the parts of a recipe card's meta
+	// line, "Serves 4 · Time 30 min"; "Serves" and "Time".
+	RecipeServes string
+	RecipeTime   string
+	// RecipeContinued marks a recipe's continuation cards, in brackets
+	// after the title; "continued".
+	RecipeContinued string
 	// Language is the language of country names: "es" prints the Spanish
 	// ones, anything else the English ones ("en").
 	Language string
@@ -98,7 +109,13 @@ func (l PageLabels) resolved() PageLabels {
 		HabitsTitle:  or(l.HabitsTitle, "Habits · {month}"),
 		QuotesTitle:  or(l.QuotesTitle, "Words to keep"),
 		QuotesCredit: or(l.QuotesCredit, "Quotes from Wikiquote (CC BY-SA 4.0)"),
-		Language:     nameLanguage(l.Language),
+
+		RecipeIngredients: or(l.RecipeIngredients, "Ingredients"),
+		RecipeSteps:       or(l.RecipeSteps, "Steps"),
+		RecipeServes:      or(l.RecipeServes, "Serves"),
+		RecipeTime:        or(l.RecipeTime, "Time"),
+		RecipeContinued:   or(l.RecipeContinued, "continued"),
+		Language:          nameLanguage(l.Language),
 	}
 }
 
@@ -205,6 +222,13 @@ var PageKinds = []PageKind{
 		UsesTitle: true,
 		Defaults:  defaultMap,
 		decode:    decodeMap,
+	},
+	{
+		ID:       RecipesKind,
+		Label:    "Recipe cards",
+		FileTag:  "recipes",
+		Defaults: defaultRecipes,
+		decode:   decodeRecipes,
 	},
 }
 

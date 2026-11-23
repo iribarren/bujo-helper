@@ -653,6 +653,7 @@ func TestPageKinds(t *testing.T) {
 		{ID: "habits", Label: "Habit tracker", UsesTitle: true, Defaults: `{"month":0,"year":0,"habits":[]}`},
 		{ID: "quotes", Label: "Quote cards", UsesTitle: true, Defaults: `{"quotes":[],"style":"classic","perPage":6}`},
 		{ID: "map", Label: "Visited map", UsesTitle: true, Defaults: `{"region":"world","countries":[],"colour":"teal","list":true}`},
+		{ID: "recipes", Label: "Recipe cards", Defaults: `{"recipes":[],"size":"a6"}`},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("PageKinds()= %+v, want %+v", got, want)

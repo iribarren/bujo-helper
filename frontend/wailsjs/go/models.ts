@@ -415,6 +415,11 @@ export namespace sheet {
 	    HabitsTitle: string;
 	    QuotesTitle: string;
 	    QuotesCredit: string;
+	    RecipeIngredients: string;
+	    RecipeSteps: string;
+	    RecipeServes: string;
+	    RecipeTime: string;
+	    RecipeContinued: string;
 	    Language: string;
 	
 	    static createFrom(source: any = {}) {
@@ -432,6 +437,11 @@ export namespace sheet {
 	        this.HabitsTitle = source["HabitsTitle"];
 	        this.QuotesTitle = source["QuotesTitle"];
 	        this.QuotesCredit = source["QuotesCredit"];
+	        this.RecipeIngredients = source["RecipeIngredients"];
+	        this.RecipeSteps = source["RecipeSteps"];
+	        this.RecipeServes = source["RecipeServes"];
+	        this.RecipeTime = source["RecipeTime"];
+	        this.RecipeContinued = source["RecipeContinued"];
 	        this.Language = source["Language"];
 	    }
 	}
