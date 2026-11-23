@@ -24,7 +24,7 @@ func TestDefault(t *testing.T) {
 	for _, mt := range reg.List() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games", "anime", "manga", "artworks", "places", "nature"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "anime", "manga", "artworks", "places", "nature", "products"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 
@@ -198,6 +198,24 @@ func TestDefault(t *testing.T) {
 	}
 	if !reflect.DeepEqual(nature.Samples, wantNature) {
 		t.Errorf("nature samples = %+v, want %+v", nature.Samples, wantNature)
+	}
+
+	products, _ := reg.Get("products")
+	if products.Label != "Products" || products.CreatorLabel != "Brand" || products.DateLabel != "Tried on" || products.LocalEditions {
+		t.Errorf("products = %+v", products)
+	}
+	if want := []string{"openfoodfacts"}; !reflect.DeepEqual(providerNames(products), want) {
+		t.Errorf("products providers = %q, want %q", providerNames(products), want)
+	}
+	wantProducts := []media.Item{
+		{Title: "Nutella", Creator: "Ferrero"},
+		{Title: "Earl Grey", Creator: "Twinings"},
+		{Title: "Coca-Cola Zero", Creator: "Coca-Cola"},
+		// Barcode mode: the brand column is not used.
+		{Title: "3017620422003"},
+	}
+	if !reflect.DeepEqual(products.Samples, wantProducts) {
+		t.Errorf("products samples = %+v, want %+v", products.Samples, wantProducts)
 	}
 
 	if Default(nil, Keys{}) == nil {

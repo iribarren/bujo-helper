@@ -1,0 +1,69 @@
+{
+ "code": "3017620422003",
+ "product": {
+  "code": "3017620422003",
+  "product_name": "Nutella",
+  "brands": "Ferrero, Nutella",
+  "lang": "en",
+  "images": {
+   "front_de": {
+    "imgid": "122",
+    "rev": "439",
+    "sizes": {
+     "full": {
+      "h": 480,
+      "w": 384
+     }
+    }
+   },
+   "122": {
+    "uploader": "openfoodfacts-contributors",
+    "uploaded_t": 1661875501
+   },
+   "front_en": {
+    "imgid": 180,
+    "rev": 879,
+    "sizes": {
+     "full": {
+      "h": 1200,
+      "w": 1308
+     }
+    }
+   },
+   "180": {
+    "uploader": "org-ferrero-france-commerciale",
+    "uploaded_t": 1773681757
+   },
+   "front_es": {
+    "imgid": "146",
+    "rev": "621",
+    "sizes": {
+     "full": {
+      "h": 1135,
+      "w": 952
+     }
+    }
+   },
+   "146": {
+    "uploader": "thaialagata",
+    "uploaded_t": 1705708951
+   },
+   "front_it": {
+    "imgid": "123",
+    "rev": "467",
+    "sizes": {
+     "full": {
+      "h": 349,
+      "w": 268
+     }
+    }
+   },
+   "123": {
+    "uploader": "openfoodfacts-contributors",
+    "uploaded_t": 1661875624
+   }
+  }
+ },
+ "status": 1,
+ "status_verbose": "product found"
+}

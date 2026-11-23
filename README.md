@@ -9,7 +9,7 @@ Book covers, movie posters, TV series posters, album covers, game box art and an
 
 ## Features
 
-- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series, games, anime and manga), `Album, Artist` (albums), `Title, Artist` (artworks), `Place, Country` (places) or a plant or animal `Name` (nature) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series, games, anime and manga), `Album, Artist` (albums), `Title, Artist` (artworks), `Place, Country` (places), a plant or animal `Name` (nature) or `Product, Brand` or a barcode (products) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
@@ -20,6 +20,7 @@ Book covers, movie posters, TV series posters, album covers, game box art and an
 - Public-domain artworks from museum open-access collections, each saved with a credit file, see [Artworks](#artworks).
 - Landmark and city photos, and country flags, from Wikimedia Commons, each saved with a credit file, see [Places](#places).
 - Vintage natural-history illustrations (plates) of plants and animals from Wikimedia Commons, each saved with a credit file, see [Nature](#nature).
+- Food and drink product pictures (tea, coffee, wine, beer, snacks) from Open Food Facts, by name and brand or by barcode, each saved with a credit file, see [Products](#products).
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
 - **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, with your own photos centre-cropped to standard print shapes (instant mini, square, 2 × 6 in photo strips or wallet), as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. A live preview shows the PDF before you export it. See [Print sheet](#print-sheet).
@@ -151,7 +152,7 @@ License: CC0 1.0 Universal (public domain), https://creativecommons.org/publicdo
 Object page: https://www.metmuseum.org/art/collection/search/436535
 ```
 
-Place and nature images get one too (see [Places](#places) and [Nature](#nature)); other media types get no credit file. The print sheet can list them on a [credits page](#credits-page). The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
+Place, nature and product images get one too (see [Places](#places), [Nature](#nature) and [Products](#products)); other media types get no credit file. The print sheet can list them on a [credits page](#credits-page). The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
 
 **Why not the Art Institute of Chicago.** Its API and public-domain images are CC0 too, but its image server (`www.artic.edu/iiif/2/…`) answers every request that does not come from a browser with a Cloudflare challenge (HTTP 403, checked in November 2026), so the app cannot download its images.
 
@@ -233,6 +234,35 @@ Wikidata taxon: https://www.wikidata.org/wiki/Q25334
 
 BHL metadata is CC0. API requests send the contact User-Agent; the key travels in the request URL and is never shown in error messages.
 
+### Products
+
+Products download the front picture of a food or drink product (tea, coffee, wine, beer, snacks) from [Open Food Facts](https://world.openfoodfacts.org/) (no key). Write `Product, Brand` (`Nutella, Ferrero`, `Earl Grey, Twinings`); the brand is optional, but it helps. A line of 8 to 14 digits with no brand is a barcode (`3017620422003`); spaces and hyphens in it are ignored (`3 017620 422003`). Product pictures come in every shape, so a cover sheet gives landscape ones wide cells (see [Print sheet](#print-sheet)).
+
+1. A **barcode** is looked up directly with the product API (`world.openfoodfacts.org/api/v2/product/<barcode>`). An unknown barcode fails with "no Open Food Facts product with barcode …".
+2. Otherwise **Search-a-licious** (`search.openfoodfacts.org`) searches the name, and the brand when given, up to 10 results. The closest names come first, and up to three products with a usable picture are kept.
+3. Each product's front picture is chosen in this order: the store country's language (`es` gives Spanish), the product's own language, English, then any other front picture.
+4. The full-size picture is used only when its shorter side is at least 400 px (a 50 mm cover at about 200 dpi). Smaller pictures, and pictures of unknown size, are skipped; when no product is left the item fails and names the skipped products with the reason, for example `Nutella (3017620422003): front image too small (300×200 px)`.
+
+A barcode line saves as `<barcode>.jpg`, since file names come from what you typed. Write `Product, Brand` to get a named file.
+
+The legacy text search (`/cgi/search.pl`) answered "Page temporarily unavailable" when checked (2026-11-23), and the v2 product API has no text search, so name searches use Search-a-licious.
+
+**Licence and rights.** Open Food Facts product images are under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Its [terms of use](https://world.openfoodfacts.org/terms-of-use) allow reuse for any purpose, as long as you name the licence and credit Open Food Facts with a link to the product page; contributors are credited through that same link. Share-alike applies to derivative works: if you publish an edited version of an image, it must stay under CC BY-SA. Product packaging shows brand designs and trademarks that the licence does not cover, and Open Food Facts leaves those to you to check: print them for your own journal. Open Food Facts asks that one API call match one real user request; the app only looks up the items you ask for, one at a time, and never scrapes in bulk.
+
+**Credit file.** Each product image is saved with a credit file next to it, the same way as places: the product name and brand, the contributor who uploaded the picture (when known), the source, the licence and the product page. For example, for `Nutella, Ferrero`:
+
+```text
+Title: Nutella (Ferrero)
+Contributor: kiliweb
+Source: Open Food Facts
+License: CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)
+Product page: https://world.openfoodfacts.org/product/3017620422003
+```
+
+When you print or share a page with these images, credit each one; the print sheet's [Credits page](#credits-page) does this for you.
+
+Open Food Facts asks every client for a User-Agent that names the app and a contact. The app sends `bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )` to its APIs and its image server. It allows 15 product reads and 10 searches per minute per IP, and going over can get the IP banned, so the app spaces product reads 4.5 s apart and searches 6.5 s apart, a margin under both. A long product list takes several seconds per item.
+
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
@@ -261,7 +291,7 @@ While **Nature** is selected and no key is saved, a tip above the list suggests 
 
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to AniList 2 s apart (AniList allows 30 per minute while degraded), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, image downloads from Wikimedia Commons 500 ms apart, and requests to the BHL API and its page scans 500 ms apart (BHL has IP rate limits but publishes no numbers). A nature item makes at most three Wikidata requests (once per name) and two Commons API requests per search, at most three searches; with a BHL key, BHL adds one name request and up to three volume requests. IGDB and AniList searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to AniList 2 s apart (AniList allows 30 per minute while degraded), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, image downloads from Wikimedia Commons 500 ms apart, requests to the BHL API and its page scans 500 ms apart (BHL has IP rate limits but publishes no numbers), and Open Food Facts product reads (`world.openfoodfacts.org`) 4.5 s apart, searches (`search.openfoodfacts.org`) 6.5 s apart and image downloads (`images.openfoodfacts.org`) 500 ms apart (Open Food Facts allows 15 product reads and 10 searches per minute). A nature item makes at most three Wikidata requests (once per name) and two Commons API requests per search, at most three searches; with a BHL key, BHL adds one name request and up to three volume requests. IGDB and AniList searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
 
 ## Local editions
 
@@ -292,13 +322,13 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies, TV series, games, anime and manga, `album,artist` for albums, `title,artist` for artworks, `place,country` for places, and a single `name` column for nature. The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies, TV series, games, anime and manga, `album,artist` for albums, `title,artist` for artworks, `place,country` for places, a single `name` column for nature, and `title,brand` for products (a barcode with no brand also works). The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, anime, manga, artworks, places or nature).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, anime, manga, artworks, places, nature or products).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
@@ -405,7 +435,7 @@ The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, s
 
 ### Credits page
 
-Wikimedia Commons images (see [Places](#places) and [Nature](#nature)) are often CC BY or CC BY-SA, which require the author and licence wherever the image is reproduced, printed sheets included; artworks are public domain, but credit is still good practice. With **Credits page** checked (the default), the PDF ends with one or more pages titled "Credits" ("Créditos" in Spanish), on the same paper, listing every selected image that has a credit file (`<image>.credit.txt`, see [Artworks](#artworks), [Places](#places) and [Nature](#nature)): a number, the image's title and creator from its file name, and the credit text, wrapped to the page width, in the order the images appear in the sheet.
+Wikimedia Commons images (see [Places](#places) and [Nature](#nature)) are often CC BY or CC BY-SA, and Open Food Facts images (see [Products](#products)) are CC BY-SA, which require credit and the licence wherever the image is reproduced, printed sheets included; artworks are public domain, but credit is still good practice. With **Credits page** checked (the default), the PDF ends with one or more pages titled "Credits" ("Créditos" in Spanish), on the same paper, listing every selected image that has a credit file (`<image>.credit.txt`, see [Artworks](#artworks), [Places](#places), [Nature](#nature) and [Products](#products)): a number, the image's title and creator from its file name, and the credit text, wrapped to the page width, in the order the images appear in the sheet.
 
 - Images without a credit file (books, movies, TV series, albums, games, anime, manga) are not listed. When no selected image has one, or the box is unchecked, no page is added and the PDF is exactly what it would be without the option.
 - A credit file that exists but cannot be read stops the export, naming the file, like an unreadable image.
@@ -995,13 +1025,14 @@ go run ./cmd/covers -type artworks -o art "Wheat Field with Cypresses, Vincent v
 go run ./cmd/covers -type places -o places "Eiffel Tower, France" "Machu Picchu, Peru" "Flag of Japan"
 go run ./cmd/covers -type nature -o nature "Robin" "Monstera deliciosa" "Barn owl"
 BHL_API_KEY=<key> go run ./cmd/covers -type nature -o nature "Barn owl"
+go run ./cmd/covers -type products -o products "Nutella, Ferrero" "Earl Grey, Twinings" "3017620422003"
 ```
 
 Flags must come before the items:
 
 | Flag           | Default  | Meaning                                                    |
 |----------------|----------|------------------------------------------------------------|
-| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `anime`, `manga`, `artworks`, `places` or `nature` |
+| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `anime`, `manga`, `artworks`, `places`, `nature` or `products` |
 | `-o`           | `covers` | Output folder                                              |
 | `-country`     | `es`     | Store country code; its editions are preferred             |
 | `-csv`         | (none)   | CSV file, added after the positional items                 |
@@ -1092,7 +1123,7 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; anime and manga: AniList; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons; nature: Wikidata taxa → Wikimedia Commons
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; anime and manga: AniList; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons; nature: Wikidata taxa → Wikimedia Commons; products: Open Food Facts
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming, credit files

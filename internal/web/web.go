@@ -69,19 +69,29 @@ func SetBHLHeaders(req *http.Request) {
 	req.Header.Set("Accept", "application/json")
 }
 
-// wikimediaMediaHosts serve Wikimedia Commons files and thumbnails. Their
-// robot policy rejects generic and fake browser User-Agents.
-var wikimediaMediaHosts = map[string]bool{
-	"upload.wikimedia.org": true,
-	"thumb.wikimedia.org":  true,
+// SetOFFHeaders marks a request to an Open Food Facts API as coming from
+// this app, with the contact Open Food Facts requires, and asks for JSON.
+func SetOFFHeaders(req *http.Request) {
+	req.Header.Set("User-Agent", ContactUserAgent)
+	req.Header.Set("Accept", "application/json")
+}
+
+// contactMediaHosts serve images whose owners require the contact
+// User-Agent: Wikimedia Commons files and thumbnails (their robot policy
+// rejects generic and fake browser User-Agents) and Open Food Facts
+// product images (every request must name the app).
+var contactMediaHosts = map[string]bool{
+	"upload.wikimedia.org":     true,
+	"thumb.wikimedia.org":      true,
+	"images.openfoodfacts.org": true,
 }
 
 // SetBrowserHeaders makes a request look like a desktop browser. Requests
-// to Wikimedia's media servers send the contact User-Agent instead, as
-// their policy requires.
+// to the contactMediaHosts send the contact User-Agent instead, as their
+// policies require.
 func SetBrowserHeaders(req *http.Request) {
 	ua := BrowserUserAgent
-	if wikimediaMediaHosts[req.URL.Hostname()] {
+	if contactMediaHosts[req.URL.Hostname()] {
 		ua = ContactUserAgent
 	}
 	req.Header.Set("User-Agent", ua)
