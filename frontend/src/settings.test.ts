@@ -3,7 +3,8 @@ import {resolve} from 'node:path';
 
 import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 
-import {LetteringFonts} from '../wailsjs/go/main/App';
+import {GetSettings, LetteringFonts, SaveSettings} from '../wailsjs/go/main/App';
+import {BrowserOpenURL} from '../wailsjs/runtime/runtime';
 import {applyDom, setLang} from './i18n';
 import {initSettings, type SettingsDialog} from './settings';
 
@@ -29,7 +30,7 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     for (const name of Object.keys(original)) {
         stubs[name] = vi.fn(async () => undefined);
     }
-    stubs.GetSettings = vi.fn(async () => ({tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', language: ''}));
+    stubs.GetSettings = vi.fn(async () => ({tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', bggToken: '', language: ''}));
     stubs.LetteringFonts = vi.fn(async () => fontList);
     return stubs;
 });
@@ -151,5 +152,83 @@ describe('Settings About', () => {
         applyDom(document);
         expect(el('settings-about').querySelector('h3')?.textContent).toBe('Acerca de');
         expect(fontItem('go').querySelector('summary')?.textContent).toContain('Fuentes Go (predeterminadas)');
+    });
+});
+
+describe('BoardGameGeek token', () => {
+    const saved = {tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', bggToken: 'saved-token', language: ''};
+
+    afterEach(() => {
+        el('settings-close').click();
+        vi.mocked(SaveSettings).mockClear();
+    });
+
+    it('loads the saved token into a masked input that the toggle shows', async () => {
+        vi.mocked(GetSettings).mockResolvedValueOnce(saved as never);
+        dialog.open();
+        await vi.waitFor(() => expect(el<HTMLInputElement>('bgg-token').value).toBe('saved-token'));
+        expect(dialog.hasBGGToken()).toBe(true);
+        const input = el<HTMLInputElement>('bgg-token');
+        const toggle = el<HTMLButtonElement>('bgg-token-toggle');
+        expect(input.type).toBe('password');
+        expect(toggle.textContent).toBe('Show');
+        toggle.click();
+        expect(input.type).toBe('text');
+        expect(toggle.textContent).toBe('Hide');
+        toggle.click();
+        expect(input.type).toBe('password');
+    });
+
+    it('saves the token with the other settings when Enter is pressed in it', async () => {
+        dialog.open();
+        await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+        const input = el<HTMLInputElement>('bgg-token');
+        input.value = 'new-token';
+        input.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SaveSettings).mock.calls[0][0]).toMatchObject({bggToken: 'new-token'});
+    });
+
+    it('reports no token when none is saved', async () => {
+        dialog.open();
+        await vi.waitFor(() => expect(el<HTMLInputElement>('bgg-token').value).toBe(''));
+        expect(dialog.hasBGGToken()).toBe(false);
+    });
+
+    it('says when it is needed and links to the BoardGameGeek applications page', () => {
+        expect(el('bgg-token').closest('.field')?.textContent).toContain('Only needed when this build has no BoardGameGeek token built in.');
+        const link = el<HTMLAnchorElement>('bgg-link');
+        expect(link.href).toBe('https://boardgamegeek.com/applications');
+        const click = new MouseEvent('click', {bubbles: true, cancelable: true});
+        link.dispatchEvent(click);
+        expect(click.defaultPrevented).toBe(true);
+        expect(BrowserOpenURL).toHaveBeenCalledWith('https://boardgamegeek.com/applications');
+    });
+});
+
+describe('Settings About BoardGameGeek credit', () => {
+    it('credits BoardGameGeek with the Powered by BGG logo linked to it', () => {
+        const about = el('settings-about');
+        expect(about.textContent).toContain('BoardGameGeek');
+        const link = el<HTMLAnchorElement>('bgg-logo-about');
+        expect(about.contains(link)).toBe(true);
+        expect(link.href).toBe('https://boardgamegeek.com/');
+        expect(link.getAttribute('aria-label')).toBe('Powered by BGG');
+        const images = Array.from(link.querySelectorAll('img'));
+        expect(images.map((img) => img.getAttribute('src') ?? '')).toEqual([
+            expect.stringContaining('powered-by-bgg-rgb'),
+            expect.stringContaining('powered-by-bgg-reversed-rgb'),
+        ]);
+        for (const img of images) expect(img.alt).toBe('Powered by BGG');
+        const click = new MouseEvent('click', {bubbles: true, cancelable: true});
+        link.dispatchEvent(click);
+        expect(click.defaultPrevented).toBe(true);
+        expect(BrowserOpenURL).toHaveBeenCalledWith('https://boardgamegeek.com/');
+    });
+
+    it('names the token field in Spanish', () => {
+        setLang('es');
+        applyDom(document);
+        expect(document.querySelector('label[for="bgg-token"]')?.textContent).toBe('Token de BoardGameGeek');
     });
 });

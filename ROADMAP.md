@@ -424,6 +424,7 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 - **Start with the licensing/access step:** confirm BGG XML API access requirements, and present the findings and any key setup to the user before implementing.
 - A new media type **Board games**, with input `Title, Year`. Source: the BGG search, then the thing image.
 - Media type selector, sample CSV and CLI support. Store a token, if one is needed, like the TMDB key.
+- **Decision (2026-11-23):** the BGG XML API2 needs a registered application (approved by hand) and its bearer token on every request. BGG asks apps for end users to ship the app's own token, so users need not register for one, so release builds embed one from the CI secret `BGG_TOKEN` (`-ldflags -X bujo-helper/internal/buildinfo.BGGToken=...`); a token in Settings, `-bgg-token` or `BGG_TOKEN` overrides it. Without a token the type is skipped. Requests are spaced 5 s apart. Credits go in the `<file>.credit.txt` sidecar (game and year, BoardGameGeek, game page, publisher copyright note). The "Powered by BGG" logo is shown in the Download tab (board games only) and in Settings → About.
 
 **Acceptance**
 - Provider tests with fixtures. The README documents the access setup.

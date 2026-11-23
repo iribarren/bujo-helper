@@ -2,7 +2,7 @@
 //
 // Usage:
 //
-//	covers [-type books|movies|tv|albums|games|anime|manga|artworks|places|nature|products] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] [-bhl-key key] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" | "Name" | "Product, Brand" | "Barcode" ...]
+//	covers [-type books|movies|tv|albums|games|anime|manga|artworks|places|nature|products|boardgames] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] [-bhl-key key] [-bgg-token token] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" | "Name" | "Product, Brand" | "Barcode" ...]
 //
 // The TMDB API key (used by -type movies and -type tv) comes from -tmdb-key, else the
 // TMDB_API_KEY environment variable, else the settings file the GUI writes.
@@ -10,16 +10,18 @@
 // -igdb-secret, else IGDB_CLIENT_ID and IGDB_CLIENT_SECRET, else the
 // settings file. The Biodiversity Heritage Library API key (used by -type
 // nature after Commons) comes from -bhl-key, else BHL_API_KEY, else the
-// settings file.
+// settings file. The BoardGameGeek token (used by -type boardgames) comes
+// from -bgg-token, else BGG_TOKEN, else the settings file, else the token
+// built into release builds.
 //
 // Each positional argument is one "Title, Creator" item (split on the last
 // comma): "Title, Author" for books, "Title, Year" for movies, TV series,
-// games, anime and manga, "Album, Artist" for albums, "Title, Artist" for
+// games, anime, manga and board games, "Album, Artist" for albums, "Title, Artist" for
 // artworks and "Place, Country" (the country is optional) or "Flag of
 // Country" for places, a plant or animal "Name" (common or scientific)
 // alone for nature, and "Product, Brand" (the brand is optional) or a
-// barcode alone for products. Each artwork, place, nature and product image
-// gets a "<image file>.credit.txt" sidecar with its credit.
+// barcode alone for products. Each artwork, place, nature, product and
+// board game image gets a "<image file>.credit.txt" sidecar with its credit.
 // Items from -csv are added after them. Flags must come before the items. The exit code is 1 when any item failed and 2 on usage errors.
 package main
 
@@ -34,6 +36,7 @@ import (
 	"sync"
 
 	"bujo-helper/internal/batch"
+	"bujo-helper/internal/buildinfo"
 	"bujo-helper/internal/catalog"
 	"bujo-helper/internal/downloader"
 	"bujo-helper/internal/media"
@@ -65,15 +68,17 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 	tmdbKey := func() string { return "" }
 	igdbCredentials := func() (string, string) { return "", "" }
 	bhlKey := func() string { return "" }
+	bggToken := func() string { return "" }
 	reg := e.registry(catalog.Keys{
 		TMDB: func() string { return tmdbKey() },
 		IGDB: func() (string, string) { return igdbCredentials() },
 		BHL:  func() string { return bhlKey() },
+		BGG:  func() string { return bggToken() },
 	})
 
 	fs := flag.NewFlagSet("covers", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie, TV, game, anime and manga items are "Title, Year", albums "Album, Artist", artworks "Title, Artist", places "Place, Country" or "Flag of Country", nature "Name", products "Product, Brand" or a barcode`)
+	mediaType := fs.String("type", "books", "media type: "+typeIDs(reg, ", ")+`; movie, TV, game, anime, manga and board game items are "Title, Year", albums "Album, Artist", artworks "Title, Artist", places "Place, Country" or "Flag of Country", nature "Name", products "Product, Brand" or a barcode`)
 	outDir := fs.String("o", "covers", "output directory")
 	country := fs.String("country", "es", "store country code (es, us, gb, de, ...); books prefer local editions")
 	csvPath := fs.String("csv", "", "CSV file with title and creator (author, year or artist) columns")
@@ -81,8 +86,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 	igdbIDFlag := fs.String("igdb-id", "", "IGDB (Twitch) Client ID (default: $IGDB_CLIENT_ID, then the saved settings)")
 	igdbSecretFlag := fs.String("igdb-secret", "", "IGDB (Twitch) Client Secret (default: $IGDB_CLIENT_SECRET, then the saved settings)")
 	bhlFlag := fs.String("bhl-key", "", "Biodiversity Heritage Library API key, for nature (default: $BHL_API_KEY, then the saved settings)")
+	bggFlag := fs.String("bgg-token", "", "BoardGameGeek XML API token, for board games (default: $BGG_TOKEN, then the saved settings, then the built-in token)")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] [-bhl-key key] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" | "Name" | "Product, Brand" | "Barcode" ...]`)
+		fmt.Fprintln(stderr, `usage: covers [-type `+typeIDs(reg, "|")+`] [-o dir] [-country es] [-csv file] [-tmdb-key key] [-igdb-id id -igdb-secret secret] [-bhl-key key] [-bgg-token token] ["Title, Author" | "Title, Year" | "Album, Artist" | "Title, Artist" | "Place, Country" | "Name" | "Product, Brand" | "Barcode" ...]`)
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -118,6 +124,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer, e env) in
 	})
 	bhlKey = sync.OnceValue(func() string {
 		return resolveBHLKey(*bhlFlag, e.getenv, loadSettings)
+	})
+	bggToken = sync.OnceValue(func() string {
+		return resolveBGGToken(*bggFlag, e.getenv, loadSettings, buildinfo.BGGToken)
 	})
 
 	var mu sync.Mutex
@@ -174,6 +183,23 @@ func resolveBHLKey(flagVal string, getenv func(string) string, loadSettings func
 		return ""
 	}
 	return strings.TrimSpace(s.BHLAPIKey)
+}
+
+// resolveBGGToken returns the BoardGameGeek token: flagVal, else the
+// BGG_TOKEN environment variable, else the saved settings, else builtIn
+// (the token built into this build). Blank values are skipped, and the
+// settings are read only when needed. An unreadable settings file falls
+// back to builtIn.
+func resolveBGGToken(flagVal string, getenv func(string) string, loadSettings func() (settings.Settings, error), builtIn string) string {
+	if token := firstNonBlank(flagVal, getenv("BGG_TOKEN")); token != "" {
+		return token
+	}
+	if s, err := loadSettings(); err == nil {
+		if token := strings.TrimSpace(s.BGGToken); token != "" {
+			return token
+		}
+	}
+	return strings.TrimSpace(builtIn)
 }
 
 // resolveIGDBCredentials returns the IGDB (Twitch) Client ID and Client

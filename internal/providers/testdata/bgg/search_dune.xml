@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items total="4" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
+	<item type="boardgame" id="121">
+		<name type="primary" value="Dune"/>
+	</item>
+	<item type="boardgame" id="283355">
+		<name type="primary" value="Dune"/>
+		<yearpublished value="2019"/>
+	</item>
+	<item type="boardgame" id="9001">
+		<name type="primary" value="Dune"/>
+		<yearpublished value="1984"/>
+	</item>
+	<item type="boardgame" id="316554">
+		<name type="primary" value="Dune: Imperium"/>
+		<yearpublished value="2020"/>
+	</item>
+</items>

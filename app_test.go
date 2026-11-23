@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"bujo-helper/internal/batch"
+	"bujo-helper/internal/buildinfo"
 	"bujo-helper/internal/catalog"
 	"bujo-helper/internal/downloader"
 	"bujo-helper/internal/i18n"
@@ -245,10 +246,11 @@ func TestMediaTypesListSourcesInOrder(t *testing.T) {
 		got[mt.ID] = mt.Sources
 	}
 	want := map[string][]string{
-		"books":    {"Apple Books", "Open Library", "Amazon"},
-		"movies":   {"TMDB", "IMDb", "Wikidata/iTunes"},
-		"albums":   {"MusicBrainz", "Apple Music"},
-		"products": {"Open Food Facts"},
+		"books":      {"Apple Books", "Open Library", "Amazon"},
+		"movies":     {"TMDB", "IMDb", "Wikidata/iTunes"},
+		"albums":     {"MusicBrainz", "Apple Music"},
+		"products":   {"Open Food Facts"},
+		"boardgames": {"BoardGameGeek"},
 	}
 	for id, w := range want {
 		if !reflect.DeepEqual(got[id], w) {
@@ -1396,7 +1398,7 @@ func TestDefaultAppMoviesUseTheSavedTMDBKey(t *testing.T) {
 	for _, mt := range a.MediaTypes() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games", "anime", "manga", "artworks", "places", "nature", "products"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "anime", "manga", "artworks", "places", "nature", "products", "boardgames"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 	movies, _ := a.registry.Get("movies")
@@ -2133,6 +2135,98 @@ func TestDefaultAppNatureUsesTheSavedBHLKey(t *testing.T) {
 	}
 	if got := a.GetSettings().BHLAPIKey; got != "new-bhl" {
 		t.Errorf("GetSettings BHL key = %q", got)
+	}
+}
+
+// setBuiltInBGGToken sets the token built into this build for the test.
+func setBuiltInBGGToken(t *testing.T, token string) {
+	t.Helper()
+	old := buildinfo.BGGToken
+	buildinfo.BGGToken = token
+	t.Cleanup(func() { buildinfo.BGGToken = old })
+}
+
+// boardGameGeek is the BoardGameGeek provider of a's board games type.
+func boardGameGeek(t *testing.T, a *App) *providers.BoardGameGeek {
+	t.Helper()
+	games, _ := a.registry.Get("boardgames")
+	for _, p := range games.Providers {
+		if b, ok := p.(*providers.BoardGameGeek); ok {
+			return b
+		}
+	}
+	t.Fatal("no BoardGameGeek provider for board games")
+	return nil
+}
+
+func TestDefaultAppBoardGamesPreferTheSavedBGGToken(t *testing.T) {
+	setBuiltInBGGToken(t, "built-in")
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := settings.Save(path, settings.Settings{BGGToken: " saved-bgg "}); err != nil {
+		t.Fatal(err)
+	}
+	a := newDefaultApp(http.DefaultClient, path)
+	bgg := boardGameGeek(t, a)
+	if got := bgg.Token(); got != "saved-bgg" {
+		t.Errorf("BGG token = %q, want the saved token over the built-in one", got)
+	}
+	if err := a.SaveSettings(settings.Settings{BGGToken: "new-bgg"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := bgg.Token(); got != "new-bgg" {
+		t.Errorf("BGG token after saving = %q, want new-bgg without a restart", got)
+	}
+	if got := a.GetSettings().BGGToken; got != "new-bgg" {
+		t.Errorf("GetSettings BGG token = %q", got)
+	}
+	// Clearing the saved token falls back to the built-in one at once.
+	if err := a.SaveSettings(settings.Settings{BGGToken: "  "}); err != nil {
+		t.Fatal(err)
+	}
+	if got := bgg.Token(); got != "built-in" {
+		t.Errorf("BGG token after clearing = %q, want the built-in token", got)
+	}
+}
+
+func TestDefaultAppBoardGamesUseTheBuiltInBGGToken(t *testing.T) {
+	setBuiltInBGGToken(t, "built-in")
+	a := newDefaultApp(http.DefaultClient, filepath.Join(t.TempDir(), "settings.json"))
+	if got := boardGameGeek(t, a).Token(); got != "built-in" {
+		t.Errorf("BGG token = %q, want the built-in token when none is saved", got)
+	}
+}
+
+func TestDefaultAppBoardGamesWithoutAnyBGGToken(t *testing.T) {
+	setBuiltInBGGToken(t, "")
+	a := newDefaultApp(http.DefaultClient, filepath.Join(t.TempDir(), "settings.json"))
+	if got := boardGameGeek(t, a).Token(); got != "" {
+		t.Errorf("BGG token = %q, want none", got)
+	}
+}
+
+func TestHasBuiltInBGGToken(t *testing.T) {
+	tests := []struct {
+		name  string
+		token string
+		want  bool
+	}{
+		{"built in", "tok", true},
+		{"source build", "", false},
+		{"blank", " \n", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setBuiltInBGGToken(t, tt.token)
+			a := newDefaultApp(http.DefaultClient, "")
+			if got := a.HasBuiltInBGGToken(); got != tt.want {
+				t.Errorf("HasBuiltInBGGToken = %v, want %v", got, tt.want)
+			}
+			// A saved token does not count as built in.
+			a.settings.BGGToken = "saved"
+			if got := a.HasBuiltInBGGToken(); got != tt.want {
+				t.Errorf("HasBuiltInBGGToken with a saved token = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 

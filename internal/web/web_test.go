@@ -102,3 +102,17 @@ func TestSetOFFHeaders(t *testing.T) {
 		t.Errorf("Accept = %q, want application/json", got)
 	}
 }
+
+func TestSetBGGHeaders(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "https://boardgamegeek.com/xmlapi2/search", nil)
+	SetBGGHeaders(req, "tok")
+	if got := req.Header.Get("Authorization"); got != "Bearer tok" {
+		t.Errorf("Authorization = %q, want %q", got, "Bearer tok")
+	}
+	if ua := req.Header.Get("User-Agent"); ua != ContactUserAgent {
+		t.Errorf("User-Agent = %q, want %q", ua, ContactUserAgent)
+	}
+	if got := req.Header.Get("Accept"); got != "application/xml" {
+		t.Errorf("Accept = %q, want application/xml", got)
+	}
+}

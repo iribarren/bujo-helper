@@ -122,10 +122,13 @@ func TestBHLWithoutAKeyMakesNoRequest(t *testing.T) {
 }
 
 func TestOnlyOptionalProvidersAreSkipped(t *testing.T) {
-	// BHL is optional for nature; TMDB and IGDB are primary sources whose
+	// BHL is optional for nature and BoardGameGeek is skipped until a
+	// token is built in or saved; TMDB and IGDB are primary sources whose
 	// missing key must stay a failure the user sees.
-	if !errors.Is(ErrNoBHLKey, media.ErrSkipped) {
-		t.Error("ErrNoBHLKey does not wrap media.ErrSkipped")
+	for name, err := range map[string]error{"ErrNoBHLKey": ErrNoBHLKey, "ErrNoBGGToken": ErrNoBGGToken} {
+		if !errors.Is(err, media.ErrSkipped) {
+			t.Errorf("%s does not wrap media.ErrSkipped", name)
+		}
 	}
 	for _, err := range []error{ErrNoTMDBKey, ErrNoIGDBCredentials} {
 		if errors.Is(err, media.ErrSkipped) || errors.Is(err, media.ErrNotFound) {

@@ -76,6 +76,15 @@ func SetOFFHeaders(req *http.Request) {
 	req.Header.Set("Accept", "application/json")
 }
 
+// SetBGGHeaders marks a request to the BoardGameGeek XML API as coming
+// from this app, with contact information, and authorizes it with the
+// application token BoardGameGeek requires on every request.
+func SetBGGHeaders(req *http.Request, token string) {
+	req.Header.Set("User-Agent", ContactUserAgent)
+	req.Header.Set("Accept", "application/xml")
+	req.Header.Set("Authorization", "Bearer "+token)
+}
+
 // contactMediaHosts serve images whose owners require the contact
 // User-Agent: Wikimedia Commons files and thumbnails (their robot policy
 // rejects generic and fake browser User-Agents) and Open Food Facts

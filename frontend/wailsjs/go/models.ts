@@ -333,6 +333,7 @@ export namespace settings {
 	    igdbClientId: string;
 	    igdbClientSecret: string;
 	    bhlApiKey: string;
+	    bggToken: string;
 	    language: string;
 	
 	    static createFrom(source: any = {}) {
@@ -345,6 +346,7 @@ export namespace settings {
 	        this.igdbClientId = source["igdbClientId"];
 	        this.igdbClientSecret = source["igdbClientSecret"];
 	        this.bhlApiKey = source["bhlApiKey"];
+	        this.bggToken = source["bggToken"];
 	        this.language = source["language"];
 	    }
 	}

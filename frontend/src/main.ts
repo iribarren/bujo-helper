@@ -5,6 +5,7 @@ import {
     ChooseFolder,
     DefaultOutputDir,
     GetSettings,
+    HasBuiltInBGGToken,
     ImportCSV,
     MediaTypes,
     OpenFolder,
@@ -18,7 +19,7 @@ import {useLanguage} from './language';
 import {initPages} from './pages';
 import {initPrint, type PrintSheet} from './print';
 import {initRadioGroup} from './radioGroup';
-import {initSettings, type SettingsDialog} from './settings';
+import {initBGGLogo, initSettings, type SettingsDialog} from './settings';
 import {initTabs} from './tabs';
 
 // Payload of the "job:item" event (Go: ItemEvent).
@@ -64,6 +65,7 @@ const EXAMPLES: Record<string, string> = {
     places: 'Eiffel Tower, France',
     nature: 'Robin',
     products: 'Nutella, Ferrero',
+    boardgames: 'Catan, 1995',
 };
 
 // The tip shown above the list for media types whose best source needs a
@@ -93,6 +95,12 @@ const KEY_TIPS: Record<string, KeyTip> = {
         what: 'tip.bhlWhat',
         why: 'tip.bhlWhy',
         saved: () => settingsDialog?.hasBHLKey() ?? false,
+    },
+    // A token built into the app works as well as a saved one.
+    boardgames: {
+        what: 'tip.bggWhat',
+        why: 'tip.bggWhy',
+        saved: () => builtInBGGToken || (settingsDialog?.hasBGGToken() ?? false),
     },
 };
 
@@ -138,6 +146,7 @@ const ui = {
     openFolder: byId<HTMLButtonElement>('open-folder'),
     printThese: byId<HTMLButtonElement>('print-these'),
     sources: byId<HTMLParagraphElement>('sources'),
+    bggLogo: byId<HTMLAnchorElement>('bgg-logo-download'),
 };
 
 let mediaTypes: main.MediaTypeInfo[] = [];
@@ -145,6 +154,9 @@ let mediaTypes: main.MediaTypeInfo[] = [];
 // (like the Make pages tab).
 let settingsDialog: SettingsDialog | undefined;
 let printSheet: PrintSheet | undefined;
+// Whether this build has a BoardGameGeek token built in, asked once at
+// startup; false until Go answers.
+let builtInBGGToken = false;
 let running = false;
 let total = 0;
 let finished = 0;
@@ -246,7 +258,8 @@ function updatePlaceholder() {
 
 // updateKeyTip suggests a key while a media type whose best source needs
 // one is selected and none is saved: TMDB for movies and TV series, IGDB
-// for games, BHL for nature.
+// for games, BHL for nature, and BoardGameGeek for board games unless this
+// build has a token built in.
 function updateKeyTip() {
     const tip = KEY_TIPS[ui.mediaType.value];
     ui.keyTip.hidden = !tip || tip.saved();
@@ -281,8 +294,15 @@ function updateSources() {
     ui.sources.textContent = sources.length ? t('download.sources', {sources: sources.join(', ')}) : '';
 }
 
+// updateBGGLogo shows the "Powered by BGG" logo under the sources while
+// board games, which come from BoardGameGeek, are selected.
+function updateBGGLogo() {
+    ui.bggLogo.hidden = ui.mediaType.value !== 'boardgames';
+}
+
 function updateMediaType() {
     updateSources();
+    updateBGGLogo();
     updatePlaceholder();
     updateKeyTip();
     updateSampleButton();
@@ -666,6 +686,15 @@ async function init() {
     onLangChange(() => applyDom(document));
     onLangChange(relabel);
     settingsDialog = initSettings({onChange: updateKeyTip});
+    initBGGLogo(ui.bggLogo);
+    // Not awaited: the tip updates when the answer arrives. A failure
+    // leaves the tip asking for a token, which is still accurate advice.
+    HasBuiltInBGGToken().then((has) => {
+        builtInBGGToken = has;
+        updateKeyTip();
+    }, (err) => {
+        console.warn(`Could not ask for a built-in BoardGameGeek token: ${errorText(err)}`);
+    });
     printSheet = initPrint({
         outputFolder,
         showError,

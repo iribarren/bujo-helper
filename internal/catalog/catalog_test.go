@@ -24,7 +24,7 @@ func TestDefault(t *testing.T) {
 	for _, mt := range reg.List() {
 		ids = append(ids, mt.ID)
 	}
-	if want := []string{"books", "movies", "tv", "albums", "games", "anime", "manga", "artworks", "places", "nature", "products"}; !reflect.DeepEqual(ids, want) {
+	if want := []string{"books", "movies", "tv", "albums", "games", "anime", "manga", "artworks", "places", "nature", "products", "boardgames"}; !reflect.DeepEqual(ids, want) {
 		t.Fatalf("media types = %q, want %q", ids, want)
 	}
 
@@ -218,6 +218,22 @@ func TestDefault(t *testing.T) {
 		t.Errorf("products samples = %+v, want %+v", products.Samples, wantProducts)
 	}
 
+	boardgames, _ := reg.Get("boardgames")
+	if boardgames.Label != "Board games" || boardgames.CreatorLabel != "Year" || boardgames.DateLabel != "Played on" || boardgames.LocalEditions {
+		t.Errorf("boardgames = %+v", boardgames)
+	}
+	if want := []string{"boardgamegeek"}; !reflect.DeepEqual(providerNames(boardgames), want) {
+		t.Errorf("boardgames providers = %q, want %q", providerNames(boardgames), want)
+	}
+	wantBoardGames := []media.Item{
+		{Title: "Catan", Creator: "1995"},
+		{Title: "Wingspan", Creator: "2019"},
+		{Title: "Azul", Creator: "2017"},
+	}
+	if !reflect.DeepEqual(boardgames.Samples, wantBoardGames) {
+		t.Errorf("boardgames samples = %+v, want %+v", boardgames.Samples, wantBoardGames)
+	}
+
 	if Default(nil, Keys{}) == nil {
 		t.Error("Default(nil) should fall back to a default client")
 	}
@@ -277,5 +293,19 @@ func TestDefaultNatureProvidersShareTheResolverAndReadTheBHLKey(t *testing.T) {
 	key = "second"
 	if got := bhl.Key(); got != "second" {
 		t.Errorf("BHL key = %q, want it read live", got)
+	}
+}
+
+func TestDefaultPassesTheBGGToken(t *testing.T) {
+	token := "first"
+	reg := Default(http.DefaultClient, Keys{BGG: func() string { return token }})
+	boardgames, _ := reg.Get("boardgames")
+	bgg, ok := boardgames.Providers[0].(*providers.BoardGameGeek)
+	if !ok {
+		t.Fatalf("first boardgames provider is %T, want *providers.BoardGameGeek", boardgames.Providers[0])
+	}
+	token = "second"
+	if got := bgg.Token(); got != "second" {
+		t.Errorf("BGG token = %q, want it read live", got)
 	}
 }

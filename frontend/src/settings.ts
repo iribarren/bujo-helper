@@ -4,11 +4,14 @@ import {BrowserOpenURL} from '../wailsjs/runtime/runtime';
 import {onLangChange, t} from './i18n';
 import {useLanguage} from './language';
 import {letteringFonts} from './lettering';
+import bggLogoLight from './assets/powered-by-bgg-rgb.svg';
+import bggLogoDark from './assets/powered-by-bgg-reversed-rgb.svg';
 
 // The Settings dialog: the UI language, the TMDB API key and the TMDB
 // attribution notice, the IGDB (Twitch) Client ID and Client Secret, the
-// Biodiversity Heritage Library (BHL) API key, and an About section that
-// lists the bundled lettering fonts with their licences.
+// Biodiversity Heritage Library (BHL) API key, the BoardGameGeek token, and
+// an About section that lists the bundled lettering fonts with their
+// licences and credits BoardGameGeek with its "Powered by BGG" logo.
 
 export interface SettingsDialog {
     // open shows the dialog, prefilled with the saved settings.
@@ -22,6 +25,9 @@ export interface SettingsDialog {
     hasIGDBCredentials(): boolean;
     // hasBHLKey reports whether a BHL API key is saved.
     hasBHLKey(): boolean;
+    // hasBGGToken reports whether a BoardGameGeek token is saved (a token
+    // built into the app is not a saved one).
+    hasBGGToken(): boolean;
 }
 
 export interface SettingsOptions {
@@ -33,6 +39,20 @@ function byId<T extends HTMLElement>(id: string): T {
     const node = document.getElementById(id);
     if (!node) throw new Error(`missing #${id}`);
     return node as T;
+}
+
+// initBGGLogo fills the "Powered by BGG" logo link: the official logo for
+// light backgrounds and its reversed variant for dark ones (style.css shows
+// the one matching the theme), opening BoardGameGeek in the system browser.
+export function initBGGLogo(link: HTMLAnchorElement): void {
+    const light = link.querySelector<HTMLImageElement>('.bgg-logo-light');
+    const dark = link.querySelector<HTMLImageElement>('.bgg-logo-dark');
+    if (light) light.src = bggLogoLight;
+    if (dark) dark.src = bggLogoDark;
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        BrowserOpenURL(link.href);
+    });
 }
 
 function errorText(err: unknown): string {
@@ -162,10 +182,13 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         igdbToggle: byId<HTMLButtonElement>('igdb-secret-toggle'),
         bhlKey: byId<HTMLInputElement>('bhl-key'),
         bhlToggle: byId<HTMLButtonElement>('bhl-key-toggle'),
+        bggToken: byId<HTMLInputElement>('bgg-token'),
+        bggToggle: byId<HTMLButtonElement>('bgg-token-toggle'),
         links: [
             byId<HTMLAnchorElement>('tmdb-link'),
             byId<HTMLAnchorElement>('twitch-link'),
             byId<HTMLAnchorElement>('bhl-link'),
+            byId<HTMLAnchorElement>('bgg-link'),
         ],
         status: byId<HTMLSpanElement>('settings-status'),
         save: byId<HTMLButtonElement>('settings-save'),
@@ -173,12 +196,14 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     };
 
     const about = initAbout();
+    initBGGLogo(byId<HTMLAnchorElement>('bgg-logo-about'));
 
     let current = new settings.Settings({
         tmdbApiKey: '',
         igdbClientId: '',
         igdbClientSecret: '',
         bhlApiKey: '',
+        bggToken: '',
         language: '',
     });
 
@@ -198,6 +223,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         showSecret(ui.key, ui.toggle, ui.key.type === 'text');
         showSecret(ui.igdbSecret, ui.igdbToggle, ui.igdbSecret.type === 'text');
         showSecret(ui.bhlKey, ui.bhlToggle, ui.bhlKey.type === 'text');
+        showSecret(ui.bggToken, ui.bggToggle, ui.bggToken.type === 'text');
     }
 
     // fill shows the current settings in the inputs.
@@ -207,6 +233,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         ui.igdbId.value = current.igdbClientId || '';
         ui.igdbSecret.value = current.igdbClientSecret || '';
         ui.bhlKey.value = current.bhlApiKey || '';
+        ui.bggToken.value = current.bggToken || '';
     }
 
     async function load(): Promise<void> {
@@ -220,6 +247,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         showSecret(ui.key, ui.toggle, false);
         showSecret(ui.igdbSecret, ui.igdbToggle, false);
         showSecret(ui.bhlKey, ui.bhlToggle, false);
+        showSecret(ui.bggToken, ui.bggToggle, false);
         try {
             await load();
         } catch (err) {
@@ -244,6 +272,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
                 igdbClientId: ui.igdbId.value,
                 igdbClientSecret: ui.igdbSecret.value,
                 bhlApiKey: ui.bhlKey.value,
+                bggToken: ui.bggToken.value,
                 language: ui.language.value,
             }));
         } catch (err) {
@@ -268,6 +297,8 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     ui.igdbToggle.addEventListener('click', () =>
         showSecret(ui.igdbSecret, ui.igdbToggle, ui.igdbSecret.type === 'password'));
     ui.bhlToggle.addEventListener('click', () => showSecret(ui.bhlKey, ui.bhlToggle, ui.bhlKey.type === 'password'));
+    ui.bggToggle.addEventListener('click', () =>
+        showSecret(ui.bggToken, ui.bggToggle, ui.bggToken.type === 'password'));
     for (const link of ui.links) {
         link.addEventListener('click', (e) => {
             // Open the page in the system browser; never navigate the webview.
@@ -277,7 +308,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     }
     ui.save.addEventListener('click', save);
     ui.language.addEventListener('change', () => setStatus(''));
-    for (const input of [ui.key, ui.igdbId, ui.igdbSecret, ui.bhlKey]) {
+    for (const input of [ui.key, ui.igdbId, ui.igdbSecret, ui.bhlKey, ui.bggToken]) {
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
@@ -308,5 +339,6 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         hasIGDBCredentials: () =>
             (current.igdbClientId || '').trim() !== '' && (current.igdbClientSecret || '').trim() !== '',
         hasBHLKey: () => (current.bhlApiKey || '').trim() !== '',
+        hasBGGToken: () => (current.bggToken || '').trim() !== '',
     };
 }

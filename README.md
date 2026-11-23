@@ -5,11 +5,11 @@ Formerly "Cover Downloader".
 A desktop app for Windows, macOS and Linux that downloads cover images in batches.
 Paste a list of `Title, Author` lines, or import a CSV file, and it saves one cover image per item to a folder.
 
-Book covers, movie posters, TV series posters, album covers, game box art and anime and manga covers are supported. The core is media-agnostic, so other media can be added later as new providers.
+Book covers, movie posters, TV series posters, album covers, game box art, anime and manga covers and board game box art are supported. The core is media-agnostic, so other media can be added later as new providers.
 
 ## Features
 
-- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series, games, anime and manga), `Album, Artist` (albums), `Title, Artist` (artworks), `Place, Country` (places), a plant or animal `Name` (nature) or `Product, Brand` or a barcode (products) per line, or import a CSV file (the import replaces the list).
+- Batch input: one `Title, Author` (books), `Title, Year` (movies, TV series, games, anime and manga, board games), `Album, Artist` (albums), `Title, Artist` (artworks), `Place, Country` (places), a plant or animal `Name` (nature) or `Product, Brand` or a barcode (products) per line, or import a CSV file (the import replaces the list).
 - Live progress: each item shows pending, saved (with file name and source), failed (with the reason) or cancelled.
 - Cancel at any time. Items that have not finished are reported as cancelled.
 - Fallback across sources: if one source has no match or no usable image, the next one is tried.
@@ -21,6 +21,7 @@ Book covers, movie posters, TV series posters, album covers, game box art and an
 - Landmark and city photos, and country flags, from Wikimedia Commons, each saved with a credit file, see [Places](#places).
 - Vintage natural-history illustrations (plates) of plants and animals from Wikimedia Commons, each saved with a credit file, see [Nature](#nature).
 - Food and drink product pictures (tea, coffee, wine, beer, snacks) from Open Food Facts, by name and brand or by barcode, each saved with a credit file, see [Products](#products).
+- Board game box art from BoardGameGeek, each saved with a credit file, see [Board games](#board-games).
 - Store country selection (default `es`; for example `us`, `gb`, `de`). Covers of that country's editions are preferred, see [Local editions](#local-editions).
 - **Open folder** shows the results in the system file manager.
 - **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, with your own photos centre-cropped to standard print shapes (instant mini, square, 2 × 6 in photo strips or wallet), as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. A live preview shows the PDF before you export it. See [Print sheet](#print-sheet).
@@ -152,7 +153,7 @@ License: CC0 1.0 Universal (public domain), https://creativecommons.org/publicdo
 Object page: https://www.metmuseum.org/art/collection/search/436535
 ```
 
-Place, nature and product images get one too (see [Places](#places), [Nature](#nature) and [Products](#products)); other media types get no credit file. The print sheet can list them on a [credits page](#credits-page). The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
+Place, nature, product and board game images get one too (see [Places](#places), [Nature](#nature), [Products](#products) and [Board games](#board-games)); other media types get no credit file. The print sheet can list them on a [credits page](#credits-page). The print sheet gallery lists images only, never credit files. The app never deletes or renames downloaded images; if you do, do the same to the credit file.
 
 **Why not the Art Institute of Chicago.** Its API and public-domain images are CC0 too, but its image server (`www.artic.edu/iiif/2/…`) answers every request that does not come from a browser with a Cloudflare challenge (HTTP 403, checked in November 2026), so the app cannot download its images.
 
@@ -263,6 +264,31 @@ When you print or share a page with these images, credit each one; the print she
 
 Open Food Facts asks every client for a User-Agent that names the app and a contact. The app sends `bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )` to its APIs and its image server. It allows 15 product reads and 10 searches per minute per IP, and going over can get the IP banned, so the app spaces product reads 4.5 s apart and searches 6.5 s apart, a margin under both. A long product list takes several seconds per item.
 
+### Board games
+
+Board games download box art from [BoardGameGeek](https://boardgamegeek.com/) (BGG), through its XML API2. Write `Title, Year` (`Catan, 1995`, `Wingspan, 2019`); the year is the first publication year, and it is optional. BGG needs an application token, which release builds include, see [BoardGameGeek token](#boardgamegeek-token). Without a token the source is skipped with "no BoardGameGeek token in this build (add one in Settings)". Box art comes in every shape, so a cover sheet gives square boxes square cells and landscape ones wide cells (see [Print sheet](#print-sheet)).
+
+1. **Search** (`/xmlapi2/search?type=boardgame`) for the exact title (`exact=1`), then, when that finds nothing, again without `exact`. Only board games are kept: expansions and accessories are ignored. A title with no match fails with "no BoardGameGeek board game matches …".
+2. The results are ranked by title (the same title first, then one that starts with the other, then one that contains it) and year (the year asked for, then one off by one, then an unknown year). The best 20 are read in one **thing** request (`/xmlapi2/thing?id=…&stats=1`) for their names, year, image and number of ratings. Primary and alternate names both match, so `Die Siedler von Catan` also finds `CATAN`.
+3. They are ranked again by title, then year, then number of ratings (the most rated first, so among several games called `Dune` with no year asked for, the most rated one wins). Up to three with box art are kept, best first; a game without an image is skipped. When none has one, the item fails with "no BoardGameGeek board game with box art matches …".
+
+A token BGG rejects fails the item with "BoardGameGeek rejected the token (HTTP 401); check the BoardGameGeek token in Settings" (or HTTP 403). BGG answers 500 or 503 when it throttles; the app reports "BoardGameGeek is busy (HTTP 503); try again later" (also for HTTP 429 and 500).
+
+**Licence and rights.** The [XML API Terms of Use](https://boardgamegeek.com/wiki/page/XML_API_Terms_of_Use) grant a non-commercial licence, free of charge, that BGG can revoke at any time. They require crediting BoardGameGeek by name wherever its data is used and showing the "Powered by BGG" logo, linked to BGG, in public-facing uses: the app shows it in the Download tab while **Board games** is selected and in **Settings → About**. They forbid modifying the data and using it to train AI or large language models. See also BGG's guide [Using the XML API](https://boardgamegeek.com/using_the_xml_api). Box art is copyrighted by its publishers, like book covers: downloaded images are for personal use only. This app is not endorsed by BoardGameGeek.
+
+**Credit file.** Each board game image is saved with a credit file next to it, the same way as places: the game and its year, the source, the game page and the copyright note. For example, for `Catan, 1995`:
+
+```text
+Title: CATAN (1995)
+Image: BoardGameGeek
+Game page: https://boardgamegeek.com/boardgame/13
+Box art © its publisher; personal use only.
+```
+
+The title is BGG's primary name for the game. The print sheet's [Credits page](#credits-page) lists these credits.
+
+BGG publishes no rate limit, but says a 5-second wait between requests seems to suffice and asks apps to keep requests few. The app sends `bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )` and the token (`Authorization: Bearer …`) on every request to `boardgamegeek.com`, and spaces those requests 5 s apart. A board game makes two or three requests (a second search only when the exact one finds nothing), so a long list takes 10 to 15 s per game.
+
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
@@ -289,9 +315,23 @@ The Biodiversity Heritage Library key is optional: nature images come from Wikim
 
 While **Nature** is selected and no key is saved, a tip above the list suggests adding one. A key BHL rejects fails the item's BHL search with "BHL rejected the API key (HTTP 401)".
 
+### BoardGameGeek token
+
+BoardGameGeek's XML API needs a registered application and its token on every request. BGG asks apps for end users not to make them get their own token, so release builds include the app's own token: board games work with nothing to set up.
+
+- Builds from source have no built-in token (see [Building](#building)). While **Board games** is selected and the build has no token and none is saved, a tip above the list suggests adding one.
+- A token saved in **Settings → BoardGameGeek token** overrides the built-in one. It is saved next to the TMDB key, readable only by you, and sent only to BoardGameGeek.
+- For the command line, use `-bgg-token`, or the `BGG_TOKEN` environment variable; otherwise the token saved by the app is used, and then the built-in one.
+
+To get a token (for a source build or a fork):
+
+1. Sign in at [boardgamegeek.com](https://boardgamegeek.com/) and register a non-commercial application at [boardgamegeek.com/applications](https://boardgamegeek.com/applications). BGG approves applications by hand, which may take a week or more.
+2. Once it is approved, create a token for the application on the same page.
+3. Paste it into **Settings**, or build it in (see [Building](#building)).
+
 ### Rate limits
 
-All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to AniList 2 s apart (AniList allows 30 per minute while degraded), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, image downloads from Wikimedia Commons 500 ms apart, requests to the BHL API and its page scans 500 ms apart (BHL has IP rate limits but publishes no numbers), and Open Food Facts product reads (`world.openfoodfacts.org`) 4.5 s apart, searches (`search.openfoodfacts.org`) 6.5 s apart and image downloads (`images.openfoodfacts.org`) 500 ms apart (Open Food Facts allows 15 product reads and 10 searches per minute). A nature item makes at most three Wikidata requests (once per name) and two Commons API requests per search, at most three searches; with a BHL key, BHL adds one name request and up to three volume requests. IGDB and AniList searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
+All sources share one HTTP client that respects rate limits. A `429 Too Many Requests` answer (or a `503` with `Retry-After`) pauses that source for every download: the client waits for the `Retry-After` time (or 1 s, 2 s, 4 s if none is given) and retries up to 3 times. A wait longer than 60 s is not attempted; the item falls back to the next source instead. Requests to TMDB, Wikidata and the Commons API are also spaced out slightly, requests to IGDB 250 ms apart (IGDB allows four per second), requests to AniList 2 s apart (AniList allows 30 per minute while degraded), requests to MusicBrainz one second apart, requests to the Met 25 ms apart, image downloads from Wikimedia Commons 500 ms apart, requests to the BHL API and its page scans 500 ms apart (BHL has IP rate limits but publishes no numbers), and Open Food Facts product reads (`world.openfoodfacts.org`) 4.5 s apart, searches (`search.openfoodfacts.org`) 6.5 s apart and image downloads (`images.openfoodfacts.org`) 500 ms apart (Open Food Facts allows 15 product reads and 10 searches per minute), and requests to BoardGameGeek (`boardgamegeek.com`) 5 s apart (BGG publishes no limit, answers 500 or 503 when it throttles, and says a 5-second wait suffices). A nature item makes at most three Wikidata requests (once per name) and two Commons API requests per search, at most three searches; with a BHL key, BHL adds one name request and up to three volume requests. IGDB and AniList searches are POST requests; they are retried like the others, since a rate-limited request was not processed.
 
 ## Local editions
 
@@ -322,13 +362,13 @@ Any other country only selects the store, with no edition preference. To add a c
 
 ## CSV format
 
-- One item per row: `title,author` for books, `title,year` for movies, TV series, games, anime and manga, `album,artist` for albums, `title,artist` for artworks, `place,country` for places, a single `name` column for nature, and `title,brand` for products (a barcode with no brand also works). The second column is optional and extra columns are ignored.
+- One item per row: `title,author` for books, `title,year` for movies, TV series, games, anime and manga, `album,artist` for albums, `title,artist` for artworks, `place,country` for places, a single `name` column for nature, `title,brand` for products (a barcode with no brand also works), and `title,year` for board games. The second column is optional and extra columns are ignored.
 - An optional header row (for example `title,author`) is detected and skipped.
 - Comma (`,`) or semicolon (`;`) delimiters are detected automatically.
 - UTF-8 (with or without BOM) and Windows-1252 (the Excel default on Windows) are both accepted.
 - Quote titles that contain the delimiter: `"Guns, Germs, and Steel",Jared Diamond`.
 
-See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, anime, manga, artworks, places, nature or products).
+See [`sample_books.csv`](sample_books.csv) for an example. In the app, the **Sample CSV** link next to **Import CSV…** saves an example file for the selected media type (books, movies, TV series, albums, games, anime, manga, artworks, places, nature, products or board games).
 
 In the text box, a line is split on its **last** comma, so `Guns, Germs, and Steel, Jared Diamond` works without quotes. Blank lines and lines starting with `#` are ignored.
 
@@ -435,7 +475,7 @@ The **Cut mode** sets how a cover sheet is prepared for cutting. Review cards, s
 
 ### Credits page
 
-Wikimedia Commons images (see [Places](#places) and [Nature](#nature)) are often CC BY or CC BY-SA, and Open Food Facts images (see [Products](#products)) are CC BY-SA, which require credit and the licence wherever the image is reproduced, printed sheets included; artworks are public domain, but credit is still good practice. With **Credits page** checked (the default), the PDF ends with one or more pages titled "Credits" ("Créditos" in Spanish), on the same paper, listing every selected image that has a credit file (`<image>.credit.txt`, see [Artworks](#artworks), [Places](#places), [Nature](#nature) and [Products](#products)): a number, the image's title and creator from its file name, and the credit text, wrapped to the page width, in the order the images appear in the sheet.
+Wikimedia Commons images (see [Places](#places) and [Nature](#nature)) are often CC BY or CC BY-SA, and Open Food Facts images (see [Products](#products)) are CC BY-SA, which require credit and the licence wherever the image is reproduced, printed sheets included; artworks are public domain, but credit is still good practice. With **Credits page** checked (the default), the PDF ends with one or more pages titled "Credits" ("Créditos" in Spanish), on the same paper, listing every selected image that has a credit file (`<image>.credit.txt`, see [Artworks](#artworks), [Places](#places), [Nature](#nature), [Products](#products) and [Board games](#board-games)): a number, the image's title and creator from its file name, and the credit text, wrapped to the page width, in the order the images appear in the sheet.
 
 - Images without a credit file (books, movies, TV series, albums, games, anime, manga) are not listed. When no selected image has one, or the box is unchecked, no page is added and the PDF is exactly what it would be without the option.
 - A credit file that exists but cannot be read stops the export, naming the file, like an unreadable image.
@@ -1026,13 +1066,14 @@ go run ./cmd/covers -type places -o places "Eiffel Tower, France" "Machu Picchu,
 go run ./cmd/covers -type nature -o nature "Robin" "Monstera deliciosa" "Barn owl"
 BHL_API_KEY=<key> go run ./cmd/covers -type nature -o nature "Barn owl"
 go run ./cmd/covers -type products -o products "Nutella, Ferrero" "Earl Grey, Twinings" "3017620422003"
+BGG_TOKEN=<token> go run ./cmd/covers -type boardgames -o boardgames "Catan, 1995" "Wingspan, 2019"
 ```
 
 Flags must come before the items:
 
 | Flag           | Default  | Meaning                                                    |
 |----------------|----------|------------------------------------------------------------|
-| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `anime`, `manga`, `artworks`, `places`, `nature` or `products` |
+| `-type`        | `books`  | Media type: `books`, `movies`, `tv`, `albums`, `games`, `anime`, `manga`, `artworks`, `places`, `nature`, `products` or `boardgames` |
 | `-o`           | `covers` | Output folder                                              |
 | `-country`     | `es`     | Store country code; its editions are preferred             |
 | `-csv`         | (none)   | CSV file, added after the positional items                 |
@@ -1040,6 +1081,7 @@ Flags must come before the items:
 | `-igdb-id`     | (none)   | IGDB (Twitch) Client ID; overrides `IGDB_CLIENT_ID` and the saved one |
 | `-igdb-secret` | (none)   | IGDB (Twitch) Client Secret; overrides `IGDB_CLIENT_SECRET` and the saved one |
 | `-bhl-key`     | (none)   | Biodiversity Heritage Library API key, for nature; overrides `BHL_API_KEY` and the saved key |
+| `-bgg-token`   | (none)   | BoardGameGeek token, for board games; overrides `BGG_TOKEN`, the saved token and the built-in one |
 
 The exit code is `0` when every item succeeded, `1` when any item failed or was cancelled, and `2` for usage errors.
 
@@ -1095,6 +1137,18 @@ wails build -platform windows/amd64
 
 Each build is a single executable with the frontend embedded.
 
+A build from source has no built-in [BoardGameGeek token](#boardgamegeek-token). To build one in, pass it to the linker; it is never committed:
+
+```sh
+# Linux (bash); drop -tags webkit2_41 on macOS
+wails build -tags webkit2_41 -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=$BGG_TOKEN"
+go build -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=$BGG_TOKEN" ./cmd/covers
+```
+
+On Windows (PowerShell), use `$env:BGG_TOKEN` instead of `$BGG_TOKEN` and leave out `-tags webkit2_41`.
+
+The [release workflow](.github/workflows/release.yml) does this with the `BGG_TOKEN` repository secret (**Settings → Secrets and variables → Actions**). Without the secret, as in a fork, the release still builds, with no built-in token.
+
 ## Releasing
 
 Pushing a tag that starts with `v` runs the [release workflow](.github/workflows/release.yml). It builds the Linux and Windows binaries on GitHub Actions and publishes them as a GitHub release with generated notes:
@@ -1123,13 +1177,14 @@ cmd/covers/            command-line tool
 internal/
   media/               domain types: Item, Candidate, Provider, MediaType, Registry
   catalog/             built-in media types and their providers
-  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; anime and manga: AniList; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons; nature: Wikidata taxa → Wikimedia Commons; products: Open Food Facts
+  providers/           books: Apple Books, Open Library, Amazon; movies: TMDB, IMDb, Wikidata → iTunes; TV: TMDB, IMDb; albums: MusicBrainz + Cover Art Archive, iTunes; games: IGDB, Steam; anime and manga: AniList; artworks: the Met, Cleveland; places: Wikidata → Wikimedia Commons; nature: Wikidata taxa → Wikimedia Commons; products: Open Food Facts; board games: BoardGameGeek
   match/               title/creator matching and ranking
   batch/               text lines and CSV parsing
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming, credit files
   locale/              country table: language and ISBN prefixes of local editions
   isbn/                ISBN-10/13 validation, conversion and extraction
   quotes/              Wikiquote search: a person's page and its quotes, sections filtered and text cleaned
+  buildinfo/           values injected into release builds (the BoardGameGeek token)
   web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
   settings/            user settings file (TMDB API key)
   gallery/             print sheet: folder listing and thumbnails for the UI
@@ -1167,5 +1222,6 @@ That's all. The UI lists media types from the registry and uses the creator labe
 | Luckiest Guy (from [Google Fonts](https://github.com/google/fonts)) | [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) | [lettering](#lettering) of headers and titles; embedded unmodified, subset into each PDF |
 | [Go fonts](https://go.dev/blog/go-fonts) (Go Regular, Go Bold) | BSD 3-Clause | every PDF's text and the Default lettering font |
 | [Natural Earth](https://www.naturalearthdata.com/) 1:50m Admin 0 – Countries, v5.1.2 (names from Wikidata, CC0) | [public domain](https://www.naturalearthdata.com/about/terms-of-use/) | the [visited map](#map-data); simplified and embedded |
+| "Powered by BGG" logo (`powered-by-bgg-rgb.svg`, `powered-by-bgg-reversed-rgb.svg`, from BGG's official logo set linked from the [XML API Terms of Use](https://boardgamegeek.com/wiki/page/XML_API_Terms_of_Use)) | BoardGameGeek's trademark, used as its terms require | credits BoardGameGeek in the Download tab and **Settings → About**, linked to BGG; embedded unmodified in `frontend/src/assets/` |
 
 Each font's licence file ships in `internal/sheet/fonts/<id>/` and can be read in **Settings → About**, which also names pdf.js.

@@ -343,3 +343,37 @@ func TestSaveTrimsAndKeepsTheBHLKey(t *testing.T) {
 		t.Errorf("Load(old file) = %+v, %v", got, err)
 	}
 }
+
+func TestSaveTrimsAndKeepsTheBGGToken(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := Save(path, Settings{BHLAPIKey: "bhl", BGGToken: " bgg-token\n"}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (Settings{BHLAPIKey: "bhl", BGGToken: "bgg-token"}); got != want {
+		t.Errorf("Load = %+v, want %+v", got, want)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `"bggToken": "bgg-token"`; !strings.Contains(string(b), want) {
+		t.Errorf("file = %s, want it to contain %s", b, want)
+	}
+	// Files saved before the BoardGameGeek token existed still load.
+	if err := os.WriteFile(path, []byte(`{"bhlApiKey": "k"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := Load(path); err != nil || got != (Settings{BHLAPIKey: "k"}) {
+		t.Errorf("Load(old file) = %+v, %v", got, err)
+	}
+}
+
+func TestTrimmedTrimsTheBGGToken(t *testing.T) {
+	if got := (Settings{BGGToken: "\t tok \n"}).Trimmed().BGGToken; got != "tok" {
+		t.Errorf("Trimmed BGGToken = %q, want tok", got)
+	}
+}

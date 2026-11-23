@@ -3,16 +3,24 @@ import {resolve} from 'node:path';
 
 import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 
-import {ChooseFolder, ExportPage, ListCovers, Start} from '../wailsjs/go/main/App';
-import {EventsOn} from '../wailsjs/runtime/runtime';
+import {ChooseFolder, ExportPage, GetSettings, ListCovers, Start} from '../wailsjs/go/main/App';
+import {BrowserOpenURL, EventsOn} from '../wailsjs/runtime/runtime';
 import {useLanguage} from './language';
 
 // main.ts wires the whole page when imported, so these tests load the real
 // markup, stub the Go bindings and the Wails runtime, and drive the page
 // through the media type selector.
 
-const {mediaTypes} = vi.hoisted(() => ({
-    mediaTypes: [
+// builtInBGGToken settles what HasBuiltInBGGToken answers; until a test
+// calls it, the answer is pending, as if Go had not replied yet.
+const {mediaTypes, builtInBGGToken} = vi.hoisted(() => {
+    let settle: (has: boolean) => void = () => undefined;
+    const answer = new Promise<boolean>((resolve) => {
+        settle = resolve;
+    });
+    return {
+        builtInBGGToken: {answer, settle: (has: boolean) => settle(has)},
+        mediaTypes: [
         {id: 'books', label: 'Books', creatorLabel: 'Author', sources: ['Apple Books', 'Open Library', 'Amazon']},
         {id: 'nature', label: 'Nature', creatorLabel: '', sources: ['Wikimedia Commons', 'Biodiversity Heritage Library']},
         {id: 'anime', label: 'Anime', creatorLabel: 'Year'},
@@ -21,8 +29,10 @@ const {mediaTypes} = vi.hoisted(() => ({
         // that is only blanks, still means "no creator column".
         {id: 'unlabelled', label: 'Unlabelled'},
         {id: 'blank', label: 'Blank', creatorLabel: '  '},
+        {id: 'boardgames', label: 'Board games', creatorLabel: 'Year', sources: ['BoardGameGeek']},
     ],
-}));
+    };
+});
 
 vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     const original = await importOriginal<Record<string, unknown>>();
@@ -33,6 +43,7 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     stubs.MediaTypes = vi.fn(async () => mediaTypes);
     stubs.GetSettings = vi.fn(async () => ({language: 'en'}));
     stubs.DefaultOutputDir = vi.fn(async () => '/covers');
+    stubs.HasBuiltInBGGToken = vi.fn(() => builtInBGGToken.answer);
     for (const name of ['PrintPapers', 'PrintFormats', 'PrintSizes', 'PrintCutModes']) {
         stubs[name] = vi.fn(async () => []);
     }
@@ -101,6 +112,13 @@ async function resetFolders() {
 }
 
 beforeAll(async () => {
+    // jsdom has no modal dialogs.
+    HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
+        this.open = true;
+    };
+    HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
+        this.open = false;
+    };
     const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
     document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
     await import('./main');
@@ -129,6 +147,7 @@ describe('items placeholder', () => {
     const examples: Array<[type: string, example: string]> = [
         ['anime', 'Frieren, 2023'],
         ['manga', 'Berserk, 1989'],
+        ['boardgames', 'Catan, 1995'],
     ];
     for (const [type, example] of examples) {
         it(`gives a "Title, Year" example for ${type}`, () => {
@@ -222,6 +241,65 @@ describe('key tip', () => {
     it('is hidden for a type whose sources need no key', () => {
         selectType('books');
         expect(el('key-tip').hidden).toBe(true);
+    });
+
+    // openSettings opens the Settings dialog with saved settings, which
+    // reloads them, and closes it again.
+    async function openSettings(saved: Record<string, string>) {
+        vi.mocked(GetSettings).mockResolvedValueOnce(saved as never);
+        el('settings-open').click();
+        await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+        await vi.waitFor(() => expect(el<HTMLInputElement>('bgg-token').value).toBe(saved.bggToken ?? ''));
+        el('settings-close').click();
+    }
+
+    // One sequential case: the built-in token answer arrives once, at
+    // startup, and cannot be taken back.
+    it('asks for a BoardGameGeek token for board games until one is saved or built in', async () => {
+        selectType('boardgames');
+        expect(el('key-tip').hidden).toBe(false);
+        expect(el('key-tip-what').textContent).toBe('a BoardGameGeek token');
+        expect(el('key-tip-why').textContent).toBe('to download board game box art; this build has none built in.');
+
+        await openSettings({language: 'en', bggToken: 'saved-token'});
+        expect(el('key-tip').hidden).toBe(true);
+        await openSettings({language: 'en', bggToken: ''});
+        expect(el('key-tip').hidden).toBe(false);
+
+        builtInBGGToken.settle(true);
+        await vi.waitFor(() => expect(el('key-tip').hidden).toBe(true));
+        selectType('books');
+        selectType('boardgames');
+        expect(el('key-tip').hidden).toBe(true);
+    });
+});
+
+describe('Powered by BGG logo', () => {
+    it('shows in the Download tab only while board games are selected', () => {
+        selectType('boardgames');
+        expect(el('bgg-logo-download').hidden).toBe(false);
+        selectType('books');
+        expect(el('bgg-logo-download').hidden).toBe(true);
+        selectType('nature');
+        expect(el('bgg-logo-download').hidden).toBe(true);
+    });
+
+    it('links to BoardGameGeek with both theme variants of the official logo', () => {
+        const link = el<HTMLAnchorElement>('bgg-logo-download');
+        expect(link.href).toBe('https://boardgamegeek.com/');
+        expect(link.getAttribute('aria-label')).toBe('Powered by BGG');
+        const images = Array.from(link.querySelectorAll('img'));
+        expect(images.map((img) => img.className)).toEqual(['bgg-logo-light', 'bgg-logo-dark']);
+        expect(images[0].getAttribute('src')).toContain('powered-by-bgg-rgb');
+        expect(images[1].getAttribute('src')).toContain('powered-by-bgg-reversed-rgb');
+        for (const img of images) expect(img.alt).toBe('Powered by BGG');
+    });
+
+    it('opens BoardGameGeek in the system browser', () => {
+        const click = new MouseEvent('click', {bubbles: true, cancelable: true});
+        el('bgg-logo-download').dispatchEvent(click);
+        expect(click.defaultPrevented).toBe(true);
+        expect(BrowserOpenURL).toHaveBeenCalledWith('https://boardgamegeek.com/');
     });
 });
 

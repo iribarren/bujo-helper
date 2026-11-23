@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"bujo-helper/internal/buildinfo"
 	"bujo-helper/internal/catalog"
 	"bujo-helper/internal/media"
 	"bujo-helper/internal/settings"
@@ -285,9 +286,9 @@ func TestUsageListsMediaTypes(t *testing.T) {
 		t.Fatalf("exit code = %d, want 2", code)
 	}
 	for _, want := range []string{
-		"books, movies, tv, albums, games, anime, manga, artworks, places, nature, products",
-		"books|movies|tv|albums|games|anime|manga|artworks|places|nature|products",
-		`movie, TV, game, anime and manga items are "Title, Year"`,
+		"books, movies, tv, albums, games, anime, manga, artworks, places, nature, products, boardgames",
+		"books|movies|tv|albums|games|anime|manga|artworks|places|nature|products|boardgames",
+		`movie, TV, game, anime, manga and board game items are "Title, Year"`,
 		`albums "Album, Artist"`,
 		`artworks "Title, Artist"`,
 		`places "Place, Country" or "Flag of Country", nature "Name", products "Product, Brand" or a barcode`,
@@ -588,6 +589,91 @@ func TestUsageShowsTheBHLKeyFlag(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, testEnv(testRegistry(t)))
 	for _, want := range []string{"[-bhl-key key]", "BHL_API_KEY"} {
+		if !strings.Contains(stderr.String(), want) {
+			t.Errorf("usage lacks %q:\n%s", want, &stderr)
+		}
+	}
+}
+
+func TestResolveBGGToken(t *testing.T) {
+	fromFile := func(token string, err error) func() (settings.Settings, error) {
+		return func() (settings.Settings, error) { return settings.Settings{BGGToken: token}, err }
+	}
+	env := func(vals map[string]string) func(string) string {
+		return func(k string) string { return vals[k] }
+	}
+	tests := []struct {
+		name    string
+		flag    string
+		env     map[string]string
+		load    func() (settings.Settings, error)
+		builtIn string
+		want    string
+	}{
+		{"flag wins", "flag-tok", map[string]string{"BGG_TOKEN": "env-tok"}, fromFile("file-tok", nil), "built-in", "flag-tok"},
+		{"env beats file", "", map[string]string{"BGG_TOKEN": "env-tok"}, fromFile("file-tok", nil), "built-in", "env-tok"},
+		{"file beats built-in", "", nil, fromFile("file-tok", nil), "built-in", "file-tok"},
+		{"blank flag and env fall through", "  ", map[string]string{"BGG_TOKEN": " "}, fromFile(" file-tok ", nil), "built-in", "file-tok"},
+		{"built-in when nothing is set", "", nil, fromFile(" ", nil), " built-in ", "built-in"},
+		{"settings error falls back to built-in", "", nil, fromFile("file-tok", errors.New("unreadable")), "built-in", "built-in"},
+		{"nothing set", "", nil, fromFile("", nil), "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := resolveBGGToken(tt.flag, env(tt.env), tt.load, tt.builtIn); got != tt.want {
+				t.Errorf("resolveBGGToken = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// bggEnv runs board game searches against a provider that reports the
+// token it receives on got, with BGG_TOKEN set to envToken and the
+// settings file holding fileToken.
+func bggEnv(t *testing.T, envToken, fileToken string, got chan string) env {
+	return env{
+		getenv: func(name string) string {
+			if name == "BGG_TOKEN" {
+				return envToken
+			}
+			return ""
+		},
+		loadSettings: func() (settings.Settings, error) { return settings.Settings{BGGToken: fileToken}, nil },
+		registry: func(keys catalog.Keys) *media.Registry {
+			reg := media.NewRegistry()
+			if err := reg.Register(media.MediaType{ID: "boardgames", Providers: []media.Provider{keyProvider{keys.BGG, got}}}); err != nil {
+				t.Fatal(err)
+			}
+			return reg
+		},
+	}
+}
+
+func TestRunPassesTheBGGToken(t *testing.T) {
+	got := make(chan string, 1)
+	var stdout, stderr bytes.Buffer
+	run(context.Background(), []string{"-type", "boardgames", "-o", t.TempDir(), "-bgg-token", "flag-tok", "Catan, 1995"}, &stdout, &stderr, bggEnv(t, "env-tok", "file-tok", got))
+	if k := received(t, got); k != "flag-tok" {
+		t.Errorf("token = %q, want flag-tok", k)
+	}
+}
+
+func TestRunFallsBackToTheBuiltInBGGToken(t *testing.T) {
+	old := buildinfo.BGGToken
+	buildinfo.BGGToken = "built-in"
+	t.Cleanup(func() { buildinfo.BGGToken = old })
+	got := make(chan string, 1)
+	var stdout, stderr bytes.Buffer
+	run(context.Background(), []string{"-type", "boardgames", "-o", t.TempDir(), "Catan, 1995"}, &stdout, &stderr, bggEnv(t, "", "", got))
+	if k := received(t, got); k != "built-in" {
+		t.Errorf("token = %q, want the built-in token", k)
+	}
+}
+
+func TestUsageShowsTheBGGTokenFlag(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	run(context.Background(), []string{"-o", t.TempDir()}, &stdout, &stderr, testEnv(testRegistry(t)))
+	for _, want := range []string{"[-bgg-token token]", "BGG_TOKEN"} {
 		if !strings.Contains(stderr.String(), want) {
 			t.Errorf("usage lacks %q:\n%s", want, &stderr)
 		}

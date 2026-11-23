@@ -24,6 +24,9 @@ type Settings struct {
 	// BHLAPIKey is the user's Biodiversity Heritage Library API key, used
 	// for nature plates.
 	BHLAPIKey string `json:"bhlApiKey"`
+	// BGGToken is a BoardGameGeek XML API application token, used for
+	// board games. It overrides the token built into release builds.
+	BGGToken string `json:"bggToken"`
 	// Language is the UI language: "" follows the system, "en" or "es".
 	Language string `json:"language"`
 }
@@ -36,6 +39,7 @@ func (s Settings) Trimmed() Settings {
 	s.IGDBClientID = strings.TrimSpace(s.IGDBClientID)
 	s.IGDBClientSecret = strings.TrimSpace(s.IGDBClientSecret)
 	s.BHLAPIKey = strings.TrimSpace(s.BHLAPIKey)
+	s.BGGToken = strings.TrimSpace(s.BGGToken)
 	switch lang := strings.ToLower(strings.TrimSpace(s.Language)); lang {
 	case "en", "es":
 		s.Language = lang
