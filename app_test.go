@@ -184,6 +184,45 @@ func TestStartWhileRunning(t *testing.T) {
 	rec.waitDone(t)
 }
 
+// A Start refused because a job is running creates no folder.
+func TestStartWhileRunningCreatesNoFolder(t *testing.T) {
+	p, started := blockingProvider()
+	a, rec := testApp(t, p)
+	if _, err := a.Start(StartRequest{MediaType: "books", Text: "Dune", OutputDir: t.TempDir()}); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	<-started
+	newDir := filepath.Join(t.TempDir(), "new", "folder")
+	if _, err := a.Start(StartRequest{MediaType: "books", Text: "Dune", OutputDir: newDir}); err == nil || !strings.Contains(err.Error(), "already running") {
+		t.Errorf("second Start err = %v, want already running", err)
+	}
+	if _, err := os.Stat(filepath.Dir(newDir)); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("refused Start created %s (stat err %v)", filepath.Dir(newDir), err)
+	}
+	a.Cancel()
+	rec.waitDone(t)
+}
+
+// A Start whose folder cannot be created leaves no job running, so the
+// next Start runs.
+func TestStartFolderFailureStartsNoJob(t *testing.T) {
+	p, started := blockingProvider()
+	a, rec := testApp(t, p)
+	file := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(file, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.Start(StartRequest{MediaType: "books", Text: "Dune", OutputDir: filepath.Join(file, "sub")}); err == nil || !strings.Contains(err.Error(), "create output folder") {
+		t.Fatalf("Start under a file: err = %v, want create output folder", err)
+	}
+	if _, err := a.Start(StartRequest{MediaType: "books", Text: "Dune", OutputDir: t.TempDir()}); err != nil {
+		t.Fatalf("next Start: %v", err)
+	}
+	<-started
+	a.Cancel()
+	rec.waitDone(t)
+}
+
 func TestStartRejectsBadRequests(t *testing.T) {
 	a, _ := testApp(t, &fakeProvider{})
 	dir := t.TempDir()
@@ -1249,6 +1288,56 @@ func TestOpenFileRejectsMissingFiles(t *testing.T) {
 	}
 }
 
+// stubOpener replaces the system opener for the test and returns the
+// paths it was asked to open.
+func stubOpener(t *testing.T) *[]string {
+	t.Helper()
+	var opened []string
+	orig := openWithSystem
+	openWithSystem = func(path string) error {
+		opened = append(opened, path)
+		return nil
+	}
+	t.Cleanup(func() { openWithSystem = orig })
+	return &opened
+}
+
+// OpenFile opens only PDF files (any case): any other file, or a folder
+// named like a PDF, is refused before the system opener runs.
+func TestOpenFileOpensOnlyPDFs(t *testing.T) {
+	opened := stubOpener(t)
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	dir := t.TempDir()
+	write := func(name string) string {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	folder := filepath.Join(dir, "folder.pdf")
+	if err := os.Mkdir(folder, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{write("notes.txt"), write("run.sh"), write("sheet.pdf.exe"), write("noext"), write("cover.jpg"), folder} {
+		if err := a.OpenFile(p); err == nil {
+			t.Errorf("OpenFile(%q): want an error", filepath.Base(p))
+		}
+	}
+	if len(*opened) != 0 {
+		t.Fatalf("opened %q, want nothing", *opened)
+	}
+	want := []string{write("sheet.pdf"), write("SHEET2.PDF"), write("Mixed.Pdf")}
+	for _, p := range want {
+		if err := a.OpenFile(p); err != nil {
+			t.Errorf("OpenFile(%q): %v", filepath.Base(p), err)
+		}
+	}
+	if !slices.Equal(*opened, want) {
+		t.Errorf("opened %q, want %q", *opened, want)
+	}
+}
+
 func TestIsYes(t *testing.T) {
 	for answer, want := range map[string]bool{
 		"Replace": true, "Yes": true, "Ok": true, "Cancel": false, "No": false, "": false,
@@ -1798,6 +1887,7 @@ func TestSetLanguage(t *testing.T) {
 }
 
 func TestBindingErrorsUseTheUILanguage(t *testing.T) {
+	stubOpener(t) // "not a PDF" must not reach the system opener
 	a, _ := testApp(t, &fakeProvider{})
 	a.SetLanguage("es")
 	dir := t.TempDir()
@@ -1841,6 +1931,7 @@ func TestBindingErrorsUseTheUILanguage(t *testing.T) {
 		}), "elija una carpeta"},
 		{"no folder to open", call(func() error { return a.OpenFolder(" ") }), "no hay ninguna carpeta que abrir"},
 		{"no file to open", call(func() error { return a.OpenFile(" ") }), "no hay ningún archivo que abrir"},
+		{"not a PDF", call(func() error { return a.OpenFile(file) }), "file no es un PDF"},
 		{"unknown settings location", call(func() error { return a.SaveSettings(settings.Settings{}) }), "guardar ajustes: se desconoce la ubicación del archivo de ajustes"},
 		{"empty CSV", call(func() error {
 			_, err := importCSVFile(empty, a.language())

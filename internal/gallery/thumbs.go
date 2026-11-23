@@ -2,8 +2,10 @@ package gallery
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/jpeg"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -24,6 +26,12 @@ const (
 	thumbQuality = 80
 	maxDecodes   = 4 // concurrent full-size decodes, to bound memory
 )
+
+// maxThumbPixels is the largest image, in pixels, that gets a thumbnail:
+// decoding takes about 4 bytes a pixel, so a larger one (or a file whose
+// header claims one) is refused before it is decoded. A variable so tests
+// can lower it.
+var maxThumbPixels = 50_000_000
 
 // URL returns the thumbnail URL of the image at path.
 func URL(path string) string {
@@ -134,13 +142,24 @@ func (t *Thumbs) thumbnail(path string) ([]byte, bool) {
 }
 
 // makeThumb decodes the image at path and returns it as a JPEG at most
-// ThumbHeight pixels tall, with transparency flattened onto white.
+// ThumbHeight pixels tall, with transparency flattened onto white. An
+// image over maxThumbPixels is an error, read from its header alone.
 func makeThumb(path string) ([]byte, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
+	cfg, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return nil, err
+	}
+	if int64(cfg.Width)*int64(cfg.Height) > int64(maxThumbPixels) {
+		return nil, fmt.Errorf("%d x %d image is over %d pixels", cfg.Width, cfg.Height, maxThumbPixels)
+	}
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
 	src, _, err := image.Decode(f)
 	if err != nil {
 		return nil, err
