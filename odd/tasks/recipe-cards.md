@@ -49,7 +49,7 @@ Recipe collections are a classic bujo spread. The roadmap marks the item weak be
 - RDD on (global). First reviewed boundary: `02aa61e`.
 
 ## Tasks
-- [ ] T1 Page kind `recipes` (Go): options, normalising, limits, card sizes and tiling, title band, columns, fitting and continuation cards, photo, blank cards, labels wired from i18n; tests. Route: delegated writer (writer trigger: 3+ non-trivial files).
+- [x] T1 Page kind `recipes` (Go): options, normalising, limits, card sizes and tiling, title band, columns, fitting and continuation cards, photo, blank cards, labels wired from i18n; tests. Route: delegated writer (writer trigger: 3+ non-trivial files).
 - [ ] T2 Markdown import + photo picker: parser with tests, `ImportRecipes` and `ChooseRecipePhoto` bindings with tests, regenerated bindings. Route: delegated writer.
 - [ ] T3 Page kind `conversions` (Go): tables, labels EN/ES, layout on every paper; tests. Route: delegated writer.
 - [ ] T4 Make pages forms: recipe list + editor, Import…, photo, card size; conversions form; i18n EN/ES; vitest. Route: delegated writer.
@@ -57,4 +57,8 @@ Recipe collections are a classic bujo spread. The roadmap marks the item weak be
 
 ## Progress
 - Feature doc created; branch `feat/recipe-cards` from `02aa61e`.
-- Next: T1.
+- T1 done (delegated writer): `b41e92e` feat(sheet): recipe cards page kind; `9934ed6` feat(app): recipe card labels in the UI language. 1313 authored lines (1304 + / 9 −; ~560 tests): over the ~400 heuristic because the kind is one indivisible behaviour (options, layout, flow, photo, blank cards) with its table-driven tests.
+  - RED: `go test -tags webkit2_41 ./internal/sheet/` → build failed (`undefined: Recipe`, `RecipesOptions`, `recipeCard`, `recipePart`, `MaxRecipeTitleRunes`…); `go vet .` → `en.RecipeIngredients undefined`. First GREEN run then failed only `TestMapRegistryEntry` (map no longer last) and a fixture whose time ended in a space; both fixed in the tests.
+  - GREEN: `go test -tags webkit2_41 ./...` 3106 passed; `go vet -tags webkit2_41 ./...` clean; `cd frontend && npx tsc --noEmit` clean; no mode changes since `5614e96`.
+  - Decisions on open details: card text sizes a6/4x6 title 16→9 pt, body 9→6 pt, meta 8 pt, headings 8.5 pt; page size title 20, body 11, meta 9.5, headings 10. 4 mm card padding; columns 40 % ingredients / 60 % steps, 4 mm apart. Title centred, fitted on one line, cut with "…" before " (continued)" at the floor. Meta line centred; no room taken when servings and time are empty; first card only. Photo fills the ingredients column width, height min(width × 3/4, 45 % of the column), centre-cropped. Body shrinks until both columns fit the first card; at 6 pt it flows line by line (an item may split across cards; numbers continue). Continuation cards: title + "(continued)", no meta, no photo; a column heading prints only on cards where that column has lines. Cards scaled down on A5 (a6 and 4x6 do not fit within the margins): layout runs in the smaller box, sizes unscaled. Leftover slots on the last page are blank cards (like quote cards' empty frames). Blank card: title writing line, "Serves ___ Time ___", both headings over writing lines at 1.6 body line heights. Photo path: only trimmed (no space collapsing), must be absolute; a photo error reads "recipe cards recipe N photo <base name>: <cause>". `pagesOn` measures only the Go font (title band height is fixed, so fonts never change the count). `RecipeContinued` label "continued" / "continuación".
+- Next: T2.
