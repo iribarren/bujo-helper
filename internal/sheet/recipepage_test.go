@@ -168,8 +168,11 @@ func TestRecipesRegistryEntry(t *testing.T) {
 	if string(raw) != `{"recipes":[],"size":"a6"}` {
 		t.Errorf("defaults %s", raw)
 	}
-	if last := PageKinds[len(PageKinds)-1]; last.ID != RecipesKind || PageKinds[len(PageKinds)-2].ID != MapKind {
-		t.Errorf("recipes kind not right after the map")
+	// TestCalendarRegistryEntry checks the full order.
+	for i, k := range PageKinds {
+		if k.ID == RecipesKind && (i == 0 || PageKinds[i-1].ID != MapKind) {
+			t.Errorf("recipes kind at %d, want right after the map", i)
+		}
 	}
 }
 

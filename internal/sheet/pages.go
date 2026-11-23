@@ -68,6 +68,8 @@ type PageLabels struct {
 	// RecipeContinued marks a recipe's continuation cards, in brackets
 	// after the title; "continued".
 	RecipeContinued string
+	// Conversions are the words of the kitchen conversions page.
+	Conversions ConversionLabels
 	// Language is the language of country names: "es" prints the Spanish
 	// ones, anything else the English ones ("en").
 	Language string
@@ -79,22 +81,7 @@ var englishWeekdays = []string{"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
 // resolved returns l trimmed, with every missing label set to its English
 // default.
 func (l PageLabels) resolved() PageLabels {
-	or := func(s, def string) string {
-		if s = strings.TrimSpace(s); s == "" {
-			return def
-		}
-		return s
-	}
-	list := func(in, defaults []string) []string {
-		out := make([]string, len(defaults))
-		for i, def := range defaults {
-			out[i] = def
-			if len(in) == len(defaults) {
-				out[i] = or(in[i], def)
-			}
-		}
-		return out
-	}
+	or, list := labelOr, labelList
 	months := make([]string, 12)
 	for i := range months {
 		months[i] = time.Month(i + 1).String()
@@ -115,8 +102,30 @@ func (l PageLabels) resolved() PageLabels {
 		RecipeServes:      or(l.RecipeServes, "Serves"),
 		RecipeTime:        or(l.RecipeTime, "Time"),
 		RecipeContinued:   or(l.RecipeContinued, "continued"),
+		Conversions:       l.Conversions.resolved(),
 		Language:          nameLanguage(l.Language),
 	}
+}
+
+// labelOr is the label s trimmed, or def if that is empty.
+func labelOr(s, def string) string {
+	if s = strings.TrimSpace(s); s == "" {
+		return def
+	}
+	return s
+}
+
+// labelList is the list of labels in, each resolved by labelOr against
+// defaults, or defaults if in is not as long.
+func labelList(in, defaults []string) []string {
+	out := make([]string, len(defaults))
+	for i, def := range defaults {
+		out[i] = def
+		if len(in) == len(defaults) {
+			out[i] = labelOr(in[i], def)
+		}
+	}
+	return out
 }
 
 // nameLanguage is "es" for Spanish (any case, spaces trimmed) and "en" for
@@ -229,6 +238,14 @@ var PageKinds = []PageKind{
 		FileTag:  "recipes",
 		Defaults: defaultRecipes,
 		decode:   decodeRecipes,
+	},
+	{
+		ID:        ConversionsKind,
+		Label:     "Kitchen conversions",
+		FileTag:   "conversions",
+		UsesTitle: true,
+		Defaults:  defaultConversions,
+		decode:    decodeOptions(defaultConversions),
 	},
 }
 
