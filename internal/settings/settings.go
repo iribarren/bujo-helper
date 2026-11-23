@@ -29,6 +29,85 @@ type Settings struct {
 	BGGToken string `json:"bggToken"`
 	// Language is the UI language: "" follows the system, "en" or "es".
 	Language string `json:"language"`
+	// Print and Pages remember the last Print covers and Make pages
+	// options. Files saved before they existed load with zero values,
+	// which mean "use the defaults".
+	Print PrintPrefs `json:"print,omitzero"`
+	Pages PagesPrefs `json:"pages,omitzero"`
+}
+
+// MaxTextLen is the longest header or title kept, in characters; the
+// frontend fields have the same limit.
+const MaxTextLen = 120
+
+// PrintPrefs are the last options picked in the Print covers tab. Every
+// value is an id offered by the app; "" (or an id no longer offered) means
+// the default.
+type PrintPrefs struct {
+	Format string `json:"format,omitempty"`
+	// Media is the review cards' media type, saved only once the user
+	// picked one.
+	Media string `json:"media,omitempty"`
+	Size  string `json:"size,omitempty"`
+	Crop  string `json:"crop,omitempty"`
+	Paper string `json:"paper,omitempty"`
+	Cut   string `json:"cut,omitempty"`
+	// Credits is the credits-page checkbox; nil means the default (on).
+	Credits *bool  `json:"credits,omitempty"`
+	Header  string `json:"header,omitempty"`
+	Font    string `json:"font,omitempty"`
+	// ColourIn is the user's colour-in choice for fonts that offer it.
+	ColourIn bool `json:"colourIn,omitempty"`
+}
+
+// Trimmed returns p with surrounding whitespace removed and the header
+// cut to MaxTextLen characters.
+func (p PrintPrefs) Trimmed() PrintPrefs {
+	p.Format = strings.TrimSpace(p.Format)
+	p.Media = strings.TrimSpace(p.Media)
+	p.Size = strings.TrimSpace(p.Size)
+	p.Crop = strings.TrimSpace(p.Crop)
+	p.Paper = strings.TrimSpace(p.Paper)
+	p.Cut = strings.TrimSpace(p.Cut)
+	p.Header = capText(p.Header)
+	p.Font = strings.TrimSpace(p.Font)
+	if p.Credits != nil {
+		// Copy, so the stored settings never share the caller's value.
+		c := *p.Credits
+		p.Credits = &c
+	}
+	return p
+}
+
+// PagesPrefs are the last kind and shared options picked in the Make
+// pages tab; "" means the default.
+type PagesPrefs struct {
+	Kind     string `json:"kind,omitempty"`
+	Paper    string `json:"paper,omitempty"`
+	Cut      string `json:"cut,omitempty"`
+	Title    string `json:"title,omitempty"`
+	Font     string `json:"font,omitempty"`
+	ColourIn bool   `json:"colourIn,omitempty"`
+}
+
+// Trimmed returns p with surrounding whitespace removed and the title cut
+// to MaxTextLen characters.
+func (p PagesPrefs) Trimmed() PagesPrefs {
+	p.Kind = strings.TrimSpace(p.Kind)
+	p.Paper = strings.TrimSpace(p.Paper)
+	p.Cut = strings.TrimSpace(p.Cut)
+	p.Title = capText(p.Title)
+	p.Font = strings.TrimSpace(p.Font)
+	return p
+}
+
+// capText trims s and keeps at most MaxTextLen characters.
+func capText(s string) string {
+	s = strings.TrimSpace(s)
+	if r := []rune(s); len(r) > MaxTextLen {
+		s = strings.TrimSpace(string(r[:MaxTextLen]))
+	}
+	return s
 }
 
 // Trimmed returns s with surrounding whitespace removed from every value.
@@ -46,6 +125,8 @@ func (s Settings) Trimmed() Settings {
 	default:
 		s.Language = ""
 	}
+	s.Print = s.Print.Trimmed()
+	s.Pages = s.Pages.Trimmed()
 	return s
 }
 

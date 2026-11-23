@@ -1477,6 +1477,96 @@ func TestSaveSettingsWithoutPathFails(t *testing.T) {
 	}
 }
 
+func TestSaveSettingsKeepsTheRememberedPrefs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+	if err := a.SavePrintPrefs(settings.PrintPrefs{Format: "book", Paper: "a4"}); err != nil {
+		t.Fatalf("SavePrintPrefs: %v", err)
+	}
+	if err := a.SavePagesPrefs(settings.PagesPrefs{Kind: "calendar"}); err != nil {
+		t.Fatalf("SavePagesPrefs: %v", err)
+	}
+	// The Settings dialog only sends its own fields.
+	if err := a.SaveSettings(settings.Settings{TMDBAPIKey: "k", Language: "es"}); err != nil {
+		t.Fatalf("SaveSettings: %v", err)
+	}
+	want := settings.Settings{
+		TMDBAPIKey: "k", Language: "es",
+		Print: settings.PrintPrefs{Format: "book", Paper: "a4"},
+		Pages: settings.PagesPrefs{Kind: "calendar"},
+	}
+	if got := a.GetSettings(); got != want {
+		t.Errorf("GetSettings = %+v, want %+v", got, want)
+	}
+	if got, err := settings.Load(path); err != nil || got != want {
+		t.Errorf("file holds %+v (err %v), want %+v", got, err, want)
+	}
+}
+
+func TestSavePrintPrefsMergesAndTrims(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+	if err := a.SaveSettings(settings.Settings{TMDBAPIKey: "k"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SavePagesPrefs(settings.PagesPrefs{Kind: "habits", Title: " Habits "}); err != nil {
+		t.Fatal(err)
+	}
+	off := false
+	if err := a.SavePrintPrefs(settings.PrintPrefs{Format: " book ", Credits: &off, Header: strings.Repeat("x", 200)}); err != nil {
+		t.Fatalf("SavePrintPrefs: %v", err)
+	}
+	got := a.GetSettings()
+	if got.TMDBAPIKey != "k" || got.Pages != (settings.PagesPrefs{Kind: "habits", Title: "Habits"}) {
+		t.Errorf("GetSettings = %+v, want the key and pages prefs kept", got)
+	}
+	if got.Print.Format != "book" || got.Print.Credits == nil || *got.Print.Credits || len(got.Print.Header) != settings.MaxTextLen {
+		t.Errorf("Print = %+v, want trimmed format, credits off and a capped header", got.Print)
+	}
+	b := newApp(media.NewRegistry(), http.DefaultClient)
+	b.loadSettings(path)
+	if !reflect.DeepEqual(b.GetSettings(), got) {
+		t.Errorf("next start reads %+v, want %+v", b.GetSettings(), got)
+	}
+}
+
+func TestSavePagesPrefsMergesAndTrims(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+	if err := a.SavePrintPrefs(settings.PrintPrefs{Font: "caveat"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SavePagesPrefs(settings.PagesPrefs{Kind: " calendar\n", Font: "amatic", ColourIn: true}); err != nil {
+		t.Fatalf("SavePagesPrefs: %v", err)
+	}
+	want := settings.Settings{
+		Print: settings.PrintPrefs{Font: "caveat"},
+		Pages: settings.PagesPrefs{Kind: "calendar", Font: "amatic", ColourIn: true},
+	}
+	if got := a.GetSettings(); got != want {
+		t.Errorf("GetSettings = %+v, want %+v", got, want)
+	}
+	if got, err := settings.Load(path); err != nil || got != want {
+		t.Errorf("file holds %+v (err %v), want %+v", got, err, want)
+	}
+}
+
+func TestSavePrefsWithoutPathFails(t *testing.T) {
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	if err := a.SavePrintPrefs(settings.PrintPrefs{Format: "book"}); err == nil {
+		t.Error("SavePrintPrefs with no settings path returned no error")
+	}
+	if err := a.SavePagesPrefs(settings.PagesPrefs{Kind: "calendar"}); err == nil {
+		t.Error("SavePagesPrefs with no settings path returned no error")
+	}
+	if got := a.GetSettings(); got != (settings.Settings{}) {
+		t.Errorf("GetSettings = %+v after failed saves, want zero", got)
+	}
+}
+
 func TestDefaultAppMoviesUseTheSavedTMDBKey(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "settings.json")
 	if err := settings.Save(path, settings.Settings{TMDBAPIKey: "saved-key"}); err != nil {

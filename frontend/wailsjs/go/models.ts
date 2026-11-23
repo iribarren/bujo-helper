@@ -328,6 +328,58 @@ export namespace quotes {
 
 export namespace settings {
 	
+	export class PagesPrefs {
+	    kind?: string;
+	    paper?: string;
+	    cut?: string;
+	    title?: string;
+	    font?: string;
+	    colourIn?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PagesPrefs(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
+	        this.paper = source["paper"];
+	        this.cut = source["cut"];
+	        this.title = source["title"];
+	        this.font = source["font"];
+	        this.colourIn = source["colourIn"];
+	    }
+	}
+	export class PrintPrefs {
+	    format?: string;
+	    media?: string;
+	    size?: string;
+	    crop?: string;
+	    paper?: string;
+	    cut?: string;
+	    credits?: boolean;
+	    header?: string;
+	    font?: string;
+	    colourIn?: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrintPrefs(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.format = source["format"];
+	        this.media = source["media"];
+	        this.size = source["size"];
+	        this.crop = source["crop"];
+	        this.paper = source["paper"];
+	        this.cut = source["cut"];
+	        this.credits = source["credits"];
+	        this.header = source["header"];
+	        this.font = source["font"];
+	        this.colourIn = source["colourIn"];
+	    }
+	}
 	export class Settings {
 	    tmdbApiKey: string;
 	    igdbClientId: string;
@@ -335,6 +387,8 @@ export namespace settings {
 	    bhlApiKey: string;
 	    bggToken: string;
 	    language: string;
+	    print: PrintPrefs;
+	    pages: PagesPrefs;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -348,7 +402,27 @@ export namespace settings {
 	        this.bhlApiKey = source["bhlApiKey"];
 	        this.bggToken = source["bggToken"];
 	        this.language = source["language"];
+	        this.print = this.convertValues(source["print"], PrintPrefs);
+	        this.pages = this.convertValues(source["pages"], PagesPrefs);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }

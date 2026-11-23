@@ -271,11 +271,41 @@ func (a *App) GetSettings() settings.Settings {
 	return a.settings
 }
 
-// SaveSettings saves s to the settings file and uses it at once.
+// SaveSettings saves s to the settings file and uses it at once. The
+// remembered Print covers and Make pages options are kept: the Settings
+// dialog does not send them.
 func (a *App) SaveSettings(s settings.Settings) error {
-	s = s.Trimmed()
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
+	s.Print = a.settings.Print
+	s.Pages = a.settings.Pages
+	return a.saveSettingsLocked(s)
+}
+
+// SavePrintPrefs remembers the Print covers options, keeping every other
+// setting.
+func (a *App) SavePrintPrefs(p settings.PrintPrefs) error {
+	a.settingsMu.Lock()
+	defer a.settingsMu.Unlock()
+	s := a.settings
+	s.Print = p
+	return a.saveSettingsLocked(s)
+}
+
+// SavePagesPrefs remembers the Make pages kind and shared options, keeping
+// every other setting.
+func (a *App) SavePagesPrefs(p settings.PagesPrefs) error {
+	a.settingsMu.Lock()
+	defer a.settingsMu.Unlock()
+	s := a.settings
+	s.Pages = p
+	return a.saveSettingsLocked(s)
+}
+
+// saveSettingsLocked trims s, writes it to the settings file and uses it
+// at once. The caller holds settingsMu.
+func (a *App) saveSettingsLocked(s settings.Settings) error {
+	s = s.Trimmed()
 	if a.settingsPath == "" {
 		return errors.New(a.t("err.settingsLocation"))
 	}

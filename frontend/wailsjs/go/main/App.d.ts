@@ -55,6 +55,10 @@ export function PrintPapers():Promise<Array<main.PrintPaperInfo>>;
 
 export function PrintSizes():Promise<Array<main.PrintSizeInfo>>;
 
+export function SavePagesPrefs(arg1:settings.PagesPrefs):Promise<void>;
+
+export function SavePrintPrefs(arg1:settings.PrintPrefs):Promise<void>;
+
 export function SaveSampleCSV(arg1:string):Promise<string>;
 
 export function SaveSettings(arg1:settings.Settings):Promise<void>;
