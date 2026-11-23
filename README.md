@@ -1140,9 +1140,12 @@ Each build is a single executable with the frontend embedded.
 A build from source has no built-in [BoardGameGeek token](#boardgamegeek-token). To build one in, pass it to the linker; it is never committed:
 
 ```sh
+# Linux (bash); drop -tags webkit2_41 on macOS
 wails build -tags webkit2_41 -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=$BGG_TOKEN"
 go build -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=$BGG_TOKEN" ./cmd/covers
 ```
+
+On Windows (PowerShell), use `$env:BGG_TOKEN` instead of `$BGG_TOKEN` and leave out `-tags webkit2_41`.
 
 The [release workflow](.github/workflows/release.yml) does this with the `BGG_TOKEN` repository secret (**Settings → Secrets and variables → Actions**). Without the secret, as in a fork, the release still builds, with no built-in token.
 
