@@ -353,6 +353,38 @@ export namespace settings {
 
 export namespace sheet {
 	
+	export class ConversionLabels {
+	    Title: string;
+	    Volume: string;
+	    Weight: string;
+	    Oven: string;
+	    CupsToGrams: string;
+	    Cup: string;
+	    Tbsp: string;
+	    Tsp: string;
+	    GasMark: string;
+	    FanOven: string;
+	    Ingredients: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ConversionLabels(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Title = source["Title"];
+	        this.Volume = source["Volume"];
+	        this.Weight = source["Weight"];
+	        this.Oven = source["Oven"];
+	        this.CupsToGrams = source["CupsToGrams"];
+	        this.Cup = source["Cup"];
+	        this.Tbsp = source["Tbsp"];
+	        this.Tsp = source["Tsp"];
+	        this.GasMark = source["GasMark"];
+	        this.FanOven = source["FanOven"];
+	        this.Ingredients = source["Ingredients"];
+	    }
+	}
 	export class Labels {
 	    Admit: string;
 	    Date: string;
@@ -415,6 +447,12 @@ export namespace sheet {
 	    HabitsTitle: string;
 	    QuotesTitle: string;
 	    QuotesCredit: string;
+	    RecipeIngredients: string;
+	    RecipeSteps: string;
+	    RecipeServes: string;
+	    RecipeTime: string;
+	    RecipeContinued: string;
+	    Conversions: ConversionLabels;
 	    Language: string;
 	
 	    static createFrom(source: any = {}) {
@@ -432,8 +470,32 @@ export namespace sheet {
 	        this.HabitsTitle = source["HabitsTitle"];
 	        this.QuotesTitle = source["QuotesTitle"];
 	        this.QuotesCredit = source["QuotesCredit"];
+	        this.RecipeIngredients = source["RecipeIngredients"];
+	        this.RecipeSteps = source["RecipeSteps"];
+	        this.RecipeServes = source["RecipeServes"];
+	        this.RecipeTime = source["RecipeTime"];
+	        this.RecipeContinued = source["RecipeContinued"];
+	        this.Conversions = this.convertValues(source["Conversions"], ConversionLabels);
 	        this.Language = source["Language"];
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class PageSettings {
 	    paper: string;
@@ -453,6 +515,28 @@ export namespace sheet {
 	        this.title = source["title"];
 	        this.font = source["font"];
 	        this.colourIn = source["colourIn"];
+	    }
+	}
+	export class Recipe {
+	    title: string;
+	    servings: string;
+	    time: string;
+	    ingredients: string[];
+	    steps: string[];
+	    photo: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Recipe(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.title = source["title"];
+	        this.servings = source["servings"];
+	        this.time = source["time"];
+	        this.ingredients = source["ingredients"];
+	        this.steps = source["steps"];
+	        this.photo = source["photo"];
 	    }
 	}
 

@@ -14,6 +14,10 @@ var catalogs = map[Lang]map[string]string{
 		"filter.csv":                "CSV files (*.csv)",
 		"filter.all":                "All files (*.*)",
 		"filter.pdf":                "PDF files (*.pdf)",
+		"dialog.importRecipes":      "Import recipes",
+		"dialog.recipePhoto":        "Choose recipe photo",
+		"filter.markdown":           "Markdown files (*.md, *.markdown, *.txt)",
+		"filter.images":             "Images (*.jpg, *.jpeg, *.png)",
 
 		// The prompt before replacing an existing file.
 		"replace.title":   "Replace file?",
@@ -23,6 +27,7 @@ var catalogs = map[Lang]map[string]string{
 
 		// Errors returned to the UI.
 		"err.noItemsInFile":      "%s: no items found",
+		"err.noRecipesInFile":    "%s: no recipes found",
 		"err.unknownMediaType":   "unknown media type %q",
 		"err.noItems":            `no items: enter one "Title, Creator" per line`,
 		"err.chooseOutputFolder": "choose an output folder",
@@ -63,6 +68,29 @@ var catalogs = map[Lang]map[string]string{
 		// a Wikiquote quote.
 		"pdf.quotesTitle":  "Words to keep",
 		"pdf.quotesCredit": "Quotes from Wikiquote (CC BY-SA 4.0)",
+		// Recipe cards: the column headings, the words starting the meta
+		// line ("Serves 4 · Time 30 min") and the mark of continuation
+		// cards, printed in brackets after the title.
+		"pdf.recipeIngredients": "Ingredients",
+		"pdf.recipeSteps":       "Steps",
+		"pdf.recipeServes":      "Serves",
+		"pdf.recipeTime":        "Time",
+		"pdf.recipeContinued":   "continued",
+		// Kitchen conversions: the default title, the table headings, the
+		// unit words (abbreviations as cookbooks write them), the gas mark
+		// column, the oven table's caption and the cups-to-grams
+		// ingredients, a comma-separated list of 10.
+		"pdf.conversionsTitle":      "Kitchen conversions",
+		"pdf.conversionVolume":      "Volume",
+		"pdf.conversionWeight":      "Weight",
+		"pdf.conversionOven":        "Oven temperatures",
+		"pdf.conversionCupsToGrams": "Cups to grams",
+		"pdf.conversionCup":         "cup",
+		"pdf.conversionTbsp":        "tbsp",
+		"pdf.conversionTsp":         "tsp",
+		"pdf.conversionGasMark":     "Gas mark",
+		"pdf.conversionFanOven":     "Fan oven: 20 °C lower",
+		"pdf.conversionIngredients": "Flour,Sugar,Brown sugar,Icing sugar,Butter,Rice,Rolled oats,Honey,Cocoa powder,Milk or water",
 	},
 	ES: {
 		"dialog.importCSV":          "Importar CSV",
@@ -72,6 +100,10 @@ var catalogs = map[Lang]map[string]string{
 		"filter.csv":                "Archivos CSV (*.csv)",
 		"filter.all":                "Todos los archivos (*.*)",
 		"filter.pdf":                "Archivos PDF (*.pdf)",
+		"dialog.importRecipes":      "Importar recetas",
+		"dialog.recipePhoto":        "Elegir foto de la receta",
+		"filter.markdown":           "Archivos Markdown (*.md, *.markdown, *.txt)",
+		"filter.images":             "Imágenes (*.jpg, *.jpeg, *.png)",
 
 		"replace.title":   "¿Reemplazar el archivo?",
 		"replace.message": "%s ya existe. ¿Desea reemplazarlo?",
@@ -79,6 +111,7 @@ var catalogs = map[Lang]map[string]string{
 		"replace.cancel":  "Cancelar",
 
 		"err.noItemsInFile":      "%s: no se han encontrado elementos",
+		"err.noRecipesInFile":    "%s: no se han encontrado recetas",
 		"err.unknownMediaType":   "tipo de medio desconocido: %q",
 		"err.noItems":            `no hay elementos: escriba uno por línea con el formato "Título, Autor"`,
 		"err.chooseOutputFolder": "elija una carpeta de destino",
@@ -111,5 +144,23 @@ var catalogs = map[Lang]map[string]string{
 
 		"pdf.quotesTitle":  "Palabras para guardar",
 		"pdf.quotesCredit": "Citas de Wikiquote (CC BY-SA 4.0)",
+
+		"pdf.recipeIngredients": "Ingredientes",
+		"pdf.recipeSteps":       "Pasos",
+		"pdf.recipeServes":      "Raciones",
+		"pdf.recipeTime":        "Tiempo",
+		"pdf.recipeContinued":   "continuación",
+
+		"pdf.conversionsTitle":      "Conversiones de cocina",
+		"pdf.conversionVolume":      "Volumen",
+		"pdf.conversionWeight":      "Peso",
+		"pdf.conversionOven":        "Temperaturas del horno",
+		"pdf.conversionCupsToGrams": "Tazas a gramos",
+		"pdf.conversionCup":         "taza",
+		"pdf.conversionTbsp":        "cda.",
+		"pdf.conversionTsp":         "cdta.",
+		"pdf.conversionGasMark":     "Gas",
+		"pdf.conversionFanOven":     "Horno con ventilador: 20 °C menos",
+		"pdf.conversionIngredients": "Harina,Azúcar,Azúcar moreno,Azúcar glas,Mantequilla,Arroz,Copos de avena,Miel,Cacao en polvo,Leche o agua",
 	},
 }

@@ -131,12 +131,12 @@ func TestCalendarRegistryEntry(t *testing.T) {
 		t.Errorf("defaults %s", raw)
 	}
 	// Moon, then the month calendar, the habit tracker and the quote cards,
-	// then the map.
+	// then the map, the recipe cards and the kitchen conversions.
 	var ids []string
 	for _, k := range PageKinds {
 		ids = append(ids, k.ID)
 	}
-	if got := strings.Join(ids, ","); got != "dotgrid,moon,calendar,habits,quotes,map" {
+	if got := strings.Join(ids, ","); got != "dotgrid,moon,calendar,habits,quotes,map,recipes,conversions" {
 		t.Errorf("page kinds in order %s", got)
 	}
 }

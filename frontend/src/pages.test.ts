@@ -38,6 +38,8 @@ const {kinds, papers, cuts, fonts} = vi.hoisted(() => ({
             id: 'map', label: 'Visited map', usesCut: false, usesTitle: true,
             defaults: '{"region":"world","countries":[],"colour":"teal","list":true}', default: false,
         },
+        {id: 'recipes', label: 'Recipe cards', usesCut: false, usesTitle: false, defaults: '{"recipes":[],"size":"a6"}', default: false},
+        {id: 'conversions', label: 'Kitchen conversions', usesCut: false, usesTitle: true, defaults: '{}', default: false},
         {id: 'cutout', label: 'Cut-out', usesCut: true, usesTitle: false, defaults: '{}', default: false},
     ],
     papers: [
@@ -153,7 +155,7 @@ describe('page kinds', () => {
     it('are listed from PageKinds in a radio group, the default checked', () => {
         const group = el('pages-kinds');
         expect(group.getAttribute('role')).toBe('radiogroup');
-        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Month calendar', 'Habit tracker', 'Quote cards', 'Visited map', 'Cut-out']);
+        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Month calendar', 'Habit tracker', 'Quote cards', 'Visited map', 'Recipe cards', 'Kitchen conversions', 'Cut-out']);
         expect(checked('pages-kinds')).toBe('dotgrid');
         expect(el('pages-kind-title').textContent).toBe('Dot grid');
     });
@@ -184,6 +186,8 @@ describe('page kinds', () => {
             expect(radio('pages-kinds', 'habits').textContent).toBe('Registro de hábitos');
             expect(radio('pages-kinds', 'quotes').textContent).toBe('Tarjetas de citas');
             expect(radio('pages-kinds', 'map').textContent).toBe('Mapa de viajes');
+            expect(radio('pages-kinds', 'recipes').textContent).toBe('Fichas de recetas');
+            expect(radio('pages-kinds', 'conversions').textContent).toBe('Conversiones de cocina');
             // A kind without a translation keeps the Go label.
             expect(radio('pages-kinds', 'cutout').textContent).toBe('Cut-out');
         } finally {
@@ -433,6 +437,49 @@ describe('quote cards form', () => {
         await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2]))
             .toEqual({quotes: [{text: 'Less is more', author: 'Mies', source: ''}], style: 'framed', perPage: 4}));
         expect(lastPreviewPage()[0]).toBe('quotes');
+    });
+});
+
+describe('recipe cards form', () => {
+    beforeEach(() => {
+        radio('pages-kinds', 'recipes').click();
+    });
+
+    it('previews blank A6 cards by default, without the title field', async () => {
+        expect(el('pages-kind-title').textContent).toBe('Recipe cards');
+        expect(el('pages-form-recipes').hidden).toBe(false);
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('recipes'));
+        expect(JSON.parse(lastPreviewPage()[2])).toEqual({recipes: [], size: 'a6'});
+        // Each card prints its recipe's title; cards have their own cut lines.
+        expect(el('pages-title-field').hidden).toBe(true);
+        expect(el('pages-cut-field').hidden).toBe(true);
+    });
+
+    it('previews an added recipe and the chosen size', async () => {
+        el<HTMLButtonElement>('pages-recipes-add').click();
+        const title = el<HTMLInputElement>('pages-recipes-title');
+        title.value = 'Toast';
+        title.dispatchEvent(new Event('input'));
+        radio('pages-recipes-size', 'page').click();
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual({
+            recipes: [{title: 'Toast', servings: '', time: '', ingredients: [], steps: [], photo: ''}],
+            size: 'page',
+        }));
+        el('pages-recipes-list').querySelector<HTMLButtonElement>('.icon-button')!.click();
+        radio('pages-recipes-size', 'a6').click();
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual({recipes: [], size: 'a6'}));
+    });
+});
+
+describe('kitchen conversions form', () => {
+    it('says what the chart holds and previews it with the shared title', async () => {
+        radio('pages-kinds', 'conversions').click();
+        expect(el('pages-kind-title').textContent).toBe('Kitchen conversions');
+        expect(el('pages-conversions-hint').textContent)
+            .toBe('A ready-made chart of volume, weight, oven temperatures and cups to grams.');
+        expect(el('pages-title-field').hidden).toBe(false);
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('conversions'));
+        expect(lastPreviewPage()[2]).toBe('{}');
     });
 });
 

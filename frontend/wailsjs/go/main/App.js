@@ -10,6 +10,10 @@ export function ChooseFolder(arg1) {
   return window['go']['main']['App']['ChooseFolder'](arg1);
 }
 
+export function ChooseRecipePhoto() {
+  return window['go']['main']['App']['ChooseRecipePhoto']();
+}
+
 export function DefaultOutputDir() {
   return window['go']['main']['App']['DefaultOutputDir']();
 }
@@ -28,6 +32,10 @@ export function GetSettings() {
 
 export function ImportCSV() {
   return window['go']['main']['App']['ImportCSV']();
+}
+
+export function ImportRecipes() {
+  return window['go']['main']['App']['ImportRecipes']();
 }
 
 export function LetteringFonts() {
