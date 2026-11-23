@@ -762,6 +762,164 @@ The map fills the width at the top of the area. With the list, it shrinks (down 
 - The embedded file `internal/sheet/mapdata/countries.bin` (about 150 KB) is the GeoJSON simplified (Douglas–Peucker, 0.02°), quantized to 0.001° and compressed. To regenerate it, run `go generate` in `internal/sheet`: it downloads the pinned release, checks its SHA-256, and writes the same bytes every time.
 - Maps of a single country's regions (US states, provinces) are a planned follow-up.
 
+### Recipe cards
+
+Your recipes laid out as landscape cards to cut out, like index cards, or one recipe a page. Type them in, import them from a [Markdown file](#markdown-format), or both, with an optional photo of your own. With no recipes it prints blank cards to fill in by hand. Nothing is downloaded: see [no recipe source](#no-recipe-source).
+
+To make one: open **Make pages**, pick **Recipe cards**, click **Add recipe** (or **Import…**), fill in the recipe, choose the card size, and click **Export PDF…**.
+
+| Setting | Rule |
+|---------|------|
+| Recipes | the list of recipes, by title ("Untitled recipe" until it has one); click one to edit it, **×** removes it. **Add recipe** adds a blank one; **Import…** adds the recipes of a Markdown file after the ones you have |
+| Title, Serves, Time | the recipe's title and its two meta fields, as you want them printed (`4`, `30 min`) |
+| Ingredients, Steps | one per line; blank lines are dropped. Steps are numbered for you |
+| Photo | **Choose…** picks a JPEG or PNG file of your own; the form shows its file name (the full path in the tooltip), and **Remove** takes it off. It is read when the page is drawn, so the file must stay where it is |
+| Card size | **A6** (default), **4 × 6 in** or **Full page** |
+| Font, Colour-in | the shared [Lettering](#lettering) controls, for the recipe titles. There is no shared **Title**: each card prints its recipe's |
+| Paper | any; see below |
+
+How the cards tile on each paper (8 mm margins, 4 mm apart, centred):
+
+| Paper | A6 (148 × 105 mm) | 4 × 6 in (152.4 × 101.6 mm) | Full page |
+|-------|-------------------|-----------------------------|-----------|
+| **A4**    | 2 a page | 2 a page | 1 recipe a page |
+| US Letter | 2 a page | 2 a page | 1 recipe a page |
+| B5        | 2 a page | 2 a page | 1 recipe a page |
+| A5        | 1 a page, scaled down to about 132 × 94 mm | 1 a page, scaled down to about 132 × 88 mm | 1 recipe a page |
+
+A card that does not fit the paper within the margins (both card sizes on A5) is scaled down, its shape kept, to one a page; the layout runs in the smaller card and the text sizes stay the same, so more of it flows onto continuation cards.
+
+How a card is drawn:
+
+| Part | Rule |
+|------|------|
+| Cut line | dashed grey around each A6 or 4 × 6 card, as on [quote cards](#quote-cards); Full page has none. 4 mm inside it is the content |
+| Title | centred on one line in the chosen [lettering font](#lettering), from 16 pt (20 pt on Full page) shrinking to 9 pt, then cut with "…"; outlined with [Colour-in](#colour-in) at 14 pt or larger |
+| Meta line | "Serves 4 · Time 30 min" ("Raciones 4 · Tiempo 30 min" in Spanish), centred, 8 pt in the Go font; left out when both are empty |
+| Columns | **Ingredients** (40 % of the width, bulleted) and **Steps** (60 %, numbered), 4 mm apart, each under its heading. The headings follow the UI language |
+| Photo | centre-cropped to the width of the Ingredients column, at the top of it: at most 4:3 and 45 % of the column's height |
+| Text | the Go font, from 9 pt (11 pt on Full page) shrinking by 0.5 pt until both columns fit the card, down to 6 pt |
+| Continuation cards | at 6 pt, what does not fit flows line by line onto the next cards, titled "Pancakes (continued)" ("(continuación)" in Spanish), with no meta line or photo; an item may break across cards and the steps keep their numbers. A column heading prints only on cards where that column has lines |
+| Blank cards | a writing line for the title, "Serves ___ Time ___", and both headings over writing lines. They fill the slots left on the last page, or a whole page when there are no recipes |
+
+Limits: at most 50 recipes; a title of up to 100 characters; servings and time up to 40; up to 60 ingredients of 200 characters and 40 steps of 600; a photo path of up to 4096 bytes. More is an error naming the recipe by its number ("recipe cards recipe 3: 61 ingredients, want at most 60"), shown in the preview. Each run of tabs, line breaks, other control characters or spaces becomes one space, as for [habit names](#habit-tracker), and a recipe with no title, ingredients, steps or photo is dropped. A photo that is missing or not a readable JPEG or PNG is an error naming the recipe and the file name, also shown in the preview.
+
+The cards have their own cut lines, so the cut mode does not apply.
+
+#### Markdown format
+
+**Import…** reads a Markdown file (`.md`, up to 1 MiB) of one or more recipes. A complete example:
+
+```markdown
+My recipes, exported from my notes app.
+
+# Pancakes
+
+Serves: 4
+Time: 30 min
+Photo: photos/pancakes.jpg
+
+## Ingredients
+
+- 200 g flour
+- 1 tbsp sugar
+- A pinch of salt
+- 2 eggs
+- 300 ml milk
+
+### For the topping
+
+- Maple syrup
+- A handful of berries
+
+## Steps
+
+1. Whisk the flour, sugar and salt in a bowl.
+2. Beat in the eggs, then the milk, until smooth.
+3. Rest the batter for 10 minutes.
+4. Cook ladlefuls in a hot buttered pan,
+   1 to 2 minutes a side.
+
+## Notes
+
+Lovely with lemon too. This section is ignored.
+
+# Lentil soup
+
+**Serves:** 6
+**Time:** 1 h
+
+![Lentil soup](lentil-soup.png)
+
+## Ingredients
+
+* 300 g brown lentils
+* 1 onion, chopped
+* 2 carrots, diced
+* 1.5 l vegetable stock
+
+## Method
+
+1. Soften the onion and carrots in a little oil.
+2. Add the lentils and the stock and simmer for 40 minutes.
+3. Season and blend half of it.
+```
+
+That is two recipes: Pancakes has 8 ingredients ("For the topping" is one of them) and 4 steps, the last one joined into one line; Lentil soup has 4 and 3.
+
+- **Recipes.** A level-1 heading (`# Pancakes`) starts a recipe. Text before the first one is ignored.
+- **Keys.** `Serves:` or `Servings:` and `Time:` lines set the meta line; in Spanish, `Raciones:` or `Porciones:` and `Tiempo:`. Keys are case-insensitive and may be bold or italic (`**Serves:** 6`, `**Serves**: 6`).
+- **Photo.** A `Photo:` (`Foto:`) line, or a line with only an image (`![Lentil soup](lentil-soup.png)`). A relative path is relative to the Markdown file's folder, so keep the photos next to it; `~` is not expanded. Backticks or `<…>` around the path are removed.
+- **Lists.** `## Ingredients` (`## Ingredientes`) and `## Steps`, `## Method`, `## Directions` or `## Instructions` (`## Pasos`, `## Preparación`, `## Elaboración`, `## Instrucciones`; accents optional) start a list. Items are `-`, `*` or `+` bullets or `1.` / `1)` numbers (your numbers are not kept: steps are numbered in order); a task box `[ ]` is removed; a plain line in a list is an item too. An indented line, or a line right after a bullet or number, continues the item.
+- **Ingredient groups.** A deeper heading inside a list (`### For the topping`) becomes an item, so groups print as a line among the ingredients. A deeper heading that names a section (`### Steps`) starts that section.
+- **Ignored.** Any other `##` heading and its content (Notes, Tips, a story about your grandmother), code blocks, horizontal rules, and text outside a list that is not a key or a photo. Bold, italic and backticks are removed and links become their text.
+
+A file with no `#` recipe gives "no recipes found". A recipe over the [limits](#recipe-cards) is an error naming it by its number, and nothing is imported.
+
+#### No recipe source
+
+The cards download nothing: no recipe or food photo source is used. The only candidate with an API, [TheMealDB](https://www.themealdb.com/api.php), was checked on 2026-11-23 and left out:
+
+- Its free test key "1" is for "development of your app or for educational use"; releasing an app publicly needs a paid supporter key ([API page](https://www.themealdb.com/api.php), [FAQ](https://www.themealdb.com/faq.php)).
+- Its [terms of use](https://www.themealdb.com/terms_of_use.php) state no licence for the recipe images ("Most of our artwork is custom and is created by our users"), and say nothing about printing them.
+
+Your own recipes and your own photos need no licence, so the page kind stays offline.
+
+### Kitchen conversions
+
+A ready-made one-page chart of kitchen conversions to glue in next to your recipes. It has no options; it is computed by the app, no network.
+
+To make one: open **Make pages**, pick **Kitchen conversions**, choose the paper, and click **Export PDF…**.
+
+| Table | Rows |
+|-------|------|
+| Volume | 1, 3/4, 2/3, 1/2, 1/3 and 1/4 cup, 1 tbsp, 1 tsp and 1 fl oz in ml |
+| Weight | 1, 4 and 8 oz and 1 lb in g, and 1 kg in lb |
+| Oven temperatures | °C, °F and gas mark 1 to 9, with the caption "Fan oven: 20 °C lower" |
+| Cups to grams | one cup of flour, sugar, brown sugar, icing sugar, butter, rice, rolled oats, honey, cocoa powder, and milk or water, in g |
+
+The figures follow the usual cookbook conventions:
+
+- A US cup of 240 ml (so 1/3 cup is 80 ml); a tablespoon is 15 ml, a teaspoon 5 ml and a fluid ounce 30 ml, all rounded to the ml.
+- Ounces and pounds in grams rounded to the gram (1 oz = 28.3495 g, 1 lb = 453.592 g); 1 kg = 2.2 lb, to 0.1 lb.
+- The oven table is the standard cookbook table: gas mark n is 250 + 25 × n °F exactly, and its °C is rounded to a multiple of 10 (within 8 °C of the exact figure, so 170 °C sits next to 325 °F).
+- Cups to grams are typical figures for each ingredient (flour 125 g, sugar 200 g, butter 227 g, which is 8 oz, honey 340 g, milk or water 240 g); weigh when it matters.
+
+| Setting | Rule |
+|---------|------|
+| Title | the shared **Title**, in the chosen [lettering font](#lettering), outlined with [Colour-in](#colour-in); empty prints "Kitchen conversions" ("Conversiones de cocina" in Spanish) |
+| Labels | the table headings, unit words (cup, tbsp, tsp; in Spanish taza, cda., cdta.), the gas mark column, the caption and the ingredient names follow the UI language. Unit symbols (ml, g, kg, oz, lb, fl oz, °C, °F) stay as they are |
+| Numbers | fractions are written as 1/3, 3/4 (the Go font has no ⅓ or ⅔, and a mix of both forms reads unevenly); in Spanish, decimals take a comma (2,2 lb) |
+| Paper | any; within 8 mm margins, below a 12 mm title band |
+
+How the chart is drawn:
+
+- Four tables two by two (volume and weight above, oven temperatures and cups to grams below), each half the width less a 6 mm gap. Every row is the same height, so the taller table of each pair fills its half of the height.
+- Table headings in the lettering font, from 16 pt shrinking to 8 pt to fit the column. Cells in the Go font, all at one size, from 12 pt shrinking to 6 pt until every cell fits its row and column.
+- Each table has a thin border and rules between its rows, no vertical ones. The oven and cups tables have a header row with a light grey fill; with [Colour-in](#colour-in) the fill is left off.
+
+The cut mode does not apply.
+
 ## Lettering
 
 Headers, titles and quote card text can print in one of ten bundled lettering fonts instead of the plain Go sans, and as hollow outlines to colour in by hand, the way bubble letters drawn with a pen are coloured. The controls sit in the **Lettering** fieldset of [Print sheet](#print-sheet) (for **Full page**, **Checklist** and **Review cards**) and [Make pages](#generated-pages) (every page kind).
@@ -776,10 +934,11 @@ Each tab keeps its own font and Colour-in until the app closes. With the **Defau
 
 | Text | Font |
 |------|------|
-| Full page and Checklist headers, Dot grid, Moon calendar, Month calendar, Habit tracker, Quote cards and Visited map titles | the chosen font, outlined with Colour-in |
+| Full page and Checklist headers, Dot grid, Moon calendar, Month calendar, Habit tracker, Quote cards, Visited map and Kitchen conversions titles | the chosen font, outlined with Colour-in |
+| Recipe card titles and Kitchen conversions table headings | the chosen font, outlined with Colour-in at 14 pt or larger; a title or heading shrunk below 14 pt to fit stays filled |
 | Quote card text | the chosen font, outlined with Colour-in at 14 pt or larger; text shrunk below 14 pt to fit its card stays filled |
 | Review card titles | the chosen font, always filled: at 9.5 pt they are too small for outlines |
-| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels, month calendar weekdays and day numbers, habit names and day numbers, quote authors and the Wikiquote credit, visited map country lists | always the Go font |
+| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels, month calendar weekdays and day numbers, habit names and day numbers, quote authors and the Wikiquote credit, visited map country lists, recipe card meta lines, headings, ingredients and steps, conversion table cells and caption | always the Go font |
 
 Headers still shrink from 20 pt down to 12 pt to fit, then end with "…". A bundled font fits into 96 % of the width, leaving room for swashes; the Default (Go) font keeps its bold header and the full width.
 
@@ -793,7 +952,7 @@ Colour-in prints letters as black outlines (PDF text rendering mode 1) instead o
 | **hollow** | Bungee Outline, Londrina Outline | outlined by design, never stroked again; the box shows checked, and your own choice comes back with the next font |
 | **no outline** | Sacramento, Amatic SC | too thin to outline: letters stay filled |
 
-On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font. On a [visited map](#visited-map), it draws the countries as black outlines with no fills, the visited ones heavier. On [quote cards](#quote-cards), the quote text is outlined too when it prints at 14 pt or larger; the cut lines and frames do not change. On a [month calendar](#month-calendar) and a [habit tracker](#habit-tracker), only the title changes: their boxes are already outlines.
+On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font. On a [visited map](#visited-map), it draws the countries as black outlines with no fills, the visited ones heavier. On [quote cards](#quote-cards), the quote text is outlined too when it prints at 14 pt or larger; the cut lines and frames do not change. On a [month calendar](#month-calendar) and a [habit tracker](#habit-tracker), only the title changes: their boxes are already outlines. On [recipe cards](#recipe-cards), the recipe titles are outlined at 14 pt or larger; photos, cut lines and writing lines do not change. On [kitchen conversions](#kitchen-conversions), the table headings are outlined too and the grey fill of the header rows is left off, so only outlines remain.
 
 ### Bundled fonts
 
@@ -927,7 +1086,7 @@ The root package embeds `frontend/dist`, so build the frontend once first (`cd f
 ```
 main.go, app.go        Wails entry point and the methods bound to the UI
 frontend/              Vanilla TypeScript + Vite UI
-  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), quotesForm.ts (the quote cards search and picks), preview.ts (live PDF preview), lettering.ts (font picker and Colour-in), settings.ts (Settings dialog and About) and style.css
+  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), quotesForm.ts (the quote cards search and picks), recipesForm.ts (the recipe list and editor, import and photo), pageForms.ts (the option forms of the page kinds), preview.ts (live PDF preview), lettering.ts (font picker and Colour-in), settings.ts (Settings dialog and About) and style.css
   wailsjs/             generated bindings (committed)
 cmd/covers/            command-line tool
 internal/
@@ -945,7 +1104,7 @@ internal/
   gallery/             print sheet: folder listing and thumbnails for the UI
   preview/             in-memory store of preview PDFs served at /preview
   fonts/               serves the lettering fonts and their licences at /fonts/
-  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid, moon calendar with Meeus moon phases, month calendar and habit tracker with shared calendar math, quote cards with fitted text, visited map with country matching and projections); the lettering font registry and hollow text
+  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid, moon calendar with Meeus moon phases, month calendar and habit tracker with shared calendar math, quote cards with fitted text, visited map with country matching and projections, recipe cards with continuation cards and the Markdown import, kitchen conversions); the lettering font registry and hollow text
     fonts/<id>/        the bundled lettering fonts (TTF) and their licence files, embedded
     mapdata/           the embedded Natural Earth country map (countries.bin) and its binary format
     mapgen/            the generator of countries.bin (`go generate` in internal/sheet)

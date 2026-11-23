@@ -371,6 +371,25 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 
 **Weakness:** TheMealDB's free tier is for development and educational use, and its image licence is unclear. The better version doesn't download anything.
 
+**Done in branch `feat/recipe-cards`**, merged in … (see `odd/tasks/recipe-cards.md`):
+- Page kind: `recipes` (Recipe cards) with A6, 4 × 6 in and Full page sizes, fitted titles, shrinking body text, continuation cards, the photo, blank cards and the limits (b41e92e); its labels in the UI language (9934ed6).
+- Markdown import: `ParseRecipesMarkdown` with English and Spanish headings and keys (1b34272); the `ImportRecipes` and `ChooseRecipePhoto` bindings (3914b7c).
+- Page kind: `conversions` (Kitchen conversions) with the volume, weight, oven and cups-to-grams tables on every paper (a1dedf6); its labels in the UI language (e2cbaa7).
+- Make pages forms: the recipe list and editor, Import…, the photo picker and Card size, and the conversions hint, in English and Spanish; review fixes to the Markdown import (bold keys, code fences, an empty list on cancel) (c8b5611, f93b599).
+- Review fix: the conversions tables tolerate unresolved ingredient labels (ebbc048).
+- README Recipe cards (with the Markdown format) and Kitchen conversions sections (the `docs:` commit after ebbc048). Feature document commits: 5614e96, 5ce01cf, 2263ca2, 7d0820a, 72e9f2a, fa22498.
+- Decisions:
+  - Source: none. TheMealDB was checked on 2026-11-23: its free key is for development or educational use, a public release needs a supporter (paid) key, and no licence is stated for its images. The roadmap rule (only if the images may be used) leaves it out; photos are the user's own files.
+  - Import: Markdown only (user decision 2026-11-23); CSV is awkward for multi-line ingredient and step lists.
+  - Kitchen conversions is its own page kind (user decision 2026-11-23), not a page of the recipe cards.
+  - Kind ids `recipes` and `conversions`, registered after `map`. `recipes` options: `recipes` (title, servings, time, ingredients, steps, photo as an absolute path or `""`) and `size` (`a6` | `4x6` | `page`, default `a6`); it prints no shared title (each card has its recipe's title) and the cards have their own dashed cut lines, so the cut mode does not apply. `conversions` has no options (`{}`) and the default title "Kitchen conversions" / "Conversiones de cocina".
+  - Sizes: cards are landscape, A6 148 × 105 mm and 4 × 6 in 152.4 × 101.6 mm, tiled within 8 mm margins 4 mm apart (2 a page on A4, Letter and B5); on A5, where neither fits, one card a page scaled down. Full page is one recipe a page in the content area, with no cut line.
+  - Limits, else an error naming the recipe by number: 50 recipes; title 100 characters; servings and time 40; 60 ingredients of 200 and 40 steps of 600; photo path 4096 bytes; Markdown file 1 MiB. Control characters and space runs become one space; a recipe with no title, ingredients, steps or photo is dropped.
+  - Flow: the body text shrinks from 9 pt (11 pt on Full page) by 0.5 pt until both columns fit the first card; at 6 pt the rest flows line by line onto continuation cards titled "Title (continued)", with no meta line or photo, the steps numbered on. Leftover slots on the last page, or a whole page with no recipes, are blank cards to fill in by hand.
+  - Conversions: two by two tables on every paper; a US cup of 240 ml; ounces and pounds rounded to the gram; the standard gas mark table (°F = 250 + 25 × gas mark, °C rounded to 10); fractions written as 1/3 (the Go font has no ⅓); Spanish decimals with a comma; header fills left off with Colour-in.
+  - Labels in the UI language through `PageLabels` (Ingredients, Steps, Serves, Time, continued, and the conversion chart words, the ten ingredients as one comma-separated key); unit symbols (ml, g, oz, lb, °C, °F) untranslated.
+  - Out of scope: any recipe source, CSV import, a photo crop offset, recipe ratings, saving recipes between sessions.
+
 **Scope**
 - A generated print format **Recipe card**: the user enters a title, ingredients, steps, servings and time (typed in, or from a CSV/Markdown file), plus an optional photo of their own. The app lays it out as a card at common sizes (A6, 4 × 6 in, or bujo-page width).
 - Optional companion page: a **kitchen conversions** chart (cups/grams/ml, oven temperatures), generated.
