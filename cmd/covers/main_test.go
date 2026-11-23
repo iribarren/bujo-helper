@@ -285,9 +285,9 @@ func TestUsageListsMediaTypes(t *testing.T) {
 		t.Fatalf("exit code = %d, want 2", code)
 	}
 	for _, want := range []string{
-		"books, movies, tv, albums, games, anime, manga, artworks, places, nature, products",
-		"books|movies|tv|albums|games|anime|manga|artworks|places|nature|products",
-		`movie, TV, game, anime and manga items are "Title, Year"`,
+		"books, movies, tv, albums, games, anime, manga, artworks, places, nature, products, boardgames",
+		"books|movies|tv|albums|games|anime|manga|artworks|places|nature|products|boardgames",
+		`movie, TV, game, anime, manga and board game items are "Title, Year"`,
 		`albums "Album, Artist"`,
 		`artworks "Title, Artist"`,
 		`places "Place, Country" or "Flag of Country", nature "Name", products "Product, Brand" or a barcode`,

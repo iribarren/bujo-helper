@@ -19,6 +19,8 @@ type Keys struct {
 	IGDB func() (clientID, clientSecret string)
 	// BHL returns the Biodiversity Heritage Library API key.
 	BHL func() string
+	// BGG returns the BoardGameGeek XML API token.
+	BGG func() string
 }
 
 // Default returns the registry of built-in media types. A nil client gets
@@ -238,6 +240,23 @@ func Default(client *http.Client, keys Keys) *media.Registry {
 			{Title: "Earl Grey", Creator: "Twinings"},
 			{Title: "Coca-Cola Zero", Creator: "Coca-Cola"},
 			{Title: "3017620422003"},
+		},
+	})
+	// Board game box art from BoardGameGeek, which needs an application
+	// token (built into release builds or saved in Settings). Box art is
+	// the publisher's, so each image gets a credit sidecar.
+	mustRegister(reg, media.MediaType{
+		ID:           "boardgames",
+		Label:        "Board games",
+		CreatorLabel: "Year",
+		DateLabel:    "Played on",
+		Providers: []media.Provider{
+			providers.NewBoardGameGeek(client, keys.BGG),
+		},
+		Samples: []media.Item{
+			{Title: "Catan", Creator: "1995"},
+			{Title: "Wingspan", Creator: "2019"},
+			{Title: "Azul", Creator: "2017"},
 		},
 	})
 	return reg

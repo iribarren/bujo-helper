@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items termsofuse="https://boardgamegeek.com/xmlapi/termsofuse">
+	<item type="boardgame" id="121">
+		<image>https://cf.geekdo-images.com/dune1979__original/img/orig/pic121.jpg</image>
+		<name type="primary" sortindex="1" value="Dune"/>
+		<yearpublished value="1979"/>
+		<statistics page="1"><ratings><usersrated value="9000"/></ratings></statistics>
+	</item>
+	<item type="boardgame" id="283355">
+		<image>https://cf.geekdo-images.com/dune2019__original/img/orig/pic283355.jpg</image>
+		<name type="primary" sortindex="1" value="Dune"/>
+		<yearpublished value="2019"/>
+		<statistics page="1"><ratings><usersrated value="15000"/></ratings></statistics>
+	</item>
+	<item type="boardgame" id="9001">
+		<image></image>
+		<name type="primary" sortindex="1" value="Dune"/>
+		<yearpublished value="1984"/>
+		<statistics page="1"><ratings><usersrated value="40"/></ratings></statistics>
+	</item>
+	<item type="boardgame" id="316554">
+		<image>https://cf.geekdo-images.com/duneimperium__original/img/orig/pic316554.jpg</image>
+		<name type="primary" sortindex="1" value="Dune: Imperium"/>
+		<yearpublished value="2020"/>
+		<statistics page="1"><ratings><usersrated value="60000"/></ratings></statistics>
+	</item>
+</items>

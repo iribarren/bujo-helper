@@ -526,6 +526,9 @@ func TestNewClientUsesTheSharedThrottle(t *testing.T) {
 		"world.openfoodfacts.org":  4500 * time.Millisecond,
 		"search.openfoodfacts.org": 6500 * time.Millisecond,
 		"images.openfoodfacts.org": 500 * time.Millisecond,
+		// BoardGameGeek throttles with 500/503 and suggests 5 s between
+		// requests.
+		"boardgamegeek.com": 5 * time.Second,
 	} {
 		if got := DefaultThrottle.MinInterval[host]; got != want {
 			t.Errorf("DefaultThrottle.MinInterval[%q] = %v, want %v", host, got, want)

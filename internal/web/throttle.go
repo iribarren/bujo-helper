@@ -106,6 +106,9 @@ var DefaultThrottle = &Throttle{
 		"world.openfoodfacts.org":  4500 * time.Millisecond,
 		"search.openfoodfacts.org": 6500 * time.Millisecond,
 		"images.openfoodfacts.org": 500 * time.Millisecond,
+		// BoardGameGeek publishes no limit but answers 500 or 503 when it
+		// throttles, and says a 5-second wait between requests suffices.
+		"boardgamegeek.com": 5 * time.Second,
 	},
 }
 
