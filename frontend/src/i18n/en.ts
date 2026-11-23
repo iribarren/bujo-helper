@@ -26,6 +26,8 @@ export const en = {
     'tip.igdbWhy': 'for box art of all games; without them, Steam covers PC games only.',
     'tip.bhlWhat': 'a BHL API key',
     'tip.bhlWhy': 'for more natural-history plates.',
+    'tip.bggWhat': 'a BoardGameGeek token',
+    'tip.bggWhy': 'to download board game box art; this build has none built in.',
 
     // Download tab.
     'download.import': 'Import CSV…',
@@ -87,6 +89,7 @@ export const en = {
     'media.places': 'Places',
     'media.nature': 'Nature',
     'media.products': 'Products',
+    'media.boardgames': 'Board games',
     'creator.books': 'Author',
     'creator.movies': 'Year',
     'creator.tv': 'Year',
@@ -97,6 +100,7 @@ export const en = {
     'creator.artworks': 'Artist',
     'creator.places': 'Country',
     'creator.products': 'Brand',
+    'creator.boardgames': 'Year',
     'date.books': 'Read on',
     'date.movies': 'Watched on',
     'date.tv': 'Watched on',
@@ -108,6 +112,7 @@ export const en = {
     'date.places': 'Visited on',
     'date.nature': 'Seen on',
     'date.products': 'Tried on',
+    'date.boardgames': 'Played on',
 
     // The sample CSV button, per media type, and its fallbacks.
     'sample.button': 'Sample CSV',
@@ -124,6 +129,7 @@ export const en = {
     'sample.button.places': 'Sample places CSV',
     'sample.button.nature': 'Sample nature CSV',
     'sample.button.products': 'Sample products CSV',
+    'sample.button.boardgames': 'Sample board games CSV',
     'sample.title.books': 'Save an example books CSV (Title, Author) to use as a reference for Import CSV',
     'sample.title.movies': 'Save an example movies CSV (Title, Year) to use as a reference for Import CSV',
     'sample.title.tv': 'Save an example TV series CSV (Title, Year) to use as a reference for Import CSV',
@@ -135,6 +141,7 @@ export const en = {
     'sample.title.places': 'Save an example places CSV (Place, Country) to use as a reference for Import CSV',
     'sample.title.nature': 'Save an example nature CSV (Name) to use as a reference for Import CSV',
     'sample.title.products': 'Save an example products CSV (Product, Brand) to use as a reference for Import CSV',
+    'sample.title.boardgames': 'Save an example board games CSV (Title, Year) to use as a reference for Import CSV',
 
     // Print covers tab.
     'print.groupCovers': 'Covers',
@@ -389,6 +396,8 @@ export const en = {
     'settings.igdbHintCopy': '), then copy its Client ID and a new Client Secret.',
     'settings.bhlKey': 'BHL API key',
     'settings.bhlHint': 'Optional. Adds natural-history plates from the Biodiversity Heritage Library when Wikimedia Commons has none. Get a free key at',
+    'settings.bggToken': 'BoardGameGeek token',
+    'settings.bggHint': 'Only needed when this build has no BoardGameGeek token built in. Register a non-commercial application at',
     'settings.show': 'Show',
     'settings.hide': 'Hide',
     'settings.close': 'Close',
@@ -407,6 +416,9 @@ export const en = {
     'about.loading': 'Loading…',
     'about.errLicence': 'Could not read the licence: {error}',
     'about.pdfjs': 'The live preview uses pdf.js by Mozilla (Apache 2.0).',
+    'about.bgg': 'Board game box art comes from the BoardGameGeek XML API.',
+    // The wording of the official logo, kept as it is in every language.
+    'about.bggLogo': 'Powered by BGG',
 } as const;
 
 // MessageKey is the key of a UI message.

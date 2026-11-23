@@ -17,9 +17,9 @@ import (
 )
 
 // ErrNoBGGToken reports that no BoardGameGeek token is available: none is
-// built into this build and none is saved. The provider is skipped, not
-// searched.
-var ErrNoBGGToken = media.Skipped("no BoardGameGeek token (set one in Settings)")
+// built into this build and none is saved in Settings (or passed to the
+// CLI). The provider is skipped, not searched.
+var ErrNoBGGToken = media.Skipped("no BoardGameGeek token in this build (add one in Settings)")
 
 // BoardGameGeek finds the box art of a board game through the
 // BoardGameGeek XML API2. Every request needs an application token, sent

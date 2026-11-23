@@ -112,4 +112,7 @@ func TestSetBGGHeaders(t *testing.T) {
 	if ua := req.Header.Get("User-Agent"); ua != ContactUserAgent {
 		t.Errorf("User-Agent = %q, want %q", ua, ContactUserAgent)
 	}
+	if got := req.Header.Get("Accept"); got != "application/xml" {
+		t.Errorf("Accept = %q, want application/xml", got)
+	}
 }

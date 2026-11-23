@@ -21,6 +21,8 @@ export const es: Messages = {
     'tip.igdbWhy': 'para obtener carátulas de todos los juegos; sin ellas, Steam solo tiene portadas de juegos de PC.',
     'tip.bhlWhat': 'una clave de API de BHL',
     'tip.bhlWhy': 'para obtener más láminas de historia natural.',
+    'tip.bggWhat': 'un token de BoardGameGeek',
+    'tip.bggWhy': 'para descargar carátulas de juegos de mesa; esta versión no incluye ninguno.',
 
     // Download tab.
     'download.import': 'Importar CSV…',
@@ -81,6 +83,7 @@ export const es: Messages = {
     'media.places': 'Lugares',
     'media.nature': 'Naturaleza',
     'media.products': 'Productos',
+    'media.boardgames': 'Juegos de mesa',
     'creator.books': 'Autor',
     'creator.movies': 'Año',
     'creator.tv': 'Año',
@@ -91,6 +94,7 @@ export const es: Messages = {
     'creator.artworks': 'Artista',
     'creator.places': 'País',
     'creator.products': 'Marca',
+    'creator.boardgames': 'Año',
     'date.books': 'Leído el',
     'date.movies': 'Visto el',
     'date.tv': 'Visto el',
@@ -102,6 +106,7 @@ export const es: Messages = {
     'date.places': 'Visitado el',
     'date.nature': 'Visto el',
     'date.products': 'Probado el',
+    'date.boardgames': 'Jugado el',
 
     // The sample CSV button, per media type, and its fallbacks.
     'sample.button': 'CSV de ejemplo',
@@ -118,6 +123,7 @@ export const es: Messages = {
     'sample.button.places': 'CSV de ejemplo de lugares',
     'sample.button.nature': 'CSV de ejemplo de naturaleza',
     'sample.button.products': 'CSV de ejemplo de productos',
+    'sample.button.boardgames': 'CSV de ejemplo de juegos de mesa',
     'sample.title.books': 'Guarda un CSV de ejemplo de libros (Título, Autor) como referencia para Importar CSV',
     'sample.title.movies': 'Guarda un CSV de ejemplo de películas (Título, Año) como referencia para Importar CSV',
     'sample.title.tv': 'Guarda un CSV de ejemplo de series (Título, Año) como referencia para Importar CSV',
@@ -129,6 +135,7 @@ export const es: Messages = {
     'sample.title.places': 'Guarda un CSV de ejemplo de lugares (Lugar, País) como referencia para Importar CSV',
     'sample.title.nature': 'Guarda un CSV de ejemplo de naturaleza (Nombre) como referencia para Importar CSV',
     'sample.title.products': 'Guarda un CSV de ejemplo de productos (Producto, Marca) como referencia para Importar CSV',
+    'sample.title.boardgames': 'Guarda un CSV de ejemplo de juegos de mesa (Título, Año) como referencia para Importar CSV',
 
     // Print covers tab.
     'print.groupCovers': 'Portadas',
@@ -382,6 +389,8 @@ export const es: Messages = {
     'settings.igdbHintCopy': ') y, después, copia su Client ID y un Client Secret nuevo.',
     'settings.bhlKey': 'Clave de API de BHL',
     'settings.bhlHint': 'Opcional. Añade láminas de historia natural de la Biodiversity Heritage Library cuando Wikimedia Commons no tiene ninguna. Consigue una clave gratuita en',
+    'settings.bggToken': 'Token de BoardGameGeek',
+    'settings.bggHint': 'Solo es necesario si esta versión no incluye un token de BoardGameGeek. Registra una aplicación no comercial en',
     'settings.show': 'Mostrar',
     'settings.hide': 'Ocultar',
     'settings.close': 'Cerrar',
@@ -399,4 +408,7 @@ export const es: Messages = {
     'about.loading': 'Cargando…',
     'about.errLicence': 'No se ha podido leer la licencia: {error}',
     'about.pdfjs': 'La vista previa usa pdf.js de Mozilla (Apache 2.0).',
+    'about.bgg': 'Las carátulas de los juegos de mesa proceden de la API XML de BoardGameGeek.',
+    // The wording of the official logo, kept as it is in every language.
+    'about.bggLogo': 'Powered by BGG',
 };

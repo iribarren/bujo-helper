@@ -40,6 +40,13 @@
             <span id="media-type-label" data-i18n="app.mediaType">Media type</span>
             <div id="media-type" class="radio-grid" role="radiogroup" aria-labelledby="media-type-label"></div>
             <p id="sources" class="sources muted" hidden></p>
+            <!-- The official "Powered by BGG" logo, unmodified; settings.ts sets the
+                 image sources and opens the link in the system browser. -->
+            <a id="bgg-logo-download" class="bgg-logo" href="https://boardgamegeek.com" rel="noopener noreferrer"
+               aria-label="Powered by BGG" data-i18n-aria-label="about.bggLogo" hidden>
+                <img class="bgg-logo-light" alt="Powered by BGG" width="135" height="30"/>
+                <img class="bgg-logo-dark" alt="Powered by BGG" width="135" height="30"/>
+            </a>
         </div>
 
         <div class="toolbar">
@@ -254,6 +261,15 @@
         <p class="hint"><span data-i18n="settings.bhlHint">Optional. Adds natural-history plates from the Biodiversity Heritage Library when Wikimedia Commons has none. Get a free key at</span>
             <a id="bhl-link" href="https://www.biodiversitylibrary.org/getapikey.aspx">biodiversitylibrary.org</a></p>
     </div>
+    <div class="field settings-section">
+        <label for="bgg-token" data-i18n="settings.bggToken">BoardGameGeek token</label>
+        <div class="row">
+            <input id="bgg-token" type="password" autocomplete="off" spellcheck="false"/>
+            <button id="bgg-token-toggle" type="button" aria-controls="bgg-token">Show</button>
+        </div>
+        <p class="hint"><span data-i18n="settings.bggHint">Only needed when this build has no BoardGameGeek token built in. Register a non-commercial application at</span>
+            <a id="bgg-link" href="https://boardgamegeek.com/applications">boardgamegeek.com/applications</a></p>
+    </div>
     <!-- settings.ts lists the bundled lettering fonts from LetteringFonts;
          each licence text loads when its entry is opened. -->
     <section id="settings-about" class="settings-section settings-about" aria-labelledby="about-title">
@@ -262,6 +278,14 @@
         <ul id="about-fonts" class="about-fonts"></ul>
         <p id="about-fonts-status" class="settings-status error" role="status"></p>
         <p class="hint" data-i18n="about.pdfjs">The live preview uses pdf.js by Mozilla (Apache 2.0).</p>
+        <p class="hint" data-i18n="about.bgg">Board game box art comes from the BoardGameGeek XML API.</p>
+        <!-- The official "Powered by BGG" logo, unmodified; settings.ts sets the
+             image sources and opens the link in the system browser. -->
+        <a id="bgg-logo-about" class="bgg-logo" href="https://boardgamegeek.com" rel="noopener noreferrer"
+           aria-label="Powered by BGG" data-i18n-aria-label="about.bggLogo">
+            <img class="bgg-logo-light" alt="Powered by BGG" width="135" height="30"/>
+            <img class="bgg-logo-dark" alt="Powered by BGG" width="135" height="30"/>
+        </a>
     </section>
     <div class="dialog-actions">
         <span id="settings-status" class="settings-status" aria-live="polite"></span>

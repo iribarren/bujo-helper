@@ -19,6 +19,8 @@ export function ExportPage(arg1:string,arg2:string,arg3:sheet.PageSettings,arg4:
 
 export function GetSettings():Promise<settings.Settings>;
 
+export function HasBuiltInBGGToken():Promise<boolean>;
+
 export function ImportCSV():Promise<string>;
 
 export function ImportRecipes():Promise<Array<sheet.Recipe>>;

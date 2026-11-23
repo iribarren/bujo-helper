@@ -30,6 +30,10 @@ export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }
 
+export function HasBuiltInBGGToken() {
+  return window['go']['main']['App']['HasBuiltInBGGToken']();
+}
+
 export function ImportCSV() {
   return window['go']['main']['App']['ImportCSV']();
 }

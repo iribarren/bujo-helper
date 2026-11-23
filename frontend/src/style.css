@@ -306,8 +306,38 @@ input[readonly] {
     overflow-wrap: anywhere;
 }
 
-.settings-about > .hint:last-child {
+/* The notices after the font list: pdf.js and BoardGameGeek. */
+.settings-about > .hint ~ .hint {
     margin-top: 8px;
+}
+
+/* The "Powered by BGG" logo, linked to BoardGameGeek: tall enough for its
+   text to stay legible. The light variant shows on light backgrounds and
+   the reversed one on dark backgrounds, following the theme. */
+.bgg-logo {
+    display: inline-flex;
+    align-self: flex-start;
+    margin-top: 6px;
+    line-height: 0;
+}
+
+.bgg-logo img {
+    width: auto;
+    height: 30px;
+}
+
+.bgg-logo-dark {
+    display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .bgg-logo-light {
+        display: none;
+    }
+
+    .bgg-logo-dark {
+        display: block;
+    }
 }
 
 .dialog-actions {

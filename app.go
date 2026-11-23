@@ -208,8 +208,9 @@ func migrateSettings(path string) {
 }
 
 // newDefaultApp returns an App with the built-in media types and the
-// settings file at path. The movie, TV, game and nature sources read their
-// keys from the App's live settings; BoardGameGeek uses the built-in token.
+// settings file at path. The movie, TV, game, nature and board game sources
+// read their keys from the App's live settings; BoardGameGeek falls back to
+// the built-in token.
 func newDefaultApp(client *http.Client, path string) *App {
 	var a *App
 	// The catalog is built before the App exists; a is set before any
@@ -309,10 +310,23 @@ func (a *App) bhlKey() string {
 	return a.settings.BHLAPIKey
 }
 
-// bggToken returns the BoardGameGeek token: the one built into this
-// build, empty in source builds.
-func (*App) bggToken() string {
+// bggToken returns the BoardGameGeek token: the one saved in the settings,
+// read live like tmdbKey, else the one built into this build (empty in
+// source builds).
+func (a *App) bggToken() string {
+	a.settingsMu.Lock()
+	saved := strings.TrimSpace(a.settings.BGGToken)
+	a.settingsMu.Unlock()
+	if saved != "" {
+		return saved
+	}
 	return buildinfo.BGGToken
+}
+
+// HasBuiltInBGGToken reports whether this build has a BoardGameGeek token
+// built in, so board games work without one in the settings.
+func (*App) HasBuiltInBGGToken() bool {
+	return strings.TrimSpace(buildinfo.BGGToken) != ""
 }
 
 // startup is called when the app starts. The context is kept for the
