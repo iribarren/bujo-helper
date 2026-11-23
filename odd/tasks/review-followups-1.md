@@ -45,5 +45,7 @@ Strategy: `ask-on-risk`. Forecast ~300 authored lines (mostly tests): single PR/
 
 - R3-pdfdoc-partial-chokepoint closed (route: inline, one test file): `internal/sheet/textguard_test.go` parses the package's non-test files and fails on calls to fpdf text methods pdfDoc does not sanitize (Cell, Cellf, CellFormat, MultiCell, Write with 2 args, Writef, WriteAligned, WriteLink*, SplitText, SplitLines); io.Writer's one-arg Write passes. RED: a planted `d.MultiCell(...)` in a temp file failed the guard; a synthetic-source test pins each detected kind. GREEN: guard passes on the package; `go test -count=1 ./...` all 19 packages ok; build, vet, gofmt clean.
 
+- Post-merge review `5f00949..c87268c` (stop-hook preflight, medium, 700 lines): consent granted; reliability approved; acknowledged, lineage `review-e63e0deabf329b70`. Advisory SUGGESTIONs left as follow-ups: R3-huge-header-test-not-discriminating (`internal/gallery/thumbs_test.go:61-78`: 404 also comes from the decode failure, so the test would pass without the cap; call `makeThumb` directly and assert the "over" error); R3-thumb-cap-global-mutation (`thumbs_test.go:36-38`: the test lowers package var `maxThumbPixels`; a per-Thumbs limit field would avoid a race if tests go parallel).
+
 ## Next step
-Done; merged to main.
+Done; merged to main. Follow-ups: the two thumbnail test advisories.
