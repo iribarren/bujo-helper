@@ -58,13 +58,17 @@ var (
 	mdHeading = regexp.MustCompile(`^ {0,3}(#{1,6})(?:[ \t]+(.*?))?[ \t]*$`)
 	// mdClosingHashes is the optional closing sequence of an ATX heading.
 	mdClosingHashes = regexp.MustCompile(`(?:^|[ \t]+)#+$`)
-	mdFence         = regexp.MustCompile("^ {0,3}(?:```|~~~)")
-	mdBreak         = regexp.MustCompile(`^ {0,3}(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$`)
-	mdListItem      = regexp.MustCompile(`^(?:[-*+]|\d{1,9}[.)])(?:[ \t]+|$)`)
-	mdTaskBox       = regexp.MustCompile(`^\[[ xX]\](?:[ \t]+|$)`)
+	// mdFence is a code fence: its run of backticks or tildes, then the
+	// rest of the line.
+	mdFence    = regexp.MustCompile("^ {0,3}(`{3,}|~{3,})(.*)$")
+	mdBreak    = regexp.MustCompile(`^ {0,3}(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$`)
+	mdListItem = regexp.MustCompile(`^(?:[-*+]|\d{1,9}[.)])(?:[ \t]+|$)`)
+	mdTaskBox  = regexp.MustCompile(`^\[[ xX]\](?:[ \t]+|$)`)
 	// mdKeyLine is a "Key: value" line, the key maybe bold or italic, as
-	// in "**Serves:** 4" or "**Serves**: 4".
-	mdKeyLine = regexp.MustCompile(`^(\*\*|__|\*|_)?[ \t]*(\pL+)[ \t]*(?:\*\*|__|\*|_)?[ \t]*:[ \t]*(\*\*|__|\*|_)?[ \t]*(.*?)[ \t]*$`)
+	// in "**Serves:** 4" or "**Serves**: 4": the opening marker, the key,
+	// a closing marker before the colon, a marker after it with the spaces
+	// that follow, and the rest of the value.
+	mdKeyLine = regexp.MustCompile(`^(\*\*|__|\*|_)?[ \t]*(\pL+)[ \t]*(\*\*|__|\*|_)?[ \t]*:[ \t]*((?:\*\*|__|\*|_)[ \t]*)?(.*?)[ \t]*$`)
 	mdImage   = regexp.MustCompile(`^!\[[^\]]*\]\(([^)]*)\)$`)
 	mdLink    = regexp.MustCompile(`!?\[([^\]]*)\]\([^)]*\)`)
 	mdStars   = regexp.MustCompile(`\*{1,3}([^\s*](?:[^*]*[^\s*])?)\*{1,3}`)
@@ -125,7 +129,7 @@ type recipeParser struct {
 	dir     string
 	recipes []Recipe
 	section recipeSection
-	fenced  bool // inside a fenced code block
+	fence   string // the opening run of a fenced code block being skipped
 	// listed is whether the section's last item was a list item, which
 	// indented lines continue; open is whether the previous line was part
 	// of it, which plain lines continue too.
@@ -134,11 +138,17 @@ type recipeParser struct {
 
 // line reads one line, its line ending removed.
 func (p *recipeParser) line(line string) {
-	if mdFence.MatchString(line) {
-		p.fenced, p.open = !p.fenced, false
+	if p.fence != "" {
+		// Only a run of the opening fence's character, at least as long
+		// and with nothing after it, closes the block (CommonMark).
+		m := mdFence.FindStringSubmatch(line)
+		if m != nil && m[1][0] == p.fence[0] && len(m[1]) >= len(p.fence) && strings.TrimSpace(m[2]) == "" {
+			p.fence = ""
+		}
 		return
 	}
-	if p.fenced {
+	if m := mdFence.FindStringSubmatch(line); m != nil {
+		p.fence, p.open = m[1], false
 		return
 	}
 	if m := mdHeading.FindStringSubmatch(line); m != nil {
@@ -217,10 +227,11 @@ func (p *recipeParser) meta(text string) bool {
 	if m == nil {
 		return false
 	}
-	value := m[4]
-	if m[1] == "" {
-		// A marker after the colon closes nothing: it is the value's.
-		value = m[3] + value
+	value := m[5]
+	if m[1] == "" || m[3] != "" {
+		// With no key marker left open before the colon, a marker after
+		// it closes nothing: it is the value's ("**Photo**: _d.jpg").
+		value = m[4] + value
 	}
 	switch recipeKeys[strings.ToLower(m[2])] {
 	case "servings":

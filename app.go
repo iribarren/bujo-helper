@@ -416,8 +416,8 @@ var (
 )
 
 // ImportRecipes asks for a Markdown file and returns its recipes, as
-// sheet.ParseRecipesMarkdown reads them. It returns nil with no error when
-// the dialog is cancelled.
+// sheet.ParseRecipesMarkdown reads them. It returns an empty list (JSON
+// []) with no error when the dialog is cancelled.
 func (a *App) ImportRecipes() ([]sheet.Recipe, error) {
 	path, err := openFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: a.t("dialog.importRecipes"),
@@ -426,8 +426,11 @@ func (a *App) ImportRecipes() ([]sheet.Recipe, error) {
 			{DisplayName: a.t("filter.all"), Pattern: "*.*"},
 		},
 	})
-	if err != nil || path == "" {
+	if err != nil {
 		return nil, err
+	}
+	if path == "" {
+		return []sheet.Recipe{}, nil
 	}
 	return importRecipesFile(path, a.language())
 }

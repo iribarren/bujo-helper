@@ -390,8 +390,8 @@ func TestImportRecipes(t *testing.T) {
 	}
 
 	stubOpenDialog(t, func(runtime.OpenDialogOptions) (string, error) { return "", nil })
-	if got, err := a.ImportRecipes(); got != nil || err != nil {
-		t.Errorf("cancelled: got %#v, %v, want nil, nil", got, err)
+	if got, err := a.ImportRecipes(); got == nil || len(got) != 0 || err != nil {
+		t.Errorf("cancelled: got %#v, %v, want an empty non-nil list, nil", got, err)
 	}
 	boom := errors.New("boom")
 	stubOpenDialog(t, func(runtime.OpenDialogOptions) (string, error) { return "", boom })

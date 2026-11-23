@@ -220,6 +220,20 @@ Serves: *4*
 			in:   "# Real\n## Steps\n- a\n```\n# not a recipe\n```\n- b\n",
 			want: []Recipe{{Title: "Real", Ingredients: []string{}, Steps: []string{"a", "b"}}},
 		},
+		{
+			name: "a fence closes only on its own character, at least as long",
+			in:   "# Real\n## Steps\n- a\n```\n~~~\n# not a recipe\n```\n- b\n````md\n```\n# nor this\n````\n- c\n~~~~\n# nor this one\n~~~ x\n~~~\n~~~~~\n- d\n",
+			want: []Recipe{{Title: "Real", Ingredients: []string{}, Steps: []string{"a", "b", "c", "d"}}},
+		},
+		{
+			name: "a key whose emphasis closes before the colon",
+			in:   "# A\n**Photo**: _d.jpg\n**Serves**: *about* 4\n__Time__: _1 h_\n# B\n**Photo:** b_1.jpg\n**Serves:** 2\n# C\nPhoto: _c.jpg\n*Time*:  20 min\n",
+			want: []Recipe{
+				{Title: "A", Servings: "about 4", Time: "1 h", Photo: filepath.Join(dir, "_d.jpg"), Ingredients: []string{}, Steps: []string{}},
+				{Title: "B", Servings: "2", Photo: filepath.Join(dir, "b_1.jpg"), Ingredients: []string{}, Steps: []string{}},
+				{Title: "C", Time: "20 min", Photo: filepath.Join(dir, "_c.jpg"), Ingredients: []string{}, Steps: []string{}},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
