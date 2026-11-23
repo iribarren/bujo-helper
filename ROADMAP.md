@@ -409,6 +409,7 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 - A new media type **Products**, with input `Product, Brand`, or a barcode.
 - Source: Open Food Facts API (front image). Follow the **Attribution** convention, and record the licence per image.
 - Skip images below a minimum resolution.
+- **Decision (2026-11-23):** name searches use Search-a-licious (`search.openfoodfacts.org`), because the legacy `/cgi/search.pl` was unavailable and the v2 API has no text search; a barcode (8 to 14 digits, no brand) is read through the v2 product API. The front image's shorter side must be at least 400 px. Credits go in the `<file>.credit.txt` sidecar (product and brand, contributor, source, CC BY-SA 3.0 licence, product page). Product reads are spaced 4.5 s apart and searches 6.5 s apart, under the published 15 and 10 per minute. Barcode lines save as `<barcode>.jpg`, since file names come from the input.
 
 **Acceptance**
 - Provider tests with fixtures. A common product returns a usable front image with its credit stored.
