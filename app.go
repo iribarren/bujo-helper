@@ -29,6 +29,7 @@ import (
 	"bujo-helper/internal/i18n"
 	"bujo-helper/internal/media"
 	"bujo-helper/internal/preview"
+	"bujo-helper/internal/quotes"
 	"bujo-helper/internal/settings"
 	"bujo-helper/internal/sheet"
 	"bujo-helper/internal/web"
@@ -132,6 +133,10 @@ type App struct {
 	// the live preview; served next to thumbs (see assetHandler).
 	previews *preview.Store
 
+	// quotes searches Wikiquote for SearchQuotes; tests point it at a
+	// local server.
+	quotes *quotes.Client
+
 	// settingsPath is the settings file; "" means it is unknown and
 	// SaveSettings fails. settings is the current copy, read live by
 	// tmdbKey, igdbCredentials and bhlKey so saved keys are used without a
@@ -224,6 +229,7 @@ func newApp(reg *media.Registry, client *http.Client) *App {
 		downloader: downloader.Downloader{Registry: reg, Client: client},
 		thumbs:     gallery.NewThumbs(),
 		previews:   preview.NewStore(),
+		quotes:     quotes.NewClient(client),
 	}
 }
 
@@ -1090,17 +1096,20 @@ func (a *App) withLabels(opts sheet.Options) sheet.Options {
 
 // withPageLabels returns page with the labels of generated pages (month and
 // weekday names, moon marks, the visited map's title and caption, the habit
-// tracker's title) and the language of country names in the UI language.
+// tracker's title, the quote cards' title and Wikiquote credit) and the
+// language of country names in the UI language.
 func (a *App) withPageLabels(page sheet.PageSettings) sheet.PageSettings {
 	page.Labels = sheet.PageLabels{
-		Months:      strings.Split(a.t("pdf.months"), ","),
-		Weekdays:    strings.Split(a.t("pdf.weekdays"), ","),
-		NewMoon:     a.t("pdf.moonNew"),
-		FullMoon:    a.t("pdf.moonFull"),
-		MapTitle:    a.t("pdf.mapTitle"),
-		MapVisited:  a.t("pdf.mapVisited"),
-		HabitsTitle: a.t("pdf.habitsTitle"),
-		Language:    string(a.language()),
+		Months:       strings.Split(a.t("pdf.months"), ","),
+		Weekdays:     strings.Split(a.t("pdf.weekdays"), ","),
+		NewMoon:      a.t("pdf.moonNew"),
+		FullMoon:     a.t("pdf.moonFull"),
+		MapTitle:     a.t("pdf.mapTitle"),
+		MapVisited:   a.t("pdf.mapVisited"),
+		HabitsTitle:  a.t("pdf.habitsTitle"),
+		QuotesTitle:  a.t("pdf.quotesTitle"),
+		QuotesCredit: a.t("pdf.quotesCredit"),
+		Language:     string(a.language()),
 	}
 	return page
 }
@@ -1230,6 +1239,41 @@ func (a *App) PageKinds() []PageKindInfo {
 		})
 	}
 	return out
+}
+
+// quoteSearchTimeout bounds one SearchQuotes call (a search and up to
+// three pages).
+const quoteSearchTimeout = 20 * time.Second
+
+// SearchQuotes finds the Wikiquote page of the person query names, in the
+// UI language (English or Spanish), and returns its quotes and the other
+// matching pages. When no matching page has quotes, the result names the
+// best page with empty quotes and its other matches (no error, so the UI
+// can offer them). An empty query or a query without any page gives a
+// translated error.
+func (a *App) SearchQuotes(query string) (quotes.Result, error) {
+	parent := a.ctx
+	if parent == nil {
+		parent = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(parent, quoteSearchTimeout)
+	defer cancel()
+	lang := "en"
+	if a.language() == i18n.ES {
+		lang = "es"
+	}
+	res, err := a.quotes.Search(ctx, query, lang)
+	switch {
+	case errors.Is(err, quotes.ErrEmptyQuery):
+		return quotes.Result{}, errors.New(a.t("err.quoteQuery"))
+	case errors.Is(err, quotes.ErrNotFound):
+		// The query is user text: substituted, never a format string.
+		name := strings.Join(strings.Fields(query), " ")
+		return quotes.Result{}, errors.New(strings.ReplaceAll(a.t("err.noQuotes"), "{query}", name))
+	case err != nil:
+		return quotes.Result{}, err
+	}
+	return res, nil
 }
 
 // PagePages counts the pages of the page kind with the shared settings page

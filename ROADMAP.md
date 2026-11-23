@@ -441,6 +441,21 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
 
 **Weakness:** there are no images to fetch, and free versions are everywhere, so the app adds little.
 
+**Done in branch `feat/quote-cards`** (see `odd/tasks/quote-cards.md`):
+- User extension (2026-11-21): search an author or personality and tick their quotes, instead of only typing or importing them. That is what makes the kind worth having over the free templates.
+- Wikiquote search: `internal/quotes` (MediaWiki full-text search, page HTML parsing, section filter, text cleaning, limits) with recorded en/es fixtures (8c95a68, fixtures trimmed in 99ff3b7); the `SearchQuotes` binding in the UI language (68fe75a); a best page without quotes falls back to the next matches and keeps the other matches (7404937), and a failed fallback keeps the best page (eecc949); race-free test request logs (92f7a54).
+- Page kind: `quotes` in `PageKinds` with the Classic, Bold and Framed styles, 4/6/8 cards a page, fitted text, empty card frames and the Wikiquote credit (852d0e7); its title and credit in the UI language (d23384c).
+- Make pages form: Find quotes by, Other matches, the results checklist, Picked quotes across searches, Your own quotes, Style and Cards per page, in English and Spanish (82253ba).
+- README Quote cards section with the Wikiquote licence and what the search sends (the `docs:` commit after 07f31e2).
+- Decisions:
+  - Source: Wikiquote (en and es) through the MediaWiki Action API, no key, the contact User-Agent, one request at a time. Quotable (unreliable), ZenQuotes and API Ninjas (author search needs a paid key) and Wikidata P1683 (too sparse) were rejected.
+  - Licence: Wikiquote text is CC BY-SA 4.0; each page with a Wikiquote quote prints "Quotes from Wikiquote (CC BY-SA 4.0)". Quotes from copyrighted works are on Wikiquote as fair use; the README says to print a few for personal use. The user picks single quotes; the app never prints a page's whole list.
+  - Kind id `quotes`, registered after `habits` and before `map`; options `quotes` (text, author, source `""` or `wikiquote`), `style` (`classic` | `bold` | `framed`), `perPage` (4 | 6 | 8, default 6). At most 200 quotes, 600 characters of text and 100 of author, else an error; control characters and space runs become one space; a quote with no text is dropped. Default title "Words to keep" / "Palabras para guardar". The cards have their own dashed cut lines, so the cut mode does not apply.
+  - Quotes per page: top-level list items outside Disputed, Misattributed, Attributed, Quotes about, See also, References and similar sections (and the Spanish equivalents), 10–400 characters, deduplicated, at most 60. A search reads at most three pages.
+  - Text starts at 22/18/15 pt for 4/6/8 cards (Bold a fifth larger), shrinks by 0.5 pt to 8 pt, then ends with "…"; hollow with Colour-in at 14 pt or larger. Author in the Go font, one line. The credit band is always reserved, so card sizes never depend on the source.
+  - Typed quotes split at the last comma (`Quote, Author`); picks keep their order across searches, deduplicated by text and author; the form sends the picks, then the typed quotes.
+  - Out of scope: CSV or Markdown import, other quote sources, lyrics, keeping search results between sessions.
+
 **Scope**
 - A generated print format **Quote cards**: the user types or imports quotes (`Quote, Author`), and the app lays them out as cards in a few typographic styles. It uses the lettering fonts from item 31 instead of adding new ones.
 

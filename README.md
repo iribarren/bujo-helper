@@ -680,6 +680,46 @@ Habit names are cleaned before they are counted and printed: each run of tabs, l
 
 The cut mode does not apply.
 
+### Quote cards
+
+Quotes laid out as cut-out cards, two columns of them, in the lettering font. Search a person on Wikiquote and tick the quotes you want, type your own, or both. With no quotes it prints a page of empty card frames to write in by hand.
+
+To make one: open **Make pages**, pick **Quote cards**, type a name in **Find quotes by** (for example `Mark Twain`), click **Search** (or press Enter), tick the quotes you want, and click **Export PDF…**.
+
+| Setting | Rule |
+|---------|------|
+| Find quotes by | an author or personality, searched on [Wikiquote](#quotes-from-wikiquote) in the UI language (English or Spanish). The person found heads the results, with **Other matches** below it: click one to search that page instead |
+| Quotes found | the person's quotes as a checklist, with **All** · **None** and the number ticked. Ticked quotes go to **Picked quotes**, which keeps them across searches in the order you picked them (the same quote and author count once); **×** removes one |
+| Your own quotes: Quote, Author | one quote per line; the author goes after the last comma, so `Less is more, Mies van der Rohe` works and a comma inside the quote is kept. A line without a comma is a quote with no author; blank lines are dropped |
+| Style | **Classic** (default): centred, in curly quotes, the author centred below. **Bold**: left-aligned and a fifth larger, no quotation marks, the author on the right. **Framed**: Classic inside a thin frame within the cut line |
+| Cards per page | 4, **6** or 8, in two columns (2, 3 or 4 rows) |
+| Title | the shared **Title**, in the chosen [lettering font](#lettering), outlined with [Colour-in](#colour-in); empty prints "Words to keep" ("Palabras para guardar" in Spanish) |
+| Paper | any; within 8 mm margins, below a 12 mm title band |
+
+The cards print the picked quotes first, then your own. At most 200 quotes, each up to 600 characters with an author of up to 100; more is an error, shown in the preview. Each run of tabs, line breaks, other control characters or spaces in a quote or an author becomes one space, as for [habit names](#habit-tracker), and a quote left with no text is dropped.
+
+How the cards are drawn:
+
+| Part | Rule |
+|------|------|
+| Cards | fill the area in two columns, 4 mm apart both ways, above a band at the foot kept for the credit; every page is a full grid, and the cards left over on the last page are empty frames |
+| Cut line | dashed grey (#8a919c) around each card; the Framed style adds a solid grey frame 2.5 mm inside it |
+| Quote | in the chosen lettering font, wrapped to the card. It starts at 22, 18 or 15 pt for 4, 6 or 8 cards a page (Bold: 26.4, 21.6 or 18 pt) and shrinks by 0.5 pt until it fits; at 8 pt the last line that fits ends with "…" |
+| Author | "— Name", in the Go font at 8 pt, 1.5 mm below the quote, cut with "…" to one line. The quote and author are centred down the card together |
+| Credit | "Quotes from Wikiquote (CC BY-SA 4.0)" ("Citas de Wikiquote (CC BY-SA 4.0)" in Spanish), small, centred at the foot of each page that holds a Wikiquote quote; pages with only your own quotes have none |
+
+The cards have their own cut lines, so the cut mode does not apply.
+
+#### Quotes from Wikiquote
+
+The search is the only part of **Make pages** that uses the network; typed quotes need none.
+
+- **What is sent.** The name you type goes to `en.wikiquote.org` or `es.wikiquote.org` (the UI language), through the MediaWiki API, no key, with the app's contact User-Agent `bujo-helper/1.0 ( https://github.com/iribarren/bujo-helper )`, one request at a time. Only the name and the titles of the pages it reads are sent, nothing about your pages.
+- **How the page is chosen.** A full-text search finds up to six pages; the best one is read, and the others are the **Other matches**. When the best page has no quotes the next ones are tried, at most three pages a search. A name with no page at all gives `no quotes found for "Name"`; pages without quotes show "No quotes found on Person." with the other matches still offered.
+- **Which quotes.** The items of the page's top-level lists, without their nested source lines and reference marks. Sections that are not the person's own sourced quotes are skipped: Disputed, Misattributed, Attributed, Misquoted, Quotes about…, See also, Notes, References, External links and the like, and their Spanish equivalents (Atribuidas, Dudosas, Citas sobre…, Véase también, Referencias…). Quotation marks around a whole quote are removed. Quotes of 10 to 400 characters are kept, without duplicates, up to 60 a page.
+- **Licence.** Wikiquote's text is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) (the Spanish site's copyright policy still names 3.0), which asks for credit: the caption on each page with a Wikiquote quote is that attribution. You pick single quotes; the app never prints a page's whole list.
+- **Copyrighted works.** Many quotes come from books, films and songs still under copyright and are on Wikiquote as short quotations under fair use. Printing a few for your own journal stays within that; don't publish sheets of them.
+
 ### Visited map
 
 A vector map of the world or of one continent with the countries you have visited filled in, and optionally their names listed below it. The map data is embedded in the app: no network, no API key.
@@ -724,7 +764,7 @@ The map fills the width at the top of the area. With the list, it shrinks (down 
 
 ## Lettering
 
-Headers and titles can print in one of ten bundled lettering fonts instead of the plain Go sans, and as hollow outlines to colour in by hand, the way bubble letters drawn with a pen are coloured. The controls sit in the **Lettering** fieldset of [Print sheet](#print-sheet) (for **Full page**, **Checklist** and **Review cards**) and [Make pages](#generated-pages) (every page kind).
+Headers, titles and quote card text can print in one of ten bundled lettering fonts instead of the plain Go sans, and as hollow outlines to colour in by hand, the way bubble letters drawn with a pen are coloured. The controls sit in the **Lettering** fieldset of [Print sheet](#print-sheet) (for **Full page**, **Checklist** and **Review cards**) and [Make pages](#generated-pages) (every page kind).
 
 1. Click **Font** (or focus it and press ↓). The button shows the chosen font in its own face; the list shows each font in its face, with its style group and a [badge](#colour-in). Arrow keys, Home and End move, Enter or Space picks, Escape closes.
 2. Check **Colour-in (outlines only)** to print outlines. The hint under it says what the chosen font does.
@@ -736,9 +776,10 @@ Each tab keeps its own font and Colour-in until the app closes. With the **Defau
 
 | Text | Font |
 |------|------|
-| Full page and Checklist headers, Dot grid, Moon calendar, Month calendar, Habit tracker and Visited map titles | the chosen font, outlined with Colour-in |
+| Full page and Checklist headers, Dot grid, Moon calendar, Month calendar, Habit tracker, Quote cards and Visited map titles | the chosen font, outlined with Colour-in |
+| Quote card text | the chosen font, outlined with Colour-in at 14 pt or larger; text shrunk below 14 pt to fit its card stays filled |
 | Review card titles | the chosen font, always filled: at 9.5 pt they are too small for outlines |
-| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels, month calendar weekdays and day numbers, habit names and day numbers, visited map country lists | always the Go font |
+| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels, month calendar weekdays and day numbers, habit names and day numbers, quote authors and the Wikiquote credit, visited map country lists | always the Go font |
 
 Headers still shrink from 20 pt down to 12 pt to fit, then end with "…". A bundled font fits into 96 % of the width, leaving room for swashes; the Default (Go) font keeps its bold header and the full width.
 
@@ -752,7 +793,7 @@ Colour-in prints letters as black outlines (PDF text rendering mode 1) instead o
 | **hollow** | Bungee Outline, Londrina Outline | outlined by design, never stroked again; the box shows checked, and your own choice comes back with the next font |
 | **no outline** | Sacramento, Amatic SC | too thin to outline: letters stay filled |
 
-On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font. On a [visited map](#visited-map), it draws the countries as black outlines with no fills, the visited ones heavier. On a [month calendar](#month-calendar) and a [habit tracker](#habit-tracker), only the title changes: their boxes are already outlines.
+On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font. On a [visited map](#visited-map), it draws the countries as black outlines with no fills, the visited ones heavier. On [quote cards](#quote-cards), the quote text is outlined too when it prints at 14 pt or larger; the cut lines and frames do not change. On a [month calendar](#month-calendar) and a [habit tracker](#habit-tracker), only the title changes: their boxes are already outlines.
 
 ### Bundled fonts
 
@@ -886,7 +927,7 @@ The root package embeds `frontend/dist`, so build the frontend once first (`cd f
 ```
 main.go, app.go        Wails entry point and the methods bound to the UI
 frontend/              Vanilla TypeScript + Vite UI
-  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), preview.ts (live PDF preview), lettering.ts (font picker and Colour-in), settings.ts (Settings dialog and About) and style.css
+  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), quotesForm.ts (the quote cards search and picks), preview.ts (live PDF preview), lettering.ts (font picker and Colour-in), settings.ts (Settings dialog and About) and style.css
   wailsjs/             generated bindings (committed)
 cmd/covers/            command-line tool
 internal/
@@ -898,12 +939,13 @@ internal/
   downloader/          concurrent batch downloads, local-edition preference, image validation, file naming, credit files
   locale/              country table: language and ISBN prefixes of local editions
   isbn/                ISBN-10/13 validation, conversion and extraction
+  quotes/              Wikiquote search: a person's page and its quotes, sections filtered and text cleaned
   web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
   settings/            user settings file (TMDB API key)
   gallery/             print sheet: folder listing and thumbnails for the UI
   preview/             in-memory store of preview PDFs served at /preview
   fonts/               serves the lettering fonts and their licences at /fonts/
-  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid, moon calendar with Meeus moon phases, month calendar and habit tracker with shared calendar math, visited map with country matching and projections); the lettering font registry and hollow text
+  sheet/               print sheet: layouts (covers, review cards, spines, ticket stubs, full page, checklist, polaroid) and PDF export; generated page kinds (dot grid, moon calendar with Meeus moon phases, month calendar and habit tracker with shared calendar math, quote cards with fitted text, visited map with country matching and projections); the lettering font registry and hollow text
     fonts/<id>/        the bundled lettering fonts (TTF) and their licence files, embedded
     mapdata/           the embedded Natural Earth country map (countries.bin) and its binary format
     mapgen/            the generator of countries.bin (`go generate` in internal/sheet)

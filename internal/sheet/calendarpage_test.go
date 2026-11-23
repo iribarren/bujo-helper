@@ -130,12 +130,13 @@ func TestCalendarRegistryEntry(t *testing.T) {
 	if string(raw) != `{"month":0,"year":0,"weekStart":"mon"}` {
 		t.Errorf("defaults %s", raw)
 	}
-	// Moon, then the month calendar and the habit tracker, then the map.
+	// Moon, then the month calendar, the habit tracker and the quote cards,
+	// then the map.
 	var ids []string
 	for _, k := range PageKinds {
 		ids = append(ids, k.ID)
 	}
-	if got := strings.Join(ids, ","); got != "dotgrid,moon,calendar,habits,map" {
+	if got := strings.Join(ids, ","); got != "dotgrid,moon,calendar,habits,quotes,map" {
 		t.Errorf("page kinds in order %s", got)
 	}
 }

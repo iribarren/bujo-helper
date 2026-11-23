@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -26,6 +27,7 @@ import (
 	"bujo-helper/internal/i18n"
 	"bujo-helper/internal/media"
 	"bujo-helper/internal/providers"
+	"bujo-helper/internal/quotes"
 	"bujo-helper/internal/settings"
 	"bujo-helper/internal/sheet"
 
@@ -649,6 +651,7 @@ func TestPageKinds(t *testing.T) {
 		{ID: "moon", Label: "Moon calendar", UsesTitle: true, Defaults: `{"month":0,"year":0,"layout":"grid","hemisphere":"north"}`},
 		{ID: "calendar", Label: "Month calendar", UsesTitle: true, Defaults: `{"month":0,"year":0,"weekStart":"mon"}`},
 		{ID: "habits", Label: "Habit tracker", UsesTitle: true, Defaults: `{"month":0,"year":0,"habits":[]}`},
+		{ID: "quotes", Label: "Quote cards", UsesTitle: true, Defaults: `{"quotes":[],"style":"classic","perPage":6}`},
 		{ID: "map", Label: "Visited map", UsesTitle: true, Defaults: `{"region":"world","countries":[],"colour":"teal","list":true}`},
 	}
 	if !reflect.DeepEqual(got, want) {
@@ -1827,6 +1830,12 @@ func TestPageLabelsFollowTheUILanguage(t *testing.T) {
 	if es.MapTitle != "Lugares que he visitado" || es.MapVisited != "Países visitados" || es.Language != "es" {
 		t.Errorf("Spanish map labels = %+v", es)
 	}
+	if en.QuotesTitle != "Words to keep" || en.QuotesCredit != "Quotes from Wikiquote (CC BY-SA 4.0)" {
+		t.Errorf("English quote labels = %q, %q", en.QuotesTitle, en.QuotesCredit)
+	}
+	if es.QuotesTitle != "Palabras para guardar" || es.QuotesCredit != "Citas de Wikiquote (CC BY-SA 4.0)" {
+		t.Errorf("Spanish quote labels = %q, %q", es.QuotesTitle, es.QuotesCredit)
+	}
 	if en.HabitsTitle != "Habits · {month}" || es.HabitsTitle != "Hábitos · {month}" {
 		t.Errorf("habit tracker titles = %q, %q", en.HabitsTitle, es.HabitsTitle)
 	}
@@ -1976,5 +1985,112 @@ func TestDefaultAppNatureUsesTheSavedBHLKey(t *testing.T) {
 	}
 	if got := a.GetSettings().BHLAPIKey; got != "new-bhl" {
 		t.Errorf("GetSettings BHL key = %q", got)
+	}
+}
+
+// wikiquoteStub answers the Wikiquote API: a search for "Einstein" finds
+// one page with one quote, "Quiet" finds two pages without quotes and
+// anything else finds nothing. It records the
+// language path of each request; the returned function reads them under
+// the handler's lock.
+func wikiquoteStub(t *testing.T) (*httptest.Server, func() []string) {
+	t.Helper()
+	var mu sync.Mutex
+	var langs []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		langs = append(langs, strings.TrimPrefix(r.URL.Path, "/"))
+		mu.Unlock()
+		q := r.URL.Query()
+		switch {
+		case q.Get("action") == "query" && q.Get("srsearch") == "Einstein":
+			w.Write([]byte(`{"query":{"search":[{"title":"Albert Einstein"},{"title":"EPR paradox"}]}}`))
+		case q.Get("action") == "query" && q.Get("srsearch") == "Quiet":
+			w.Write([]byte(`{"query":{"search":[{"title":"Quiet Person"},{"title":"Quiet Place"}]}}`))
+		case q.Get("action") == "query":
+			w.Write([]byte(`{"query":{"search":[]}}`))
+		case q.Get("page") != "Albert Einstein":
+			w.Write([]byte(`{"parse":{"title":"` + q.Get("page") + `","text":"<div class=\"mw-parser-output\"></div>"}}`))
+		default:
+			w.Write([]byte(`{"parse":{"title":"Albert Einstein","text":"<div class=\"mw-parser-output\"><h2>Quotes</h2><ul><li>Imagination is more important than knowledge.</li></ul></div>"}}`))
+		}
+	}))
+	t.Cleanup(srv.Close)
+	return srv, func() []string {
+		mu.Lock()
+		defer mu.Unlock()
+		return slices.Clone(langs)
+	}
+}
+
+func TestSearchQuotes(t *testing.T) {
+	tests := []struct {
+		name     string
+		uiLang   string
+		query    string
+		wantLang string
+		wantErr  string
+	}{
+		{name: "english", uiLang: "en", query: "Einstein", wantLang: "en"},
+		{name: "spanish", uiLang: "es-ES", query: "Einstein", wantLang: "es"},
+		{name: "not found in english", uiLang: "en", query: "  zzqxv  ", wantLang: "en", wantErr: `no quotes found for "zzqxv"`},
+		{name: "not found in spanish", uiLang: "es", query: "zzqxv", wantLang: "es", wantErr: "no se encontraron citas de «zzqxv»"},
+		{name: "empty query", uiLang: "en", query: " ", wantErr: "enter a name to search for quotes"},
+		{name: "empty query in spanish", uiLang: "es", query: "", wantErr: "escriba un nombre para buscar citas"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, langs := wikiquoteStub(t)
+			a := newApp(media.NewRegistry(), http.DefaultClient)
+			a.quotes = &quotes.Client{HTTP: srv.Client(), APIURL: func(lang string) string { return srv.URL + "/" + lang }}
+			a.SetLanguage(tt.uiLang)
+			got, err := a.SearchQuotes(tt.query)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("SearchQuotes error = %v, want %q", err, tt.wantErr)
+				}
+			} else if err != nil {
+				t.Fatalf("SearchQuotes: %v", err)
+			} else {
+				want := quotes.Result{
+					Person:  "Albert Einstein",
+					URL:     "https://" + tt.wantLang + ".wikiquote.org/wiki/Albert_Einstein",
+					Matches: []string{"EPR paradox"},
+					Quotes:  []quotes.Quote{{Text: "Imagination is more important than knowledge.", Author: "Albert Einstein", Source: "wikiquote"}},
+				}
+				if !reflect.DeepEqual(got, want) {
+					t.Errorf("SearchQuotes = %+v, want %+v", got, want)
+				}
+			}
+			if got := langs(); tt.wantLang != "" && (len(got) == 0 || got[0] != tt.wantLang) {
+				t.Errorf("requests went to %q, want %q", got, tt.wantLang)
+			}
+		})
+	}
+}
+
+func TestSearchQuotesWithoutQuotesKeepsMatches(t *testing.T) {
+	srv, _ := wikiquoteStub(t)
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.quotes = &quotes.Client{HTTP: srv.Client(), APIURL: func(lang string) string { return srv.URL + "/" + lang }}
+	got, err := a.SearchQuotes("Quiet")
+	if err != nil {
+		t.Fatalf("SearchQuotes: %v", err)
+	}
+	want := quotes.Result{
+		Person:  "Quiet Person",
+		URL:     "https://en.wikiquote.org/wiki/Quiet_Person",
+		Matches: []string{"Quiet Place"},
+		Quotes:  []quotes.Quote{},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("SearchQuotes = %#v, want %#v", got, want)
+	}
+}
+
+func TestSearchQuotesUsesDefaultClient(t *testing.T) {
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	if a.quotes == nil || a.quotes.HTTP != http.DefaultClient {
+		t.Errorf("newApp quotes client = %+v, want one using the app's HTTP client", a.quotes)
 	}
 }

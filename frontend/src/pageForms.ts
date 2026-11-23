@@ -7,6 +7,7 @@
 import {titled, translated} from './fieldsets';
 import {onLangChange, t, type MessageKey} from './i18n';
 import {monthYearField} from './monthYearField';
+import {quoteLines, quoteSearch, type Quote} from './quotesForm';
 import {initRadioGroup, type RadioGroup} from './radioGroup';
 
 export interface PageForm {
@@ -217,6 +218,84 @@ const habitsForm: PageFormBuilder = (container, idPrefix, defaults, onChange) =>
     };
 };
 
+// The quote cards' styles and cards per page (Go: the quotes options), by
+// value, with the styles' labels' message keys, and the ones a form starts
+// with when Go's default is not one of them.
+const QUOTE_STYLES: Array<[value: string, label: MessageKey]> = [
+    ['classic', 'pages.styleClassic'],
+    ['bold', 'pages.styleBold'],
+    ['framed', 'pages.styleFramed'],
+];
+const CARDS_PER_PAGE = [4, 6, 8];
+const DEFAULT_QUOTE_STYLE = 'classic';
+const DEFAULT_CARDS_PER_PAGE = 6;
+
+// quoteList is the well-formed quotes of a kind's defaults.
+function quoteList(value: unknown): Quote[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((q): q is Quote => typeof q?.text === 'string' && typeof q?.author === 'string')
+        .map((q) => ({text: q.text, author: q.author, source: q.source === 'wikiquote' ? 'wikiquote' : ''}));
+}
+
+// quotesForm is the quote cards' form: the Wikiquote search with its
+// results and picked quotes (see quoteSearch), Your own quotes (a textarea
+// of "Quote, Author" lines, see quoteLines), then Style and Cards per page,
+// segmented groups. It sends the picked quotes, in pick order, followed by
+// the typed ones, as typed: Go enforces the limits, and its error shows in
+// the preview. The labels follow the UI language, keeping the options.
+const quotesForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
+    const initial = quoteList(defaults.quotes);
+    const search = quoteSearch(container, idPrefix, initial.filter((q) => q.source === 'wikiquote'), onChange);
+
+    const field = document.createElement('div');
+    field.className = 'field quotes-own-field';
+    const label = document.createElement('label');
+    label.htmlFor = `${idPrefix}-own`;
+    label.append(translated(document.createElement('span'), 'pages.quotesOwn'));
+    const own = document.createElement('textarea');
+    own.id = `${idPrefix}-own`;
+    own.rows = 4;
+    const hint = translated(document.createElement('p'), 'pages.quotesOwnHint');
+    hint.className = 'field-hint muted';
+    hint.id = `${idPrefix}-own-hint`;
+    own.setAttribute('aria-describedby', hint.id);
+    field.append(label, own, hint);
+    container.append(field);
+
+    // The typed quotes Go gets, kept apart from the text being typed.
+    let typed = initial.filter((q) => q.source === '');
+    own.value = typed.map((q) => (q.author ? `${q.text}, ${q.author}` : q.text)).join('\n');
+    own.addEventListener('input', () => {
+        const next = quoteLines(own.value);
+        if (next.length === typed.length && next.every((q, i) => q.text === typed[i].text && q.author === typed[i].author)) return;
+        typed = next;
+        onChange();
+    });
+
+    const style = segmentedField(container, idPrefix, 'style', 'pages.quotesStyle', 'pages.quotesStyleTitle', onChange);
+    const perPage = segmentedField(container, idPrefix, 'perPage', 'pages.quotesPerPage', 'pages.quotesPerPageTitle', onChange);
+    perPage.replaceOptions(CARDS_PER_PAGE.map((n) => ({value: String(n), label: String(n)})));
+
+    const relabel = () => style.replaceOptions(choices(QUOTE_STYLES));
+    relabel();
+    const stopRelabel = onLangChange(relabel);
+    style.value = offered(QUOTE_STYLES, defaults.style, DEFAULT_QUOTE_STYLE);
+    const preset = Number(defaults.perPage);
+    perPage.value = String(CARDS_PER_PAGE.includes(preset) ? preset : DEFAULT_CARDS_PER_PAGE);
+
+    return {
+        options: () => ({
+            quotes: [...search.picked(), ...typed.map((q) => ({...q}))],
+            style: style.value,
+            perPage: Number(perPage.value),
+        }),
+        dispose: () => {
+            stopRelabel();
+            search.dispose();
+        },
+    };
+};
+
 // The visited map's regions and fill colours (Go: sheet.MapRegions and
 // sheet.MapColours), by value, with their labels' message keys and, for the
 // colours, the swatch Go fills with; and the ones a form starts with when
@@ -335,5 +414,6 @@ export const pageForms: Record<string, PageFormBuilder> = {
     moon: moonForm,
     calendar: calendarForm,
     habits: habitsForm,
+    quotes: quotesForm,
     map: mapForm,
 };
