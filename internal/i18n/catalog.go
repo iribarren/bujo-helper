@@ -76,6 +76,21 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.recipeServes":      "Serves",
 		"pdf.recipeTime":        "Time",
 		"pdf.recipeContinued":   "continued",
+		// Kitchen conversions: the default title, the table headings, the
+		// unit words (abbreviations as cookbooks write them), the gas mark
+		// column, the oven table's caption and the cups-to-grams
+		// ingredients, a comma-separated list of 10.
+		"pdf.conversionsTitle":      "Kitchen conversions",
+		"pdf.conversionVolume":      "Volume",
+		"pdf.conversionWeight":      "Weight",
+		"pdf.conversionOven":        "Oven temperatures",
+		"pdf.conversionCupsToGrams": "Cups to grams",
+		"pdf.conversionCup":         "cup",
+		"pdf.conversionTbsp":        "tbsp",
+		"pdf.conversionTsp":         "tsp",
+		"pdf.conversionGasMark":     "Gas mark",
+		"pdf.conversionFanOven":     "Fan oven: 20 °C lower",
+		"pdf.conversionIngredients": "Flour,Sugar,Brown sugar,Icing sugar,Butter,Rice,Rolled oats,Honey,Cocoa powder,Milk or water",
 	},
 	ES: {
 		"dialog.importCSV":          "Importar CSV",
@@ -135,5 +150,17 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.recipeServes":      "Raciones",
 		"pdf.recipeTime":        "Tiempo",
 		"pdf.recipeContinued":   "continuación",
+
+		"pdf.conversionsTitle":      "Conversiones de cocina",
+		"pdf.conversionVolume":      "Volumen",
+		"pdf.conversionWeight":      "Peso",
+		"pdf.conversionOven":        "Temperaturas del horno",
+		"pdf.conversionCupsToGrams": "Tazas a gramos",
+		"pdf.conversionCup":         "taza",
+		"pdf.conversionTbsp":        "cda.",
+		"pdf.conversionTsp":         "cdta.",
+		"pdf.conversionGasMark":     "Gas",
+		"pdf.conversionFanOven":     "Horno con ventilador: 20 °C menos",
+		"pdf.conversionIngredients": "Harina,Azúcar,Azúcar moreno,Azúcar glas,Mantequilla,Arroz,Copos de avena,Miel,Cacao en polvo,Leche o agua",
 	},
 }

@@ -121,11 +121,11 @@ func TestCatalogsMatchTheEnglishKeysAndVerbs(t *testing.T) {
 	}
 }
 
-// The month and weekday lists have one non-blank entry per month and day
-// in every language.
-func TestCalendarListsAreComplete(t *testing.T) {
+// The month and weekday lists and the conversion chart's ingredients have
+// one non-blank entry per month, day and ingredient in every language.
+func TestPDFListsAreComplete(t *testing.T) {
 	for lang := range catalogs {
-		for key, n := range map[string]int{"pdf.months": 12, "pdf.weekdays": 7} {
+		for key, n := range map[string]int{"pdf.months": 12, "pdf.weekdays": 7, "pdf.conversionIngredients": 10} {
 			items := strings.Split(T(lang, key), ",")
 			if len(items) != n {
 				t.Errorf("%s %q: %d entries, want %d", lang, key, len(items), n)

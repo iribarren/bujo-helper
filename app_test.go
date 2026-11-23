@@ -1975,6 +1975,17 @@ func TestPageLabelsFollowTheUILanguage(t *testing.T) {
 	if es.RecipeIngredients != "Ingredientes" || es.RecipeSteps != "Pasos" || es.RecipeServes != "Raciones" || es.RecipeTime != "Tiempo" || es.RecipeContinued != "continuación" {
 		t.Errorf("Spanish recipe labels = %+v", es)
 	}
+	ec, sc := en.Conversions, es.Conversions
+	if ec.Title != "Kitchen conversions" || ec.Volume != "Volume" || ec.Weight != "Weight" || ec.Oven != "Oven temperatures" || ec.CupsToGrams != "Cups to grams" ||
+		ec.Cup != "cup" || ec.Tbsp != "tbsp" || ec.Tsp != "tsp" || ec.GasMark != "Gas mark" || ec.FanOven != "Fan oven: 20 °C lower" ||
+		strings.Join(ec.Ingredients, ",") != "Flour,Sugar,Brown sugar,Icing sugar,Butter,Rice,Rolled oats,Honey,Cocoa powder,Milk or water" {
+		t.Errorf("English conversion labels = %+v", ec)
+	}
+	if sc.Title != "Conversiones de cocina" || sc.Volume != "Volumen" || sc.Weight != "Peso" || sc.Oven != "Temperaturas del horno" || sc.CupsToGrams != "Tazas a gramos" ||
+		sc.Cup != "taza" || sc.Tbsp != "cda." || sc.Tsp != "cdta." || sc.GasMark != "Gas" || sc.FanOven != "Horno con ventilador: 20 °C menos" ||
+		strings.Join(sc.Ingredients, ",") != "Harina,Azúcar,Azúcar moreno,Azúcar glas,Mantequilla,Arroz,Copos de avena,Miel,Cacao en polvo,Leche o agua" {
+		t.Errorf("Spanish conversion labels = %+v", sc)
+	}
 }
 
 // A visited map previews exactly as it exports, and its default title,
