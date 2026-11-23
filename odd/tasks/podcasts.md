@@ -13,7 +13,7 @@ Podcast trackers sit next to reading and watching logs. The iTunes Search API th
 ## Decisions
 - One source: the existing `Apple` provider with `Media: "podcast"` (`NewApplePodcasts`), title from `collectionName`, creator from `artistName`, label "Apple Podcasts". No fallback: the only keyless alternative is the show's RSS feed, which needs the iTunes lookup anyway; Podcast Index needs a key.
 - Id `podcasts`, label "Podcasts", CreatorLabel "Host", DateLabel "Listened on", registered last (after `boardgames`) so existing type order is unchanged. Samples: The Daily (The New York Times), Radiolab (WNYC Studios), This American Life, Serial (Serial Productions), Hardcore History (Dan Carlin).
-- Square cells already exist (item 12), so the print sheet needs no change; a test confirms square artwork gets square cells via the existing square path.
+- Square cells already exist (item 12), so the print sheet needs no change. Podcast artwork reaches the sheet as plain image files, so the existing square-cell tests in `internal/sheet` cover it; no podcast-specific sheet test is added. The live smoke confirms the downloads are square (3000 × 3000).
 
 ## Scope / constraints
 - In: provider constructor and branch, fixture and tests, catalog registration, frontend example and strings (EN/ES), CLI usage/doc, sample CSV, README Sources and the lists that name media types, ROADMAP item 20.
@@ -42,6 +42,7 @@ Podcast trackers sit next to reading and watching logs. The iTunes Search API th
 
 - 2026-11-23: T1 commit `c3652fd`. Assess (base `f1756b7`, committed-only): medium, `review_due` false, `under_budget`; stays pending in the slice.
 - 2026-11-23: T2 done (route: inline; mechanical docs). README: intro, Features input list, podcasts paragraph in Sources (source, input, size, square cells, no fallback, terms), CSV columns and Sample CSV list, Using the app step 1, square cells, credits page list, CLI example and `-type` row, project layout. ROADMAP item 20 decision bullet (still `[ ]` until merge). Live smoke: `go run ./cmd/covers -type podcasts -o <scratch> "The Daily, The New York Times" "Radiolab"` → 2 ok, both 3000 × 3000 JPEG from `apple` (square, so the existing square-cell rule applies). Docs-only, no runnable RED (exception: passive docs).
+- 2026-11-23: branch review (stop hook preflight, base `f1756b7`, committed-only): medium, user granted; lineage `review-6fb0cc74ea766464`, reliability lens, approved and acknowledged; boundary now `982a118`. Advisory R3-square-cell-test-claimed-not-present (the doc claimed a podcast square-cell test that does not exist): fixed by correcting the Decisions text, since the sheet only sees image files and the existing square-cell tests cover the path.
 
 ## Next step
 User GUI check (Download: Podcasts button, Sample CSV, a download; Print covers: square cells), then the local `--no-ff` merge and ROADMAP tick.
