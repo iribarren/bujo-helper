@@ -582,6 +582,114 @@ describe('resize', () => {
         expect(el('t-label').textContent).toBe('Page 2 of 2');
         expect(loadingShown()).toBe(false);
     });
+
+    describe('after a request', () => {
+        // show shows a document of n pages, drawn at half the PDF's size.
+        async function show(n = 1) {
+            const pdf = fakePdf('/preview?id=1', n);
+            resize(297.5, 421);
+            preview.schedule({key: 'a', render: vi.fn(async () => ({url: '/preview?id=1', pages: n}))});
+            await vi.advanceTimersByTimeAsync(300);
+            await settle();
+            expect(canvasSize()).toBe('297x421');
+            return pdf;
+        }
+
+        // resizeDuring schedules new options whose render answers only when
+        // answered, and resizes the sheet while they are on their way.
+        async function resizeDuring(url = '/preview?id=2') {
+            const req = pending(url, 1);
+            preview.schedule({key: 'b', render: req.render});
+            await vi.advanceTimersByTimeAsync(300);
+            resize(595, 842);
+            await vi.advanceTimersByTimeAsync(150);
+            await settle();
+            return req;
+        }
+
+        it('redraws the page shown, quietly and once, for a resize skipped during a cancelled request', async () => {
+            const pdf = await show();
+            await resizeDuring();
+            expect(renders).toHaveLength(1);
+
+            pdf.holdDraw();
+            preview.cancel();
+            await settle();
+            expect(renders).toEqual([{url: '/preview?id=1', page: 1}, {url: '/preview?id=1', page: 1}]);
+            expect(el('t-sheet').getAttribute('aria-busy')).toBe('false');
+            expect(loadingShown()).toBe(false);
+            pdf.releaseDraw();
+            await settle();
+            expect(canvasSize()).toBe('595x842');
+            expect(loadingShown()).toBe(false);
+
+            await vi.advanceTimersByTimeAsync(1000);
+            await settle();
+            expect(renders).toHaveLength(2);
+        });
+
+        it('does not redraw when the sheet kept its size during the request', async () => {
+            await show();
+            const req = pending('/preview?id=2', 1);
+            preview.schedule({key: 'b', render: req.render});
+            await vi.advanceTimersByTimeAsync(300);
+            preview.cancel();
+            await vi.advanceTimersByTimeAsync(1000);
+            await settle();
+            expect(renders).toHaveLength(1);
+            expect(canvasSize()).toBe('297x421');
+        });
+
+        it('draws a new document once, at the new size', async () => {
+            await show();
+            fakePdf('/preview?id=2', 1);
+            const req = await resizeDuring('/preview?id=2');
+            req.answer();
+            await settle();
+            await vi.advanceTimersByTimeAsync(1000);
+            await settle();
+            expect(renders).toEqual([{url: '/preview?id=1', page: 1}, {url: '/preview?id=2', page: 1}]);
+            expect(canvasSize()).toBe('595x842');
+            expect(loadingShown()).toBe(false);
+        });
+
+        it('shows the error, not a redrawn old page, when the request fails', async () => {
+            await show();
+            const failing = vi.fn(() => Promise.reject(new Error('bad paper')));
+            preview.schedule({key: 'b', render: failing});
+            resize(595, 842);
+            await vi.advanceTimersByTimeAsync(300);
+            await settle();
+            await vi.advanceTimersByTimeAsync(1000);
+            await settle();
+            expect(renders).toHaveLength(1);
+            expect(canvasCount()).toBe(0);
+            expect(el('t-message').textContent).toBe('Could not show the preview: bad paper');
+        });
+
+        it('lets a page still drawing when the request is cancelled finish, then redraws it', async () => {
+            const pdf = await show(2);
+            pdf.holdDraw();
+            el('t-next').click();
+            await settle();
+            await resizeDuring();
+            expect(renders).toHaveLength(2);
+
+            preview.cancel();
+            await settle();
+            // Not cancelled for a quiet redraw.
+            expect(renders).toHaveLength(2);
+            pdf.releaseDraw();
+            await settle();
+            expect(renders).toEqual([
+                {url: '/preview?id=1', page: 1},
+                {url: '/preview?id=1', page: 2},
+                {url: '/preview?id=1', page: 2},
+            ]);
+            expect(canvasSize()).toBe('595x842');
+            expect(el('t-label').textContent).toBe('Page 2 of 2');
+        });
+    });
 });
 
 describe('messages exist in English and Spanish', () => {

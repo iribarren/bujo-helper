@@ -25,7 +25,7 @@ Close five open review follow-ups chosen by the user, on branch `fix/review-foll
 - [x] T1 Thumbnail tests: `makeThumb` "over N pixels" assertion (RED by removing the DecodeConfig cap); per-Thumbs limit. Route: inline (2 files, already read; small mechanical refactor).
 - [x] T2 Frontend test gaps (sequencing, header page count, paper/size, TMDB tip on tv, shapeKey guard, joined removal error). Route: delegated writer (several test files, preparation reading).
 - [x] T3 CirrusSearch escaping in every provider query builder + table tests. Route: delegated writer (mapping all callers).
-- [ ] T4 Replay a skipped preview resize when the request ends, with or without a new document. Route: delegated writer.
+- [x] T4 Replay a skipped preview resize when the request ends, with or without a new document. Route: delegated writer.
 - [ ] T5 Quote comma round-trip rule, frontend + Go side, README. Route: delegated writer.
 
 Route evidence: writer trigger (each task touches 2+ non-trivial files or needs preparation reading). One writer at a time, one commit per task.
@@ -59,5 +59,10 @@ Route evidence: writer trigger (each task touches 2+ non-trivial files or needs 
   - RED: e.g. `srsearch = ["-Saw haswbstatement:P6398"], want ["Saw haswbstatement:P6398"]`; syntax-only title `requests = 1, want 0`; quotes `srsearch = ["intitle:Gandhi"], want ["intitle Gandhi"]`.
   - GREEN (writer): go build ok; vet clean; go test 3540 passed (21 pkgs); gofmt empty; tsc clean; vitest 407 passed; npm run build ok. Parent spot check: `go test ./internal/cirrus/ ./internal/providers/ ./internal/quotes/` 568 passed.
 
+- T3 assess `eb59b30..efa1b8d`: medium, `slice_budget_reached` (446 lines). Consent granted; review-reliability approved; acknowledged (lineage `review-70d82bc9314dbcf4`, authority burned). Advisory SUGGESTION R3-001 (iTunes search now via `mediawikiSearch`; limit/headers/error/Q-filter not shown) refuted by the parent: `mediawikiSearch` (`internal/providers/wikimedia.go:256`) sends the same `srlimit` (`wikidataSearchLimit`), empty `srprop`, `web.SetWikimediaHeaders`, `body.Error` check, and `wikidataItemSearch` keeps the Q-prefix filter. Reviewed boundary: `efa1b8d`.
+
+- T4 (delegated writer): `endRequest()` in `frontend/src/preview.ts` clears `requesting`, updates busy and calls `redrawIfResized()`; `stop()` (cancel, showMessage) and the render-failure path end through it. `showMessage` now clears before stopping (no redraw of a page about to go). A new document still hands its busy state to the page draw (no double draw). In practice only `cancel()` kept the shown page; failures and messages clear it. Tests (`resize > after a request`): cancel after a resize redraws once quietly at the new size; no resize → no redraw; new document → one draw at the new size; failure → no redraw of the cleared page; page still drawing on cancel → not cancelled, redrawn once drawn.
+  - RED: `expected [ { url: '/preview?id=1', page: 1 } ] to deeply equal [ …(2) ]` (1 failed, 42 passed). GREEN (writer): go build ok; vet clean; go test 3540 passed; gofmt empty; tsc clean; vitest 412 passed; npm run build ok. Parent spot check: `preview.test.ts` 43 passed.
+
 ## Next step
-T4.
+T5.
