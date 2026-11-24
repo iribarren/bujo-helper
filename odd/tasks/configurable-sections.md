@@ -28,7 +28,7 @@ Every user sees every media type, print format, paper and page kind, though most
 ## Tasks
 - [x] T1 Go: `Theme` and `ViewPrefs` in settings with `Trimmed` rules; `SaveSettings` passes them; Wails bindings regenerated; Go tests. Route: inline (two Go files plus mechanical test updates; no research).
 - [ ] T2 Theme: CSS `data-theme` selectors, `theme.ts`, Appearance radios in Settings, applied at startup and on save, i18n, vitest. Route: delegated writer (CSS + index.html + settings.ts + main.ts + i18n + tests).
-- [ ] T3 View model: `view.ts` registry, `sectionShown`, `visibleItems` with default fallback, unit tests, tab-registry guard test. Route: inline (one new module + its test).
+- [x] T3 View model: `view.ts` registry, `sectionShown`, `visibleItems` with default fallback, unit tests, tab-registry guard test. Route: inline (one new module + its test).
 - [ ] T4 Sections tree in Settings: `viewConfig.ts`, dialog markup, tri-state all/none, required minimum, disabled off sections, save sends `view`, i18n, tests. Route: delegated writer.
 - [ ] T5 Apply visibility: `tabs.setHidden`, filtering in `main.ts`, `print.ts` and `pages.ts` with fallbacks, live through `onChange`, tests. Route: delegated writer.
 - [ ] T6 Docs: README theme line and settings section; ROADMAP note on the `view.ts` registry. Route: inline.
@@ -49,5 +49,9 @@ Strategy: `exception-ok` — one feature branch, tried by the user, then merged 
 
 - 2026-11-24 T1 (inline): `Settings.Theme` (""/light/dark) and `Settings.View` (`ViewPrefs{HiddenSections, Hidden}`, `omitzero`); `ViewPrefs.Trimmed` trims, deduplicates, never hides "print", drops empty lists (zero value when nothing hidden). `SaveSettings` already passes them through (doc updated). Settings is no longer comparable: 19 test comparisons now use `reflect.DeepEqual`. Bindings regenerated (runtime churn reverted, modes 644). RED: settings and root packages failed to build (undefined `ViewPrefs`, `Theme`). GREEN: go test 3549 passed; go vet clean; gofmt empty; tsc ok; vitest 467/467. Commit `8e0404d`. Review assess: medium, not due (`under_budget`), stays pending in the slice.
 
+- 2026-11-24 T3 (inline): `frontend/src/view.ts` — `SECTIONS` registry (download: media; print: paper, format, size, crop, cut; pages: pageKind; list id = Go list key = i18n label kind), `sectionShown`, `hiddenIds`, `defaultItem`, `visibleItems` (keeps the default when all hidden), `shownDefault` (default if shown, else first shown). i18n `view.*` list titles (en/es). Guard test: `SECTIONS` ids equal the `data-tab`s in index.html, in order. RED: view.test 1 failed (list titles untranslated). GREEN: vitest 477/477, tsc ok. Commit `ab4a2a8`.
+
+- Review `main..ab4a2a8` (T1+T3; medium, 11 files, 497 lines, `slice_budget_reached`): consent granted; reliability approved; acknowledged, lineage `review-967b8b0e29df4ddf`. Advisory follow-ups: R3-view-trim-merge-order (WARNING, `settings.go` Trimmed merge order random) fixed with sorted keys + test; R3-tab-guard-regex (guard depended on attribute order) now parses the DOM; R3-view-binding-undefined (`view` absent in older files although typed required) is handled by `View = ViewPrefs | undefined` and must stay so in T4/T5. Reviewed boundary: `ab4a2a8`.
+
 ## Next step
-T3, then T2.
+T2 (delegated writer).

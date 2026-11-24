@@ -493,6 +493,13 @@ func TestTrimmedCleansTheViewPrefs(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Trimmed view = %#v, want %#v", got, want)
 	}
+	// Lists whose IDs trim to the same one merge in a set order.
+	for range 20 {
+		merged := ViewPrefs{Hidden: map[string][]string{"cut": {"none"}, " cut": {"bleed", "none"}}}.Trimmed()
+		if want := []string{"bleed", "none"}; !reflect.DeepEqual(merged.Hidden["cut"], want) {
+			t.Fatalf("merged cut = %v, want %v", merged.Hidden["cut"], want)
+		}
+	}
 	// Nothing hidden is the zero value, so the file leaves "view" out.
 	empty := Settings{View: ViewPrefs{HiddenSections: []string{"print"}, Hidden: map[string][]string{"paper": {""}}}}.Trimmed().View
 	if !reflect.DeepEqual(empty, ViewPrefs{}) {

@@ -21,7 +21,8 @@ describe('SECTIONS', () => {
     it('has a section for every tab, in tab order', () => {
         // A new tab must join the configuration: add it to SECTIONS.
         const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
-        const tabs = Array.from(html.matchAll(/role="tab"[^>]*data-tab="([^"]+)"/g), (m) => m[1]);
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const tabs = Array.from(doc.querySelectorAll<HTMLElement>('#tabs [role="tab"]'), (tab) => tab.dataset.tab);
         expect(tabs.length).toBeGreaterThan(0);
         expect(SECTIONS.map((s) => s.id)).toEqual(tabs);
     });

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -66,9 +67,10 @@ func (v ViewPrefs) Trimmed() ViewPrefs {
 			out.HiddenSections = append(out.HiddenSections, id)
 		}
 	}
-	for list, ids := range v.Hidden {
-		list = strings.TrimSpace(list)
-		ids = cleanIDs(ids)
+	// Sorted, so lists whose IDs trim to the same one merge in a set order.
+	for _, key := range slices.Sorted(maps.Keys(v.Hidden)) {
+		list := strings.TrimSpace(key)
+		ids := cleanIDs(v.Hidden[key])
 		if list == "" || len(ids) == 0 {
 			continue
 		}
