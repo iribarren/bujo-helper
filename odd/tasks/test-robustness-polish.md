@@ -55,9 +55,11 @@ Out of scope: new features, output changes other than the bleed-pad fix, colour 
 - 2026-11-25 T2 review: assess --base-ref 865cf63 → medium, slice_budget_reached; consent granted; 1 lens (reliability) approved, no advisories, acknowledged, authority burned (lineage review-9ce38c61a07c975f). Reviewed boundary → 934d956.
 - 2026-11-25 Whole-branch review (Stop hook, `8a93ec2..934d956`): medium, consent **declined** by the user for this candidate (T1 and T2 already reviewed individually; lineage review-2f38098efa9d6a49).
 - 2026-11-25 T3 commit `1e249cd`: assess `--base-ref 934d956 --committed-only` → medium, `under_budget` (pending in slice, no review due). Parent spot check: `go test` sheet/providers/root ok.
+- 2026-11-25 Whole-branch review (Stop hook, `8a93ec2..b358c80`, incl. T3): medium, consent granted, reliability lens approved, acknowledged, authority burned (lineage review-1099ae8ef47e431b). Advisory (non-blocking): R3-001 at `internal/sheet/cut.go:95-97` (`boxBleedPad`), informational, no detail text → follow-up.
 
 ## Follow-ups
 - R3-covers-fallback-drift: the built-in covers fallback in `frontend/src/print.ts:201-207` can drift from the Go `PrintFormats()` covers entry. Add a parity check: a Go test that emits the covers entry as JSON and compares it with a fixture the TS test also reads, or at least a comment in each place cross-referencing the other.
+- Branch R3-001 (`cut.go:95-97`, `boxBleedPad`): suggestion without detail text; likely a direct unit test of `boxBleedPad` for both "wider" and "taller" rounding cases and degenerate boxes.
 
 ## Next step
 User check, then merge.
