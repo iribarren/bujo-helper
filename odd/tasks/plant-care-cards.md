@@ -47,5 +47,7 @@ Optional extension of item 17 (Vintage nature illustrations, `odd/tasks/nature.m
 - R3-002: pin a full-page recipe card render (stream/bytes) so the `drawCutLines` refactor is proved neutral.
 - T2 R3-001: a multi-separator file-name case (`A - B - C.jpg`) in `plantsForm.test.ts` matching `TestParseName`, plus the duplicate-download suffix (`Name - Sci-2.jpg`) that `ParseName` strips and `commonName` does not.
 
+- 2026-11-24: user tried the branch ("works fine") and asked for the merge. Merged to main locally in `541f295`.
+
 ## Next step
-User GUI check, then local `--no-ff` merge.
+Done. Open follow-ups: see **Follow-ups**.
