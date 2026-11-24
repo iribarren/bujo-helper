@@ -546,6 +546,10 @@ export namespace sheet {
 	    RecipeServes: string;
 	    RecipeTime: string;
 	    RecipeContinued: string;
+	    PlantLight: string;
+	    PlantWater: string;
+	    PlantSoil: string;
+	    PlantNotes: string;
 	    Conversions: ConversionLabels;
 	    Language: string;
 	
@@ -569,6 +573,10 @@ export namespace sheet {
 	        this.RecipeServes = source["RecipeServes"];
 	        this.RecipeTime = source["RecipeTime"];
 	        this.RecipeContinued = source["RecipeContinued"];
+	        this.PlantLight = source["PlantLight"];
+	        this.PlantWater = source["PlantWater"];
+	        this.PlantSoil = source["PlantSoil"];
+	        this.PlantNotes = source["PlantNotes"];
 	        this.Conversions = this.convertValues(source["Conversions"], ConversionLabels);
 	        this.Language = source["Language"];
 	    }

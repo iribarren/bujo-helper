@@ -40,8 +40,9 @@ func TestConversionsRegistryEntry(t *testing.T) {
 	if string(raw) != `{}` {
 		t.Errorf("defaults %s", raw)
 	}
-	if last := PageKinds[len(PageKinds)-1]; last.ID != ConversionsKind || PageKinds[len(PageKinds)-2].ID != RecipesKind {
-		t.Errorf("conversions kind not last, right after the recipe cards")
+	n := len(PageKinds)
+	if PageKinds[n-1].ID != PlantsKind || PageKinds[n-2].ID != ConversionsKind || PageKinds[n-3].ID != RecipesKind {
+		t.Errorf("conversions kind not right after the recipe cards, before the plant care cards")
 	}
 	for _, p := range Papers {
 		if n, err := PageCount(ConversionsKind, PageSettings{Paper: p.ID}, nil); n != 1 || err != nil {

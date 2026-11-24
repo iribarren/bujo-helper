@@ -10,10 +10,12 @@ import (
 	"time"
 )
 
-// Generated pages are printables drawn without images, such as a dot grid
-// page: each page kind draws from its own typed options, decoded from JSON,
-// plus the settings every kind shares (PageSettings). Adding a kind only
-// takes its options type and an entry in PageKinds.
+// Generated pages are printables drawn from typed options rather than a
+// list of covers, such as a dot grid page; a few kinds also print images
+// the user picks, such as recipe photos and plant plates. Each page kind
+// draws from its own typed options, decoded from JSON, plus the settings
+// every kind shares (PageSettings). Adding a kind only takes its options
+// type and an entry in PageKinds.
 
 // PageSettings are the settings all page kinds share: those of the Page
 // and Lettering fieldsets. A kind ignores the ones it does not use (see
@@ -66,6 +68,12 @@ type PageLabels struct {
 	// RecipeContinued marks a recipe's continuation cards, in brackets
 	// after the title; "continued".
 	RecipeContinued string
+	// PlantLight, PlantWater, PlantSoil and PlantNotes are the field
+	// labels of plant care cards; "Light", "Water", "Soil" and "Notes".
+	PlantLight string
+	PlantWater string
+	PlantSoil  string
+	PlantNotes string
 	// Conversions are the words of the kitchen conversions page.
 	Conversions ConversionLabels
 	// Language is the language of country names: "es" prints the Spanish
@@ -100,6 +108,10 @@ func (l PageLabels) resolved() PageLabels {
 		RecipeServes:      or(l.RecipeServes, "Serves"),
 		RecipeTime:        or(l.RecipeTime, "Time"),
 		RecipeContinued:   or(l.RecipeContinued, "continued"),
+		PlantLight:        or(l.PlantLight, "Light"),
+		PlantWater:        or(l.PlantWater, "Water"),
+		PlantSoil:         or(l.PlantSoil, "Soil"),
+		PlantNotes:        or(l.PlantNotes, "Notes"),
 		Conversions:       l.Conversions.resolved(),
 		Language:          nameLanguage(l.Language),
 	}
@@ -244,6 +256,13 @@ var PageKinds = []PageKind{
 		UsesTitle: true,
 		Defaults:  defaultConversions,
 		decode:    decodeOptions(defaultConversions),
+	},
+	{
+		ID:       PlantsKind,
+		Label:    "Plant care cards",
+		FileTag:  "plants",
+		Defaults: defaultPlants,
+		decode:   decodePlants,
 	},
 }
 

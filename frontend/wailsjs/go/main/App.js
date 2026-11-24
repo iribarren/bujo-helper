@@ -10,6 +10,10 @@ export function ChooseFolder(arg1) {
   return window['go']['main']['App']['ChooseFolder'](arg1);
 }
 
+export function ChoosePlantImage() {
+  return window['go']['main']['App']['ChoosePlantImage']();
+}
+
 export function ChooseRecipePhoto() {
   return window['go']['main']['App']['ChooseRecipePhoto']();
 }

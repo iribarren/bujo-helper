@@ -606,21 +606,13 @@ func (o RecipesOptions) draw(pdf *pdfDoc, page Page, _ string, l lettering, labe
 // or more with Colour-in) and texts. User text is drawn as text only. A
 // photo that cannot be read is an error naming its recipe.
 func (o RecipesOptions) drawSheet(pdf *pdfDoc, s recipesSheet, l lettering) error {
-	pdf.SetLineWidth(quotesCutWidth)
-	pdf.SetDrawColor(quotesCutR, quotesCutG, quotesCutB)
-	dashed := false
+	var cuts []Box
 	for _, c := range s.Cards {
 		if c.Cut {
-			if !dashed {
-				pdf.SetDashPattern([]float64{quotesDash, quotesDashSpace}, 0)
-				dashed = true
-			}
-			pdf.Rect(c.Card.X, c.Card.Y, c.Card.W, c.Card.H, "D")
+			cuts = append(cuts, c.Card)
 		}
 	}
-	if dashed {
-		pdf.SetDashPattern([]float64{}, 0)
-	}
+	drawCutLines(pdf, cuts)
 	for _, c := range s.Cards {
 		if c.Photo != (Box{}) {
 			if err := o.drawPhoto(pdf, c); err != nil {
@@ -648,6 +640,21 @@ func (o RecipesOptions) drawSheet(pdf *pdfDoc, s recipesSheet, l lettering) erro
 		}
 	}
 	return nil
+}
+
+// drawCutLines draws a dashed cut line around each of cards, in the quote
+// cards' cut line style, and restores solid lines; none draws nothing.
+func drawCutLines(pdf *pdfDoc, cards []Box) {
+	if len(cards) == 0 {
+		return
+	}
+	pdf.SetLineWidth(quotesCutWidth)
+	pdf.SetDrawColor(quotesCutR, quotesCutG, quotesCutB)
+	pdf.SetDashPattern([]float64{quotesDash, quotesDashSpace}, 0)
+	for _, b := range cards {
+		pdf.Rect(b.X, b.Y, b.W, b.H, "D")
+	}
+	pdf.SetDashPattern([]float64{}, 0)
 }
 
 // drawPhoto draws card c's photo, read now and centre-cropped to fill its
