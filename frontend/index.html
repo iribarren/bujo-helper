@@ -226,6 +226,11 @@
         </select>
     </div>
     <div class="field">
+        <span id="theme-label" data-i18n="settings.theme">Theme</span>
+        <!-- System | Light | Dark: filled by settings.ts. -->
+        <div id="theme" class="segmented" role="radiogroup" aria-labelledby="theme-label"></div>
+    </div>
+    <div class="field">
         <label for="tmdb-key" data-i18n="settings.tmdbKey">TMDB API key</label>
         <div class="row">
             <input id="tmdb-key" type="password" autocomplete="off" spellcheck="false"/>

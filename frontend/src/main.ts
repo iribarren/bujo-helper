@@ -21,6 +21,7 @@ import {initPrint, type PrintSheet} from './print';
 import {initRadioGroup} from './radioGroup';
 import {initBGGLogo, initSettings, type SettingsDialog} from './settings';
 import {initTabs} from './tabs';
+import {applyTheme} from './theme';
 
 // Payload of the "job:item" event (Go: ItemEvent).
 interface ItemEvent {
@@ -673,11 +674,13 @@ window.addEventListener('keydown', (e) => {
 let startSettings: settings.Settings | undefined;
 
 // startLanguage applies the saved language setting, or the system language
-// when there is none or it cannot be read, before any text is shown.
+// when there is none or it cannot be read, before any text is shown; the
+// saved theme is applied as soon as it is read (System when it cannot be).
 async function startLanguage() {
     let setting = '';
     try {
         startSettings = await GetSettings();
+        applyTheme(startSettings.theme);
         setting = startSettings.language || '';
     } catch (err) {
         console.warn(`Could not read the language setting: ${errorText(err)}`);

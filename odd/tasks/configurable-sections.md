@@ -27,7 +27,7 @@ Every user sees every media type, print format, paper and page kind, though most
 
 ## Tasks
 - [x] T1 Go: `Theme` and `ViewPrefs` in settings with `Trimmed` rules; `SaveSettings` passes them; Wails bindings regenerated; Go tests. Route: inline (two Go files plus mechanical test updates; no research).
-- [ ] T2 Theme: CSS `data-theme` selectors, `theme.ts`, Appearance radios in Settings, applied at startup and on save, i18n, vitest. Route: delegated writer (CSS + index.html + settings.ts + main.ts + i18n + tests).
+- [x] T2 Theme: CSS `data-theme` selectors, `theme.ts`, Appearance radios in Settings, applied at startup and on save, i18n, vitest. Route: delegated writer (CSS + index.html + settings.ts + main.ts + i18n + tests).
 - [x] T3 View model: `view.ts` registry, `sectionShown`, `visibleItems` with default fallback, unit tests, tab-registry guard test. Route: inline (one new module + its test).
 - [ ] T4 Sections tree in Settings: `viewConfig.ts`, dialog markup, tri-state all/none, required minimum, disabled off sections, save sends `view`, i18n, tests. Route: delegated writer.
 - [ ] T5 Apply visibility: `tabs.setHidden`, filtering in `main.ts`, `print.ts` and `pages.ts` with fallbacks, live through `onChange`, tests. Route: delegated writer.
@@ -53,5 +53,7 @@ Strategy: `exception-ok` — one feature branch, tried by the user, then merged 
 
 - Review `main..ab4a2a8` (T1+T3; medium, 11 files, 497 lines, `slice_budget_reached`): consent granted; reliability approved; acknowledged, lineage `review-967b8b0e29df4ddf`. Advisory follow-ups: R3-view-trim-merge-order (WARNING, `settings.go` Trimmed merge order random) fixed with sorted keys + test; R3-tab-guard-regex (guard depended on attribute order) now parses the DOM; R3-view-binding-undefined (`view` absent in older files although typed required) is handled by `View = ViewPrefs | undefined` and must stay so in T4/T5. Reviewed boundary: `ab4a2a8`.
 
+- 2026-11-24 T2 (delegated writer): `theme.ts` `applyTheme` sets `data-theme` light/dark on the root, removes it otherwise (System). `style.css`: dark tokens under `:root[data-theme="dark"]` and `@media (prefers-color-scheme: dark) :root:not([data-theme="light"])` (two identical blocks, comment says they must match; checked with diff); `color-scheme` light dark / light / dark per theme; BGG logo swap follows the same selectors. Settings: Theme field right after Language, a `.segmented` radio group (`radioGroup.ts`, System "" / Light / Dark, relabelled on language change); `fill()` shows the saved theme, `save()` sends `theme` (value captured before the await) and applies it after a successful save; a failed save keeps the current theme. `main.ts` `startLanguage()` applies `startSettings.theme` right after `GetSettings`. i18n `settings.theme*` (en/es). RED: theme.test failed to load (no `theme.ts`), 7 tests failed (6 settings Theme, 1 main startup). GREEN: vitest 486/486 (18 files); tsc ok; `npm run build` ok. CSS: structural readback. 232+/13- lines. Commit `0bed710` (before amend; see git log).
+
 ## Next step
-T2 (delegated writer).
+T4 (delegated writer).

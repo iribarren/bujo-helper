@@ -232,3 +232,94 @@ describe('Settings About BoardGameGeek credit', () => {
         expect(document.querySelector('label[for="bgg-token"]')?.textContent).toBe('Token de BoardGameGeek');
     });
 });
+
+describe('Theme', () => {
+    const saved = {tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', bggToken: '', language: ''};
+    const root = document.documentElement;
+
+    // themeRadio is the Theme radio for value ("" is System).
+    function themeRadio(value: string): HTMLButtonElement {
+        const node = el('theme').querySelector<HTMLButtonElement>(`[role="radio"][data-value="${value}"]`);
+        if (!node) throw new Error(`missing theme radio "${value}"`);
+        return node;
+    }
+
+    function checkedTheme(): string | undefined {
+        return el('theme').querySelector<HTMLButtonElement>('[aria-checked="true"]')?.dataset.value;
+    }
+
+    afterEach(() => {
+        el('settings-close').click();
+        vi.mocked(SaveSettings).mockClear();
+        delete root.dataset.theme;
+    });
+
+    it('comes right after the language, with System, Light and Dark', () => {
+        const field = el('theme').closest('.field');
+        expect(field?.previousElementSibling).toBe(el('language').closest('.field'));
+        expect(el('theme').getAttribute('role')).toBe('radiogroup');
+        const radios = Array.from(el('theme').querySelectorAll<HTMLButtonElement>('[role="radio"]'));
+        expect(radios.map((r) => [r.dataset.value, r.textContent])).toEqual([
+            ['', 'System'],
+            ['light', 'Light'],
+            ['dark', 'Dark'],
+        ]);
+        expect(document.getElementById(el('theme').getAttribute('aria-labelledby') ?? '')?.textContent).toBe('Theme');
+    });
+
+    it('shows the saved theme, and System when none is saved', async () => {
+        vi.mocked(GetSettings).mockResolvedValueOnce({...saved, theme: 'light'} as never);
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe('light'));
+        el('settings-close').click();
+
+        vi.mocked(GetSettings).mockResolvedValueOnce(saved as never);
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe(''));
+    });
+
+    it('saves the picked theme with the other settings and applies it at once', async () => {
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe(''));
+        themeRadio('dark').click();
+        expect(root.hasAttribute('data-theme')).toBe(false);
+        el('settings-save').click();
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SaveSettings).mock.calls[0][0]).toMatchObject({theme: 'dark', language: '', bggToken: ''});
+        await vi.waitFor(() => expect(root.dataset.theme).toBe('dark'));
+    });
+
+    it('follows the system again when System is saved', async () => {
+        root.dataset.theme = 'dark';
+        vi.mocked(GetSettings).mockResolvedValueOnce({...saved, theme: 'dark'} as never);
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe('dark'));
+        themeRadio('').click();
+        el('settings-save').click();
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SaveSettings).mock.calls[0][0]).toMatchObject({theme: ''});
+        await vi.waitFor(() => expect(root.hasAttribute('data-theme')).toBe(false));
+    });
+
+    it('keeps the current theme when saving fails', async () => {
+        vi.mocked(SaveSettings).mockRejectedValueOnce(new Error('disk full'));
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe(''));
+        themeRadio('light').click();
+        el('settings-save').click();
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('disk full'));
+        expect(root.hasAttribute('data-theme')).toBe(false);
+    });
+
+    it('names the theme and its options in Spanish, keeping the choice', async () => {
+        vi.mocked(GetSettings).mockResolvedValueOnce({...saved, theme: 'dark'} as never);
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe('dark'));
+        setLang('es');
+        applyDom(document);
+        expect(document.getElementById('theme-label')?.textContent).toBe('Tema');
+        const labels = Array.from(el('theme').querySelectorAll('[role="radio"]')).map((r) => r.textContent);
+        expect(labels).toEqual(['Sistema', 'Claro', 'Oscuro']);
+        expect(checkedTheme()).toBe('dark');
+    });
+});

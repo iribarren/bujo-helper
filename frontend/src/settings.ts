@@ -4,14 +4,17 @@ import {BrowserOpenURL} from '../wailsjs/runtime/runtime';
 import {onLangChange, t} from './i18n';
 import {useLanguage} from './language';
 import {letteringFonts} from './lettering';
+import {initRadioGroup} from './radioGroup';
+import {applyTheme} from './theme';
 import bggLogoLight from './assets/powered-by-bgg-rgb.svg';
 import bggLogoDark from './assets/powered-by-bgg-reversed-rgb.svg';
 
-// The Settings dialog: the UI language, the TMDB API key and the TMDB
-// attribution notice, the IGDB (Twitch) Client ID and Client Secret, the
-// Biodiversity Heritage Library (BHL) API key, the BoardGameGeek token, and
-// an About section that lists the bundled lettering fonts with their
-// licences and credits BoardGameGeek with its "Powered by BGG" logo.
+// The Settings dialog: the UI language, the colour theme (System, Light or
+// Dark), the TMDB API key and the TMDB attribution notice, the IGDB (Twitch)
+// Client ID and Client Secret, the Biodiversity Heritage Library (BHL) API
+// key, the BoardGameGeek token, and an About section that lists the bundled
+// lettering fonts with their licences and credits BoardGameGeek with its
+// "Powered by BGG" logo.
 
 export interface SettingsDialog {
     // open shows the dialog, prefilled with the saved settings.
@@ -175,6 +178,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     const ui = {
         dialog: byId<HTMLDialogElement>('settings-dialog'),
         language: byId<HTMLSelectElement>('language'),
+        theme: byId<HTMLDivElement>('theme'),
         key: byId<HTMLInputElement>('tmdb-key'),
         toggle: byId<HTMLButtonElement>('tmdb-key-toggle'),
         igdbId: byId<HTMLInputElement>('igdb-id'),
@@ -195,6 +199,18 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         close: byId<HTMLButtonElement>('settings-close'),
     };
 
+    const theme = initRadioGroup(ui.theme, () => setStatus(''));
+
+    // labelThemes names the theme radios in the current language, keeping
+    // the checked one.
+    function labelThemes() {
+        theme.replaceOptions([
+            {value: '', label: t('settings.themeSystem')},
+            {value: 'light', label: t('settings.themeLight')},
+            {value: 'dark', label: t('settings.themeDark')},
+        ]);
+    }
+
     const about = initAbout();
     initBGGLogo(byId<HTMLAnchorElement>('bgg-logo-about'));
 
@@ -205,6 +221,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         bhlApiKey: '',
         bggToken: '',
         language: '',
+        theme: '',
     });
 
     function setStatus(text: string, kind: '' | 'ok' | 'error' = '') {
@@ -229,6 +246,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     // fill shows the current settings in the inputs.
     function fill() {
         ui.language.value = current.language || '';
+        theme.value = current.theme || '';
         ui.key.value = current.tmdbApiKey || '';
         ui.igdbId.value = current.igdbClientId || '';
         ui.igdbSecret.value = current.igdbClientSecret || '';
@@ -266,6 +284,9 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         saving = true;
         ui.save.disabled = true;
         setStatus(t('settings.saving'));
+        // The theme shown once saved: the one sent, whatever is clicked
+        // while saving.
+        const savedTheme = theme.value;
         try {
             await SaveSettings(new settings.Settings({
                 tmdbApiKey: ui.key.value,
@@ -274,6 +295,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
                 bhlApiKey: ui.bhlKey.value,
                 bggToken: ui.bggToken.value,
                 language: ui.language.value,
+                theme: savedTheme,
             }));
         } catch (err) {
             setStatus(errorText(err), 'error');
@@ -282,6 +304,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
             saving = false;
             ui.save.disabled = false;
         }
+        applyTheme(savedTheme);
         // Switch the UI (and Go) to the saved language before saying so.
         await useLanguage(ui.language.value);
         try {
@@ -321,10 +344,12 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     // Escape closes a modal <dialog> natively (the "cancel" event).
 
     labelToggles();
+    labelThemes();
     // The status line is cleared on a language change: it may name the
     // previous language's message.
     onLangChange(() => {
         labelToggles();
+        labelThemes();
         setStatus('');
     });
 

@@ -45,8 +45,8 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
         stubs[name] = vi.fn(async () => undefined);
     }
     stubs.MediaTypes = vi.fn(async () => mediaTypes);
-    // Startup reads the language and the remembered tab options.
-    stubs.GetSettings = vi.fn(async () => ({language: 'en', print: {header: 'Saved header'}, pages: {title: 'Saved title'}}));
+    // Startup reads the language, the theme and the remembered tab options.
+    stubs.GetSettings = vi.fn(async () => ({language: 'en', theme: 'dark', print: {header: 'Saved header'}, pages: {title: 'Saved title'}}));
     stubs.DefaultOutputDir = vi.fn(async () => '/covers');
     stubs.HasBuiltInBGGToken = vi.fn(() => builtInBGGToken.answer);
     for (const name of ['PrintPapers', 'PrintFormats', 'PrintSizes', 'PrintCutModes']) {
@@ -303,6 +303,12 @@ describe('key tip', () => {
         selectType('books');
         selectType('boardgames');
         expect(el('key-tip').hidden).toBe(true);
+    });
+});
+
+describe('theme', () => {
+    it('applies the saved theme at startup', () => {
+        expect(document.documentElement.dataset.theme).toBe('dark');
     });
 });
 
