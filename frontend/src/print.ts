@@ -198,6 +198,14 @@ function sizeLabel(size: main.PrintSizeInfo, perPage?: number): string {
     return perPage ? t('print.perPage', {label: name, n: perPage}) : name;
 }
 
+// coversFormat is the cover sheet as PrintFormats describes it (see
+// internal/sheet.Formats), the format offered when PrintFormats fails.
+const coversFormat = main.PrintFormatInfo.createFrom({
+    id: 'covers', label: 'Cover sheet', noun: 'cover',
+    usesSize: true, usesCut: true, usesCrop: true, usesHeader: false, usesLettering: false,
+    default: true,
+});
+
 export function initPrint(deps: PrintDeps): PrintSheet {
     const ui = {
         dir: byId<HTMLInputElement>('print-dir'),
@@ -818,6 +826,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         if (formatList.status === 'fulfilled') {
             formats = formatList.value ?? [];
         } else {
+            // The plain cover sheet can still be printed.
+            formats = [coversFormat];
             deps.showError(t('print.errFormats', {error: errorText(formatList.reason)}));
         }
         if (sizeList.status === 'fulfilled') {

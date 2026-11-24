@@ -3,7 +3,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {en} from './i18n/en';
 import {es} from './i18n/es';
 import {useLanguage} from './language';
-import {fakePdf, pdfDocs, renders, resetFakePdfs} from './previewMock';
+import {fakePdf, pdfDocs, pdfjsMock, renders, resetFakePdfs} from './previewMock';
 import {initPreview, type Preview, type PreviewInfo} from './preview';
 
 vi.mock('pdfjs-dist/legacy/build/pdf.mjs', async () => (await import('./previewMock')).pdfjsMock);
@@ -134,6 +134,41 @@ describe('schedule', () => {
         expect(el('t-label').textContent).toBe('Page 1 of 1');
         expect(slow.destroyed()).toBe(true);
     });
+
+    // Freeing is housekeeping: a loading task whose destroy fails must not
+    // stop the next document from being shown, nor leave a rejection
+    // unhandled (vitest fails the run on one).
+    for (const destroyFails of ['throw', 'reject'] as const) {
+        it(`drops a stale PDF whose freeing fails (${destroyFails})`, async () => {
+            const slow = fakePdf('/preview?id=1', 3, {hold: true, destroyFails});
+            preview.schedule({key: 'old', render: vi.fn(async () => ({url: '/preview?id=1', pages: 3}))});
+            await vi.advanceTimersByTimeAsync(300);
+            await settle();
+            preview.schedule({key: 'new', render: answer('/preview?id=2', 1)});
+            await vi.advanceTimersByTimeAsync(300);
+            await settle();
+            slow.release();
+            await settle();
+            expect(slow.destroyed()).toBe(true);
+            expect(el('t-label').textContent).toBe('Page 1 of 1');
+            expect(el('t-message').hidden).toBe(true);
+        });
+
+        it(`shows the next document when freeing the shown one fails (${destroyFails})`, async () => {
+            fakePdf('/preview?id=1', 1, {destroyFails});
+            preview.schedule({key: 'a', render: vi.fn(async () => ({url: '/preview?id=1', pages: 1}))});
+            await vi.advanceTimersByTimeAsync(300);
+            await settle();
+            preview.schedule({key: 'b', render: answer('/preview?id=2', 2)});
+            await vi.advanceTimersByTimeAsync(300);
+            await settle();
+            expect(pdfDocs.get('/preview?id=1')?.destroyed()).toBe(true);
+            expect(renders.at(-1)).toEqual({url: '/preview?id=2', page: 1});
+            expect(el('t-label').textContent).toBe('Page 1 of 2');
+            expect(el('t-message').hidden).toBe(true);
+            expect(el('t-sheet').getAttribute('aria-busy')).toBe('false');
+        });
+    }
 
     it('frees the previous document when a new one is shown', async () => {
         preview.schedule({key: 'a', render: answer('/preview?id=1', 1)});
@@ -699,5 +734,24 @@ describe('messages exist in English and Spanish', () => {
     });
     it.each(keys)('%s is translated', (key) => {
         expect((es as Record<string, string>)[key]).toBeTruthy();
+    });
+});
+
+describe('previewMock', () => {
+    it('releases every held draw, however often draws were held', async () => {
+        const pdf = fakePdf('/preview?id=1', 1);
+        const task = pdfjsMock.getDocument({data: new TextEncoder().encode('/preview?id=1')});
+        const doc = await task.promise as {getPage: (n: number) => Promise<{render: () => {promise: Promise<void>}}>};
+        const page = await doc.getPage(1);
+        const drawn = [false, false];
+        pdf.holdDraw();
+        void page.render().promise.then(() => { drawn[0] = true; });
+        pdf.holdDraw();
+        void page.render().promise.then(() => { drawn[1] = true; });
+        await settle();
+        expect(drawn).toEqual([false, false]);
+        pdf.releaseDraw();
+        await settle();
+        expect(drawn).toEqual([true, true]);
     });
 });

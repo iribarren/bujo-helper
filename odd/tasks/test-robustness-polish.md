@@ -41,12 +41,13 @@ Out of scope: new features, output changes other than the bleed-pad fix, colour 
 - Test-first: Go and vitest tests are runnable and deterministic → RED before GREEN for the bug fixes; test-only items pin current behaviour (GREEN on first run, stated as such).
 
 ## Tasks
-- [ ] T1 Frontend: preview destroy `.catch` + mock `holdDraw` fix + destroy-failure tests; print `PrintFormats` fallback + test; lettering retry test without the one-hop assumption. Route: delegated writer (writer trigger: several TS files).
+- [x] T1 Frontend: preview destroy `.catch` + mock `holdDraw` fix + destroy-failure tests; print `PrintFormats` fallback + test; lettering retry test without the one-hop assumption. Route: delegated writer (writer trigger: several TS files).
 - [ ] T2 Go print formats: spine/card/bleed stream tests, bleed pad from both axes + test (incl. crop window), ticket stubs notch + perforation test hardening, README colour wording. Route: delegated writer (writer trigger: several Go files).
 - [ ] T3 Go misc + close: Go licence body test, AniList test hardening, `newFixedGrid` tolerance test, ROADMAP tick. Route: delegated writer (several test files).
 
 ## Progress
 - 2026-11-24 Exploration done (explorer, path:line evidence above).
+- 2026-11-24 T1 done (route: delegated writer). `preview.ts`: one `destroy(task)` helper guards throw and rejection for both the stale-load path and freeing the shown document. `previewMock.ts`: `destroyFails: 'throw' | 'reject'` option; `holdDraw` keeps a list of pending holds and `releaseDraw` releases them all. `print.ts`: a failed `PrintFormats` falls back to a built-in `covers` format (as `internal/sheet.Formats` describes it), error notice kept. `letteringLoad.test.ts`: retries with `vi.waitFor(() => letteringFonts())` instead of one microtask hop (test-only, green first run). RED: stale load with rejecting destroy → vitest "Unhandled Rejection: Error: cannot destroy" (`loadPdf preview.ts:115`); holdDraw twice → `expected [ false, true ] to deeply equal [ true, true ]`; PrintFormats rejected → `expected [] to deeply equal [ 'covers' ]` (format select empty, so Export disabled). Green first run (pin behaviour): shown-document destroy throw/reject, stale destroy throw. GREEN: `npx tsc --noEmit` no errors; `npx vitest run` 20 files, 575 tests passed, no unhandled errors.
 
 ## Next step
-T1.
+T2.

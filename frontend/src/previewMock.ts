@@ -26,6 +26,7 @@ interface Entry extends FakePdf {
     loaded: Promise<void>;
     drawn: Promise<void>;
     failPage?: number;
+    destroyFails?: 'throw' | 'reject';
     destroy: () => void;
 }
 
@@ -41,22 +42,28 @@ export interface FakePdfOptions {
     holdDraw?: boolean;
     // failPage is a page whose drawing fails.
     failPage?: number;
+    // destroyFails makes destroying its loading task throw ('throw') or
+    // reject ('reject'); the task still counts as destroyed.
+    destroyFails?: 'throw' | 'reject';
 }
 
 // fakePdf registers a PDF of n pages served at url.
 export function fakePdf(url: string, pages: number, opts: FakePdfOptions = {}): FakePdf {
     let release = () => {};
     const loaded = opts.hold ? new Promise<void>((done) => { release = done; }) : Promise.resolve();
-    let releaseDraw = () => {};
-    const held = () => new Promise<void>((done) => { releaseDraw = done; });
+    // Every hold since the last release: releaseDraw lets them all finish.
+    const holds: Array<() => void> = [];
+    const releaseDraw = () => holds.splice(0).forEach((done) => done());
+    const held = () => new Promise<void>((done) => { holds.push(done); });
     let destroyed = false;
     const entry: Entry = {
         pages,
         loaded,
         drawn: opts.holdDraw ? held() : Promise.resolve(),
         failPage: opts.failPage,
+        destroyFails: opts.destroyFails,
         release: () => release(),
-        releaseDraw: () => releaseDraw(),
+        releaseDraw,
         holdDraw: () => { entry.drawn = held(); },
         destroyed: () => destroyed,
         destroy: () => { destroyed = true; },
@@ -85,7 +92,12 @@ function getDocument(src: {data: Uint8Array}) {
     const entry = pdfDocs.get(url);
     const task = {
         promise: Promise.resolve() as Promise<unknown>,
-        destroy: async () => entry?.destroy(),
+        destroy: (): Promise<void> => {
+            entry?.destroy();
+            if (entry?.destroyFails === 'throw') throw new Error('cannot destroy');
+            if (entry?.destroyFails === 'reject') return Promise.reject(new Error('cannot destroy'));
+            return Promise.resolve();
+        },
     };
     const doc = entry && {
         numPages: entry.pages,

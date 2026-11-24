@@ -22,8 +22,6 @@ describe('letteringFonts load failures', () => {
     it('forgets a failed call, adds no @font-face, and asks again next time', async () => {
         vi.mocked(LetteringFonts).mockRejectedValueOnce(new Error('boom'));
         await expect(letteringFonts()).rejects.toThrow('boom');
-        // The cleared promise is set in a catch handler; let it run.
-        await Promise.resolve();
         expect(document.getElementById('lettering-font-faces')).toBeNull();
 
         vi.mocked(LetteringFonts).mockResolvedValueOnce([
@@ -32,7 +30,10 @@ describe('letteringFonts load failures', () => {
             font('Bad Font"}', '/fonts/bad.ttf'),
             font('no-url', ''),
         ]);
-        const fonts = await letteringFonts();
+        // The failed call is forgotten in a catch handler, which may run a
+        // few microtasks after the caller saw the failure: until then the
+        // failure is answered again, without a new call. Ask until it is.
+        const fonts = await vi.waitFor(() => letteringFonts());
         expect(LetteringFonts).toHaveBeenCalledTimes(2);
         expect(fonts.map((f) => f.id)).toEqual(['titan-one', 'Bad Font"}', 'no-url']);
         const css = faces() ?? '';
