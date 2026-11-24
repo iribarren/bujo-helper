@@ -72,5 +72,8 @@ Route evidence: writer trigger (each task touches 2+ non-trivial files or needs 
 - T5 assess `ff39eaf..d19d7b3`: medium, `under_budget`; reviewed anyway as the final slice before delivery: consent granted; review-reliability approved, no findings; acknowledged (lineage `review-9e5bd183d6759181`, authority burned). Reviewed boundary: `d19d7b3`. Every code commit on the branch is reviewed.
 - Open question for the user (from T3): a keyless movie that no provider finds has error code `""` and a reason led by the TMDB key text; pinned by `TestKeylessMovieNotFoundElsewhere`, not changed.
 
+- Stop-hook whole-branch review `865c1ac..446bfb7` (28 files, 1351 lines, medium): consent granted; review-reliability approved, no findings; acknowledged (lineage `review-179941f56e5666b9`, authority burned).
+- Manual check passed (user, 2026-11-24: "works fine"); merge to main authorized. ROADMAP quote-cards line and the Part 4 note updated.
+
 ## Next step
-User's manual check (Quote cards textarea with commas; Print covers size labels after changing the selection; preview resize while a render is cancelled). Do not merge until asked.
+Done; merged to main (not pushed). Open question: keyless not-found movie error code.

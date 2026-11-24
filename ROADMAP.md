@@ -476,7 +476,7 @@ There's a source or licensing problem, or the item isn't image-based. Kept for c
   - Kind id `quotes`, registered after `habits` and before `map`; options `quotes` (text, author, source `""` or `wikiquote`), `style` (`classic` | `bold` | `framed`), `perPage` (4 | 6 | 8, default 6). At most 200 quotes, 600 characters of text and 100 of author, else an error; control characters and space runs become one space; a quote with no text is dropped. Default title "Words to keep" / "Palabras para guardar". The cards have their own dashed cut lines, so the cut mode does not apply.
   - Quotes per page: top-level list items outside Disputed, Misattributed, Attributed, Quotes about, See also, References and similar sections (and the Spanish equivalents), 10–400 characters, deduplicated, at most 60. A search reads at most three pages.
   - Text starts at 22/18/15 pt for 4/6/8 cards (Bold a fifth larger), shrinks by 0.5 pt to 8 pt, then ends with "…"; hollow with Colour-in at 14 pt or larger. Author in the Go font, one line. The credit band is always reserved, so card sizes never depend on the source.
-  - Typed quotes split at the last comma (`Quote, Author`); picks keep their order across searches, deduplicated by text and author; the form sends the picks, then the typed quotes.
+  - Typed quotes split at the last comma (`Quote, Author`); a field in double quotes may hold commas (`Free at last, "Martin Luther King, Jr."`, added in review follow-ups 2); picks keep their order across searches, deduplicated by text and author; the form sends the picks, then the typed quotes.
   - Out of scope: CSV or Markdown import, other quote sources, lyrics, keeping search results between sessions.
 
 **Scope**
@@ -690,7 +690,7 @@ Order: 29 → 30 → 31, then the generated printables.
 
 # Part 4: Follow-ups and possible features
 
-Open items found during the reviews of Parts 1–3 (see the feature documents in `odd/tasks/`). They are possible features, not commitments; ordered by value first, then effort. Review fixes for the thumbnail tests and follow-up items 5–8 (frontend test gaps, CirrusSearch escaping, preview resize replay, quote comma round-trip) are handled separately and are not listed here.
+Open items found during the reviews of Parts 1–3 (see the feature documents in `odd/tasks/`). They are possible features, not commitments; ordered by value first, then effort. Review fixes for the thumbnail tests and follow-up items 5–8 (frontend test gaps, CirrusSearch escaping, preview resize replay, quote comma round-trip) were done separately in `odd/tasks/review-followups-2.md` and are not listed here.
 
 ## 32. [ ] Preview cache for large cover selections
 
