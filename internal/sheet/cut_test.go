@@ -287,3 +287,31 @@ func TestPaddedBox(t *testing.T) {
 		}
 	}
 }
+
+// When rounding leaves an image with more pixels per mm across than down,
+// a pad worked out from its height alone falls short of Bleed at the sides;
+// the pad covers the bleed on both axes.
+func TestBleedPadCoversBothAxes(t *testing.T) {
+	tests := []struct {
+		name string
+		box  Box
+		w, h int
+	}{
+		// A square photo centre-cropped to 33.25:50 rounds 66.5 px up to
+		// 67: 2.015 px/mm across, 2 px/mm down.
+		{"centre crop rounds up", Box{X: 10, Y: 10, W: 33.25, H: 50}, 67, 100},
+		{"wider pixels", Box{X: 5, Y: 5, W: 10, H: 15}, 21, 30},
+		{"taller pixels", Box{X: 5, Y: 5, W: 15, H: 10}, 30, 21},
+		{"same pixels", Box{X: 20, Y: 30, W: 33, H: 50}, 66, 100},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pad := boxBleedPad(tt.w, tt.h, tt.box)
+			got := paddedBox(tt.box, tt.w, tt.h, pad)
+			bl := bleedBox(tt.box)
+			if got.X > bl.X+eps || got.Y > bl.Y+eps || got.X+got.W < bl.X+bl.W-eps || got.Y+got.H < bl.Y+bl.H-eps {
+				t.Errorf("pad %d: image drawn on %+v does not cover the bleed box %+v", pad, got, bl)
+			}
+		})
+	}
+}

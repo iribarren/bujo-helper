@@ -255,7 +255,7 @@ type printed struct {
 func printImages(paths []string, boxes []Box, bleed bool) ([]printed, error) {
 	images := make([]printed, len(paths))
 	err := forEachImage(len(paths), func(i int) (err error) {
-		images[i], err = printImage(paths[i], boxes[i].H, bleed)
+		images[i], err = printImage(paths[i], boxes[i], bleed)
 		return err
 	})
 	if err != nil {
@@ -307,24 +307,36 @@ func decodeImage(path string) (image.Image, error) {
 	return src, nil
 }
 
-// printImage decodes the image at path and returns it as a JPEG sized for a
-// printed height of heightMM. With bleed, its edge pixels are repeated
-// outward far enough to cover Bleed.
-func printImage(path string, heightMM float64, bleed bool) (printed, error) {
+// printImage decodes the image at path and returns it as a JPEG sized for
+// printing on box: for its height. With bleed, its edge pixels are repeated
+// outward far enough to cover Bleed on every side of box.
+func printImage(path string, box Box, bleed bool) (printed, error) {
 	src, err := decodeImage(path)
 	if err != nil {
 		return printed{}, err
 	}
-	return encodePrinted(path, src, heightMM, bleed)
+	return encodePrintedOn(path, src, box, bleed)
 }
 
 // encodePrinted returns src, decoded from path, as a JPEG sized for a
-// printed height of heightMM, as printImage describes.
+// printed height of heightMM, as printImage describes for a box of src's
+// own shape.
 func encodePrinted(path string, src image.Image, heightMM float64, bleed bool) (printed, error) {
-	img := fitImage(src, heightMM)
+	b := src.Bounds()
+	box := Box{H: heightMM}
+	if b.Dy() > 0 {
+		box.W = heightMM * float64(b.Dx()) / float64(b.Dy())
+	}
+	return encodePrintedOn(path, src, box, bleed)
+}
+
+// encodePrintedOn returns src, decoded from path, as a JPEG sized for
+// printing on box, as printImage describes.
+func encodePrintedOn(path string, src image.Image, box Box, bleed bool) (printed, error) {
+	img := fitImage(src, box.H)
 	p := printed{w: img.Bounds().Dx(), h: img.Bounds().Dy()}
 	if bleed {
-		p.pad = bleedPad(p.h, heightMM)
+		p.pad = boxBleedPad(p.w, p.h, box)
 		img = extendEdges(img, p.pad)
 	}
 	var buf bytes.Buffer

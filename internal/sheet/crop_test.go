@@ -445,6 +445,19 @@ func TestPrintCroppedImage(t *testing.T) {
 	if p.w != 100 || p.h != 100 || p.pad != bleedPad(100, 10) {
 		t.Errorf("with bleed: %d × %d, pad %d; want 100 × 100, pad %d", p.w, p.h, p.pad, bleedPad(100, 10))
 	}
+	// A crop window whose rounded width has more pixels per mm across than
+	// down still gets its full bleed at the sides.
+	window := Box{X: 10, Y: 10, W: 33.25, H: 50}
+	p, err = printCroppedImage(writeThirds(t, dir, "rounded.jpg", 100, 100, true), window, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.w != 67 || p.h != 100 {
+		t.Errorf("rounded window: %d × %d, want 67 × 100", p.w, p.h)
+	}
+	if at, bl := paddedBox(window, p.w, p.h, p.pad), bleedBox(window); at.X > bl.X+eps || at.Y > bl.Y+eps || at.X+at.W < bl.X+bl.W-eps || at.Y+at.H < bl.Y+bl.H-eps {
+		t.Errorf("rounded window, pad %d: image drawn on %+v does not cover the bleed box %+v", p.pad, at, bl)
+	}
 	if _, err := printCroppedImage(filepath.Join(dir, "missing.jpg"), Box{W: 10, H: 10}, false); err == nil || !strings.Contains(err.Error(), "missing.jpg") {
 		t.Errorf("missing file: error %v, want one naming it", err)
 	}

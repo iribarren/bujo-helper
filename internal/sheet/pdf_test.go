@@ -553,18 +553,24 @@ func TestBuildBleedCutDrawsBleedAndCropMarks(t *testing.T) {
 	if !strings.Contains(got, "0.000 G\n") || !strings.Contains(got, "0.28 w\n") {
 		t.Errorf("crop marks are not thin black lines:\n%s", got)
 	}
-	// Each image is clipped to its bleed box, 1 mm past its cut line.
+	// Each image is clipped to its bleed box, 1 mm past its cut line, and
+	// drawn padded so its own pixels land on the cut box (paddedBox). The
+	// fixtures are small enough not to be downscaled.
 	g := standard(t)
 	pages, err := g.Flow([]float64{0.66, 1, 1.5})
 	if err != nil {
 		t.Fatal(err)
 	}
+	sizes := [][2]int{{66, 100}, {100, 100}, {150, 100}}
 	const k = 72 / 25.4
-	for _, b := range pages[0] {
+	for i, b := range pages[0] {
 		bl := bleedBox(b)
-		clip := fmt.Sprintf("q %.2f %.2f %.2f %.2f re W n", bl.X*k, (g.Page.Height-bl.Y)*k, bl.W*k, -bl.H*k)
-		if !strings.Contains(got, clip) {
-			t.Errorf("no clip %q for box %+v in\n%s", clip, b, got)
+		clip := fmt.Sprintf("q %.2f %.2f %.2f %.2f re W n\n", bl.X*k, (g.Page.Height-bl.Y)*k, bl.W*k, -bl.H*k)
+		w, h := sizes[i][0], sizes[i][1]
+		at := paddedBox(b, w, h, boxBleedPad(w, h, b))
+		place := fmt.Sprintf("q %.5f 0 0 %.5f %.5f %.5f cm /I Do Q\nQ\n", at.W*k, at.H*k, at.X*k, (g.Page.Height-at.Y-at.H)*k)
+		if !strings.Contains(got, clip+place) {
+			t.Errorf("box %+v: no clip %q then image %q in\n%s", b, clip, place, got)
 		}
 	}
 }
@@ -626,14 +632,15 @@ func TestBuildRejectsUnknownCutMode(t *testing.T) {
 func TestPrintImageBleedPadding(t *testing.T) {
 	dir := t.TempDir()
 	path := writeImage(t, dir, "cover.png", 66, 100, color.RGBA{200, 40, 40, 255})
+	box := Box{W: 33, H: 50}
 	for _, bleed := range []bool{false, true} {
-		p, err := printImage(path, 50, bleed)
+		p, err := printImage(path, box, bleed)
 		if err != nil {
 			t.Fatal(err)
 		}
 		wantPad := 0
 		if bleed {
-			wantPad = bleedPad(100, 50)
+			wantPad = boxBleedPad(66, 100, box)
 		}
 		if p.w != 66 || p.h != 100 || p.pad != wantPad {
 			t.Errorf("bleed %v: printed %dx%d pad %d, want 66x100 pad %d", bleed, p.w, p.h, p.pad, wantPad)
@@ -728,8 +735,34 @@ func TestBuildStubsDrawOutlinePerforationAndStubEnd(t *testing.T) {
 	if on, off := strings.Count(got, "] 0.00 d\n")-strings.Count(got, "[] 0.00 d\n"), strings.Count(got, "[] 0.00 d\n"); on != n || off != n {
 		t.Errorf("%d dash patterns set and %d reset, want %d each", on, off, n)
 	}
-	if !strings.HasSuffix(strings.TrimSpace(got[:strings.LastIndex(got, "[] 0.00 d")]), "l S") {
-		t.Errorf("the last dash pattern is not reset right after the perforation line:\n%s", got)
+	// Every perforation is drawn dashed from notch to notch, and the dash
+	// pattern is reset right after it.
+	lines := strings.Split(got, "\n")
+	for i, line := range lines {
+		if line == "[] 0.00 d" && (i == 0 || !strings.HasSuffix(lines[i-1], " l S")) {
+			t.Errorf("dash reset on line %d does not follow a line: %q", i, lines[max(0, i-1)])
+		}
+	}
+	ratios, err := AspectRatios(paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := Options{Format: "stubs"}.Grid()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages, err := g.Cells(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const k = 72 / 25.4
+	for i, cell := range pages[0] {
+		p := layoutStub(cell, ratios[i]).Perforation
+		perf := fmt.Sprintf("[%.2f %.2f] 0.00 d\n%.2f %.2f m %.2f %.2f l S\n[] 0.00 d\n",
+			perfDash*k, perfSpace*k, p.X*k, (g.Page.Height-p.Y)*k, p.X*k, (g.Page.Height-p.Y-p.H)*k)
+		if !strings.Contains(got, perf) {
+			t.Errorf("stub %d: no dashed perforation then reset %q in\n%s", i, perf, got)
+		}
 	}
 	// The stub end text is turned a quarter turn: a rotation matrix with
 	// cos 90° = 0 and sin 90° = 1.

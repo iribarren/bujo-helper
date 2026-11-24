@@ -88,6 +88,14 @@ func bleedPad(px int, mm float64) int {
 	return max(1, int(math.Ceil(Bleed*float64(px)/mm-1e-9)))
 }
 
+// boxBleedPad is how many pixels an image w × h pixels, printed on box b,
+// needs on each side to cover Bleed on both axes. Rounding can leave the
+// image with more pixels per mm across than down, or the other way round,
+// so the larger of the two pads is taken.
+func boxBleedPad(w, h int, b Box) int {
+	return max(bleedPad(w, b.W), bleedPad(h, b.H))
+}
+
 // extendEdges returns src with pad pixels added on every side, each a copy
 // of the nearest edge pixel, so the image runs on past its edges without
 // zooming or cropping it.
