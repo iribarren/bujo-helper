@@ -138,9 +138,11 @@ func (p *CommonsNature) Search(ctx context.Context, item media.Item, _ media.Opt
 	return nil, natureNotFound(taxon, skipped)
 }
 
-// natureSearches returns the Commons searches for taxon, in order.
+// natureSearches returns the Commons searches for taxon, in order. The
+// Wikidata name and category go inside phrases, so a quote, or a backslash
+// that would escape the closing quote, is removed from them.
 func natureSearches(t Taxon) []string {
-	unquote := strings.NewReplacer(`"`, "").Replace
+	unquote := strings.NewReplacer(`"`, "", `\`, "").Replace
 	qs := []string{"haswbstatement:P180=" + t.ID + " haswbstatement:P6216=Q19652 filetype:bitmap"}
 	if t.Category != "" {
 		qs = append(qs, `incategory:"`+unquote(t.Category)+` - botanical illustrations"`)

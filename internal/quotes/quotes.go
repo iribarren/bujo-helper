@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 
+	"bujo-helper/internal/cirrus"
 	"bujo-helper/internal/web"
 )
 
@@ -199,12 +200,17 @@ type searchResponse struct {
 }
 
 // search returns the titles the full-text search finds for query in the
-// main namespace, best first.
+// main namespace, best first. query is searched for literally (see
+// cirrus.Terms); a query without words finds nothing and sends no request.
 func (c *Client) search(ctx context.Context, endpoint, query string) ([]string, error) {
+	terms := cirrus.Terms(query)
+	if terms == "" {
+		return nil, nil
+	}
 	v := url.Values{
 		"action":      {"query"},
 		"list":        {"search"},
-		"srsearch":    {query},
+		"srsearch":    {terms},
 		"srnamespace": {"0"},
 		"srlimit":     {fmt.Sprint(searchLimit)},
 		"srprop":      {""},

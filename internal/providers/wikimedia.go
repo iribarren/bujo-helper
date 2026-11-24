@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"bujo-helper/internal/cirrus"
 	"bujo-helper/internal/match"
 	"bujo-helper/internal/media"
 	"bujo-helper/internal/web"
@@ -158,7 +159,7 @@ func (p *Wikimedia) searchFlag(ctx context.Context, country string) ([]media.Can
 // places searches Wikidata for q among entities with property prop, and
 // returns, in search order, those whose prop holds a usable file.
 func (p *Wikimedia) places(ctx context.Context, q, prop string) ([]wikimediaPlace, error) {
-	ids, err := p.search(ctx, q+" haswbstatement:"+prop)
+	ids, err := p.search(ctx, q, "haswbstatement:"+prop)
 	if err != nil || len(ids) == 0 {
 		return nil, err
 	}
@@ -220,15 +221,23 @@ func firstString(claims []wikimediaClaim) string {
 	return normal
 }
 
-// search returns the Q-ids the Wikidata full-text search finds for q.
-func (p *Wikimedia) search(ctx context.Context, q string) ([]string, error) {
-	return wikidataItemSearch(ctx, p.Client, p.WikidataURL, q)
+// search returns the Q-ids the Wikidata full-text search finds for the
+// user text q among the entities that filter keeps.
+func (p *Wikimedia) search(ctx context.Context, q, filter string) ([]string, error) {
+	return wikidataItemSearch(ctx, p.Client, p.WikidataURL, q, filter)
 }
 
 // wikidataItemSearch returns the Q-ids the Wikidata full-text search at
-// apiURL finds for q.
-func wikidataItemSearch(ctx context.Context, client *http.Client, apiURL, q string) ([]string, error) {
-	titles, err := mediawikiSearch(ctx, client, apiURL, q, "0")
+// apiURL finds for the user text q among the entities that filter (our
+// own CirrusSearch syntax, such as "haswbstatement:P18") keeps. q is
+// searched for literally (see cirrus.Terms). Without words in q, nothing
+// is searched: the filter alone would match every such entity.
+func wikidataItemSearch(ctx context.Context, client *http.Client, apiURL, q, filter string) ([]string, error) {
+	terms := cirrus.Terms(q)
+	if terms == "" {
+		return nil, nil
+	}
+	titles, err := mediawikiSearch(ctx, client, apiURL, terms+" "+filter, "0")
 	if err != nil {
 		return nil, err
 	}

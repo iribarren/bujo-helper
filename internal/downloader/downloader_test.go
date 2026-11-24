@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"bujo-helper/internal/media"
+	"bujo-helper/internal/providers"
 	"bujo-helper/internal/web"
 )
 
@@ -529,5 +530,29 @@ func TestCodeOfSentinels(t *testing.T) {
 		if got := Code(err); got != want {
 			t.Errorf("Code(%v) = %q, want %q", err, got, want)
 		}
+	}
+}
+
+// A movie searched without a TMDB key that no other provider finds: the
+// key message leads the reason (TMDB comes first), and the item is a
+// failure, not a not-found, since TMDB was never searched.
+func TestKeylessMovieNotFoundElsewhere(t *testing.T) {
+	srv := imageServer(t)
+	reg := media.NewRegistry()
+	if err := reg.Register(media.MediaType{
+		ID:        "movies",
+		Providers: []media.Provider{providers.NewTMDB(srv.Client(), func() string { return "" }), notFound("imdb"), notFound("wikidata-itunes")},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	d := &Downloader{Registry: reg, Client: srv.Client()}
+	res, _ := run(t, d, context.Background(), Request{MediaType: "movies", Items: []media.Item{{Title: "Dune"}}, OutputDir: t.TempDir()})
+	r := res[0]
+	want := "tmdb: no TMDB API key (set it in Settings); imdb: not found: nothing; wikidata-itunes: not found: nothing"
+	if r.Status != StatusFailed || r.Error != want {
+		t.Errorf("result = %+v, want a failure %q", r, want)
+	}
+	if got := Code(r.Err); got != "" {
+		t.Errorf("Code = %q, want none (TMDB was not searched)", got)
 	}
 }

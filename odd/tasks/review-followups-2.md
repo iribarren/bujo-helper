@@ -24,7 +24,7 @@ Close five open review follow-ups chosen by the user, on branch `fix/review-foll
 ## Tasks
 - [x] T1 Thumbnail tests: `makeThumb` "over N pixels" assertion (RED by removing the DecodeConfig cap); per-Thumbs limit. Route: inline (2 files, already read; small mechanical refactor).
 - [x] T2 Frontend test gaps (sequencing, header page count, paper/size, TMDB tip on tv, shapeKey guard, joined removal error). Route: delegated writer (several test files, preparation reading).
-- [ ] T3 CirrusSearch escaping in every provider query builder + table tests. Route: delegated writer (mapping all callers).
+- [x] T3 CirrusSearch escaping in every provider query builder + table tests. Route: delegated writer (mapping all callers).
 - [ ] T4 Replay a skipped preview resize when the request ends, with or without a new document. Route: delegated writer.
 - [ ] T5 Quote comma round-trip rule, frontend + Go side, README. Route: delegated writer.
 
@@ -53,5 +53,11 @@ Route evidence: writer trigger (each task touches 2+ non-trivial files or needs 
 
 - T2 assess `44f63d9..eb59b30`: medium, `slice_budget_reached` (403 lines). Consent granted; review-reliability approved; acknowledged (lineage `review-f9b07f0d651e2538`, authority burned). Advisory WARNING R3-001 (language relabel no longer refreshes size labels) refuted by the parent: `relabel()` ends with `updateSelection()` (`frontend/src/print.ts:777`), which calls `updateSizeLabels()`. Reviewed boundary: `eb59b30`.
 
+- Stop-hook whole-range review `865c1ac..1136d43` (8 files, 501 lines, medium): consent granted; review-reliability approved, no findings; acknowledged (lineage `review-59b3b60a47d6c528`, authority burned).
+
+- T3 (delegated writer): new `internal/cirrus.Terms` (rule from https://www.mediawiki.org/wiki/Help:CirrusSearch: every rune other than a letter/mark/number becomes a space, except `'`/`’`/`.` between word runes; `AND`/`OR`/`NOT` lowercased; spaces collapsed; plain words keep recall, a phrase would lower it; assumption: `NOT`, `&&`, `||` treated as operators per Lucene). `wikidataItemSearch(ctx, client, apiURL, q, filter)` escapes only the user text and sends nothing when no words remain (callers keep their not-found errors); used by WikidataITunes (its duplicate request code removed), Wikimedia places/flags, taxon (`taxonFilter`). `natureSearches` strips `"` and `\` inside its deliberate phrases. Wikiquote `Client.search` (`internal/quotes`) also uses `cirrus.Terms` (found outside providers). Tests: `TestTerms` (25 cases), `TestCirrusSearchQueries` (4 builders × 9 titles, exact `srsearch`, zero requests when empty), `TestNatureSearchesKeepPhrasesClosed`, `TestSearchSendsTheNameLiterally` (quotes). Optional extras: `TestWikidataITunesStepErrors` (no bug), `TestKeylessMovieNotFoundElsewhere` (pins: reason leads with the TMDB key text, code `""` because `ErrNoTMDBKey` wraps neither ErrNotFound nor ErrSkipped — open question for the user); throttle hook wiring test skipped (needs a locked accessor in `internal/web/throttle.go`).
+  - RED: e.g. `srsearch = ["-Saw haswbstatement:P6398"], want ["Saw haswbstatement:P6398"]`; syntax-only title `requests = 1, want 0`; quotes `srsearch = ["intitle:Gandhi"], want ["intitle Gandhi"]`.
+  - GREEN (writer): go build ok; vet clean; go test 3540 passed (21 pkgs); gofmt empty; tsc clean; vitest 407 passed; npm run build ok. Parent spot check: `go test ./internal/cirrus/ ./internal/providers/ ./internal/quotes/` 568 passed.
+
 ## Next step
-T3 (delegated writer).
+T4.

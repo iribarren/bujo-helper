@@ -328,3 +328,63 @@ func TestWikidataYear(t *testing.T) {
 		}
 	}
 }
+
+func TestWikidataITunesStepErrors(t *testing.T) {
+	search := fixture(t, "wikidata_search.json")
+	entities := fixture(t, "wikidata_entities.json")
+	lookup := fixture(t, "itunes_lookup.json")
+	ok := func(body []byte) func(string) (int, []byte) {
+		return func(string) (int, []byte) { return http.StatusOK, body }
+	}
+	tests := []struct {
+		name     string
+		entities func(country string) (int, []byte)
+		lookup   func(country string) (int, []byte)
+		wantErr  string
+		wantReqs int
+	}{
+		{"entities API error", ok([]byte(`{"error":{"code":"maxlag","info":"lagged"}}`)), ok(lookup), "maxlag", 2},
+		{"entities HTTP error", func(string) (int, []byte) { return http.StatusInternalServerError, []byte(`{}`) }, ok(lookup), "500", 2},
+		{"entities malformed", ok([]byte(`{"entities":`)), ok(lookup), "decode response", 2},
+		{"lookup HTTP error", ok(entities), func(string) (int, []byte) { return http.StatusInternalServerError, []byte(`{}`) }, "500", 3},
+		{"lookup malformed", ok(entities), ok([]byte(`not json`)), "decode response", 3},
+		// The local storefront has none of the films; the US retry fails.
+		{"US retry HTTP error", ok(entities), func(cc string) (int, []byte) {
+			if cc == "us" {
+				return http.StatusInternalServerError, []byte(`{}`)
+			}
+			return http.StatusOK, []byte(`{"resultCount":0,"results":[]}`)
+		}, "500", 4},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := &routedServer{}
+			srv := rs.serve(t, func(r *http.Request) (int, []byte) {
+				q := r.URL.Query()
+				switch {
+				case r.URL.Path == wikidataTestPath && q.Get("list") == "search":
+					return http.StatusOK, search
+				case r.URL.Path == wikidataTestPath && q.Get("action") == "wbgetentities":
+					return tt.entities("")
+				case r.URL.Path == "/lookup":
+					return tt.lookup(q.Get("country"))
+				}
+				return http.StatusNotFound, []byte(`{}`)
+			})
+			p := NewWikidataITunes(srv.Client())
+			p.WikidataURL = srv.URL + wikidataTestPath
+			p.ITunesURL = srv.URL + "/lookup"
+
+			got, err := p.Search(context.Background(), media.Item{Title: "Dune"}, media.Options{Country: "es"})
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Fatalf("Search = %+v, %v; want an error with %q", got, err, tt.wantErr)
+			}
+			if errors.Is(err, media.ErrNotFound) {
+				t.Errorf("err = %v: a failed step must not wrap ErrNotFound", err)
+			}
+			if n := len(rs.requests()); n != tt.wantReqs {
+				t.Errorf("requests = %d, want %d", n, tt.wantReqs)
+			}
+		})
+	}
+}
