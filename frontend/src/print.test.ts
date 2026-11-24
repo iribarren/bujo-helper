@@ -8,6 +8,7 @@ import {main, settings, sheet} from '../wailsjs/go/models';
 import {useLanguage} from './language';
 import {activeCrop, initPrint, perPageOf, sizePerPageOf, usesCutOf, usesSizeOf, type SelectionShape} from './print';
 import {fakePdf, renders, resetFakePdfs} from './previewMock';
+import type {View} from './view';
 
 vi.mock('pdfjs-dist/legacy/build/pdf.mjs', async () => (await import('./previewMock')).pdfjsMock);
 vi.mock('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url', () => ({default: '/pdf.worker.min.mjs'}));
@@ -793,6 +794,179 @@ describe('Print covers remembered options', () => {
         await vi.waitFor(() => expect(warn).toHaveBeenCalledWith(expect.stringContaining('disk full')));
         expect(showError).not.toHaveBeenCalled();
         warn.mockRestore();
+    });
+});
+
+describe('Print covers view', () => {
+    function el<T extends HTMLElement>(id: string): T {
+        const node = document.getElementById(id);
+        if (!node) throw new Error(`missing #${id}`);
+        return node as T;
+    }
+
+    const mediaTypes = [
+        main.MediaTypeInfo.createFrom({id: 'books', label: 'Books', dateLabel: 'Read on'}),
+        main.MediaTypeInfo.createFrom({id: 'games', label: 'Games', dateLabel: 'Played on'}),
+    ];
+    const sizes = [
+        {id: 'standard', label: 'Standard', coverHeight: 70, default: true},
+        {id: 'large', label: 'Large', coverHeight: 100, default: false},
+    ];
+    const crops = [
+        {id: 'none', label: 'None', usesSize: true, usesCut: true, frames: 1, default: true},
+        {id: 'square', label: 'Square', usesSize: true, usesCut: true, frames: 1, default: false},
+    ];
+
+    beforeEach(() => {
+        vi.mocked(SavePrintPrefs).mockClear();
+        vi.mocked(PrintPages).mockClear();
+    });
+
+    // mount shows a fresh Print covers tab with the view and the remembered
+    // prefs, and waits for its lists to load.
+    async function mount(view: View, prefs?: Partial<settings.PrintPrefs>) {
+        vi.mocked(PrintSizes).mockResolvedValueOnce(sizes.map((s) => main.PrintSizeInfo.createFrom(s)));
+        vi.mocked(PrintCropModes).mockResolvedValueOnce(crops.map((c) => main.PrintCropModeInfo.createFrom(c)));
+        const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+        document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
+        const tab = initPrint({
+            outputFolder: () => '/covers',
+            showError: () => {},
+            hideError: () => {},
+            mediaTypes: () => mediaTypes,
+            mediaType: () => 'books',
+            previewDelay: 0,
+            savedPrefs: prefs && settings.PrintPrefs.createFrom(prefs),
+            view,
+        });
+        await vi.waitFor(() => expect(el('print-font-list').children.length).toBe(fontList.length));
+        tab.activate();
+        await vi.waitFor(() => expect(el('gallery').children.length).toBe(coverList.length));
+        return tab;
+    }
+
+    const options = (id: string) => Array.from(el<HTMLSelectElement>(id).options, (o) => o.value);
+    const papers = () => Array.from(el('print-paper').querySelectorAll<HTMLElement>('[role="radio"]'), (r) => r.dataset.value);
+    const checkedPaper = () => el('print-paper').querySelector<HTMLElement>('[aria-checked="true"]')?.dataset.value;
+    const choose = (id: string, value: string) => {
+        const select = el<HTMLSelectElement>(id);
+        select.value = value;
+        select.dispatchEvent(new Event('change'));
+    };
+
+    it('offers only the items the view shows', async () => {
+        await mount({hidden: {format: ['spines', 'stubs'], size: ['large'], crop: ['square'], paper: ['letter'], cut: ['bleed']}});
+        expect(options('print-format')).toEqual(['covers', 'cards', 'fullpage', 'checklist', 'polaroid']);
+        expect(options('print-size')).toEqual(['standard']);
+        expect(options('print-crop')).toEqual(['none']);
+        expect(papers()).toEqual(['a4', 'a5', 'b5']);
+        expect(options('print-cut')).toEqual(['border', 'none']);
+        // The size keeps its label, with the count.
+        expect(el<HTMLSelectElement>('print-size').options[0].textContent).toContain('70 mm');
+    });
+
+    it('keeps every media type for the cards', async () => {
+        await mount({hiddenSections: ['download'], hidden: {media: ['games']}}, {format: 'cards'});
+        expect(options('print-media')).toEqual(['books', 'games']);
+    });
+
+    it('falls back from hidden remembered options to the defaults, saving nothing', async () => {
+        await mount(
+            {hidden: {format: ['cards'], size: ['large'], crop: ['square'], paper: ['letter'], cut: ['bleed']}},
+            {format: 'cards', size: 'large', crop: 'square', paper: 'letter', cut: 'bleed'},
+        );
+        expect(el<HTMLSelectElement>('print-format').value).toBe('covers');
+        expect(el<HTMLSelectElement>('print-size').value).toBe('standard');
+        expect(el<HTMLSelectElement>('print-crop').value).toBe('none');
+        expect(checkedPaper()).toBe('a4');
+        expect(el<HTMLSelectElement>('print-cut').value).toBe('border');
+        el('select-all').click();
+        await vi.waitFor(() => expect(PrintPages).toHaveBeenCalled());
+        expect(vi.mocked(PrintPages).mock.lastCall![1]).toMatchObject({format: 'covers', size: 'standard', paper: 'a4', cut: 'border'});
+        expect(el<HTMLButtonElement>('export-pdf').disabled).toBe(false);
+        await new Promise((r) => setTimeout(r, 10));
+        expect(SavePrintPrefs).not.toHaveBeenCalled();
+    });
+
+    it('picks the first shown item when the default is hidden', async () => {
+        await mount({hidden: {format: ['covers'], size: ['standard'], paper: ['a4'], cut: ['border']}});
+        expect(el<HTMLSelectElement>('print-format').value).toBe('cards');
+        expect(el<HTMLSelectElement>('print-size').value).toBe('large');
+        expect(checkedPaper()).toBe('letter');
+        expect(el<HTMLSelectElement>('print-cut').value).toBe('bleed');
+    });
+
+    it('keeps the default when a whole list is hidden', async () => {
+        await mount({hidden: {paper: ['a4', 'letter', 'a5', 'b5'], format: formatList.map((f) => f.id)}});
+        expect(papers()).toEqual(['a4']);
+        expect(options('print-format')).toEqual(['covers']);
+    });
+
+    it('applies a new view live, keeping the choices still shown', async () => {
+        const tab = await mount(undefined, {format: 'fullpage', paper: 'b5', cut: 'bleed'});
+        choose('print-cut', 'none');
+        await vi.waitFor(() => expect(SavePrintPrefs).toHaveBeenCalledTimes(1));
+        vi.mocked(SavePrintPrefs).mockClear();
+
+        tab.applyView({hidden: {format: ['checklist'], paper: ['b5']}});
+        expect(options('print-format')).not.toContain('checklist');
+        expect(el<HTMLSelectElement>('print-format').value).toBe('fullpage');
+        expect(papers()).toEqual(['a4', 'letter', 'a5']);
+        expect(checkedPaper()).toBe('a4');
+        expect(el<HTMLSelectElement>('print-cut').value).toBe('none');
+
+        // Showing everything again keeps the current choices.
+        tab.applyView(undefined);
+        expect(papers()).toEqual(['a4', 'letter', 'a5', 'b5']);
+        expect(checkedPaper()).toBe('a4');
+        expect(options('print-format')).toContain('checklist');
+        await new Promise((r) => setTimeout(r, 10));
+        expect(SavePrintPrefs).not.toHaveBeenCalled();
+    });
+
+    it('falls back live to the remembered option, else the shown default, and updates the fields', async () => {
+        const tab = await mount(undefined, {format: 'fullpage', cut: 'bleed'});
+        choose('print-format', 'checklist');
+        choose('print-cut', 'none');
+        expect(el('print-header-field').hidden).toBe(false);
+
+        // The current choice is hidden: the remembered one is shown.
+        tab.applyView({hidden: {format: ['checklist'], cut: ['none']}});
+        expect(el<HTMLSelectElement>('print-format').value).toBe('fullpage');
+        expect(el<HTMLSelectElement>('print-cut').value).toBe('bleed');
+
+        // Both hidden: the shown default, with its fields.
+        tab.applyView({hidden: {format: ['checklist', 'fullpage'], cut: ['none', 'bleed']}});
+        expect(el<HTMLSelectElement>('print-format').value).toBe('covers');
+        expect(el<HTMLSelectElement>('print-cut').value).toBe('border');
+        expect(el('print-header-field').hidden).toBe(true);
+        expect(el('print-size-field').hidden).toBe(false);
+    });
+
+    it('applies the same view again without changing anything', async () => {
+        const view: View = {hidden: {paper: ['a5']}};
+        const tab = await mount(view);
+        el('print-paper').querySelector<HTMLButtonElement>('[data-value="letter"]')!.click();
+        await vi.waitFor(() => expect(SavePrintPrefs).toHaveBeenCalledTimes(1));
+        const radio = el('print-paper').querySelector('[data-value="letter"]');
+        tab.applyView({hidden: {paper: ['a5']}});
+        tab.applyView(view);
+        expect(checkedPaper()).toBe('letter');
+        // The radios were not rebuilt.
+        expect(el('print-paper').querySelector('[data-value="letter"]')).toBe(radio);
+        await new Promise((r) => setTimeout(r, 10));
+        expect(SavePrintPrefs).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the view across a language change', async () => {
+        await mount({hidden: {paper: ['letter'], format: ['stubs']}});
+        await useLanguage('es');
+        try {
+            expect(papers()).toEqual(['a4', 'a5', 'b5']);
+            expect(options('print-format')).not.toContain('stubs');
+        } finally {
+            await useLanguage('en');
+        }
     });
 });
 

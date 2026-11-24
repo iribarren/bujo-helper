@@ -381,8 +381,18 @@ export const es: Messages = {
 
     // Settings dialog.
     'settings.title': 'Ajustes',
+    'settings.tabGeneral': 'General',
+    'settings.tabKeys': 'Claves de API',
     'settings.language': 'Idioma',
     'settings.languageSystem': 'Sistema',
+    'settings.theme': 'Tema',
+    'settings.themeSystem': 'Sistema',
+    'settings.themeLight': 'Claro',
+    'settings.themeDark': 'Oscuro',
+    'settings.sections': 'Secciones visibles',
+    'settings.sectionsHint': 'Desmarca lo que no uses. Cada lista conserva al menos un elemento.',
+    'settings.alwaysShown': 'Siempre visible',
+    'settings.listUnavailable': 'No se ha podido cargar esta lista.',
     'settings.tmdbKey': 'Clave de API de TMDB',
     'settings.tmdbHint': 'Opcional. Ofrece los mejores carteles de películas y series. Consigue una clave gratuita en',
     'settings.tmdbNotice': 'Este producto utiliza la API de TMDB, pero TMDB no lo respalda ni lo certifica.',
@@ -404,6 +414,14 @@ export const es: Messages = {
     'settings.saved': 'Guardado',
     'settings.errRead': 'No se han podido leer los ajustes: {error}',
     'settings.errReload': 'Guardado, pero no se han podido volver a cargar los ajustes: {error}',
+
+    'view.media': 'Tipos de medio',
+    'view.paper': 'Papel',
+    'view.format': 'Formatos',
+    'view.size': 'Tamaños de portada',
+    'view.crop': 'Recortar a',
+    'view.cut': 'Modos de corte',
+    'view.pageKind': 'Tipos de página',
 
     // About section of the Settings dialog.
     'about.title': 'Acerca de',

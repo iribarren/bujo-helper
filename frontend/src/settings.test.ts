@@ -32,6 +32,15 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     }
     stubs.GetSettings = vi.fn(async () => ({tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', bggToken: '', language: ''}));
     stubs.LetteringFonts = vi.fn(async () => fontList);
+    // The lists of the Sections tree.
+    const items = (...ids: string[]) => ids.map((id, i) => ({id, label: id, default: i === 0}));
+    stubs.MediaTypes = vi.fn(async () => items('books', 'movies'));
+    stubs.PrintPapers = vi.fn(async () => items('a4', 'letter', 'a5'));
+    stubs.PrintFormats = vi.fn(async () => items('covers', 'cards'));
+    stubs.PrintSizes = vi.fn(async () => items('standard', 'mini'));
+    stubs.PrintCropModes = vi.fn(async () => items('wallet'));
+    stubs.PrintCutModes = vi.fn(async () => items('border', 'none'));
+    stubs.PageKinds = vi.fn(async () => items('dotgrid', 'moon'));
     return stubs;
 });
 vi.mock('../wailsjs/runtime/runtime', () => ({BrowserOpenURL: vi.fn()}));
@@ -150,7 +159,8 @@ describe('Settings About', () => {
     it('names the Go fonts and the section in Spanish', () => {
         setLang('es');
         applyDom(document);
-        expect(el('settings-about').querySelector('h3')?.textContent).toBe('Acerca de');
+        const about = el('settings-about');
+        expect(document.getElementById(about.getAttribute('aria-labelledby') ?? '')?.textContent).toBe('Acerca de');
         expect(fontItem('go').querySelector('summary')?.textContent).toContain('Fuentes Go (predeterminadas)');
     });
 });
@@ -230,5 +240,357 @@ describe('Settings About BoardGameGeek credit', () => {
         setLang('es');
         applyDom(document);
         expect(document.querySelector('label[for="bgg-token"]')?.textContent).toBe('Token de BoardGameGeek');
+    });
+});
+
+describe('Theme', () => {
+    const saved = {tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', bggToken: '', language: ''};
+    const root = document.documentElement;
+
+    // themeRadio is the Theme radio for value ("" is System).
+    function themeRadio(value: string): HTMLButtonElement {
+        const node = el('theme').querySelector<HTMLButtonElement>(`[role="radio"][data-value="${value}"]`);
+        if (!node) throw new Error(`missing theme radio "${value}"`);
+        return node;
+    }
+
+    function checkedTheme(): string | undefined {
+        return el('theme').querySelector<HTMLButtonElement>('[aria-checked="true"]')?.dataset.value;
+    }
+
+    afterEach(() => {
+        el('settings-close').click();
+        vi.mocked(SaveSettings).mockClear();
+        delete root.dataset.theme;
+    });
+
+    it('comes right after the language, with System, Light and Dark', () => {
+        const field = el('theme').closest('.field');
+        expect(field?.previousElementSibling).toBe(el('language').closest('.field'));
+        expect(el('theme').getAttribute('role')).toBe('radiogroup');
+        const radios = Array.from(el('theme').querySelectorAll<HTMLButtonElement>('[role="radio"]'));
+        expect(radios.map((r) => [r.dataset.value, r.textContent])).toEqual([
+            ['', 'System'],
+            ['light', 'Light'],
+            ['dark', 'Dark'],
+        ]);
+        expect(document.getElementById(el('theme').getAttribute('aria-labelledby') ?? '')?.textContent).toBe('Theme');
+    });
+
+    it('shows the saved theme, and System when none is saved', async () => {
+        vi.mocked(GetSettings).mockResolvedValueOnce({...saved, theme: 'light'} as never);
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe('light'));
+        el('settings-close').click();
+
+        vi.mocked(GetSettings).mockResolvedValueOnce(saved as never);
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe(''));
+    });
+
+    it('saves the picked theme with the other settings and applies it at once', async () => {
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe(''));
+        themeRadio('dark').click();
+        expect(root.hasAttribute('data-theme')).toBe(false);
+        el('settings-save').click();
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SaveSettings).mock.calls[0][0]).toMatchObject({theme: 'dark', language: '', bggToken: ''});
+        await vi.waitFor(() => expect(root.dataset.theme).toBe('dark'));
+    });
+
+    it('follows the system again when System is saved', async () => {
+        root.dataset.theme = 'dark';
+        vi.mocked(GetSettings).mockResolvedValueOnce({...saved, theme: 'dark'} as never);
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe('dark'));
+        themeRadio('').click();
+        el('settings-save').click();
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SaveSettings).mock.calls[0][0]).toMatchObject({theme: ''});
+        await vi.waitFor(() => expect(root.hasAttribute('data-theme')).toBe(false));
+    });
+
+    it('keeps the current theme when saving fails', async () => {
+        vi.mocked(SaveSettings).mockRejectedValueOnce(new Error('disk full'));
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe(''));
+        themeRadio('light').click();
+        el('settings-save').click();
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('disk full'));
+        expect(root.hasAttribute('data-theme')).toBe(false);
+    });
+
+    it('names the theme and its options in Spanish, keeping the choice', async () => {
+        vi.mocked(GetSettings).mockResolvedValueOnce({...saved, theme: 'dark'} as never);
+        dialog.open();
+        await vi.waitFor(() => expect(checkedTheme()).toBe('dark'));
+        setLang('es');
+        applyDom(document);
+        expect(document.getElementById('theme-label')?.textContent).toBe('Tema');
+        const labels = Array.from(el('theme').querySelectorAll('[role="radio"]')).map((r) => r.textContent);
+        expect(labels).toEqual(['Sistema', 'Claro', 'Oscuro']);
+        expect(checkedTheme()).toBe('dark');
+    });
+});
+
+describe('Sections shown', () => {
+    const saved = {tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', bggToken: '', language: ''};
+
+    function sectionBox(id: string): HTMLInputElement {
+        const node = el('view-config').querySelector<HTMLInputElement>(`[data-section="${id}"] > legend input`);
+        if (!node) throw new Error(`missing section ${id}`);
+        return node;
+    }
+
+    function box(list: string, item: string): HTMLInputElement {
+        const node = el('view-config').querySelector<HTMLInputElement>(`[data-list="${list}"] input[data-item="${item}"]`);
+        if (!node) throw new Error(`missing ${list}/${item}`);
+        return node;
+    }
+
+    async function openWith(view?: object) {
+        vi.mocked(GetSettings).mockResolvedValueOnce({...saved, view} as never);
+        dialog.open();
+        await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+        await vi.waitFor(() => expect(box('paper', 'a4')).toBeTruthy());
+    }
+
+    afterEach(() => {
+        el('settings-close').click();
+        vi.mocked(SaveSettings).mockClear();
+        delete document.documentElement.dataset.theme;
+    });
+
+    it('comes after the theme, last in General, under its heading', () => {
+        const part = el('settings-sections');
+        expect(part.previousElementSibling).toBe(el('theme').closest('.field'));
+        expect(part.nextElementSibling).toBeNull();
+        expect(part.parentElement?.getAttribute('aria-labelledby')).toBe('settings-tab-general');
+        expect(document.getElementById(part.getAttribute('aria-labelledby') ?? '')?.textContent).toBe('Sections shown');
+        expect(part.contains(el('view-config'))).toBe(true);
+    });
+
+    it('lists the sections and the items Go sends, all ticked when no view is saved', async () => {
+        await openWith(undefined);
+        const sections = Array.from(el('view-config').querySelectorAll<HTMLElement>('[data-section]'), (s) => s.dataset.section);
+        expect(sections).toEqual(['download', 'print', 'pages']);
+        for (const input of el('view-config').querySelectorAll<HTMLInputElement>('input[data-item]')) expect(input.checked).toBe(true);
+        expect(sectionBox('print').disabled).toBe(true);
+    });
+
+    it('shows the saved view each time it opens', async () => {
+        await openWith({hiddenSections: ['download'], hidden: {paper: ['letter']}});
+        expect(sectionBox('download').checked).toBe(false);
+        expect(box('paper', 'letter').checked).toBe(false);
+        box('paper', 'a5').click();
+        el('settings-close').click();
+
+        await openWith(undefined);
+        expect(sectionBox('download').checked).toBe(true);
+        expect(box('paper', 'letter').checked).toBe(true);
+        expect(box('paper', 'a5').checked).toBe(true);
+    });
+
+    it('shows the default ticked when the saved view hides a whole list', async () => {
+        await openWith({hidden: {pageKind: ['dotgrid', 'moon']}});
+        expect(box('pageKind', 'dotgrid').checked).toBe(true);
+        expect(box('pageKind', 'moon').checked).toBe(false);
+        expect(box('pageKind', 'dotgrid').disabled).toBe(true);
+    });
+
+    it('saves the view with the other settings and the theme', async () => {
+        await openWith(undefined);
+        box('paper', 'letter').click();
+        sectionBox('pages').click();
+        document.querySelector<HTMLButtonElement>('#theme [data-value="dark"]')?.click();
+        el<HTMLInputElement>('bgg-token').value = 'token';
+        el('settings-save').click();
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SaveSettings).mock.calls[0][0]).toMatchObject({
+            theme: 'dark',
+            bggToken: 'token',
+            language: '',
+            view: {hiddenSections: ['pages'], hidden: {paper: ['letter']}},
+        });
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('Saved'));
+    });
+
+    it('gives the saved view once loaded, and the new one once saved', async () => {
+        await openWith({hiddenSections: ['pages'], hidden: {paper: ['letter']}});
+        expect(dialog.view()).toEqual({hiddenSections: ['pages'], hidden: {paper: ['letter']}});
+        box('paper', 'a5').click();
+        // Unsaved ticks are not the saved view.
+        expect(dialog.view()).toEqual({hiddenSections: ['pages'], hidden: {paper: ['letter']}});
+        vi.mocked(GetSettings).mockResolvedValueOnce({...saved, view: {hidden: {paper: ['letter', 'a5']}}} as never);
+        el('settings-save').click();
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('Saved'));
+        expect(dialog.view()).toEqual({hidden: {paper: ['letter', 'a5']}});
+    });
+
+    it('gives no view for an older settings file', async () => {
+        await openWith(undefined);
+        expect(dialog.view()).toBeUndefined();
+    });
+
+    it('saves an empty view when everything is shown', async () => {
+        await openWith(undefined);
+        el('settings-save').click();
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        const view = vi.mocked(SaveSettings).mock.calls[0][0].view;
+        expect(view?.hiddenSections).toBeUndefined();
+        expect(view?.hidden).toBeUndefined();
+    });
+
+    it('keeps the ticks when saving fails', async () => {
+        vi.mocked(SaveSettings).mockRejectedValueOnce(new Error('disk full'));
+        await openWith(undefined);
+        box('paper', 'letter').click();
+        el('settings-save').click();
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('disk full'));
+        expect(box('paper', 'letter').checked).toBe(false);
+    });
+
+    it('clears the status when a box changes', async () => {
+        vi.mocked(SaveSettings).mockRejectedValueOnce(new Error('disk full'));
+        await openWith(undefined);
+        el('settings-save').click();
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('disk full'));
+        box('media', 'movies').click();
+        expect(el('settings-status').textContent).toBe('');
+    });
+
+    it('names the part in Spanish', async () => {
+        await openWith(undefined);
+        setLang('es');
+        applyDom(document);
+        expect(el('sections-title').textContent).toBe('Secciones visibles');
+        expect(el('view-config').querySelector('[data-section="pages"] > legend label')?.textContent?.trim()).toBe('Crear páginas');
+        expect(el('view-config').querySelector('[data-section="print"] .view-note')?.textContent).toBe('Siempre visible');
+    });
+});
+
+describe('Settings tabs', () => {
+    const saved = {tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', bggToken: '', language: ''};
+    const names = ['general', 'keys', 'about'];
+
+    function tab(name: string): HTMLButtonElement {
+        const node = el('settings-tabs').querySelector<HTMLButtonElement>(`[role="tab"][data-tab="${name}"]`);
+        if (!node) throw new Error(`missing tab ${name}`);
+        return node;
+    }
+
+    function panel(name: string): HTMLElement {
+        return el(tab(name).getAttribute('aria-controls') ?? '');
+    }
+
+    // shownTab is the selected tab, checking that only its panel shows.
+    function shownTab(): string | undefined {
+        const selected = names.filter((name) => tab(name).getAttribute('aria-selected') === 'true');
+        for (const name of names) expect(panel(name).hidden, name).toBe(!selected.includes(name));
+        expect(selected.length).toBe(1);
+        return selected[0];
+    }
+
+    async function openOn(which?: 'general' | 'keys' | 'about') {
+        vi.mocked(GetSettings).mockResolvedValueOnce(saved as never);
+        dialog.open(which);
+        await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+    }
+
+    afterEach(() => {
+        el('settings-close').click();
+        vi.mocked(SaveSettings).mockClear();
+        delete document.documentElement.dataset.theme;
+    });
+
+    it('has General, API keys and About, each labelling its panel', () => {
+        const tabs = Array.from(el('settings-tabs').querySelectorAll<HTMLElement>('[role="tab"]'));
+        expect(tabs.map((t) => [t.dataset.tab, t.textContent])).toEqual([
+            ['general', 'General'],
+            ['keys', 'API keys'],
+            ['about', 'About'],
+        ]);
+        expect(el('settings-tabs').getAttribute('role')).toBe('tablist');
+        for (const name of names) {
+            expect(panel(name).getAttribute('role')).toBe('tabpanel');
+            expect(panel(name).getAttribute('aria-labelledby')).toBe(tab(name).id);
+        }
+        // The main window's tabs are another list.
+        expect(el('tabs').contains(tab('general'))).toBe(false);
+    });
+
+    it('puts each setting in its tab, and Save, Close and the status below them all', () => {
+        for (const id of ['language', 'theme', 'settings-sections', 'view-config']) {
+            expect(panel('general').contains(el(id)), id).toBe(true);
+        }
+        for (const id of ['tmdb-key', 'tmdb-key-toggle', 'igdb-id', 'igdb-secret', 'bhl-key', 'bgg-token']) {
+            expect(panel('keys').contains(el(id)), id).toBe(true);
+        }
+        expect(panel('keys').textContent).toContain('This product uses the TMDB API');
+        expect(panel('about')).toBe(el('settings-about'));
+        for (const id of ['about-fonts', 'bgg-logo-about']) expect(panel('about').contains(el(id)), id).toBe(true);
+        for (const id of ['settings-save', 'settings-close', 'settings-status']) {
+            for (const name of names) expect(panel(name).contains(el(id)), `${id} in ${name}`).toBe(false);
+            expect(el('settings-dialog').contains(el(id))).toBe(true);
+        }
+    });
+
+    it('opens on General, whichever tab was shown last', async () => {
+        await openOn();
+        expect(shownTab()).toBe('general');
+        expect(document.activeElement).toBe(el('language'));
+        tab('about').click();
+        expect(shownTab()).toBe('about');
+        el('settings-close').click();
+
+        await openOn();
+        expect(shownTab()).toBe('general');
+    });
+
+    it('opens on API keys when asked, with the TMDB key focused', async () => {
+        await openOn('keys');
+        expect(shownTab()).toBe('keys');
+        expect(document.activeElement).toBe(el('tmdb-key'));
+    });
+
+    it('moves between its tabs with the arrow keys', async () => {
+        await openOn();
+        tab('general').dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true, cancelable: true}));
+        expect(shownTab()).toBe('keys');
+        expect(document.activeElement).toBe(tab('keys'));
+        tab('keys').dispatchEvent(new KeyboardEvent('keydown', {key: 'End', bubbles: true, cancelable: true}));
+        expect(shownTab()).toBe('about');
+    });
+
+    it('keeps unsaved values across tabs and saves every tab at once', async () => {
+        await openOn();
+        document.querySelector<HTMLButtonElement>('#theme [data-value="light"]')?.click();
+        await vi.waitFor(() => expect(el('view-config').querySelector('[data-list="paper"] input[data-item="a5"]')).toBeTruthy());
+        el('view-config').querySelector<HTMLInputElement>('[data-list="paper"] input[data-item="a5"]')?.click();
+        tab('keys').click();
+        el<HTMLInputElement>('tmdb-key').value = 'tmdb';
+        el<HTMLInputElement>('bgg-token').value = 'bgg';
+        tab('about').click();
+        tab('general').click();
+        expect(el('theme').querySelector('[aria-checked="true"]')?.getAttribute('data-value')).toBe('light');
+        tab('about').click();
+        el('settings-save').click();
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SaveSettings).mock.calls[0][0]).toMatchObject({
+            theme: 'light',
+            tmdbApiKey: 'tmdb',
+            bggToken: 'bgg',
+            view: {hidden: {paper: ['a5']}},
+        });
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('Saved'));
+        // Saving stays on the tab shown.
+        expect(shownTab()).toBe('about');
+    });
+
+    it('names the tabs in Spanish', () => {
+        setLang('es');
+        applyDom(document);
+        expect(names.map((name) => tab(name).textContent)).toEqual(['General', 'Claves de API', 'Acerca de']);
     });
 });

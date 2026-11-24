@@ -9,6 +9,7 @@ import {useLanguage} from './language';
 import {pageForms} from './pageForms';
 import {initPages, parseDefaults} from './pages';
 import {fakePdf, renders, resetFakePdfs} from './previewMock';
+import type {View} from './view';
 
 vi.mock('pdfjs-dist/legacy/build/pdf.mjs', async () => (await import('./previewMock')).pdfjsMock);
 vi.mock('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url', () => ({default: '/pdf.worker.min.mjs'}));
@@ -853,3 +854,107 @@ describe('remembered options', () => {
         warn.mockRestore();
     });
 });
+
+describe('view', () => {
+    beforeEach(() => {
+        vi.mocked(SavePagesPrefs).mockClear();
+        vi.mocked(PreviewPage).mockClear();
+    });
+
+    // mount shows a fresh Make pages tab with the view and the remembered
+    // prefs, and waits for its lists to load.
+    async function mount(view: View, prefs?: Partial<settings.PagesPrefs>) {
+        const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+        document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
+        const tab = initPages({...deps, savedPrefs: prefs && settings.PagesPrefs.createFrom(prefs), view});
+        await vi.waitFor(() => expect(el('pages-font-list').children.length).toBe(fonts.length));
+        await previewDone();
+        return tab;
+    }
+
+    // The tests above expect every kind and paper.
+    afterEach(async () => {
+        await mount(undefined);
+    });
+
+    const values = (groupId: string) =>
+        Array.from(el(groupId).querySelectorAll<HTMLElement>('[role="radio"]'), (r) => r.dataset.value);
+    const cutOptions = () => Array.from(el<HTMLSelectElement>('pages-cut').options, (o) => o.value);
+    const pause = () => new Promise((r) => setTimeout(r, 10));
+
+    it('offers only the kinds, papers and cut modes the view shows', async () => {
+        await mount({hidden: {pageKind: ['moon', 'habits'], paper: ['letter'], cut: ['bleed']}});
+        expect(values('pages-kinds')).toEqual(['dotgrid', 'calendar', 'quotes', 'map', 'recipes', 'conversions', 'cutout']);
+        expect(values('pages-paper')).toEqual(['a4', 'a5', 'b5']);
+        expect(cutOptions()).toEqual(['border', 'none']);
+    });
+
+    it('falls back from hidden remembered options to the defaults, saving nothing', async () => {
+        await mount({hidden: {pageKind: ['cutout'], paper: ['b5'], cut: ['bleed']}}, {kind: 'cutout', paper: 'b5', cut: 'bleed'});
+        expect(checked('pages-kinds')).toBe('dotgrid');
+        expect(checked('pages-paper')).toBe('a5');
+        expect(el<HTMLSelectElement>('pages-cut').value).toBe('border');
+        const [kind, page] = lastPreviewPage();
+        expect(kind).toBe('dotgrid');
+        expect(page).toMatchObject({paper: 'a5'});
+        expect(el<HTMLButtonElement>('pages-export').disabled).toBe(false);
+        await pause();
+        expect(SavePagesPrefs).not.toHaveBeenCalled();
+    });
+
+    it('picks the first shown item when the default is hidden', async () => {
+        await mount({hidden: {pageKind: ['dotgrid'], paper: ['a5'], cut: ['border']}});
+        expect(checked('pages-kinds')).toBe('moon');
+        expect(checked('pages-paper')).toBe('a4');
+        expect(el<HTMLSelectElement>('pages-cut').value).toBe('bleed');
+    });
+
+    it('keeps the default when a whole list is hidden', async () => {
+        await mount({hidden: {pageKind: kinds.map((k) => k.id), paper: papers.map((p) => p.id)}});
+        expect(values('pages-kinds')).toEqual(['dotgrid']);
+        expect(values('pages-paper')).toEqual(['a5']);
+    });
+
+    it('applies a new view live, keeping the choices still shown', async () => {
+        const tab = await mount(undefined, {kind: 'calendar', paper: 'letter'});
+        radio('pages-kinds', 'moon').click();
+        radio('pages-paper', 'b5').click();
+        await vi.waitFor(() => expect(vi.mocked(SavePagesPrefs).mock.lastCall?.[0].paper).toBe('b5'));
+        vi.mocked(SavePagesPrefs).mockClear();
+
+        // The current kind is hidden: the remembered one; the paper is kept.
+        tab.applyView({hidden: {pageKind: ['moon'], paper: ['a4']}});
+        expect(values('pages-kinds')).not.toContain('moon');
+        expect(checked('pages-kinds')).toBe('calendar');
+        expect(checked('pages-paper')).toBe('b5');
+        expect(el('pages-kind-title').textContent).toBe('Month calendar');
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('calendar'));
+
+        // The current and remembered paper hidden: the shown default.
+        tab.applyView({hidden: {paper: ['b5', 'letter']}});
+        expect(checked('pages-paper')).toBe('a5');
+        expect(checked('pages-kinds')).toBe('calendar');
+        await pause();
+        expect(SavePagesPrefs).not.toHaveBeenCalled();
+    });
+
+    it('keeps the kind and its options while the section is hidden', async () => {
+        const tab = await mount(undefined);
+        radio('pages-kinds', 'dotgrid').click();
+        radio('pages-dotgrid-spacing', '6').click();
+        tab.applyView({hiddenSections: ['pages']});
+        tab.applyView(undefined);
+        expect(checked('pages-kinds')).toBe('dotgrid');
+        expect(checked('pages-dotgrid-spacing')).toBe('6');
+    });
+
+    it('applies the same view again without changing anything', async () => {
+        const tab = await mount({hidden: {paper: ['letter']}});
+        radio('pages-paper', 'b5').click();
+        const before = radio('pages-paper', 'b5');
+        tab.applyView({hidden: {paper: ['letter']}});
+        expect(checked('pages-paper')).toBe('b5');
+        expect(radio('pages-paper', 'b5')).toBe(before);
+    });
+});
+

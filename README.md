@@ -26,7 +26,8 @@ Book covers, movie posters, TV series posters, album covers, podcast artwork, ga
 - **Open folder** shows the results in the system file manager.
 - **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, with your own photos centre-cropped to standard print shapes (instant mini, square, 2 × 6 in photo strips or wallet), as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. A live preview shows the PDF before you export it. See [Print sheet](#print-sheet).
 - **Lettering**: headers and titles print in one of ten bundled lettering fonts (brush and monoline script, handwritten, bubble display, hollow), optionally as outlines to colour in by hand. See [Lettering](#lettering).
-- Light and dark themes follow the system setting.
+- Light and dark themes: they follow the system setting, or pick one in **Settings**, see [Theme and sections shown](#theme-and-sections-shown).
+- Hide what you don't use: choose in **Settings** which sections, media types, print formats, papers and page kinds the app shows.
 - English and Spanish interface. It follows the system language and can be changed in **Settings**, see [Language](#language).
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
@@ -294,7 +295,7 @@ BGG publishes no rate limit, but says a 5-second wait between requests seems to 
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
-2. In the app, click **Settings** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/bujo-helper/settings.json` on Linux, `%AppData%\bujo-helper\settings.json` on Windows, `~/Library/Application Support/bujo-helper/settings.json` on macOS), readable only by you. Settings saved by older versions in the `cover-downloader` folder are copied over automatically on first launch.
+2. In the app, click **Settings**, open **API keys** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/bujo-helper/settings.json` on Linux, `%AppData%\bujo-helper\settings.json` on Windows, `~/Library/Application Support/bujo-helper/settings.json` on macOS), readable only by you. Settings saved by older versions in the `cover-downloader` folder are copied over automatically on first launch.
 3. For the command line, use `-tmdb-key`, or the `TMDB_API_KEY` environment variable; otherwise the key saved by the app is used.
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
@@ -304,7 +305,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 1. Sign in at [dev.twitch.tv](https://dev.twitch.tv/) with a Twitch account. Twitch requires two-factor authentication to register apps.
 2. In the [Developer Console](https://dev.twitch.tv/console/apps), click **Register Your Application**: any name, OAuth Redirect URL `http://localhost`, a category such as *Application Integration*, and Client Type **Confidential**.
 3. Open the app with **Manage**, copy its **Client ID**, and click **New Secret** to get a **Client Secret**.
-4. In the app, click **Settings** and paste both into **IGDB Client ID** and **IGDB Client Secret**. They are saved next to the TMDB key, readable only by you. The app exchanges them for an access token (valid for about two months), which it keeps in memory only.
+4. In the app, click **Settings**, open **API keys** and paste both into **IGDB Client ID** and **IGDB Client Secret**. They are saved next to the TMDB key, readable only by you. The app exchanges them for an access token (valid for about two months), which it keeps in memory only.
 5. For the command line, use `-igdb-id` and `-igdb-secret`, or the `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` environment variables; otherwise the credentials saved by the app are used.
 
 ### BHL API key
@@ -312,7 +313,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 The Biodiversity Heritage Library key is optional: nature images come from Wikimedia Commons without it, and BHL adds plates when Commons has none.
 
 1. Request a free key at [biodiversitylibrary.org/getapikey.aspx](https://www.biodiversitylibrary.org/getapikey.aspx) (a name and an email address); BHL emails it to you.
-2. In the app, click **Settings** and paste it into **BHL API key**. It is saved next to the TMDB key, readable only by you, and sent only to the BHL API (in the request URL, as BHL requires).
+2. In the app, click **Settings**, open **API keys** and paste it into **BHL API key**. It is saved next to the TMDB key, readable only by you, and sent only to the BHL API (in the request URL, as BHL requires).
 3. For the command line, use `-bhl-key`, or the `BHL_API_KEY` environment variable; otherwise the key saved by the app is used.
 
 While **Nature** is selected and no key is saved, a tip above the list suggests adding one. A key BHL rejects fails the item's BHL search with "BHL rejected the API key (HTTP 401)".
@@ -322,7 +323,7 @@ While **Nature** is selected and no key is saved, a tip above the list suggests 
 BoardGameGeek's XML API needs a registered application and its token on every request. BGG asks apps for end users not to make them get their own token, so release builds include the app's own token: board games work with nothing to set up.
 
 - Builds from source have no built-in token (see [Building](#building)). While **Board games** is selected and the build has no token and none is saved, a tip above the list suggests adding one.
-- A token saved in **Settings → BoardGameGeek token** overrides the built-in one. It is saved next to the TMDB key, readable only by you, and sent only to BoardGameGeek.
+- A token saved in **Settings → API keys → BoardGameGeek token** overrides the built-in one. It is saved next to the TMDB key, readable only by you, and sent only to BoardGameGeek.
 - For the command line, use `-bgg-token`, or the `BGG_TOKEN` environment variable; otherwise the token saved by the app is used, and then the built-in one.
 
 To get a token (for a source build or a fork):
@@ -1121,6 +1122,25 @@ The app is available in English and Spanish.
 
 To add a language, add a dictionary next to `frontend/src/i18n/en.ts` (the compiler rejects missing or extra keys) and a catalog in `internal/i18n/catalog.go` (a test checks that every key exists).
 
+## Theme and sections shown
+
+**Settings** has three tabs: **General** (language, theme and sections shown), **API keys** (TMDB, IGDB, BHL and BoardGameGeek) and **About** (fonts and credits). **Save** saves every tab at once. Settings opens by itself on the app's first run on a computer (once: closing it without saving counts); the tip that suggests a key opens it on **API keys**.
+
+The theme and the sections shown are in **General** and apply as soon as you click **Save**.
+
+- **Theme**: **System** (the default) follows the system's light or dark setting; **Light** and **Dark** override it. Saved as `"theme"`: `""`, `"light"` or `"dark"`.
+- **Sections shown**: a checkbox tree of the app's sections and the lists inside them:
+  - **Download**: the media types.
+  - **Print covers**: paper, formats, cover sizes, crop modes and cut modes. Paper and cut modes also apply to **Make pages**, which shares them.
+  - **Make pages**: the page kinds.
+- Untick **Download** or **Make pages** to hide its tab; the app then opens on the first shown tab. Their ticks are kept while they are hidden. **Print covers** is always shown.
+- Each list has an all/none checkbox. Every list keeps at least one item: the last ticked one can't be unticked, and "none" leaves the list's default ticked.
+- Unticked items disappear from their selector. When the remembered choice is hidden, the default is used, or the first shown item when the default is hidden too.
+- Not affected: Print covers' **Cards for** selector always lists every media type.
+- Saved as `"view"` in the settings file, listing what is hidden (`"hiddenSections"` and `"hidden"` by list), so media types, formats, papers and page kinds added in later versions show up ticked. Settings files from older versions show everything.
+
+To add a section or a list to this tree, add it to `SECTIONS` in `frontend/src/view.ts`; a test fails when a tab has no entry there.
+
 ## Development
 
 ```sh
@@ -1178,7 +1198,7 @@ The root package embeds `frontend/dist`, so build the frontend once first (`cd f
 ```
 main.go, app.go        Wails entry point and the methods bound to the UI
 frontend/              Vanilla TypeScript + Vite UI
-  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), quotesForm.ts (the quote cards search and picks), recipesForm.ts (the recipe list and editor, import and photo), pageForms.ts (the option forms of the page kinds), preview.ts (live PDF preview), lettering.ts (font picker and Colour-in), settings.ts (Settings dialog and About) and style.css
+  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), quotesForm.ts (the quote cards search and picks), recipesForm.ts (the recipe list and editor, import and photo), pageForms.ts (the option forms of the page kinds), preview.ts (live PDF preview), lettering.ts (font picker and Colour-in), settings.ts (Settings dialog and About), view.ts (the sections and lists the user can hide), viewConfig.ts (the Sections shown tree), theme.ts and style.css
   wailsjs/             generated bindings (committed)
 cmd/covers/            command-line tool
 internal/
@@ -1193,7 +1213,7 @@ internal/
   quotes/              Wikiquote search: a person's page and its quotes, sections filtered and text cleaned
   buildinfo/           values injected into release builds (the BoardGameGeek token)
   web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
-  settings/            user settings file (TMDB API key)
+  settings/            user settings file (API keys, language, theme, shown sections, remembered options)
   gallery/             print sheet: folder listing and thumbnails for the UI
   preview/             in-memory store of preview PDFs served at /preview
   fonts/               serves the lettering fonts and their licences at /fonts/

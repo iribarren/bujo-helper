@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -34,6 +36,64 @@ type Settings struct {
 	// which mean "use the defaults".
 	Print PrintPrefs `json:"print,omitzero"`
 	Pages PagesPrefs `json:"pages,omitzero"`
+	// Theme is the colour theme: "" follows the system, "light" or "dark".
+	Theme string `json:"theme,omitempty"`
+	// View is which parts of the app are shown. The zero value shows
+	// everything.
+	View ViewPrefs `json:"view,omitzero"`
+}
+
+// AlwaysShownSection is the section that can never be hidden: Print.
+const AlwaysShownSection = "print"
+
+// ViewPrefs are the parts of the app the user hides. They list what is
+// hidden, not what is shown, so sections and items added later show up.
+type ViewPrefs struct {
+	// HiddenSections are the IDs of the hidden app sections (tabs), such
+	// as "download" or "pages"; AlwaysShownSection is never hidden.
+	HiddenSections []string `json:"hiddenSections,omitempty"`
+	// Hidden maps a list ID (such as "media" or "paper") to the IDs of its
+	// hidden items. The frontend keeps at least one item of each list.
+	Hidden map[string][]string `json:"hidden,omitempty"`
+}
+
+// Trimmed returns v with IDs trimmed, empty and repeated ones dropped,
+// AlwaysShownSection never hidden, and lists with no hidden items left
+// out; nothing hidden is the zero value.
+func (v ViewPrefs) Trimmed() ViewPrefs {
+	var out ViewPrefs
+	for _, id := range cleanIDs(v.HiddenSections) {
+		if id != AlwaysShownSection {
+			out.HiddenSections = append(out.HiddenSections, id)
+		}
+	}
+	// Sorted, so lists whose IDs trim to the same one merge in a set order.
+	for _, key := range slices.Sorted(maps.Keys(v.Hidden)) {
+		list := strings.TrimSpace(key)
+		ids := cleanIDs(v.Hidden[key])
+		if list == "" || len(ids) == 0 {
+			continue
+		}
+		if out.Hidden == nil {
+			out.Hidden = make(map[string][]string, len(v.Hidden))
+		}
+		out.Hidden[list] = append(out.Hidden[list], ids...)
+		out.Hidden[list] = cleanIDs(out.Hidden[list])
+	}
+	return out
+}
+
+// cleanIDs returns ids trimmed, in order, without empty or repeated ones;
+// nil when none are left. It never shares ids' array.
+func cleanIDs(ids []string) []string {
+	var out []string
+	for _, id := range ids {
+		id = strings.TrimSpace(id)
+		if id != "" && !slices.Contains(out, id) {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 // MaxTextLen is the longest header or title kept, in characters; the
@@ -111,8 +171,8 @@ func capText(s string) string {
 }
 
 // Trimmed returns s with surrounding whitespace removed from every value.
-// Language is also lower-cased, and an unsupported one becomes "" (follow
-// the system).
+// Language and Theme are also lower-cased, and an unsupported one becomes
+// "" (follow the system).
 func (s Settings) Trimmed() Settings {
 	s.TMDBAPIKey = strings.TrimSpace(s.TMDBAPIKey)
 	s.IGDBClientID = strings.TrimSpace(s.IGDBClientID)
@@ -127,6 +187,13 @@ func (s Settings) Trimmed() Settings {
 	}
 	s.Print = s.Print.Trimmed()
 	s.Pages = s.Pages.Trimmed()
+	switch theme := strings.ToLower(strings.TrimSpace(s.Theme)); theme {
+	case "light", "dark":
+		s.Theme = theme
+	default:
+		s.Theme = ""
+	}
+	s.View = s.View.Trimmed()
 	return s
 }
 

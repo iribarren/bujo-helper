@@ -1,5 +1,8 @@
-/* Colors are CSS variables; the dark theme follows the system setting.
-   Keep --bg in sync with BackgroundColour in main.go. */
+/* Colors are CSS variables. The theme setting (theme.ts) sets data-theme
+   on the root to "light" or "dark"; without it (System) the dark theme
+   follows the system setting. color-scheme follows the theme, so native
+   controls and scrollbars match. Keep --bg in sync with BackgroundColour in
+   main.go. */
 :root {
     color-scheme: light dark;
     --bg: #f5f6f8;
@@ -31,8 +34,37 @@
         "Liberation Mono", Menlo, monospace;
 }
 
+:root[data-theme="light"] {
+    color-scheme: light;
+}
+
+/* The dark tokens, twice: for the Dark theme, and for System while the
+   system is dark. A selector and a media query cannot share one block, so
+   these two blocks must match. */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1b1e24;
+    --surface: #23272f;
+    --border: #3a404b;
+    --text: #e6e8ec;
+    --muted: #9aa3b2;
+    --accent: #4c8dff;
+    --accent-hover: #6aa0ff;
+    --accent-soft: #233a5e;
+    --accent-text: #0d1117;
+    --ok: #4cc27f;
+    --failed: #ff6b5e;
+    --cancelled: #8a919c;
+    --banner-bg: #3a2220;
+    --banner-border: #6b3631;
+    --track: #313641;
+    --badge-off: rgba(0, 0, 0, 0.5);
+    --page: #d9dce2;
+    --page-shadow: rgba(0, 0, 0, 0.5);
+}
+
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
         --bg: #1b1e24;
         --surface: #23272f;
         --border: #3a404b;
@@ -214,11 +246,21 @@ input[readonly] {
 
 .settings-dialog {
     width: min(460px, calc(100vw - 32px));
+    /* One height for every tab, so switching tabs keeps the dialog still; a
+       tab taller than that scrolls inside its panel. */
+    height: min(600px, calc(100vh - 32px));
     padding: 16px 18px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface);
     color: var(--text);
+}
+
+/* Shown, the title, the tabs and the actions stay put and the panel
+   between them takes the rest. */
+.settings-dialog[open] {
+    display: flex;
+    flex-direction: column;
 }
 
 .settings-dialog::backdrop {
@@ -242,6 +284,26 @@ input[readonly] {
     margin-top: 12px;
 }
 
+/* The dialog's tabs: the window's tabs, more compact. */
+.settings-tabs {
+    flex: none;
+}
+
+.settings-tabs .tab {
+    height: 30px;
+    font-size: 13px;
+}
+
+/* A tab's panel scrolls on its own; the inset keeps focus rings visible at
+   its edges. */
+.settings-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0 -4px;
+    padding: 12px 4px 4px;
+}
+
 /* A group of fields for another source, below the previous one. */
 .settings-dialog .settings-section {
     margin-top: 16px;
@@ -259,13 +321,87 @@ input[readonly] {
     color: var(--accent);
 }
 
-/* About: the bundled fonts, each licence opening in place. */
-.settings-about h3 {
+/* Sections shown: one block per section, its lists indented under it, the
+   items of a list in columns. */
+.settings-sections h3 {
     margin: 0 0 4px;
     font-size: 13px;
     font-weight: 600;
 }
 
+.view-config {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.view-section,
+.view-list {
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.view-section > legend,
+.view-list > legend {
+    padding: 0;
+}
+
+.view-section > legend {
+    font-weight: 600;
+}
+
+.view-lists {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 4px 0 0 24px;
+}
+
+.view-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 2px 12px;
+    margin: 2px 0 0 24px;
+}
+
+.view-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.view-check input {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+}
+
+.view-check input:disabled {
+    cursor: default;
+}
+
+/* "Always shown" next to Print, "Could not load" in a list. */
+.view-note {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+/* The lists of a hidden section keep their ticks, greyed out. */
+.view-section.off .view-lists {
+    color: var(--muted);
+}
+
+/* About: the bundled fonts, each licence opening in place. */
 .about-fonts {
     margin: 8px 0 0;
     padding: 0;
@@ -326,26 +462,39 @@ input[readonly] {
     height: 30px;
 }
 
+/* The reversed logo on the dark theme, chosen or followed from the system,
+   as with the dark tokens above. */
 .bgg-logo-dark {
     display: none;
 }
 
+:root[data-theme="dark"] .bgg-logo-light {
+    display: none;
+}
+
+:root[data-theme="dark"] .bgg-logo-dark {
+    display: block;
+}
+
 @media (prefers-color-scheme: dark) {
-    .bgg-logo-light {
+    :root:not([data-theme="light"]) .bgg-logo-light {
         display: none;
     }
 
-    .bgg-logo-dark {
+    :root:not([data-theme="light"]) .bgg-logo-dark {
         display: block;
     }
 }
 
 .dialog-actions {
     display: flex;
+    flex: none;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
 }
 
 .settings-status {

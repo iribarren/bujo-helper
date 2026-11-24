@@ -26,6 +26,10 @@ export function ExportPage(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ExportPage'](arg1, arg2, arg3, arg4);
 }
 
+export function FirstRun() {
+  return window['go']['main']['App']['FirstRun']();
+}
+
 export function GetSettings() {
   return window['go']['main']['App']['GetSettings']();
 }

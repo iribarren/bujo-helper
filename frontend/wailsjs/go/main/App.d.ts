@@ -17,6 +17,8 @@ export function ExportPDF(arg1:Array<string>,arg2:string,arg3:sheet.Options):Pro
 
 export function ExportPage(arg1:string,arg2:string,arg3:sheet.PageSettings,arg4:string):Promise<string>;
 
+export function FirstRun():Promise<boolean>;
+
 export function GetSettings():Promise<settings.Settings>;
 
 export function HasBuiltInBGGToken():Promise<boolean>;

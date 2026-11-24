@@ -4,18 +4,30 @@ import {BrowserOpenURL} from '../wailsjs/runtime/runtime';
 import {onLangChange, t} from './i18n';
 import {useLanguage} from './language';
 import {letteringFonts} from './lettering';
+import {initRadioGroup} from './radioGroup';
+import {initTabs} from './tabs';
+import {applyTheme} from './theme';
+import type {View} from './view';
+import {initViewConfig} from './viewConfig';
 import bggLogoLight from './assets/powered-by-bgg-rgb.svg';
 import bggLogoDark from './assets/powered-by-bgg-reversed-rgb.svg';
 
-// The Settings dialog: the UI language, the TMDB API key and the TMDB
-// attribution notice, the IGDB (Twitch) Client ID and Client Secret, the
-// Biodiversity Heritage Library (BHL) API key, the BoardGameGeek token, and
-// an About section that lists the bundled lettering fonts with their
-// licences and credits BoardGameGeek with its "Powered by BGG" logo.
+// The Settings dialog, in three tabs saved together: General (the UI
+// language, the colour theme: System, Light or Dark, and the sections and
+// list items the app shows, see viewConfig.ts), API keys (the TMDB API key
+// and the TMDB attribution notice, the IGDB (Twitch) Client ID and Client
+// Secret, the Biodiversity Heritage Library (BHL) API key and the
+// BoardGameGeek token) and About, which lists the bundled lettering fonts
+// with their licences and credits BoardGameGeek with its "Powered by BGG"
+// logo.
+
+// SettingsTab names a tab of the dialog (its data-tab).
+export type SettingsTab = 'general' | 'keys' | 'about';
 
 export interface SettingsDialog {
-    // open shows the dialog, prefilled with the saved settings.
-    open(): void;
+    // open shows the dialog on tab (General by default), prefilled with the
+    // saved settings.
+    open(tab?: SettingsTab): void;
     // isOpen reports whether the dialog is shown.
     isOpen(): boolean;
     // hasTMDBKey reports whether a TMDB API key is saved.
@@ -28,10 +40,14 @@ export interface SettingsDialog {
     // hasBGGToken reports whether a BoardGameGeek token is saved (a token
     // built into the app is not a saved one).
     hasBGGToken(): boolean;
+    // view is the saved view: the sections and list items shown (undefined
+    // in older settings files, which show everything).
+    view(): View;
 }
 
 export interface SettingsOptions {
-    // onChange is called when the saved settings are loaded or saved.
+    // onChange is called when the saved settings are loaded or saved:
+    // at startup, each time the dialog opens and after a save.
     onChange(): void;
 }
 
@@ -174,7 +190,10 @@ function initAbout(): About {
 export function initSettings(opts: SettingsOptions): SettingsDialog {
     const ui = {
         dialog: byId<HTMLDialogElement>('settings-dialog'),
+        tabs: byId<HTMLDivElement>('settings-tabs'),
         language: byId<HTMLSelectElement>('language'),
+        theme: byId<HTMLDivElement>('theme'),
+        view: byId<HTMLDivElement>('view-config'),
         key: byId<HTMLInputElement>('tmdb-key'),
         toggle: byId<HTMLButtonElement>('tmdb-key-toggle'),
         igdbId: byId<HTMLInputElement>('igdb-id'),
@@ -195,6 +214,22 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         close: byId<HTMLButtonElement>('settings-close'),
     };
 
+    const tabs = initTabs(ui.tabs, () => {});
+
+    const theme = initRadioGroup(ui.theme, () => setStatus(''));
+
+    // labelThemes names the theme radios in the current language, keeping
+    // the checked one.
+    function labelThemes() {
+        theme.replaceOptions([
+            {value: '', label: t('settings.themeSystem')},
+            {value: 'light', label: t('settings.themeLight')},
+            {value: 'dark', label: t('settings.themeDark')},
+        ]);
+    }
+
+    const view = initViewConfig(ui.view, () => setStatus(''));
+
     const about = initAbout();
     initBGGLogo(byId<HTMLAnchorElement>('bgg-logo-about'));
 
@@ -205,6 +240,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         bhlApiKey: '',
         bggToken: '',
         language: '',
+        theme: '',
     });
 
     function setStatus(text: string, kind: '' | 'ok' | 'error' = '') {
@@ -229,6 +265,9 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     // fill shows the current settings in the inputs.
     function fill() {
         ui.language.value = current.language || '';
+        theme.value = current.theme || '';
+        // Older settings files have no view: everything is shown.
+        view.fill(current.view);
         ui.key.value = current.tmdbApiKey || '';
         ui.igdbId.value = current.igdbClientId || '';
         ui.igdbSecret.value = current.igdbClientSecret || '';
@@ -241,8 +280,19 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         opts.onChange();
     }
 
-    async function open() {
+    // The element each tab focuses when the dialog opens on it.
+    const firstFocus: Record<SettingsTab, () => HTMLElement> = {
+        general: () => ui.language,
+        keys: () => ui.key,
+        about: () => byId('settings-tab-about'),
+    };
+
+    async function open(tab: SettingsTab) {
+        tabs.select(tab);
         about.load();
+        // The lists load once; a list that failed loads again at the next
+        // open.
+        void view.load();
         setStatus('');
         showSecret(ui.key, ui.toggle, false);
         showSecret(ui.igdbSecret, ui.igdbToggle, false);
@@ -255,7 +305,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         }
         fill();
         if (!ui.dialog.open) ui.dialog.showModal();
-        ui.key.focus();
+        firstFocus[tab]().focus();
     }
 
     let saving = false;
@@ -266,6 +316,10 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         saving = true;
         ui.save.disabled = true;
         setStatus(t('settings.saving'));
+        // The theme shown once saved: the one sent, whatever is clicked
+        // while saving.
+        const savedTheme = theme.value;
+        const savedView = view.read();
         try {
             await SaveSettings(new settings.Settings({
                 tmdbApiKey: ui.key.value,
@@ -274,6 +328,8 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
                 bhlApiKey: ui.bhlKey.value,
                 bggToken: ui.bggToken.value,
                 language: ui.language.value,
+                theme: savedTheme,
+                view: savedView,
             }));
         } catch (err) {
             setStatus(errorText(err), 'error');
@@ -282,6 +338,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
             saving = false;
             ui.save.disabled = false;
         }
+        applyTheme(savedTheme);
         // Switch the UI (and Go) to the saved language before saying so.
         await useLanguage(ui.language.value);
         try {
@@ -321,10 +378,12 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     // Escape closes a modal <dialog> natively (the "cancel" event).
 
     labelToggles();
+    labelThemes();
     // The status line is cleared on a language change: it may name the
     // previous language's message.
     onLangChange(() => {
         labelToggles();
+        labelThemes();
         setStatus('');
     });
 
@@ -333,12 +392,13 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     });
 
     return {
-        open: () => void open(),
+        open: (tab = 'general') => void open(tab),
         isOpen: () => ui.dialog.open,
         hasTMDBKey: () => (current.tmdbApiKey || '').trim() !== '',
         hasIGDBCredentials: () =>
             (current.igdbClientId || '').trim() !== '' && (current.igdbClientSecret || '').trim() !== '',
         hasBHLKey: () => (current.bhlApiKey || '').trim() !== '',
         hasBGGToken: () => (current.bggToken || '').trim() !== '',
+        view: () => current.view,
     };
 }

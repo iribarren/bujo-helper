@@ -4,6 +4,7 @@ import {
     Cancel,
     ChooseFolder,
     DefaultOutputDir,
+    FirstRun,
     GetSettings,
     HasBuiltInBGGToken,
     ImportCSV,
@@ -16,11 +17,13 @@ import {main, settings} from '../wailsjs/go/models';
 import {EventsOn} from '../wailsjs/runtime/runtime';
 import {applyDom, has, label, onLangChange, t, tn, type MessageKey} from './i18n';
 import {useLanguage} from './language';
-import {initPages} from './pages';
+import {initPages, type PagesTab} from './pages';
 import {initPrint, type PrintSheet} from './print';
 import {initRadioGroup} from './radioGroup';
 import {initBGGLogo, initSettings, type SettingsDialog} from './settings';
 import {initTabs} from './tabs';
+import {applyTheme} from './theme';
+import {chooseShown, hiddenSections, visibleItems, type View} from './view';
 
 // Payload of the "job:item" event (Go: ItemEvent).
 interface ItemEvent {
@@ -155,6 +158,10 @@ let mediaTypes: main.MediaTypeInfo[] = [];
 // (like the Make pages tab).
 let settingsDialog: SettingsDialog | undefined;
 let printSheet: PrintSheet | undefined;
+let pagesTab: PagesTab | undefined;
+// The sections and list items the user shows (Settings); every one until
+// the settings are read.
+let view: View;
 // Whether this build has a BoardGameGeek token built in, asked once at
 // startup; false until Go answers.
 let builtInBGGToken = false;
@@ -310,13 +317,16 @@ function updateMediaType() {
     hideSampleStatus();
 }
 
-// fillMediaTypes lists the media types in the radio group, keeping the
-// selection.
+// fillMediaTypes lists the media types the view shows in the radio group,
+// keeping the selection while it is shown, else selecting the shown
+// default.
 function fillMediaTypes() {
-    ui.mediaType.replaceOptions(mediaTypes.map((type) => ({
+    const kept = ui.mediaType.value;
+    ui.mediaType.replaceOptions(visibleItems(view, 'media', mediaTypes).map((type) => ({
         value: type.id,
         label: label('media', type.id, type.label),
     })));
+    ui.mediaType.value = chooseShown(view, 'media', mediaTypes, [kept]);
 }
 
 // rateLimitDeadline is when the currently shown wait ends (ms since epoch).
@@ -622,7 +632,8 @@ EventsOn('job:done', (done: DoneEvent) => {
 
 ui.items.addEventListener('input', updateCount);
 ui.settingsOpen.addEventListener('click', () => settingsDialog?.open());
-ui.keyTipSettings.addEventListener('click', () => settingsDialog?.open());
+// The key tip opens Settings where the keys are.
+ui.keyTipSettings.addEventListener('click', () => settingsDialog?.open('keys'));
 ui.importBtn.addEventListener('click', importCSV);
 ui.sampleCsv.addEventListener('click', saveSampleCSV);
 ui.browse.addEventListener('click', browseFolder);
@@ -650,6 +661,20 @@ const tabs = initTabs(byId<HTMLDivElement>('tabs'), (name) => {
     if (name === 'print') printSheet?.activate();
 });
 
+// applyView shows the sections and list items next shows: hidden tabs
+// (the selected one moves to the first shown), the media types and the
+// lists of Print covers and Make pages. Applying the view shown already
+// changes nothing.
+function applyView(next: View) {
+    view = next;
+    tabs.setHidden(hiddenSections(view));
+    const type = ui.mediaType.value;
+    fillMediaTypes();
+    if (ui.mediaType.value !== type) updateMediaType();
+    printSheet?.applyView(view);
+    pagesTab?.applyView(view);
+}
+
 // Print these covers opens Print covers on the finished job's folder (the
 // one Open folder opens), whatever folder was shown there before.
 ui.printThese.addEventListener('click', () => {
@@ -673,11 +698,13 @@ window.addEventListener('keydown', (e) => {
 let startSettings: settings.Settings | undefined;
 
 // startLanguage applies the saved language setting, or the system language
-// when there is none or it cannot be read, before any text is shown.
+// when there is none or it cannot be read, before any text is shown; the
+// saved theme is applied as soon as it is read (System when it cannot be).
 async function startLanguage() {
     let setting = '';
     try {
         startSettings = await GetSettings();
+        applyTheme(startSettings.theme);
         setting = startSettings.language || '';
     } catch (err) {
         console.warn(`Could not read the language setting: ${errorText(err)}`);
@@ -688,10 +715,19 @@ async function startLanguage() {
 
 async function init() {
     await startLanguage();
+    // The saved view, before the tabs show: with Download hidden the app
+    // opens on Print covers, which loads its folder once it is known.
+    applyView(startSettings?.view);
     // On a language change: static markup first, then each module's text.
     onLangChange(() => applyDom(document));
     onLangChange(relabel);
-    settingsDialog = initSettings({onChange: updateKeyTip});
+    // The view applies again whenever the settings are read or saved.
+    settingsDialog = initSettings({
+        onChange: () => {
+            updateKeyTip();
+            applyView(settingsDialog?.view());
+        },
+    });
     initBGGLogo(ui.bggLogo);
     // Not awaited: the tip updates when the answer arrives. A failure
     // leaves the tip asking for a token, which is still accurate advice.
@@ -708,13 +744,15 @@ async function init() {
         mediaTypes: () => mediaTypes,
         mediaType: () => ui.mediaType.value,
         savedPrefs: startSettings?.print,
+        view,
     });
-    initPages({
+    pagesTab = initPages({
         // Where Print covers exports too.
         defaultDir: () => printSheet?.folder() ?? outputFolder(),
         showError,
         hideError,
         savedPrefs: startSettings?.pages,
+        view,
     });
     try {
         mediaTypes = await MediaTypes();
@@ -726,7 +764,15 @@ async function init() {
     updateMediaType();
     updateCount();
     updateProgress();
-    ui.items.focus();
+    if (appRoot.dataset.tab === 'print') printSheet.activate();
+    else ui.items.focus();
+    // The first run on this computer opens Settings, once: Go writes the
+    // settings file when it answers. A failure only skips it.
+    try {
+        if (await FirstRun()) settingsDialog.open();
+    } catch (err) {
+        console.warn(`Could not ask whether this is the first run: ${errorText(err)}`);
+    }
 }
 
 init();

@@ -388,8 +388,18 @@ export const en = {
 
     // Settings dialog.
     'settings.title': 'Settings',
+    'settings.tabGeneral': 'General',
+    'settings.tabKeys': 'API keys',
     'settings.language': 'Language',
     'settings.languageSystem': 'System',
+    'settings.theme': 'Theme',
+    'settings.themeSystem': 'System',
+    'settings.themeLight': 'Light',
+    'settings.themeDark': 'Dark',
+    'settings.sections': 'Sections shown',
+    'settings.sectionsHint': 'Untick what you don\'t use. Each list keeps at least one item.',
+    'settings.alwaysShown': 'Always shown',
+    'settings.listUnavailable': 'Could not load this list.',
     'settings.tmdbKey': 'TMDB API key',
     'settings.tmdbHint': 'Optional. Gives the best movie and TV posters. Get a free key at',
     'settings.tmdbNotice': 'This product uses the TMDB API but is not endorsed or certified by TMDB.',
@@ -411,6 +421,15 @@ export const en = {
     'settings.saved': 'Saved',
     'settings.errRead': 'Could not read the settings: {error}',
     'settings.errReload': 'Saved, but could not reload the settings: {error}',
+
+    // The lists of the Sections part of the Settings dialog (see view.ts).
+    'view.media': 'Media types',
+    'view.paper': 'Paper',
+    'view.format': 'Formats',
+    'view.size': 'Cover sizes',
+    'view.crop': 'Crop to',
+    'view.cut': 'Cut modes',
+    'view.pageKind': 'Page kinds',
 
     // About section of the Settings dialog: the bundled lettering fonts and
     // their licences, and the other bundled software.

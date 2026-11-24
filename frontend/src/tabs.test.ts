@@ -89,4 +89,60 @@ describe('initTabs', () => {
         expectSelected('one');
         expect(onSelect).not.toHaveBeenCalled();
     });
+
+    describe('setHidden', () => {
+        it('hides the named tabs and shows the others again', () => {
+            tabs.setHidden(['two']);
+            expect(el('tab-two').hidden).toBe(true);
+            expect(el('tab-one').hidden).toBe(false);
+            expect(el('panel-two').hidden).toBe(true);
+            tabs.setHidden([]);
+            expect(el('tab-two').hidden).toBe(false);
+            expectSelected('one');
+            expect(onSelect).not.toHaveBeenCalled();
+        });
+
+        it('skips hidden tabs with the arrows, Home and End', () => {
+            tabs.setHidden(['two']);
+            key('tab-one', 'ArrowRight');
+            expectSelected('three');
+            key('tab-three', 'ArrowRight');
+            expectSelected('one');
+            key('tab-one', 'ArrowLeft');
+            expectSelected('three');
+            tabs.setHidden(['one']);
+            key('tab-three', 'Home');
+            expectSelected('two');
+            tabs.setHidden(['three']);
+            key('tab-two', 'End');
+            expectSelected('two');
+            key('tab-two', 'Home');
+            expectSelected('one');
+        });
+
+        it('moves the selection to the first shown tab when the selected one is hidden', () => {
+            tabs.select('two');
+            onSelect.mockClear();
+            tabs.setHidden(['one', 'two']);
+            expectSelected('three');
+            expect(onSelect).toHaveBeenCalledTimes(1);
+            expect(onSelect).toHaveBeenLastCalledWith('three');
+        });
+
+        it('keeps a selected tab that stays shown', () => {
+            tabs.select('three');
+            onSelect.mockClear();
+            tabs.setHidden(['one']);
+            tabs.setHidden(['one']);
+            expectSelected('three');
+            expect(onSelect).not.toHaveBeenCalled();
+        });
+
+        it('does not select a hidden tab by name', () => {
+            tabs.setHidden(['two']);
+            tabs.select('two');
+            expectSelected('one');
+            expect(onSelect).not.toHaveBeenCalled();
+        });
+    });
 });

@@ -1353,7 +1353,7 @@ func TestSaveSettingsRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "bujo-helper", "settings.json")
 	a := newApp(media.NewRegistry(), http.DefaultClient)
 	a.loadSettings(path)
-	if got := a.GetSettings(); got != (settings.Settings{}) {
+	if got := a.GetSettings(); !reflect.DeepEqual(got, (settings.Settings{})) {
 		t.Fatalf("GetSettings before saving = %+v, want zero", got)
 	}
 
@@ -1387,7 +1387,7 @@ func TestLoadSettingsErrorIsNotFatal(t *testing.T) {
 	}
 	a := newApp(media.NewRegistry(), http.DefaultClient)
 	a.loadSettings(path)
-	if got := a.GetSettings(); got != (settings.Settings{}) {
+	if got := a.GetSettings(); !reflect.DeepEqual(got, (settings.Settings{})) {
 		t.Errorf("GetSettings = %+v, want zero after a bad file", got)
 	}
 	// Saving still works and replaces the broken file.
@@ -1396,6 +1396,82 @@ func TestLoadSettingsErrorIsNotFatal(t *testing.T) {
 	}
 	if s, err := settings.Load(path); err != nil || s.TMDBAPIKey != "k" {
 		t.Errorf("file holds %+v (err %v), want key k", s, err)
+	}
+}
+
+func TestFirstRunIsTrueOnceWhenNoSettingsFileExisted(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "bujo-helper", "settings.json")
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+
+	if !a.FirstRun() {
+		t.Fatal("FirstRun with no settings file = false, want true")
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("settings file not written by FirstRun: %v", err)
+	}
+	if a.FirstRun() {
+		t.Error("second FirstRun = true, want false")
+	}
+
+	// The next run finds the file.
+	b := newApp(media.NewRegistry(), http.DefaultClient)
+	b.loadSettings(path)
+	if b.FirstRun() {
+		t.Error("FirstRun on the next run = true, want false")
+	}
+}
+
+func TestFirstRunIsFalseWithASettingsFileOrNoPath(t *testing.T) {
+	dir := t.TempDir()
+	saved := filepath.Join(dir, "saved.json")
+	if err := settings.Save(saved, settings.Settings{TMDBAPIKey: "k"}); err != nil {
+		t.Fatal(err)
+	}
+	broken := filepath.Join(dir, "broken.json")
+	if err := os.WriteFile(broken, []byte("{broken"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		name, path string
+	}{
+		{"saved settings", saved},
+		{"unreadable settings", broken},
+		{"unknown settings location", ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			a := newApp(media.NewRegistry(), http.DefaultClient)
+			a.loadSettings(tt.path)
+			if a.FirstRun() {
+				t.Error("FirstRun = true, want false")
+			}
+		})
+	}
+	// FirstRun leaves an existing file as it is.
+	if data, err := os.ReadFile(broken); err != nil || string(data) != "{broken" {
+		t.Errorf("broken file now holds %q (err %v), want it unchanged", data, err)
+	}
+}
+
+func TestFirstRunReportsAFailedWriteOnce(t *testing.T) {
+	parent := filepath.Join(t.TempDir(), "bujo-helper")
+	path := filepath.Join(parent, "settings.json")
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+	// The folder cannot be created now: a file holds its name.
+	if err := os.WriteFile(parent, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	logs := captureLog(t)
+
+	if !a.FirstRun() {
+		t.Fatal("FirstRun = false, want true although the file cannot be written")
+	}
+	if out := logs.String(); !strings.Contains(out, "settings:") {
+		t.Errorf("log = %q, want the failed write logged", out)
+	}
+	if a.FirstRun() {
+		t.Error("second FirstRun = true, want false")
 	}
 }
 
@@ -1431,11 +1507,15 @@ func TestNewAppMigratesTheLegacySettings(t *testing.T) {
 
 	a := NewApp()
 
-	if got, want := a.GetSettings(), (settings.Settings{TMDBAPIKey: "old-key", IGDBClientID: "old-id"}); got != want {
+	if got, want := a.GetSettings(), (settings.Settings{TMDBAPIKey: "old-key", IGDBClientID: "old-id"}); !reflect.DeepEqual(got, want) {
 		t.Errorf("GetSettings = %+v, want the legacy settings %+v", got, want)
 	}
 	if _, err := os.Stat(filepath.Join(base, "bujo-helper", "settings.json")); err != nil {
 		t.Errorf("new settings file not written: %v", err)
+	}
+	// A migrated user has run the app before.
+	if a.FirstRun() {
+		t.Error("FirstRun after migrating the legacy settings = true, want false")
 	}
 	if err := a.SaveSettings(settings.Settings{TMDBAPIKey: "new-key"}); err != nil {
 		t.Fatalf("SaveSettings after migration: %v", err)
@@ -1455,7 +1535,7 @@ func TestNewAppLogsASkippedLegacyFile(t *testing.T) {
 
 	a := NewApp()
 
-	if got := a.GetSettings(); got != (settings.Settings{}) {
+	if got := a.GetSettings(); !reflect.DeepEqual(got, (settings.Settings{})) {
 		t.Errorf("GetSettings = %+v, want zero settings", got)
 	}
 	if out := logs.String(); !strings.Contains(out, "skipped legacy file") || !strings.Contains(out, legacy) {
@@ -1496,10 +1576,10 @@ func TestSaveSettingsKeepsTheRememberedPrefs(t *testing.T) {
 		Print: settings.PrintPrefs{Format: "book", Paper: "a4"},
 		Pages: settings.PagesPrefs{Kind: "calendar"},
 	}
-	if got := a.GetSettings(); got != want {
+	if got := a.GetSettings(); !reflect.DeepEqual(got, want) {
 		t.Errorf("GetSettings = %+v, want %+v", got, want)
 	}
-	if got, err := settings.Load(path); err != nil || got != want {
+	if got, err := settings.Load(path); err != nil || !reflect.DeepEqual(got, want) {
 		t.Errorf("file holds %+v (err %v), want %+v", got, err, want)
 	}
 }
@@ -1546,10 +1626,10 @@ func TestSavePagesPrefsMergesAndTrims(t *testing.T) {
 		Print: settings.PrintPrefs{Font: "caveat"},
 		Pages: settings.PagesPrefs{Kind: "calendar", Font: "amatic", ColourIn: true},
 	}
-	if got := a.GetSettings(); got != want {
+	if got := a.GetSettings(); !reflect.DeepEqual(got, want) {
 		t.Errorf("GetSettings = %+v, want %+v", got, want)
 	}
-	if got, err := settings.Load(path); err != nil || got != want {
+	if got, err := settings.Load(path); err != nil || !reflect.DeepEqual(got, want) {
 		t.Errorf("file holds %+v (err %v), want %+v", got, err, want)
 	}
 }
@@ -1562,7 +1642,7 @@ func TestSavePrefsWithoutPathFails(t *testing.T) {
 	if err := a.SavePagesPrefs(settings.PagesPrefs{Kind: "calendar"}); err == nil {
 		t.Error("SavePagesPrefs with no settings path returned no error")
 	}
-	if got := a.GetSettings(); got != (settings.Settings{}) {
+	if got := a.GetSettings(); !reflect.DeepEqual(got, (settings.Settings{})) {
 		t.Errorf("GetSettings = %+v after failed saves, want zero", got)
 	}
 }
@@ -2516,5 +2596,32 @@ func TestSearchQuotesUsesDefaultClient(t *testing.T) {
 	a := newApp(media.NewRegistry(), http.DefaultClient)
 	if a.quotes == nil || a.quotes.HTTP != http.DefaultClient {
 		t.Errorf("newApp quotes client = %+v, want one using the app's HTTP client", a.quotes)
+	}
+}
+
+func TestSaveSettingsSavesTheThemeAndView(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+	if err := a.SavePrintPrefs(settings.PrintPrefs{Paper: "a4"}); err != nil {
+		t.Fatal(err)
+	}
+	view := settings.ViewPrefs{HiddenSections: []string{"pages"}, Hidden: map[string][]string{"paper": {"letter"}}}
+	if err := a.SaveSettings(settings.Settings{Theme: " Light ", View: view}); err != nil {
+		t.Fatalf("SaveSettings: %v", err)
+	}
+	want := settings.Settings{Theme: "light", View: view, Print: settings.PrintPrefs{Paper: "a4"}}
+	if got := a.GetSettings(); !reflect.DeepEqual(got, want) {
+		t.Errorf("GetSettings = %+v, want %+v", got, want)
+	}
+	if got, err := settings.Load(path); err != nil || !reflect.DeepEqual(got, want) {
+		t.Errorf("file holds %+v (err %v), want %+v", got, err, want)
+	}
+	// Remembering tab options keeps the view.
+	if err := a.SavePagesPrefs(settings.PagesPrefs{Kind: "moon"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := a.GetSettings(); got.Theme != "light" || !reflect.DeepEqual(got.View, view) {
+		t.Errorf("after SavePagesPrefs theme = %q, view = %+v; want light, %+v", got.Theme, got.View, view)
 	}
 }
