@@ -32,7 +32,7 @@ Optional extension of item 17 (Vintage nature illustrations, `odd/tasks/nature.m
 
 ## Tasks
 - [x] T1 Go backend: `plants` kind (options, decode, slots, draw), `ChoosePlantImage` binding, `PageLabels` + i18n catalog, wailsjs regenerated, Go tests. Route: delegated writer (writer trigger: several non-trivial Go files). Commit `e5382d5`.
-- [x] T2 Frontend + docs: plant form (list editor, image picker, size), registration in `pageForms`, EN/ES UI strings, vitest tests, README, ROADMAP tick. Route: delegated writer (writer trigger: several TS files + docs). Evidence: tsc ok, vitest 569/569 (20 files), `go test` 3706 passed, `gofmt -l .` empty, `wails build` ok (bindings unchanged).
+- [x] T2 Frontend + docs: plant form (list editor, image picker, size), registration in `pageForms`, EN/ES UI strings, vitest tests, README, ROADMAP tick. Route: delegated writer (writer trigger: several TS files + docs). Evidence: tsc ok, vitest 569/569 (20 files), `go test` 3706 passed, `gofmt -l .` empty, `wails build` ok (bindings unchanged). Commit `cd2cddd`.
 
 ## Progress
 - Exploration done (explorer: registry `internal/sheet/pages.go:139-248`, recipes template, i18n, form patterns).

@@ -716,7 +716,7 @@ Open items found during the reviews of Parts 1–3 (see the feature documents in
 
 **Done in branch `feat/plant-care-cards`** (see `odd/tasks/plant-care-cards.md`):
 - Page kind: `plants` (Plant care cards) in the recipe card sizes, the plate contained (not cropped) at the top, the name in the lettering (hollow with Colour-in at 14 pt or larger) or read from the image's file name, ruled Light/Water/Soil/Notes fields in the UI language, blank cards; the `ChoosePlantImage` binding (e5382d5).
-- Make pages form: the plant list and editor, the image picker and Card size, in English and Spanish, sharing the card list with the recipe form; README Plant care cards section (the T2 `feat:` commit).
+- Make pages form: the plant list and editor, the image picker and Card size, in English and Spanish, sharing the card list with the recipe form; README Plant care cards section (cd2cddd).
 - Decision: a Make pages kind, not a Print covers format (formats cannot be limited to a media type; recipe cards already give the card model).
 
 ## 34. [ ] Regional maps for the visited map
