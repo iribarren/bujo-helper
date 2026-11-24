@@ -26,7 +26,8 @@ Book covers, movie posters, TV series posters, album covers, podcast artwork, ga
 - **Open folder** shows the results in the system file manager.
 - **Print sheet**: select downloaded covers and export them as an A4 PDF ready to cut out, with covers 2.5, 5 or 8 cm tall (81, 25 or 9 per page), with a grey cut border or a 1 mm bleed and crop marks for print-then-cut, with your own photos centre-cropped to standard print shapes (instant mini, square, 2 × 6 in photo strips or wallet), as review cards with a date, stars and lines to fill in, as book spines for a bookshelf tracker, as movie ticket stubs, as a full page of covers under a header such as "Books of 2026", sized to fit and ready to glue in, as a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row, or as polaroid frames with the title as a caption. A live preview shows the PDF before you export it. See [Print sheet](#print-sheet).
 - **Lettering**: headers and titles print in one of ten bundled lettering fonts (brush and monoline script, handwritten, bubble display, hollow), optionally as outlines to colour in by hand. See [Lettering](#lettering).
-- Light and dark themes follow the system setting.
+- Light and dark themes: they follow the system setting, or pick one in **Settings**, see [Theme and sections shown](#theme-and-sections-shown).
+- Hide what you don't use: choose in **Settings** which sections, media types, print formats, papers and page kinds the app shows.
 - English and Spanish interface. It follows the system language and can be changed in **Settings**, see [Language](#language).
 - Keyboard shortcut: **Ctrl+Enter** starts the download.
 - A `covers` command-line tool that uses the same core.
@@ -1121,6 +1122,23 @@ The app is available in English and Spanish.
 
 To add a language, add a dictionary next to `frontend/src/i18n/en.ts` (the compiler rejects missing or extra keys) and a catalog in `internal/i18n/catalog.go` (a test checks that every key exists).
 
+## Theme and sections shown
+
+Both are in **Settings** and apply as soon as you click **Save**.
+
+- **Theme**: **System** (the default) follows the system's light or dark setting; **Light** and **Dark** override it. Saved as `"theme"`: `""`, `"light"` or `"dark"`.
+- **Sections shown**: a checkbox tree of the app's sections and the lists inside them:
+  - **Download**: the media types.
+  - **Print covers**: paper, formats, cover sizes, crop modes and cut modes. Paper and cut modes also apply to **Make pages**, which shares them.
+  - **Make pages**: the page kinds.
+- Untick **Download** or **Make pages** to hide its tab; the app then opens on the first shown tab. Their ticks are kept while they are hidden. **Print covers** is always shown.
+- Each list has an all/none checkbox. Every list keeps at least one item: the last ticked one can't be unticked, and "none" leaves the list's default ticked.
+- Unticked items disappear from their selector. When the remembered choice is hidden, the default is used, or the first shown item when the default is hidden too.
+- Not affected: Print covers' **Cards for** selector always lists every media type.
+- Saved as `"view"` in the settings file, listing what is hidden (`"hiddenSections"` and `"hidden"` by list), so media types, formats, papers and page kinds added in later versions show up ticked. Settings files from older versions show everything.
+
+To add a section or a list to this tree, add it to `SECTIONS` in `frontend/src/view.ts`; a test fails when a tab has no entry there.
+
 ## Development
 
 ```sh
@@ -1178,7 +1196,7 @@ The root package embeds `frontend/dist`, so build the frontend once first (`cd f
 ```
 main.go, app.go        Wails entry point and the methods bound to the UI
 frontend/              Vanilla TypeScript + Vite UI
-  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), quotesForm.ts (the quote cards search and picks), recipesForm.ts (the recipe list and editor, import and photo), pageForms.ts (the option forms of the page kinds), preview.ts (live PDF preview), lettering.ts (font picker and Colour-in), settings.ts (Settings dialog and About) and style.css
+  src/                 main.ts (download tab and tabs), print.ts (print sheet tab), pages.ts (make pages tab), quotesForm.ts (the quote cards search and picks), recipesForm.ts (the recipe list and editor, import and photo), pageForms.ts (the option forms of the page kinds), preview.ts (live PDF preview), lettering.ts (font picker and Colour-in), settings.ts (Settings dialog and About), view.ts (the sections and lists the user can hide), viewConfig.ts (the Sections shown tree), theme.ts and style.css
   wailsjs/             generated bindings (committed)
 cmd/covers/            command-line tool
 internal/
@@ -1193,7 +1211,7 @@ internal/
   quotes/              Wikiquote search: a person's page and its quotes, sections filtered and text cleaned
   buildinfo/           values injected into release builds (the BoardGameGeek token)
   web/                 shared HTTP client, rate-limit throttle, headers and bounded reads
-  settings/            user settings file (TMDB API key)
+  settings/            user settings file (API keys, language, theme, shown sections, remembered options)
   gallery/             print sheet: folder listing and thumbnails for the UI
   preview/             in-memory store of preview PDFs served at /preview
   fonts/               serves the lettering fonts and their licences at /fonts/
