@@ -552,3 +552,42 @@ func TestBuildQuotesTitle(t *testing.T) {
 		t.Error("the Spanish default title is not \"Palabras para guardar\"")
 	}
 }
+
+// Go gets the quotes as structured text and author, never as "Quote,
+// Author" lines: commas and double quotes in either pass through decoding
+// and onto the card unchanged.
+func TestQuotesKeepCommasAndQuotes(t *testing.T) {
+	kind, err := PageKindByID(QuotesKind)
+	if err != nil {
+		t.Fatal(err)
+	}
+	quote := QuoteCard{Text: `He said "no", twice`, Author: `Martin Luther King, Jr. "MLK"`}
+	l, qm, tm := quoteMeasures(t, DefaultLetteringFont, false)
+	for _, style := range QuoteStyles {
+		t.Run(style, func(t *testing.T) {
+			doc, err := kind.decode(json.RawMessage(quotesJSON([]QuoteCard{quote}, style, 4)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			o := doc.(QuotesOptions)
+			if !reflect.DeepEqual(o.Quotes, []QuoteCard{quote}) {
+				t.Fatalf("decoded %#v, want %#v", o.Quotes, []QuoteCard{quote})
+			}
+			c := o.sheets(A4, l, qm, tm, PageLabels{}.resolved())[0].Cards[0]
+			var lines []string
+			for _, line := range c.Lines {
+				lines = append(lines, line.Text)
+			}
+			want := "“" + quote.Text + "”"
+			if style == QuotesBold {
+				want = quote.Text
+			}
+			if got := strings.Join(lines, " "); got != want {
+				t.Errorf("card text %q, want %q", got, want)
+			}
+			if want := "— " + quote.Author; c.Author.Text != want {
+				t.Errorf("author %q, want %q", c.Author.Text, want)
+			}
+		})
+	}
+}

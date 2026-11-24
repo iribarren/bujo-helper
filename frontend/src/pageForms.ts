@@ -7,7 +7,7 @@
 import {titled, translated} from './fieldsets';
 import {onLangChange, t, type MessageKey} from './i18n';
 import {monthYearField} from './monthYearField';
-import {quoteLines, quoteSearch, type Quote} from './quotesForm';
+import {formatQuoteLine, quoteLines, quoteSearch, type Quote} from './quotesForm';
 import {initRadioGroup, type RadioGroup} from './radioGroup';
 import {recipeEditor, recipeList} from './recipesForm';
 
@@ -240,8 +240,8 @@ function quoteList(value: unknown): Quote[] {
 
 // quotesForm is the quote cards' form: the Wikiquote search with its
 // results and picked quotes (see quoteSearch), Your own quotes (a textarea
-// of "Quote, Author" lines, see quoteLines), then Style and Cards per page,
-// segmented groups. It sends the picked quotes, in pick order, followed by
+// of "Quote, Author" lines, see quoteLines, the default ones written by
+// formatQuoteLine), then Style and Cards per page, segmented groups. It sends the picked quotes, in pick order, followed by
 // the typed ones, as typed: Go enforces the limits, and its error shows in
 // the preview. The labels follow the UI language, keeping the options.
 const quotesForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
@@ -265,7 +265,7 @@ const quotesForm: PageFormBuilder = (container, idPrefix, defaults, onChange) =>
 
     // The typed quotes Go gets, kept apart from the text being typed.
     let typed = initial.filter((q) => q.source === '');
-    own.value = typed.map((q) => (q.author ? `${q.text}, ${q.author}` : q.text)).join('\n');
+    own.value = typed.map(formatQuoteLine).join('\n');
     own.addEventListener('input', () => {
         const next = quoteLines(own.value);
         if (next.length === typed.length && next.every((q, i) => q.text === typed[i].text && q.author === typed[i].author)) return;

@@ -26,7 +26,7 @@ Close five open review follow-ups chosen by the user, on branch `fix/review-foll
 - [x] T2 Frontend test gaps (sequencing, header page count, paper/size, TMDB tip on tv, shapeKey guard, joined removal error). Route: delegated writer (several test files, preparation reading).
 - [x] T3 CirrusSearch escaping in every provider query builder + table tests. Route: delegated writer (mapping all callers).
 - [x] T4 Replay a skipped preview resize when the request ends, with or without a new document. Route: delegated writer.
-- [ ] T5 Quote comma round-trip rule, frontend + Go side, README. Route: delegated writer.
+- [x] T5 Quote comma round-trip rule, frontend + Go side, README. Route: delegated writer.
 
 Route evidence: writer trigger (each task touches 2+ non-trivial files or needs preparation reading). One writer at a time, one commit per task.
 
@@ -64,5 +64,10 @@ Route evidence: writer trigger (each task touches 2+ non-trivial files or needs 
 - T4 (delegated writer): `endRequest()` in `frontend/src/preview.ts` clears `requesting`, updates busy and calls `redrawIfResized()`; `stop()` (cancel, showMessage) and the render-failure path end through it. `showMessage` now clears before stopping (no redraw of a page about to go). A new document still hands its busy state to the page draw (no double draw). In practice only `cancel()` kept the shown page; failures and messages clear it. Tests (`resize > after a request`): cancel after a resize redraws once quietly at the new size; no resize → no redraw; new document → one draw at the new size; failure → no redraw of the cleared page; page still drawing on cancel → not cancelled, redrawn once drawn.
   - RED: `expected [ { url: '/preview?id=1', page: 1 } ] to deeply equal [ …(2) ]` (1 failed, 42 passed). GREEN (writer): go build ok; vet clean; go test 3540 passed; gofmt empty; tsc clean; vitest 412 passed; npm run build ok. Parent spot check: `preview.test.ts` 43 passed.
 
+- T4 assess `efa1b8d..ff39eaf`: medium, `under_budget`. Stop-hook whole-range review `865c1ac..ff39eaf` (21 files, 1082 lines, medium; covers T4): consent granted; review-reliability approved, no findings; acknowledged (lineage `review-b731472b1ded067c`, authority burned). Reviewed boundary: `ff39eaf`.
+
+- T5 (delegated writer): CSV-style quoting in the "Your own quotes" textarea (`frontend/src/quotesForm.ts` `quoteLine`/`quotedLine`/`quotedField`, new `formatQuoteLine` used by `pageForms.ts:268` to fill the textarea). A line is read with quoting only in three well-formed shapes (quoted text alone; quoted text, comma, plain comma-free or quoted author; plain text, comma, quoted author at the end); `""` is one `"`. Every other line splits at the last comma as before. The formatter quotes only when needed (author with a comma, starting/ending with `"` or padded; text starting with `"`, padded, or with a comma and no author). Go has no line parser: it receives structured `QuoteCard` JSON; `TestQuotesKeepCommasAndQuotes` (`internal/sheet/quotespage_test.go`) proves commas and `"` reach the card unchanged in every style. Behaviour change (documented in README): a line typed as `"Be yourself", Oscar Wilde` now gives the text without the marks — Classic and Framed draw their own curly marks (no more doubled marks); Bold draws none, so such a line prints without marks there. README Quote cards row and `pages.quotesOwnHint` (en, es) updated.
+  - RED: `Tests 46 failed | 34 passed (80)` (`formatQuoteLine is not a function`; new quoted cases failed under the old parser; old-style cases passed). GREEN (writer): go build ok; vet clean; go test 3544 passed; gofmt empty; tsc clean; vitest 467 passed; npm run build ok. Parent spot check: quotesForm + pageForms tests 131 passed.
+
 ## Next step
-T5.
+Review T5; then the user's manual check. Do not merge until asked.

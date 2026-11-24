@@ -247,7 +247,7 @@ export const en = {
     'pages.quotesPicked': 'Picked quotes ({n})',
     'pages.quotesRemove': 'Remove quote: {quote}',
     'pages.quotesOwn': 'Your own quotes: Quote, Author',
-    'pages.quotesOwnHint': 'One per line; the author goes after the last comma.',
+    'pages.quotesOwnHint': 'One per line; the author goes after the last comma. Put an author with a comma, or a quote with a comma and no author, in double quotes: Free at last, "Martin Luther King, Jr."',
     'pages.quotesStyle': 'Style',
     'pages.quotesStyleTitle': 'How the quotes are set on the cards.',
     'pages.styleClassic': 'Classic',

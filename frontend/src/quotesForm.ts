@@ -26,15 +26,93 @@ interface SearchResult {
 // MAX_MATCHES caps the Other matches buttons (Go returns at most five).
 const MAX_MATCHES = 5;
 
-// quoteLines is the quotes typed in text, one per line: the text before
-// the last comma and the author after it, both trimmed; a line without a
-// comma is a quote without an author. Blank lines are dropped.
+// quoteLines is the quotes typed in text, one per line (see quoteLine).
+// Blank lines are dropped.
 export function quoteLines(text: string): Quote[] {
-    return text.split(/\r\n|\r|\n/).filter((line) => line.trim() !== '').map((line) => {
-        const comma = line.lastIndexOf(',');
-        if (comma < 0) return {text: line.trim(), author: '', source: ''};
-        return {text: line.slice(0, comma).trim(), author: line.slice(comma + 1).trim(), source: ''};
-    });
+    return text.split(/\r\n|\r|\n/).filter((line) => line.trim() !== '').map(quoteLine);
+}
+
+// quoteLine reads one "Quote, Author" line. A field may be in double
+// quotes, CSV-style ("" inside is one "), to hold commas: the line is read
+// that way only when it is well-formed so, as a quoted text alone or
+// followed by a comma and the author (comma-free, or quoted), or as a text
+// followed by a comma and a quoted author. Any other line keeps the plain
+// rule: the text before the last comma and the author after it, both
+// trimmed; no comma is a quote without an author.
+function quoteLine(line: string): Quote {
+    const quoted = quotedLine(line);
+    if (quoted) return {...quoted, source: ''};
+    const comma = line.lastIndexOf(',');
+    if (comma < 0) return {text: line.trim(), author: '', source: ''};
+    return {text: line.slice(0, comma).trim(), author: line.slice(comma + 1).trim(), source: ''};
+}
+
+// quotedField reads the double-quoted field opening at s[start]: its
+// value, "" read as ", and the index after the closing quote; undefined
+// when it is not closed.
+function quotedField(s: string, start: number): {value: string; end: number} | undefined {
+    let value = '';
+    for (let i = start + 1; i < s.length; i++) {
+        if (s[i] !== '"') {
+            value += s[i];
+        } else if (s[i + 1] === '"') {
+            value += '"';
+            i++;
+        } else {
+            return {value, end: i + 1};
+        }
+    }
+    return undefined;
+}
+
+// quotedLine reads line with quoting (see quoteLine), or is undefined
+// when it is not well-formed that way.
+function quotedLine(line: string): {text: string; author: string} | undefined {
+    const s = line.trim();
+    if (s.startsWith('"')) {
+        // A quoted text, alone or followed by a comma and the author.
+        const text = quotedField(s, 0);
+        if (!text) return undefined;
+        const rest = s.slice(text.end).trimStart();
+        if (rest === '') return {text: text.value, author: ''};
+        if (!rest.startsWith(',')) return undefined;
+        const author = rest.slice(1).trimStart();
+        if (author.startsWith('"')) {
+            const field = quotedField(author, 0);
+            return field && field.end === author.length ? {text: text.value, author: field.value} : undefined;
+        }
+        return author.includes(',') ? undefined : {text: text.value, author};
+    }
+    // A plain text, a comma and a quoted author: find the author's opening
+    // quote from the end, "" being one quote inside it.
+    if (!s.endsWith('"')) return undefined;
+    let open = s.length - 2;
+    while (open >= 0) {
+        if (s[open] !== '"') open--;
+        else if (s[open - 1] === '"') open -= 2;
+        else break;
+    }
+    if (open < 0) return undefined;
+    const author = quotedField(s, open);
+    const before = s.slice(0, open).trimEnd();
+    if (!author || author.end !== s.length || !before.endsWith(',')) return undefined;
+    return {text: before.slice(0, -1).trim(), author: author.value};
+}
+
+// formatQuoteLine is quote as a line quoteLines reads back as quote. A
+// field is put in double quotes only when the plain rule would misread
+// it: the author has a comma, starts or ends with ", or has spaces around
+// it; the text starts with " or has spaces around it, or has a comma and
+// no author. So plain quotes read "Quote, Author".
+export function formatQuoteLine(quote: Quote): string {
+    const {text, author} = quote;
+    const padded = (s: string) => s !== s.trim();
+    const quoteField = (s: string) => `"${s.split('"').join('""')}"`;
+    const plainText = !text.startsWith('"') && !padded(text) && (author !== '' || !text.includes(','));
+    const textField = plainText ? text : quoteField(text);
+    if (author === '') return textField;
+    const plainAuthor = !author.includes(',') && !author.startsWith('"') && !author.endsWith('"') && !padded(author);
+    return `${textField}, ${plainAuthor ? author : quoteField(author)}`;
 }
 
 // sameQuote tells whether a and b are the same quote: same text and author.
