@@ -42,6 +42,7 @@ const {kinds, papers, cuts, fonts} = vi.hoisted(() => ({
         },
         {id: 'recipes', label: 'Recipe cards', usesCut: false, usesTitle: false, defaults: '{"recipes":[],"size":"a6"}', default: false},
         {id: 'conversions', label: 'Kitchen conversions', usesCut: false, usesTitle: true, defaults: '{}', default: false},
+        {id: 'plants', label: 'Plant care cards', usesCut: false, usesTitle: false, defaults: '{"plants":[],"size":"a6"}', default: false},
         {id: 'cutout', label: 'Cut-out', usesCut: true, usesTitle: false, defaults: '{}', default: false},
     ],
     papers: [
@@ -157,7 +158,7 @@ describe('page kinds', () => {
     it('are listed from PageKinds in a radio group, the default checked', () => {
         const group = el('pages-kinds');
         expect(group.getAttribute('role')).toBe('radiogroup');
-        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Month calendar', 'Habit tracker', 'Quote cards', 'Visited map', 'Recipe cards', 'Kitchen conversions', 'Cut-out']);
+        expect(Array.from(group.querySelectorAll('[role="radio"]'), (r) => r.textContent)).toEqual(['Dot grid', 'Moon calendar', 'Month calendar', 'Habit tracker', 'Quote cards', 'Visited map', 'Recipe cards', 'Kitchen conversions', 'Plant care cards', 'Cut-out']);
         expect(checked('pages-kinds')).toBe('dotgrid');
         expect(el('pages-kind-title').textContent).toBe('Dot grid');
     });
@@ -190,6 +191,7 @@ describe('page kinds', () => {
             expect(radio('pages-kinds', 'map').textContent).toBe('Mapa de viajes');
             expect(radio('pages-kinds', 'recipes').textContent).toBe('Fichas de recetas');
             expect(radio('pages-kinds', 'conversions').textContent).toBe('Conversiones de cocina');
+            expect(radio('pages-kinds', 'plants').textContent).toBe('Fichas de cuidado de plantas');
             // A kind without a translation keeps the Go label.
             expect(radio('pages-kinds', 'cutout').textContent).toBe('Cut-out');
         } finally {
@@ -470,6 +472,36 @@ describe('recipe cards form', () => {
         el('pages-recipes-list').querySelector<HTMLButtonElement>('.icon-button')!.click();
         radio('pages-recipes-size', 'a6').click();
         await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual({recipes: [], size: 'a6'}));
+    });
+});
+
+describe('plant care cards form', () => {
+    beforeEach(() => {
+        radio('pages-kinds', 'plants').click();
+    });
+
+    it('previews blank A6 cards by default, without the title field', async () => {
+        expect(el('pages-kind-title').textContent).toBe('Plant care cards');
+        expect(el('pages-form-plants').hidden).toBe(false);
+        await vi.waitFor(() => expect(lastPreviewPage()[0]).toBe('plants'));
+        expect(JSON.parse(lastPreviewPage()[2])).toEqual({plants: [], size: 'a6'});
+        // Each card prints its plant's name; cards have their own cut lines.
+        expect(el('pages-title-field').hidden).toBe(true);
+        expect(el('pages-cut-field').hidden).toBe(true);
+    });
+
+    it('previews an added plant and the chosen size', async () => {
+        el<HTMLButtonElement>('pages-plants-add').click();
+        const water = el<HTMLInputElement>('pages-plants-water');
+        water.value = 'Weekly';
+        water.dispatchEvent(new Event('input'));
+        radio('pages-plants-size', 'page').click();
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual({
+            plants: [{name: '', light: '', water: 'Weekly', soil: '', notes: '', image: ''}],
+            size: 'page',
+        }));
+        el('pages-plants-list').querySelector<HTMLButtonElement>('.icon-button')!.click();
+        await vi.waitFor(() => expect(JSON.parse(lastPreviewPage()[2])).toEqual({plants: [], size: 'page'}));
     });
 });
 
@@ -884,7 +916,7 @@ describe('view', () => {
 
     it('offers only the kinds, papers and cut modes the view shows', async () => {
         await mount({hidden: {pageKind: ['moon', 'habits'], paper: ['letter'], cut: ['bleed']}});
-        expect(values('pages-kinds')).toEqual(['dotgrid', 'calendar', 'quotes', 'map', 'recipes', 'conversions', 'cutout']);
+        expect(values('pages-kinds')).toEqual(['dotgrid', 'calendar', 'quotes', 'map', 'recipes', 'conversions', 'plants', 'cutout']);
         expect(values('pages-paper')).toEqual(['a4', 'a5', 'b5']);
         expect(cutOptions()).toEqual(['border', 'none']);
     });

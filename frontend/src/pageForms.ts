@@ -8,6 +8,7 @@ import {titled, translated} from './fieldsets';
 import {onLangChange, t, type MessageKey} from './i18n';
 import {monthYearField} from './monthYearField';
 import {formatQuoteLine, quoteLines, quoteSearch, type Quote} from './quotesForm';
+import {plantEditor, plantList} from './plantsForm';
 import {initRadioGroup, type RadioGroup} from './radioGroup';
 import {recipeEditor, recipeList} from './recipesForm';
 
@@ -444,6 +445,30 @@ const recipesForm: PageFormBuilder = (container, idPrefix, defaults, onChange) =
     };
 };
 
+// plantsForm is the plant care cards' form: the plant list and the
+// selected plant's editor (see plantEditor), then Card size, a segmented
+// group of the recipe card sizes (Go: plant cards use sheet.RecipeSizes).
+// It sends the plants as typed: Go normalises them and enforces the
+// limits, and its error shows in the preview. No plants prints blank
+// cards. The labels follow the UI language, keeping the options.
+const plantsForm: PageFormBuilder = (container, idPrefix, defaults, onChange) => {
+    const editor = plantEditor(container, idPrefix, plantList(defaults.plants), onChange);
+    const size = segmentedField(container, idPrefix, 'size', 'pages.plantsSize', 'pages.plantsSizeTitle', onChange);
+
+    const relabel = () => size.replaceOptions(choices(RECIPE_SIZES));
+    relabel();
+    const stopRelabel = onLangChange(relabel);
+    size.value = offered(RECIPE_SIZES, defaults.size, DEFAULT_RECIPE_SIZE);
+
+    return {
+        options: () => ({plants: editor.plants(), size: size.value}),
+        dispose: () => {
+            stopRelabel();
+            editor.dispose();
+        },
+    };
+};
+
 // conversionsForm is the kitchen conversions' form: no options, only a
 // muted line saying what the chart holds. It sends the kind's defaults.
 const conversionsForm: PageFormBuilder = (container, idPrefix, defaults) => {
@@ -463,4 +488,5 @@ export const pageForms: Record<string, PageFormBuilder> = {
     map: mapForm,
     recipes: recipesForm,
     conversions: conversionsForm,
+    plants: plantsForm,
 };

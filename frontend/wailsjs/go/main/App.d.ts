@@ -9,6 +9,8 @@ export function Cancel():Promise<void>;
 
 export function ChooseFolder(arg1:string):Promise<string>;
 
+export function ChoosePlantImage():Promise<string>;
+
 export function ChooseRecipePhoto():Promise<string>;
 
 export function DefaultOutputDir():Promise<string>;

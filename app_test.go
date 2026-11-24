@@ -443,6 +443,49 @@ func TestImportRecipes(t *testing.T) {
 	}
 }
 
+// Both image pickers ask for a JPEG or PNG image under their own title,
+// return an absolute path, and "" with no error when cancelled.
+func TestChoosePlantImage(t *testing.T) {
+	a := NewApp()
+	a.SetLanguage("es")
+	plate := filepath.Join(t.TempDir(), "Monstera - Monstera deliciosa.jpg")
+	var opts runtime.OpenDialogOptions
+	stubOpenDialog(t, func(o runtime.OpenDialogOptions) (string, error) {
+		opts = o
+		return plate, nil
+	})
+	got, err := a.ChoosePlantImage()
+	if err != nil || got != plate {
+		t.Errorf("ChoosePlantImage = %q, %v, want %q", got, err, plate)
+	}
+	if want := i18n.T(i18n.ES, "dialog.plantImage"); opts.Title != want || want == "dialog.plantImage" {
+		t.Errorf("title = %q, want %q", opts.Title, want)
+	}
+	wantFilters := []runtime.FileFilter{{DisplayName: i18n.T(i18n.ES, "filter.images"), Pattern: "*.jpg;*.jpeg;*.png"}}
+	if !reflect.DeepEqual(opts.Filters, wantFilters) {
+		t.Errorf("filters = %#v, want %#v", opts.Filters, wantFilters)
+	}
+
+	stubOpenDialog(t, func(runtime.OpenDialogOptions) (string, error) { return "fern.png", nil })
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := a.ChoosePlantImage(); err != nil || got != filepath.Join(wd, "fern.png") {
+		t.Errorf("relative pick = %q, %v, want it made absolute", got, err)
+	}
+
+	stubOpenDialog(t, func(runtime.OpenDialogOptions) (string, error) { return "", nil })
+	if got, err := a.ChoosePlantImage(); got != "" || err != nil {
+		t.Errorf("cancelled: got %q, %v, want \"\", nil", got, err)
+	}
+	boom := errors.New("boom")
+	stubOpenDialog(t, func(runtime.OpenDialogOptions) (string, error) { return "", boom })
+	if got, err := a.ChoosePlantImage(); got != "" || !errors.Is(err, boom) {
+		t.Errorf("dialog error: got %q, %v, want \"\", boom", got, err)
+	}
+}
+
 func TestChooseRecipePhoto(t *testing.T) {
 	a := NewApp()
 	photo := filepath.Join(t.TempDir(), "soup.jpg")
@@ -826,6 +869,7 @@ func TestPageKinds(t *testing.T) {
 		{ID: "map", Label: "Visited map", UsesTitle: true, Defaults: `{"region":"world","countries":[],"colour":"teal","list":true}`},
 		{ID: "recipes", Label: "Recipe cards", Defaults: `{"recipes":[],"size":"a6"}`},
 		{ID: "conversions", Label: "Kitchen conversions", UsesTitle: true, Defaults: `{}`},
+		{ID: "plants", Label: "Plant care cards", Defaults: `{"plants":[],"size":"a6"}`},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("PageKinds()= %+v, want %+v", got, want)
@@ -2239,6 +2283,12 @@ func TestPageLabelsFollowTheUILanguage(t *testing.T) {
 	}
 	if es.RecipeIngredients != "Ingredientes" || es.RecipeSteps != "Pasos" || es.RecipeServes != "Raciones" || es.RecipeTime != "Tiempo" || es.RecipeContinued != "continuación" {
 		t.Errorf("Spanish recipe labels = %+v", es)
+	}
+	if en.PlantLight != "Light" || en.PlantWater != "Water" || en.PlantSoil != "Soil" || en.PlantNotes != "Notes" {
+		t.Errorf("English plant labels = %+v", en)
+	}
+	if es.PlantLight != "Luz" || es.PlantWater != "Riego" || es.PlantSoil != "Sustrato" || es.PlantNotes != "Notas" {
+		t.Errorf("Spanish plant labels = %+v", es)
 	}
 	ec, sc := en.Conversions, es.Conversions
 	if ec.Title != "Kitchen conversions" || ec.Volume != "Volume" || ec.Weight != "Weight" || ec.Oven != "Oven temperatures" || ec.CupsToGrams != "Cups to grams" ||

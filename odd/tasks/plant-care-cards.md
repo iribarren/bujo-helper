@@ -1,0 +1,51 @@
+# Feature: plant-care-cards (roadmap item 33)
+
+## Objective
+A **Plant care cards** Make pages kind: a card per plant with the plant name, its plate image (a nature illustration from item 17), and labelled ruled fields for **Light**, **Water**, **Soil** and **Notes**, following the Lettering and Colour-in conventions.
+
+## Problem / Why
+Optional extension of item 17 (Vintage nature illustrations, `odd/tasks/nature.md`): a care card to keep next to a plant plate.
+
+## Scope / constraints
+- Make pages kind (not a Print covers format: formats cannot be limited to a media type, and recipe cards already give the image + card-slot model).
+- Template: recipe cards (`internal/sheet/recipepage.go`): card sizes (A6, 4×6, full page), slots per paper, `printCroppedImage` for the image, `blankCard`-style label + rule.
+- Options: a list of plants, each `{Name, Image, Light, Water, Soil, Notes}` plus the card `Size`. Image: absolute JPEG/PNG path picked with a file dialog binding. Name empty + image set → name from the file name via `ParseName` (nature downloads are `Common name - Scientific name.jpg`; scientific name printed small under the name when present). Field text optional: typed text prints on the rules, empty fields stay blank ruled lines to write by hand. An empty list prints blank cards (like recipes).
+- Lettering: plant name drawn with the lettering font, hollow when Colour-in is on and size ≥ 14 pt; small labels/body stay in the Go font. The image itself is never altered by Colour-in.
+- PDF words (`Light`, `Water`, `Soil`, `Notes`) are `PageLabels` with EN/ES in `internal/i18n/catalog.go`; UI words in `frontend/src/i18n/en.ts` / `es.ts`.
+- Draw code uses only `pdf.Text`/`GetStringWidth` (textguard test). Deterministic output.
+- Out of scope: Print covers output (unchanged), new paper sizes, downloading images from the card.
+
+## Acceptance criteria
+- Go: registry entry, labels, card slots per paper × size, text fits per font × paper × size, blank cards, bad image rejected, hollow title with Colour-in (`1 Tr`), name from file name.
+- Frontend: plant form → options JSON, image picker wiring, EN/ES labels.
+- README `### Plant care cards` under `## Generated pages` + Lettering "What uses the font" table; ROADMAP item 33 ticked.
+
+## Checks
+- `go test -tags webkit2_41 ./...`, `go vet -tags webkit2_41 ./...`, `gofmt -l .`
+- `cd frontend && npx tsc --noEmit && npx vitest run`
+- Bindings change: `wails build -tags webkit2_41`, then chmod 0644 `frontend/wailsjs/go/main/*` and `frontend/wailsjs/go/models.ts`; delete `frontend/.vitest/`.
+
+## Delivery
+- Branch `feat/plant-care-cards` from `812b5b1`. Forecast ~900 authored lines (≈ 45 % tests). Strategy `single-pr` (cached project choice: user GUI-checks, then local `--no-ff` merge).
+- RDD on (global). First reviewed boundary: `812b5b1`.
+- Test-first: Go layout/fit tests and vitest form tests are runnable and deterministic → RED before GREEN.
+
+## Tasks
+- [x] T1 Go backend: `plants` kind (options, decode, slots, draw), `ChoosePlantImage` binding, `PageLabels` + i18n catalog, wailsjs regenerated, Go tests. Route: delegated writer (writer trigger: several non-trivial Go files). Commit `e5382d5`.
+- [x] T2 Frontend + docs: plant form (list editor, image picker, size), registration in `pageForms`, EN/ES UI strings, vitest tests, README, ROADMAP tick. Route: delegated writer (writer trigger: several TS files + docs). Evidence: tsc ok, vitest 569/569 (20 files), `go test` 3706 passed, `gofmt -l .` empty, `wails build` ok (bindings unchanged). Commit `cd2cddd`.
+
+## Progress
+- Exploration done (explorer: registry `internal/sheet/pages.go:139-248`, recipes template, i18n, form patterns).
+- 2026-11-24 T1 (delegated writer): `plants` kind last in `PageKinds` (`internal/sheet/plantpage.go`): `PlantsOptions{Plants, Size}` over the recipe card sizes and `recipeSlots`, plants normalised, unknown fields rejected, image absolute `.jpg`/`.jpeg`/`.png`; one card a plant, blank cards fill the last page. Layout: plate at the top (at most 40 % of the card), **contained, not cropped** (whole plate, aspect kept, centred: a cropped botanical plate loses the plant); name in the lettering via `fitRecipeTitle` (hollow with Colour-in ≥ 14 pt; a writing line when empty), from the file name via `ParseName` when not typed, the scientific name below in Go italic (`goitalic`, embedded only when one prints); label column + rules, Light/Water/Soil 2 rules each with room for 8 lines (else 1), Notes the rest; typed text on the rules via `fitLines` (cut with "…"). Shared `drawCutLines` (recipes use it too). `PageLabels.PlantLight/Water/Soil/Notes` + `pdf.plant*` (EN/ES), `dialog.plantImage`; `App.ChoosePlantImage` sharing `chooseImage` with `ChooseRecipePhoto`; wailsjs regenerated. 2 approved test-order edits outside the original surface: `calendarpage_test.go` (full kind order + `plants`) and `conversionspage_test.go` (conversions between recipes and plants). Kind name localisation (`pageKind.plants`) is frontend → T2. RED: compile failures (`undefined: Plant`, `a.ChoosePlantImage undefined`). GREEN: `go test` 3706 passed; `go vet` clean; `gofmt -l .` empty; tsc ok, vitest 553/553 (19 files); `wails build` ok. Commit `e5382d5`.
+- 2026-11-24 T1 review: assess `--base-ref 812b5b1 --committed-only` → medium, `slice_budget_reached`; consent granted; 1 lens (reliability) approved, acknowledged, authority burned (lineage `review-a5b14fa09088c29a`). Advisories (non-blocking): R3-001 the `plants` kind is listed before its form exists → closed by T2 (form registered in `pageForms`); R3-002 recipes' `drawCutLines` no longer sets line state on full-page cards, no stream test pins full-page recipe output → follow-up. Reviewed boundary → `ebb0592`.
+
+- 2026-11-24 T2 (delegated writer): `plantsForm.ts` (`plantEditor`, `plantList`) and `plantsForm` in `pageForms` (`plants` after `conversions`): per plant Name (placeholder "Taken from the image file name when empty"; sent empty so Go derives it, the pill shows the common name from the file name meanwhile), Image (Choose… / Remove via `ChoosePlantImage`, file name shown), Light, Water, Soil, Notes (textarea); Add / × remove; Card size over the recipe sizes. Shared pieces extracted from `recipesForm.ts` without changing recipe DOM or behaviour (recipe tests untouched and green): `cardList` (pills, select, remove, Add, status, hint, disposed), `cardTextField`, `imagePicker` (picked for the card selected at click, dropped if removed or disposed). CSS: plant classes added to the recipe card-list rules. EN/ES `pageKind.plants` + 17 `pages.plants*` keys (Luz, Riego, Sustrato, Notas). Tests: new `plantsForm.test.ts` (14), `pages.test.ts` kind lists + ES label + plant form preview (2). RED: `Failed to resolve import "./plantsForm"`, `expected 'Plant care cards' to be 'Fichas de cuidado de plantas'`, `missing #pages-plants-add`. README `### Plant care cards`, Lettering table + Colour-in line; ROADMAP item 33 ticked.
+- 2026-11-24 T2 review: assess `--base-ref e5caa7b --committed-only` → medium, `slice_budget_reached` (the `e5caa7b` docs commit alone assessed passive); consent granted; 1 lens (reliability) approved, acknowledged, authority burned (lineage `review-3b045eb8039d7dc4`). Advisory (non-blocking): R3-001 frontend `commonName` mirrors Go `ParseName` without a shared parity table; parent check: both split on the last `" - "` (`names.go:30`, `plantsForm.ts:44`) → follow-up test only. Reviewed boundary → `fd8936e`.
+- 2026-11-24 Whole-branch review (Stop hook, `812b5b1..944abde`): medium, consent granted, reliability lens approved, acknowledged, authority burned (lineage `review-9ea2d33682434ada`). Advisories repeat the two follow-ups; new detail: the frontend `commonName` does not strip the duplicate-download suffix (`-2`) that `ParseName` strips.
+
+## Follow-ups
+- R3-002: pin a full-page recipe card render (stream/bytes) so the `drawCutLines` refactor is proved neutral.
+- T2 R3-001: a multi-separator file-name case (`A - B - C.jpg`) in `plantsForm.test.ts` matching `TestParseName`, plus the duplicate-download suffix (`Name - Sci-2.jpg`) that `ParseName` strips and `commonName` does not.
+
+## Next step
+User GUI check, then local `--no-ff` merge.

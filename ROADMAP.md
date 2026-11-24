@@ -704,7 +704,7 @@ Open items found during the reviews of Parts 1–3 (see the feature documents in
 **Acceptance**
 - A benchmark or test shows a second render of the same selection does not re-encode unchanged images. Export output is byte-identical with and without the cache. Memory stays bounded (test with a lowered cap).
 
-## 33. [ ] Plant care card page kind
+## 33. [x] Plant care card page kind
 
 **Why:** the optional extension of item 17 (Vintage nature illustrations): a card next to a plant plate with watering, light and notes.
 
@@ -713,6 +713,11 @@ Open items found during the reviews of Parts 1–3 (see the feature documents in
 
 **Acceptance**
 - Layout tests per paper; text fits; EN/ES labels.
+
+**Done in branch `feat/plant-care-cards`** (see `odd/tasks/plant-care-cards.md`):
+- Page kind: `plants` (Plant care cards) in the recipe card sizes, the plate contained (not cropped) at the top, the name in the lettering (hollow with Colour-in at 14 pt or larger) or read from the image's file name, ruled Light/Water/Soil/Notes fields in the UI language, blank cards; the `ChoosePlantImage` binding (e5382d5).
+- Make pages form: the plant list and editor, the image picker and Card size, in English and Spanish, sharing the card list with the recipe form; README Plant care cards section (cd2cddd).
+- Decision: a Make pages kind, not a Print covers format (formats cannot be limited to a media type; recipe cards already give the card model).
 
 ## 34. [ ] Regional maps for the visited map
 

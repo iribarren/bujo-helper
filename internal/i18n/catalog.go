@@ -16,6 +16,7 @@ var catalogs = map[Lang]map[string]string{
 		"filter.pdf":                "PDF files (*.pdf)",
 		"dialog.importRecipes":      "Import recipes",
 		"dialog.recipePhoto":        "Choose recipe photo",
+		"dialog.plantImage":         "Choose plant image",
 		"filter.markdown":           "Markdown files (*.md, *.markdown, *.txt)",
 		"filter.images":             "Images (*.jpg, *.jpeg, *.png)",
 
@@ -77,6 +78,11 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.recipeServes":      "Serves",
 		"pdf.recipeTime":        "Time",
 		"pdf.recipeContinued":   "continued",
+		// Plant care cards: the labels of the ruled fields.
+		"pdf.plantLight": "Light",
+		"pdf.plantWater": "Water",
+		"pdf.plantSoil":  "Soil",
+		"pdf.plantNotes": "Notes",
 		// Kitchen conversions: the default title, the table headings, the
 		// unit words (abbreviations as cookbooks write them), the gas mark
 		// column, the oven table's caption and the cups-to-grams
@@ -103,6 +109,7 @@ var catalogs = map[Lang]map[string]string{
 		"filter.pdf":                "Archivos PDF (*.pdf)",
 		"dialog.importRecipes":      "Importar recetas",
 		"dialog.recipePhoto":        "Elegir foto de la receta",
+		"dialog.plantImage":         "Elegir imagen de la planta",
 		"filter.markdown":           "Archivos Markdown (*.md, *.markdown, *.txt)",
 		"filter.images":             "Imágenes (*.jpg, *.jpeg, *.png)",
 
@@ -152,6 +159,11 @@ var catalogs = map[Lang]map[string]string{
 		"pdf.recipeServes":      "Raciones",
 		"pdf.recipeTime":        "Tiempo",
 		"pdf.recipeContinued":   "continuación",
+
+		"pdf.plantLight": "Luz",
+		"pdf.plantWater": "Riego",
+		"pdf.plantSoil":  "Sustrato",
+		"pdf.plantNotes": "Notas",
 
 		"pdf.conversionsTitle":      "Conversiones de cocina",
 		"pdf.conversionVolume":      "Volumen",
