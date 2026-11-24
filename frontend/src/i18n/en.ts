@@ -388,6 +388,8 @@ export const en = {
 
     // Settings dialog.
     'settings.title': 'Settings',
+    'settings.tabGeneral': 'General',
+    'settings.tabKeys': 'API keys',
     'settings.language': 'Language',
     'settings.languageSystem': 'System',
     'settings.theme': 'Theme',

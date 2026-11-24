@@ -631,7 +631,8 @@ EventsOn('job:done', (done: DoneEvent) => {
 
 ui.items.addEventListener('input', updateCount);
 ui.settingsOpen.addEventListener('click', () => settingsDialog?.open());
-ui.keyTipSettings.addEventListener('click', () => settingsDialog?.open());
+// The key tip opens Settings where the keys are.
+ui.keyTipSettings.addEventListener('click', () => settingsDialog?.open('keys'));
 ui.importBtn.addEventListener('click', importCSV);
 ui.sampleCsv.addEventListener('click', saveSampleCSV);
 ui.browse.addEventListener('click', browseFolder);

@@ -217,75 +217,88 @@
 
 <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
     <h2 id="settings-title" data-i18n="settings.title">Settings</h2>
-    <div class="field">
-        <label for="language" data-i18n="settings.language">Language</label>
-        <select id="language">
-            <option value="" data-i18n="settings.languageSystem">System</option>
-            <option value="en" lang="en">English</option>
-            <option value="es" lang="es">Español</option>
-        </select>
+    <!-- The dialog's own tabs (tabs.ts); Save, Close and the status line stay
+         below them and save every tab at once. -->
+    <div id="settings-tabs" class="tabs settings-tabs" role="tablist" aria-label="Settings" data-i18n-aria-label="settings.title">
+        <button id="settings-tab-general" class="tab" type="button" role="tab" data-tab="general" aria-selected="true"
+                aria-controls="settings-panel-general" data-i18n="settings.tabGeneral">General</button>
+        <button id="settings-tab-keys" class="tab" type="button" role="tab" data-tab="keys" aria-selected="false"
+                aria-controls="settings-panel-keys" tabindex="-1" data-i18n="settings.tabKeys">API keys</button>
+        <button id="settings-tab-about" class="tab" type="button" role="tab" data-tab="about" aria-selected="false"
+                aria-controls="settings-about" tabindex="-1" data-i18n="about.title">About</button>
     </div>
-    <div class="field">
-        <span id="theme-label" data-i18n="settings.theme">Theme</span>
-        <!-- System | Light | Dark: filled by settings.ts. -->
-        <div id="theme" class="segmented" role="radiogroup" aria-labelledby="theme-label"></div>
-    </div>
-    <!-- The sections and list items the app shows: filled by viewConfig.ts
-         from view.ts SECTIONS and the lists Go sends. -->
-    <section id="settings-sections" class="settings-section settings-sections" aria-labelledby="sections-title">
-        <h3 id="sections-title" data-i18n="settings.sections">Sections shown</h3>
-        <p class="hint" data-i18n="settings.sectionsHint">Untick what you don't use. Each list keeps at least one item.</p>
-        <div id="view-config" class="view-config"></div>
-    </section>
-    <div class="field settings-section">
-        <label for="tmdb-key" data-i18n="settings.tmdbKey">TMDB API key</label>
-        <div class="row">
-            <input id="tmdb-key" type="password" autocomplete="off" spellcheck="false"/>
-            <button id="tmdb-key-toggle" type="button" aria-controls="tmdb-key">Show</button>
+    <div id="settings-panel-general" class="settings-panel" role="tabpanel" aria-labelledby="settings-tab-general">
+        <div class="field">
+            <label for="language" data-i18n="settings.language">Language</label>
+            <select id="language">
+                <option value="" data-i18n="settings.languageSystem">System</option>
+                <option value="en" lang="en">English</option>
+                <option value="es" lang="es">Español</option>
+            </select>
         </div>
-        <p class="hint"><span data-i18n="settings.tmdbHint">Optional. Gives the best movie and TV posters. Get a free key at</span>
-            <a id="tmdb-link" href="https://www.themoviedb.org/settings/api">themoviedb.org</a></p>
-    </div>
-    <p class="notice" data-i18n="settings.tmdbNotice">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
-    <div class="field settings-section">
-        <label for="igdb-id" data-i18n="settings.igdbId">IGDB Client ID</label>
-        <input id="igdb-id" type="text" autocomplete="off" spellcheck="false"/>
-    </div>
-    <div class="field">
-        <label for="igdb-secret" data-i18n="settings.igdbSecret">IGDB Client Secret</label>
-        <div class="row">
-            <input id="igdb-secret" type="password" autocomplete="off" spellcheck="false"/>
-            <button id="igdb-secret-toggle" type="button" aria-controls="igdb-secret">Show</button>
+        <div class="field">
+            <span id="theme-label" data-i18n="settings.theme">Theme</span>
+            <!-- System | Light | Dark: filled by settings.ts. -->
+            <div id="theme" class="segmented" role="radiogroup" aria-labelledby="theme-label"></div>
         </div>
-        <p class="hint"><span data-i18n="settings.igdbHint">Optional. Gives box art for all games; without it, Steam covers PC games only.
-            With a Twitch account with two-factor authentication, register an app at</span>
-            <a id="twitch-link" href="https://dev.twitch.tv/console/apps">dev.twitch.tv/console/apps</a>
-            <span data-i18n="settings.igdbHintType">(Client Type</span> <em>Confidential</em><span
-                data-i18n="settings.igdbHintRedirect">, OAuth Redirect URL</span> <code>http://localhost</code><span
-                data-i18n="settings.igdbHintCopy">), then copy its Client ID and a new Client Secret.</span></p>
+        <!-- The sections and list items the app shows: filled by viewConfig.ts
+             from view.ts SECTIONS and the lists Go sends. -->
+        <section id="settings-sections" class="settings-section settings-sections" aria-labelledby="sections-title">
+            <h3 id="sections-title" data-i18n="settings.sections">Sections shown</h3>
+            <p class="hint" data-i18n="settings.sectionsHint">Untick what you don't use. Each list keeps at least one item.</p>
+            <div id="view-config" class="view-config"></div>
+        </section>
     </div>
-    <div class="field settings-section">
-        <label for="bhl-key" data-i18n="settings.bhlKey">BHL API key</label>
-        <div class="row">
-            <input id="bhl-key" type="password" autocomplete="off" spellcheck="false"/>
-            <button id="bhl-key-toggle" type="button" aria-controls="bhl-key">Show</button>
+    <div id="settings-panel-keys" class="settings-panel" role="tabpanel" aria-labelledby="settings-tab-keys" hidden>
+        <div class="field">
+            <label for="tmdb-key" data-i18n="settings.tmdbKey">TMDB API key</label>
+            <div class="row">
+                <input id="tmdb-key" type="password" autocomplete="off" spellcheck="false"/>
+                <button id="tmdb-key-toggle" type="button" aria-controls="tmdb-key">Show</button>
+            </div>
+            <p class="hint"><span data-i18n="settings.tmdbHint">Optional. Gives the best movie and TV posters. Get a free key at</span>
+                <a id="tmdb-link" href="https://www.themoviedb.org/settings/api">themoviedb.org</a></p>
         </div>
-        <p class="hint"><span data-i18n="settings.bhlHint">Optional. Adds natural-history plates from the Biodiversity Heritage Library when Wikimedia Commons has none. Get a free key at</span>
-            <a id="bhl-link" href="https://www.biodiversitylibrary.org/getapikey.aspx">biodiversitylibrary.org</a></p>
-    </div>
-    <div class="field settings-section">
-        <label for="bgg-token" data-i18n="settings.bggToken">BoardGameGeek token</label>
-        <div class="row">
-            <input id="bgg-token" type="password" autocomplete="off" spellcheck="false"/>
-            <button id="bgg-token-toggle" type="button" aria-controls="bgg-token">Show</button>
+        <p class="notice" data-i18n="settings.tmdbNotice">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+        <div class="field settings-section">
+            <label for="igdb-id" data-i18n="settings.igdbId">IGDB Client ID</label>
+            <input id="igdb-id" type="text" autocomplete="off" spellcheck="false"/>
         </div>
-        <p class="hint"><span data-i18n="settings.bggHint">Only needed when this build has no BoardGameGeek token built in. Register a non-commercial application at</span>
-            <a id="bgg-link" href="https://boardgamegeek.com/applications">boardgamegeek.com/applications</a></p>
+        <div class="field">
+            <label for="igdb-secret" data-i18n="settings.igdbSecret">IGDB Client Secret</label>
+            <div class="row">
+                <input id="igdb-secret" type="password" autocomplete="off" spellcheck="false"/>
+                <button id="igdb-secret-toggle" type="button" aria-controls="igdb-secret">Show</button>
+            </div>
+            <p class="hint"><span data-i18n="settings.igdbHint">Optional. Gives box art for all games; without it, Steam covers PC games only.
+                With a Twitch account with two-factor authentication, register an app at</span>
+                <a id="twitch-link" href="https://dev.twitch.tv/console/apps">dev.twitch.tv/console/apps</a>
+                <span data-i18n="settings.igdbHintType">(Client Type</span> <em>Confidential</em><span
+                    data-i18n="settings.igdbHintRedirect">, OAuth Redirect URL</span> <code>http://localhost</code><span
+                    data-i18n="settings.igdbHintCopy">), then copy its Client ID and a new Client Secret.</span></p>
+        </div>
+        <div class="field settings-section">
+            <label for="bhl-key" data-i18n="settings.bhlKey">BHL API key</label>
+            <div class="row">
+                <input id="bhl-key" type="password" autocomplete="off" spellcheck="false"/>
+                <button id="bhl-key-toggle" type="button" aria-controls="bhl-key">Show</button>
+            </div>
+            <p class="hint"><span data-i18n="settings.bhlHint">Optional. Adds natural-history plates from the Biodiversity Heritage Library when Wikimedia Commons has none. Get a free key at</span>
+                <a id="bhl-link" href="https://www.biodiversitylibrary.org/getapikey.aspx">biodiversitylibrary.org</a></p>
+        </div>
+        <div class="field settings-section">
+            <label for="bgg-token" data-i18n="settings.bggToken">BoardGameGeek token</label>
+            <div class="row">
+                <input id="bgg-token" type="password" autocomplete="off" spellcheck="false"/>
+                <button id="bgg-token-toggle" type="button" aria-controls="bgg-token">Show</button>
+            </div>
+            <p class="hint"><span data-i18n="settings.bggHint">Only needed when this build has no BoardGameGeek token built in. Register a non-commercial application at</span>
+                <a id="bgg-link" href="https://boardgamegeek.com/applications">boardgamegeek.com/applications</a></p>
+        </div>
     </div>
     <!-- settings.ts lists the bundled lettering fonts from LetteringFonts;
          each licence text loads when its entry is opened. -->
-    <section id="settings-about" class="settings-section settings-about" aria-labelledby="about-title">
-        <h3 id="about-title" data-i18n="about.title">About</h3>
+    <section id="settings-about" class="settings-panel settings-about" role="tabpanel" aria-labelledby="settings-tab-about" hidden>
         <p class="hint" data-i18n="about.fontsIntro">Lettering fonts bundled with the app, each under its own licence. Open one to read it.</p>
         <ul id="about-fonts" class="about-fonts"></ul>
         <p id="about-fonts-status" class="settings-status error" role="status"></p>

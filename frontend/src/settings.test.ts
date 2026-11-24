@@ -159,7 +159,8 @@ describe('Settings About', () => {
     it('names the Go fonts and the section in Spanish', () => {
         setLang('es');
         applyDom(document);
-        expect(el('settings-about').querySelector('h3')?.textContent).toBe('Acerca de');
+        const about = el('settings-about');
+        expect(document.getElementById(about.getAttribute('aria-labelledby') ?? '')?.textContent).toBe('Acerca de');
         expect(fontItem('go').querySelector('summary')?.textContent).toContain('Fuentes Go (predeterminadas)');
     });
 });
@@ -361,10 +362,11 @@ describe('Sections shown', () => {
         delete document.documentElement.dataset.theme;
     });
 
-    it('comes after the theme and before the API keys, under its heading', () => {
+    it('comes after the theme, last in General, under its heading', () => {
         const part = el('settings-sections');
         expect(part.previousElementSibling).toBe(el('theme').closest('.field'));
-        expect(part.nextElementSibling?.contains(el('tmdb-key'))).toBe(true);
+        expect(part.nextElementSibling).toBeNull();
+        expect(part.parentElement?.getAttribute('aria-labelledby')).toBe('settings-tab-general');
         expect(document.getElementById(part.getAttribute('aria-labelledby') ?? '')?.textContent).toBe('Sections shown');
         expect(part.contains(el('view-config'))).toBe(true);
     });
@@ -465,5 +467,130 @@ describe('Sections shown', () => {
         expect(el('sections-title').textContent).toBe('Secciones visibles');
         expect(el('view-config').querySelector('[data-section="pages"] > legend label')?.textContent?.trim()).toBe('Crear páginas');
         expect(el('view-config').querySelector('[data-section="print"] .view-note')?.textContent).toBe('Siempre visible');
+    });
+});
+
+describe('Settings tabs', () => {
+    const saved = {tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', bggToken: '', language: ''};
+    const names = ['general', 'keys', 'about'];
+
+    function tab(name: string): HTMLButtonElement {
+        const node = el('settings-tabs').querySelector<HTMLButtonElement>(`[role="tab"][data-tab="${name}"]`);
+        if (!node) throw new Error(`missing tab ${name}`);
+        return node;
+    }
+
+    function panel(name: string): HTMLElement {
+        return el(tab(name).getAttribute('aria-controls') ?? '');
+    }
+
+    // shownTab is the selected tab, checking that only its panel shows.
+    function shownTab(): string | undefined {
+        const selected = names.filter((name) => tab(name).getAttribute('aria-selected') === 'true');
+        for (const name of names) expect(panel(name).hidden, name).toBe(!selected.includes(name));
+        expect(selected.length).toBe(1);
+        return selected[0];
+    }
+
+    async function openOn(which?: 'general' | 'keys' | 'about') {
+        vi.mocked(GetSettings).mockResolvedValueOnce(saved as never);
+        dialog.open(which);
+        await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+    }
+
+    afterEach(() => {
+        el('settings-close').click();
+        vi.mocked(SaveSettings).mockClear();
+        delete document.documentElement.dataset.theme;
+    });
+
+    it('has General, API keys and About, each labelling its panel', () => {
+        const tabs = Array.from(el('settings-tabs').querySelectorAll<HTMLElement>('[role="tab"]'));
+        expect(tabs.map((t) => [t.dataset.tab, t.textContent])).toEqual([
+            ['general', 'General'],
+            ['keys', 'API keys'],
+            ['about', 'About'],
+        ]);
+        expect(el('settings-tabs').getAttribute('role')).toBe('tablist');
+        for (const name of names) {
+            expect(panel(name).getAttribute('role')).toBe('tabpanel');
+            expect(panel(name).getAttribute('aria-labelledby')).toBe(tab(name).id);
+        }
+        // The main window's tabs are another list.
+        expect(el('tabs').contains(tab('general'))).toBe(false);
+    });
+
+    it('puts each setting in its tab, and Save, Close and the status below them all', () => {
+        for (const id of ['language', 'theme', 'settings-sections', 'view-config']) {
+            expect(panel('general').contains(el(id)), id).toBe(true);
+        }
+        for (const id of ['tmdb-key', 'tmdb-key-toggle', 'igdb-id', 'igdb-secret', 'bhl-key', 'bgg-token']) {
+            expect(panel('keys').contains(el(id)), id).toBe(true);
+        }
+        expect(panel('keys').textContent).toContain('This product uses the TMDB API');
+        expect(panel('about')).toBe(el('settings-about'));
+        for (const id of ['about-fonts', 'bgg-logo-about']) expect(panel('about').contains(el(id)), id).toBe(true);
+        for (const id of ['settings-save', 'settings-close', 'settings-status']) {
+            for (const name of names) expect(panel(name).contains(el(id)), `${id} in ${name}`).toBe(false);
+            expect(el('settings-dialog').contains(el(id))).toBe(true);
+        }
+    });
+
+    it('opens on General, whichever tab was shown last', async () => {
+        await openOn();
+        expect(shownTab()).toBe('general');
+        expect(document.activeElement).toBe(el('language'));
+        tab('about').click();
+        expect(shownTab()).toBe('about');
+        el('settings-close').click();
+
+        await openOn();
+        expect(shownTab()).toBe('general');
+    });
+
+    it('opens on API keys when asked, with the TMDB key focused', async () => {
+        await openOn('keys');
+        expect(shownTab()).toBe('keys');
+        expect(document.activeElement).toBe(el('tmdb-key'));
+    });
+
+    it('moves between its tabs with the arrow keys', async () => {
+        await openOn();
+        tab('general').dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true, cancelable: true}));
+        expect(shownTab()).toBe('keys');
+        expect(document.activeElement).toBe(tab('keys'));
+        tab('keys').dispatchEvent(new KeyboardEvent('keydown', {key: 'End', bubbles: true, cancelable: true}));
+        expect(shownTab()).toBe('about');
+    });
+
+    it('keeps unsaved values across tabs and saves every tab at once', async () => {
+        await openOn();
+        document.querySelector<HTMLButtonElement>('#theme [data-value="light"]')?.click();
+        await vi.waitFor(() => expect(el('view-config').querySelector('[data-list="paper"] input[data-item="a5"]')).toBeTruthy());
+        el('view-config').querySelector<HTMLInputElement>('[data-list="paper"] input[data-item="a5"]')?.click();
+        tab('keys').click();
+        el<HTMLInputElement>('tmdb-key').value = 'tmdb';
+        el<HTMLInputElement>('bgg-token').value = 'bgg';
+        tab('about').click();
+        tab('general').click();
+        expect(el('theme').querySelector('[aria-checked="true"]')?.getAttribute('data-value')).toBe('light');
+        tab('about').click();
+        el('settings-save').click();
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SaveSettings).mock.calls[0][0]).toMatchObject({
+            theme: 'light',
+            tmdbApiKey: 'tmdb',
+            bggToken: 'bgg',
+            view: {hidden: {paper: ['a5']}},
+        });
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('Saved'));
+        // Saving stays on the tab shown.
+        expect(shownTab()).toBe('about');
+    });
+
+    it('names the tabs in Spanish', () => {
+        setLang('es');
+        applyDom(document);
+        expect(names.map((name) => tab(name).textContent)).toEqual(['General', 'Claves de API', 'Acerca de']);
     });
 });

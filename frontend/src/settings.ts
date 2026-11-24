@@ -5,23 +5,29 @@ import {onLangChange, t} from './i18n';
 import {useLanguage} from './language';
 import {letteringFonts} from './lettering';
 import {initRadioGroup} from './radioGroup';
+import {initTabs} from './tabs';
 import {applyTheme} from './theme';
 import type {View} from './view';
 import {initViewConfig} from './viewConfig';
 import bggLogoLight from './assets/powered-by-bgg-rgb.svg';
 import bggLogoDark from './assets/powered-by-bgg-reversed-rgb.svg';
 
-// The Settings dialog: the UI language, the colour theme (System, Light or
-// Dark), the sections and list items the app shows (see viewConfig.ts), the
-// TMDB API key and the TMDB attribution notice, the IGDB (Twitch)
-// Client ID and Client Secret, the Biodiversity Heritage Library (BHL) API
-// key, the BoardGameGeek token, and an About section that lists the bundled
-// lettering fonts with their licences and credits BoardGameGeek with its
-// "Powered by BGG" logo.
+// The Settings dialog, in three tabs saved together: General (the UI
+// language, the colour theme: System, Light or Dark, and the sections and
+// list items the app shows, see viewConfig.ts), API keys (the TMDB API key
+// and the TMDB attribution notice, the IGDB (Twitch) Client ID and Client
+// Secret, the Biodiversity Heritage Library (BHL) API key and the
+// BoardGameGeek token) and About, which lists the bundled lettering fonts
+// with their licences and credits BoardGameGeek with its "Powered by BGG"
+// logo.
+
+// SettingsTab names a tab of the dialog (its data-tab).
+export type SettingsTab = 'general' | 'keys' | 'about';
 
 export interface SettingsDialog {
-    // open shows the dialog, prefilled with the saved settings.
-    open(): void;
+    // open shows the dialog on tab (General by default), prefilled with the
+    // saved settings.
+    open(tab?: SettingsTab): void;
     // isOpen reports whether the dialog is shown.
     isOpen(): boolean;
     // hasTMDBKey reports whether a TMDB API key is saved.
@@ -184,6 +190,7 @@ function initAbout(): About {
 export function initSettings(opts: SettingsOptions): SettingsDialog {
     const ui = {
         dialog: byId<HTMLDialogElement>('settings-dialog'),
+        tabs: byId<HTMLDivElement>('settings-tabs'),
         language: byId<HTMLSelectElement>('language'),
         theme: byId<HTMLDivElement>('theme'),
         view: byId<HTMLDivElement>('view-config'),
@@ -206,6 +213,8 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         save: byId<HTMLButtonElement>('settings-save'),
         close: byId<HTMLButtonElement>('settings-close'),
     };
+
+    const tabs = initTabs(ui.tabs, () => {});
 
     const theme = initRadioGroup(ui.theme, () => setStatus(''));
 
@@ -271,7 +280,15 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         opts.onChange();
     }
 
-    async function open() {
+    // The element each tab focuses when the dialog opens on it.
+    const firstFocus: Record<SettingsTab, () => HTMLElement> = {
+        general: () => ui.language,
+        keys: () => ui.key,
+        about: () => byId('settings-tab-about'),
+    };
+
+    async function open(tab: SettingsTab) {
+        tabs.select(tab);
         about.load();
         // The lists load once; a list that failed loads again at the next
         // open.
@@ -288,7 +305,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         }
         fill();
         if (!ui.dialog.open) ui.dialog.showModal();
-        ui.key.focus();
+        firstFocus[tab]().focus();
     }
 
     let saving = false;
@@ -375,7 +392,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     });
 
     return {
-        open: () => void open(),
+        open: (tab = 'general') => void open(tab),
         isOpen: () => ui.dialog.open,
         hasTMDBKey: () => (current.tmdbApiKey || '').trim() !== '',
         hasIGDBCredentials: () =>

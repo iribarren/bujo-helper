@@ -290,6 +290,22 @@ describe('key tip', () => {
         expect(el('key-tip').hidden).toBe(true);
     });
 
+    it('opens Settings on the API keys tab, and the header button on General', async () => {
+        selectType('movies');
+        el('key-tip-settings').click();
+        await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+        expect(el('settings-tab-keys').getAttribute('aria-selected')).toBe('true');
+        expect(el('settings-panel-keys').hidden).toBe(false);
+        el('settings-close').click();
+
+        el('settings-open').click();
+        await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+        expect(el('settings-tab-general').getAttribute('aria-selected')).toBe('true');
+        expect(el('settings-panel-keys').hidden).toBe(true);
+        el('settings-close').click();
+        selectType('books');
+    });
+
     // One sequential case: the built-in token answer arrives once, at
     // startup, and cannot be taken back.
     it('asks for a BoardGameGeek token for board games until one is saved or built in', async () => {

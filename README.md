@@ -295,7 +295,7 @@ BGG publishes no rate limit, but says a 5-second wait between requests seems to 
 ### TMDB API key
 
 1. Create a free account at [themoviedb.org](https://www.themoviedb.org/) and request an API key under [Settings → API](https://www.themoviedb.org/settings/api).
-2. In the app, click **Settings** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/bujo-helper/settings.json` on Linux, `%AppData%\bujo-helper\settings.json` on Windows, `~/Library/Application Support/bujo-helper/settings.json` on macOS), readable only by you. Settings saved by older versions in the `cover-downloader` folder are copied over automatically on first launch.
+2. In the app, click **Settings**, open **API keys** and paste the key ("API Key" or the longer "API Read Access Token"; both work). It is saved in your user configuration folder (`~/.config/bujo-helper/settings.json` on Linux, `%AppData%\bujo-helper\settings.json` on Windows, `~/Library/Application Support/bujo-helper/settings.json` on macOS), readable only by you. Settings saved by older versions in the `cover-downloader` folder are copied over automatically on first launch.
 3. For the command line, use `-tmdb-key`, or the `TMDB_API_KEY` environment variable; otherwise the key saved by the app is used.
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
@@ -305,7 +305,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 1. Sign in at [dev.twitch.tv](https://dev.twitch.tv/) with a Twitch account. Twitch requires two-factor authentication to register apps.
 2. In the [Developer Console](https://dev.twitch.tv/console/apps), click **Register Your Application**: any name, OAuth Redirect URL `http://localhost`, a category such as *Application Integration*, and Client Type **Confidential**.
 3. Open the app with **Manage**, copy its **Client ID**, and click **New Secret** to get a **Client Secret**.
-4. In the app, click **Settings** and paste both into **IGDB Client ID** and **IGDB Client Secret**. They are saved next to the TMDB key, readable only by you. The app exchanges them for an access token (valid for about two months), which it keeps in memory only.
+4. In the app, click **Settings**, open **API keys** and paste both into **IGDB Client ID** and **IGDB Client Secret**. They are saved next to the TMDB key, readable only by you. The app exchanges them for an access token (valid for about two months), which it keeps in memory only.
 5. For the command line, use `-igdb-id` and `-igdb-secret`, or the `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` environment variables; otherwise the credentials saved by the app are used.
 
 ### BHL API key
@@ -313,7 +313,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 The Biodiversity Heritage Library key is optional: nature images come from Wikimedia Commons without it, and BHL adds plates when Commons has none.
 
 1. Request a free key at [biodiversitylibrary.org/getapikey.aspx](https://www.biodiversitylibrary.org/getapikey.aspx) (a name and an email address); BHL emails it to you.
-2. In the app, click **Settings** and paste it into **BHL API key**. It is saved next to the TMDB key, readable only by you, and sent only to the BHL API (in the request URL, as BHL requires).
+2. In the app, click **Settings**, open **API keys** and paste it into **BHL API key**. It is saved next to the TMDB key, readable only by you, and sent only to the BHL API (in the request URL, as BHL requires).
 3. For the command line, use `-bhl-key`, or the `BHL_API_KEY` environment variable; otherwise the key saved by the app is used.
 
 While **Nature** is selected and no key is saved, a tip above the list suggests adding one. A key BHL rejects fails the item's BHL search with "BHL rejected the API key (HTTP 401)".
@@ -323,7 +323,7 @@ While **Nature** is selected and no key is saved, a tip above the list suggests 
 BoardGameGeek's XML API needs a registered application and its token on every request. BGG asks apps for end users not to make them get their own token, so release builds include the app's own token: board games work with nothing to set up.
 
 - Builds from source have no built-in token (see [Building](#building)). While **Board games** is selected and the build has no token and none is saved, a tip above the list suggests adding one.
-- A token saved in **Settings → BoardGameGeek token** overrides the built-in one. It is saved next to the TMDB key, readable only by you, and sent only to BoardGameGeek.
+- A token saved in **Settings → API keys → BoardGameGeek token** overrides the built-in one. It is saved next to the TMDB key, readable only by you, and sent only to BoardGameGeek.
 - For the command line, use `-bgg-token`, or the `BGG_TOKEN` environment variable; otherwise the token saved by the app is used, and then the built-in one.
 
 To get a token (for a source build or a fork):
@@ -1124,7 +1124,9 @@ To add a language, add a dictionary next to `frontend/src/i18n/en.ts` (the compi
 
 ## Theme and sections shown
 
-Both are in **Settings** and apply as soon as you click **Save**.
+**Settings** has three tabs: **General** (language, theme and sections shown), **API keys** (TMDB, IGDB, BHL and BoardGameGeek) and **About** (fonts and credits). **Save** saves every tab at once. The tip that suggests a key opens Settings on **API keys**.
+
+The theme and the sections shown are in **General** and apply as soon as you click **Save**.
 
 - **Theme**: **System** (the default) follows the system's light or dark setting; **Light** and **Dark** override it. Saved as `"theme"`: `""`, `"light"` or `"dark"`.
 - **Sections shown**: a checkbox tree of the app's sections and the lists inside them:

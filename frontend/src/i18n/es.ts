@@ -381,6 +381,8 @@ export const es: Messages = {
 
     // Settings dialog.
     'settings.title': 'Ajustes',
+    'settings.tabGeneral': 'General',
+    'settings.tabKeys': 'Claves de API',
     'settings.language': 'Idioma',
     'settings.languageSystem': 'Sistema',
     'settings.theme': 'Tema',

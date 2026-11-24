@@ -1,7 +1,8 @@
-// Tabs: the sections of the window, read from the markup. Each [role=tab]
-// in the tab list names itself with data-tab and its panel with
-// aria-controls, so adding a section only takes markup; the tab labels are
-// translated like any other static text (data-i18n).
+// Tabs: the sections of the window, and those of the Settings dialog, read
+// from the markup. Each [role=tab] in the tab list names itself with
+// data-tab and its panel with aria-controls, so adding a section only takes
+// markup; the tab labels are translated like any other static text
+// (data-i18n).
 
 export interface Tabs {
     // The tab names, in order.

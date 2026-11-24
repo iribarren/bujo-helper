@@ -246,14 +246,21 @@ input[readonly] {
 
 .settings-dialog {
     width: min(460px, calc(100vw - 32px));
-    /* Taller than the window (the Sections tree), it scrolls inside it. */
-    max-height: calc(100vh - 32px);
-    overflow-y: auto;
+    /* One height for every tab, so switching tabs keeps the dialog still; a
+       tab taller than that scrolls inside its panel. */
+    height: min(600px, calc(100vh - 32px));
     padding: 16px 18px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface);
     color: var(--text);
+}
+
+/* Shown, the title, the tabs and the actions stay put and the panel
+   between them takes the rest. */
+.settings-dialog[open] {
+    display: flex;
+    flex-direction: column;
 }
 
 .settings-dialog::backdrop {
@@ -275,6 +282,26 @@ input[readonly] {
 
 .settings-dialog .notice {
     margin-top: 12px;
+}
+
+/* The dialog's tabs: the window's tabs, more compact. */
+.settings-tabs {
+    flex: none;
+}
+
+.settings-tabs .tab {
+    height: 30px;
+    font-size: 13px;
+}
+
+/* A tab's panel scrolls on its own; the inset keeps focus rings visible at
+   its edges. */
+.settings-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0 -4px;
+    padding: 12px 4px 4px;
 }
 
 /* A group of fields for another source, below the previous one. */
@@ -375,12 +402,6 @@ input[readonly] {
 }
 
 /* About: the bundled fonts, each licence opening in place. */
-.settings-about h3 {
-    margin: 0 0 4px;
-    font-size: 13px;
-    font-weight: 600;
-}
-
 .about-fonts {
     margin: 8px 0 0;
     padding: 0;
@@ -467,10 +488,13 @@ input[readonly] {
 
 .dialog-actions {
     display: flex;
+    flex: none;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
 }
 
 .settings-status {
