@@ -5,6 +5,7 @@ New printables and content types for bullet journal users, based on research int
 - **Part 1 (items 1–13):** media spreads, such as reading logs, bookshelf trackers, movie and TV trackers and sticker sheets. Done, except item 7 (won't do).
 - **Part 2 (items 14–28):** other bujo collections, such as art, travel, nature, food and personal memories. Items are grouped by how well they fit the app: **Strong**, **Medium** and **Weak**.
 - **Part 3 (items 29–31):** app structure and lettering. A **Make pages** section for generated printables, a live PDF preview, and lettering fonts with hollow letters for colouring in.
+- **Part 4 (items 32–41):** follow-ups and possible features found during the reviews of Parts 1–3.
 
 ## How to use this roadmap
 
@@ -684,3 +685,118 @@ Order: 29 → 30 → 31, then the generated printables.
 - Header text auto-fits without overflow in every font (layout tests, table-driven over fonts).
 
 **Out of scope:** user-supplied fonts (a later item could allow importing a TTF, with the same `glyf`-only check), OpenType shaping, and outline versions of cover images. Turning photos into line art for colouring is a different, much harder feature; note it as a separate idea.
+
+---
+
+# Part 4: Follow-ups and possible features
+
+Open items found during the reviews of Parts 1–3 (see the feature documents in `odd/tasks/`). They are possible features, not commitments; ordered by value first, then effort. Review fixes for the thumbnail tests and follow-up items 5–8 (frontend test gaps, CirrusSearch escaping, preview resize replay, quote comma round-trip) are handled separately and are not listed here.
+
+## 32. [ ] Preview cache for large cover selections
+
+**Why:** re-rendering the live preview of a large cover selection re-encodes every image each time an option changes (source: `odd/tasks/live-preview.md`).
+
+**Scope**
+- Cache the decoded/encoded image data per path and file modification time between preview renders, bounded in memory, and drop entries when files change or leave the selection.
+- Reuse the cache for export only if output bytes stay identical.
+
+**Acceptance**
+- A benchmark or test shows a second render of the same selection does not re-encode unchanged images. Export output is byte-identical with and without the cache. Memory stays bounded (test with a lowered cap).
+
+## 33. [ ] Plant care card page kind
+
+**Why:** the optional extension of item 17 (Vintage nature illustrations): a card next to a plant plate with watering, light and notes.
+
+**Scope**
+- A Make pages kind (or a Print covers format for nature images) with a plant name, plate image, and ruled fields (light, water, soil, notes), following the **Lettering** and **Colour-in** conventions.
+
+**Acceptance**
+- Layout tests per paper; text fits; EN/ES labels.
+
+## 34. [ ] Regional maps for the visited map
+
+**Why:** single-country maps (US states, Spanish provinces, Canadian provinces) are common travel spreads; left out of item 16.
+
+**Scope**
+- Add admin-1 regions from Natural Earth for a chosen set of countries, a region picker, and matching by region name. Same drawing, list and Colour-in rules as item 16.
+- Keep the embedded data size in check (simplify geometry; only the chosen countries).
+
+**Acceptance**
+- Matching tests per country; layout tests per paper; README lists the data source and licence.
+
+## 35. [ ] Colour-in for Review cards titles
+
+**Why:** Colour-in has no visible effect on Review cards: titles print at 9.5 pt, below the 14 pt minimum for hollow text (source: `odd/tasks/lettering-fonts.md`).
+
+**Scope**
+- Decide (with the user) between a larger hollow title band on review cards or hiding the Colour-in control for that format; then implement it.
+
+**Acceptance**
+- Either hollow titles show on review cards (content stream has `1 Tr`), or the control is hidden for them with a hint. Default output unchanged.
+
+## 36. [ ] Full page with square cells for albums
+
+**Why:** album covers are square; the full page format still shrinks them into 2:3 cells (source: `odd/tasks/albums.md`).
+
+**Scope**
+- Full page uses square cells when the selection is mostly square, reusing the non-2:3 placement from item 14.
+
+**Acceptance**
+- Layout tests with square, 2:3 and mixed selections; other formats unchanged.
+
+## 37. [ ] Cut option for review cards and spines
+
+**Why:** Print-then-cut (item 6) applies to the cover sheet only; review cards and book spines keep their borders and ignore the cut option (source: `odd/tasks/print-then-cut.md`).
+
+**Scope**
+- Apply the cut modes (border, bleed + registration marks, none) to review cards and spines.
+
+**Acceptance**
+- PDF tests check bleed placement and marks for both formats; default output byte-identical.
+
+## 38. [ ] Product barcode file names and contact User-Agent
+
+**Why:** barcode downloads are named after the barcode, not the product; and the Open Food Facts contact User-Agent has no email (source: `odd/tasks/products.md`).
+
+**Scope**
+- Name barcode downloads `Product - Brand.jpg` when the lookup returns a name.
+- Decide with the user whether the User-Agent carries a contact email (privacy trade-off) and document it.
+
+**Acceptance**
+- Downloader tests for barcode naming and duplicate suffixes; README updated.
+
+## 39. [ ] Test and robustness polish
+
+**Why:** small review advisories left open across features; each is cheap, together they harden the code.
+
+**Scope**
+- Live preview: busy indicator cleared early on next/previous while a new document's first page draws; tests for a failing `loadingTask.destroy` and for `holdDraw()` rebinding (`frontend/src/preview.ts`, `previewMock.ts`).
+- Print formats: PDF content-stream checks for spine colour and rotation, card text and bleed placement; spines' colour buckets can split a hue (README overstates); bleed pad uses vertical px/mm; a failed `PrintFormats` binding also disables the cover sheet export; ticket stubs advisories (`stubs.go:120-129`, `pdf_test.go:728`).
+- Lettering: body check on the Go licence route (`app_test.go`), and the retry test in `letteringLoad.test.ts` relies on one microtask hop.
+- Photo crop: the `printCroppedImage` warning (`internal/sheet/crop.go:186-192`) and `anilist_test.go:186` suggestion; cover-size error text assertion.
+- Polaroid: A5 Standard's 3 columns depend on `newFixedGrid`'s tolerance (pin it if the tolerance changes).
+
+**Acceptance**
+- Each fix has a test that fails before it; no output change except where a bug is fixed.
+
+## 40. [ ] Release and build tooling
+
+**Why:** leftovers from the release work (sources: `odd/tasks/bujo-helper-release.md`, `odd/tasks/boardgames.md`, `odd/tasks/live-preview.md`).
+
+**Scope**
+- Release workflow: warn when the `BGG_TOKEN` secret is empty; check after the build that the `-X` token symbol was linked; pass `ref_name` through env in `run` lines; remove the duplicated build step; stop hard-coding `productVersion` in `wails.json`.
+- Frontend: split the 570 kB main chunk (`manualChunks`, e.g. pdf.js) so `vite build` stops warning; type-check test files; i18n leftovers (split sentence fragments, tooltip text in both markup and dictionary, keys built from `undefined`); move the listener test cleanup into `afterEach`; label fit test across poster ratios.
+
+**Acceptance**
+- `vite build` has no chunk warning; the workflow passes `actionlint` (or a YAML parse check); tests for the i18n fixes.
+
+## 41. [ ] Source checks and documented limitations
+
+**Why:** checks that need an external step, and limitations kept as documented behaviour (sources: `odd/tasks/nature.md`, `odd/tasks/places.md`).
+
+**Scope**
+- Run a live BHL check once a key exists (BHL often marks public-domain scans CC BY-NC, which the rights rule skips); record the result in the README.
+- Places: a place name ending in "flag" switches to flag mode; odd Commons author fields ("FeaturedPics", "No machine-readable author provided") are stored as given. Decide whether to clean them up or keep them documented.
+
+**Acceptance**
+- README records the live check result; any clean-up has fixture tests.
