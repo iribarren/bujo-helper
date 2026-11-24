@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -496,7 +497,7 @@ func TestLoadUserSettingsMigratesTheLegacySettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("loadUserSettings: %v", err)
 	}
-	if want := (settings.Settings{TMDBAPIKey: "old-key", IGDBClientSecret: "old-secret"}); got != want {
+	if want := (settings.Settings{TMDBAPIKey: "old-key", IGDBClientSecret: "old-secret"}); !reflect.DeepEqual(got, want) {
 		t.Errorf("settings = %+v, want the legacy settings %+v", got, want)
 	}
 	if _, err := os.Stat(filepath.Join(base, "bujo-helper", "settings.json")); err != nil {
@@ -522,7 +523,7 @@ func TestLoadUserSettingsWarnsAboutASkippedLegacyFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("loadUserSettings: %v, want the CLI to carry on", err)
 	}
-	if got != (settings.Settings{}) {
+	if !reflect.DeepEqual(got, (settings.Settings{})) {
 		t.Errorf("settings = %+v, want zero settings", got)
 	}
 	if out := warn.String(); !strings.HasPrefix(out, "warning: ") || !strings.Contains(out, legacy) {

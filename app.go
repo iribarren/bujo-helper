@@ -273,7 +273,8 @@ func (a *App) GetSettings() settings.Settings {
 
 // SaveSettings saves s to the settings file and uses it at once. The
 // remembered Print covers and Make pages options are kept: the Settings
-// dialog does not send them.
+// dialog does not send them. It sends everything else, the theme and the
+// shown parts of the app included.
 func (a *App) SaveSettings(s settings.Settings) error {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()

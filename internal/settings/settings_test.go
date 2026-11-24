@@ -16,7 +16,7 @@ func TestLoadMissingFileReturnsZeroSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if s != (Settings{}) {
+	if !reflect.DeepEqual(s, (Settings{})) {
 		t.Errorf("Load = %+v, want zero Settings", s)
 	}
 }
@@ -135,7 +135,7 @@ func TestSaveTrimsAndKeepsTheIGDBCredentials(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := (Settings{TMDBAPIKey: "tmdb", IGDBClientID: "client-id", IGDBClientSecret: "secret"}); got != want {
+	if want := (Settings{TMDBAPIKey: "tmdb", IGDBClientID: "client-id", IGDBClientSecret: "secret"}); !reflect.DeepEqual(got, want) {
 		t.Errorf("Load = %+v, want %+v", got, want)
 	}
 	b, err := os.ReadFile(path)
@@ -158,7 +158,7 @@ func TestLoadKeepsOlderFilesWithoutIGDBCredentials(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != (Settings{TMDBAPIKey: "k"}) {
+	if !reflect.DeepEqual(got, (Settings{TMDBAPIKey: "k"})) {
 		t.Errorf("Load = %+v, want only the TMDB key", got)
 	}
 }
@@ -251,7 +251,7 @@ func TestMigrate(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Load: %v", err)
 			}
-			if got != tt.want {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Load = %+v, want %+v", got, tt.want)
 			}
 			if tt.legacy != nil {
@@ -327,7 +327,7 @@ func TestSaveTrimsAndKeepsTheBHLKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := (Settings{TMDBAPIKey: "tmdb", BHLAPIKey: "bhl-key"}); got != want {
+	if want := (Settings{TMDBAPIKey: "tmdb", BHLAPIKey: "bhl-key"}); !reflect.DeepEqual(got, want) {
 		t.Errorf("Load = %+v, want %+v", got, want)
 	}
 	b, err := os.ReadFile(path)
@@ -341,7 +341,7 @@ func TestSaveTrimsAndKeepsTheBHLKey(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`{"tmdbApiKey": "k"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := Load(path); err != nil || got != (Settings{TMDBAPIKey: "k"}) {
+	if got, err := Load(path); err != nil || !reflect.DeepEqual(got, (Settings{TMDBAPIKey: "k"})) {
 		t.Errorf("Load(old file) = %+v, %v", got, err)
 	}
 }
@@ -355,7 +355,7 @@ func TestSaveTrimsAndKeepsTheBGGToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := (Settings{BHLAPIKey: "bhl", BGGToken: "bgg-token"}); got != want {
+	if want := (Settings{BHLAPIKey: "bhl", BGGToken: "bgg-token"}); !reflect.DeepEqual(got, want) {
 		t.Errorf("Load = %+v, want %+v", got, want)
 	}
 	b, err := os.ReadFile(path)
@@ -369,7 +369,7 @@ func TestSaveTrimsAndKeepsTheBGGToken(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`{"bhlApiKey": "k"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := Load(path); err != nil || got != (Settings{BHLAPIKey: "k"}) {
+	if got, err := Load(path); err != nil || !reflect.DeepEqual(got, (Settings{BHLAPIKey: "k"})) {
 		t.Errorf("Load(old file) = %+v, %v", got, err)
 	}
 }
@@ -446,7 +446,7 @@ func TestLoadKeepsOlderFilesWithoutPrefs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != (Settings{TMDBAPIKey: "k", Language: "en"}) {
+	if !reflect.DeepEqual(got, (Settings{TMDBAPIKey: "k", Language: "en"})) {
 		t.Errorf("Load = %+v, want only the key and language", got)
 	}
 	// A missing credits value means "use the default" (on).
@@ -466,5 +466,82 @@ func TestTrimmedCapsTheHeaderAndTitle(t *testing.T) {
 	}
 	if short := (PrintPrefs{Header: " hi "}).Trimmed().Header; short != "hi" {
 		t.Errorf("short header = %q, want hi", short)
+	}
+}
+
+func TestTrimmedNormalizesTheTheme(t *testing.T) {
+	for in, want := range map[string]string{"": "", " Dark ": "dark", "light": "light", "LIGHT": "light", "sepia": "", "system": ""} {
+		if got := (Settings{Theme: in}).Trimmed().Theme; got != want {
+			t.Errorf("Trimmed theme %q = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestTrimmedCleansTheViewPrefs(t *testing.T) {
+	got := Settings{View: ViewPrefs{
+		HiddenSections: []string{" pages ", "print", "", "pages", "download"},
+		Hidden: map[string][]string{
+			"media":  {" games", "games", "", "books"},
+			"paper":  {" ", ""},
+			" size ": {"mini"},
+		},
+	}}.Trimmed().View
+	want := ViewPrefs{
+		HiddenSections: []string{"pages", "download"},
+		Hidden:         map[string][]string{"media": {"games", "books"}, "size": {"mini"}},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Trimmed view = %#v, want %#v", got, want)
+	}
+	// Nothing hidden is the zero value, so the file leaves "view" out.
+	empty := Settings{View: ViewPrefs{HiddenSections: []string{"print"}, Hidden: map[string][]string{"paper": {""}}}}.Trimmed().View
+	if !reflect.DeepEqual(empty, ViewPrefs{}) {
+		t.Errorf("Trimmed empty view = %#v, want the zero value", empty)
+	}
+}
+
+func TestSaveThenLoadTheThemeAndView(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	in := Settings{
+		Theme: "dark",
+		View: ViewPrefs{
+			HiddenSections: []string{"download"},
+			Hidden:         map[string][]string{"paper": {"letter"}, "pageKinds": {"map", "moon"}},
+		},
+	}
+	if err := Save(path, in); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, in) {
+		t.Errorf("Load = %+v, want %+v", got, in)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{`"theme": "dark"`, `"view": {`, `"hiddenSections": [`, `"letter"`} {
+		if !strings.Contains(string(b), s) {
+			t.Errorf("file = %s, want it to contain %s", b, s)
+		}
+	}
+}
+
+func TestSaveOmitsTheDefaultThemeAndView(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	if err := Save(path, Settings{TMDBAPIKey: "k"}); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []string{`"theme"`, `"view"`} {
+		if strings.Contains(string(b), s) {
+			t.Errorf("file = %s, want no %s when it is the default", b, s)
+		}
 	}
 }

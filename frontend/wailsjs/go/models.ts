@@ -380,6 +380,20 @@ export namespace settings {
 	        this.colourIn = source["colourIn"];
 	    }
 	}
+	export class ViewPrefs {
+	    hiddenSections?: string[];
+	    hidden?: Record<string, Array<string>>;
+	
+	    static createFrom(source: any = {}) {
+	        return new ViewPrefs(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.hiddenSections = source["hiddenSections"];
+	        this.hidden = source["hidden"];
+	    }
+	}
 	export class Settings {
 	    tmdbApiKey: string;
 	    igdbClientId: string;
@@ -389,6 +403,8 @@ export namespace settings {
 	    language: string;
 	    print: PrintPrefs;
 	    pages: PagesPrefs;
+	    theme?: string;
+	    view: ViewPrefs;
 	
 	    static createFrom(source: any = {}) {
 	        return new Settings(source);
@@ -404,6 +420,8 @@ export namespace settings {
 	        this.language = source["language"];
 	        this.print = this.convertValues(source["print"], PrintPrefs);
 	        this.pages = this.convertValues(source["pages"], PagesPrefs);
+	        this.theme = source["theme"];
+	        this.view = this.convertValues(source["view"], ViewPrefs);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
