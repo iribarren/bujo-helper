@@ -51,5 +51,7 @@ Route evidence: writer trigger (each task touches 2+ non-trivial files or needs 
   - Real bug (RED): `selection shape > keeps the square counts on another paper while the selection is the same` failed: `expected 'Standard · 70 mm (6 per page)' to be 'Standard · 70 mm (12 per page)'`. `updateSelection()` did not refresh the size labels, so after a selection change they kept the old selection's square/wide counts until the next count arrived (or forever if it failed). Fix: `updateSelection()` calls `updateSizeLabels()`; the four separate calls before it were removed. Other new tests passed first time; each was checked by removing its guard (test fails).
   - GREEN (writer): go build ok; go vet clean; go test 3461 passed; gofmt empty; tsc clean; vitest 407 passed (16 files); npm run build ok. Parent spot check: vitest 407 passed.
 
+- T2 assess `44f63d9..eb59b30`: medium, `slice_budget_reached` (403 lines). Consent granted; review-reliability approved; acknowledged (lineage `review-f9b07f0d651e2538`, authority burned). Advisory WARNING R3-001 (language relabel no longer refreshes size labels) refuted by the parent: `relabel()` ends with `updateSelection()` (`frontend/src/print.ts:777`), which calls `updateSizeLabels()`. Reviewed boundary: `eb59b30`.
+
 ## Next step
-T3.
+T3 (delegated writer).
