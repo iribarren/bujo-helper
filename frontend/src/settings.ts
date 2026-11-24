@@ -6,11 +6,13 @@ import {useLanguage} from './language';
 import {letteringFonts} from './lettering';
 import {initRadioGroup} from './radioGroup';
 import {applyTheme} from './theme';
+import {initViewConfig} from './viewConfig';
 import bggLogoLight from './assets/powered-by-bgg-rgb.svg';
 import bggLogoDark from './assets/powered-by-bgg-reversed-rgb.svg';
 
 // The Settings dialog: the UI language, the colour theme (System, Light or
-// Dark), the TMDB API key and the TMDB attribution notice, the IGDB (Twitch)
+// Dark), the sections and list items the app shows (see viewConfig.ts), the
+// TMDB API key and the TMDB attribution notice, the IGDB (Twitch)
 // Client ID and Client Secret, the Biodiversity Heritage Library (BHL) API
 // key, the BoardGameGeek token, and an About section that lists the bundled
 // lettering fonts with their licences and credits BoardGameGeek with its
@@ -179,6 +181,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         dialog: byId<HTMLDialogElement>('settings-dialog'),
         language: byId<HTMLSelectElement>('language'),
         theme: byId<HTMLDivElement>('theme'),
+        view: byId<HTMLDivElement>('view-config'),
         key: byId<HTMLInputElement>('tmdb-key'),
         toggle: byId<HTMLButtonElement>('tmdb-key-toggle'),
         igdbId: byId<HTMLInputElement>('igdb-id'),
@@ -210,6 +213,8 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
             {value: 'dark', label: t('settings.themeDark')},
         ]);
     }
+
+    const view = initViewConfig(ui.view, () => setStatus(''));
 
     const about = initAbout();
     initBGGLogo(byId<HTMLAnchorElement>('bgg-logo-about'));
@@ -247,6 +252,8 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
     function fill() {
         ui.language.value = current.language || '';
         theme.value = current.theme || '';
+        // Older settings files have no view: everything is shown.
+        view.fill(current.view);
         ui.key.value = current.tmdbApiKey || '';
         ui.igdbId.value = current.igdbClientId || '';
         ui.igdbSecret.value = current.igdbClientSecret || '';
@@ -261,6 +268,9 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
 
     async function open() {
         about.load();
+        // The lists load once; a list that failed loads again at the next
+        // open.
+        void view.load();
         setStatus('');
         showSecret(ui.key, ui.toggle, false);
         showSecret(ui.igdbSecret, ui.igdbToggle, false);
@@ -287,6 +297,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
         // The theme shown once saved: the one sent, whatever is clicked
         // while saving.
         const savedTheme = theme.value;
+        const savedView = view.read();
         try {
             await SaveSettings(new settings.Settings({
                 tmdbApiKey: ui.key.value,
@@ -296,6 +307,7 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
                 bggToken: ui.bggToken.value,
                 language: ui.language.value,
                 theme: savedTheme,
+                view: savedView,
             }));
         } catch (err) {
             setStatus(errorText(err), 'error');

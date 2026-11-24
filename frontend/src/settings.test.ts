@@ -32,6 +32,15 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     }
     stubs.GetSettings = vi.fn(async () => ({tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', bggToken: '', language: ''}));
     stubs.LetteringFonts = vi.fn(async () => fontList);
+    // The lists of the Sections tree.
+    const items = (...ids: string[]) => ids.map((id, i) => ({id, label: id, default: i === 0}));
+    stubs.MediaTypes = vi.fn(async () => items('books', 'movies'));
+    stubs.PrintPapers = vi.fn(async () => items('a4', 'letter', 'a5'));
+    stubs.PrintFormats = vi.fn(async () => items('covers', 'cards'));
+    stubs.PrintSizes = vi.fn(async () => items('standard', 'mini'));
+    stubs.PrintCropModes = vi.fn(async () => items('wallet'));
+    stubs.PrintCutModes = vi.fn(async () => items('border', 'none'));
+    stubs.PageKinds = vi.fn(async () => items('dotgrid', 'moon'));
     return stubs;
 });
 vi.mock('../wailsjs/runtime/runtime', () => ({BrowserOpenURL: vi.fn()}));
@@ -321,5 +330,123 @@ describe('Theme', () => {
         const labels = Array.from(el('theme').querySelectorAll('[role="radio"]')).map((r) => r.textContent);
         expect(labels).toEqual(['Sistema', 'Claro', 'Oscuro']);
         expect(checkedTheme()).toBe('dark');
+    });
+});
+
+describe('Sections shown', () => {
+    const saved = {tmdbApiKey: '', igdbClientId: '', igdbClientSecret: '', bhlApiKey: '', bggToken: '', language: ''};
+
+    function sectionBox(id: string): HTMLInputElement {
+        const node = el('view-config').querySelector<HTMLInputElement>(`[data-section="${id}"] > legend input`);
+        if (!node) throw new Error(`missing section ${id}`);
+        return node;
+    }
+
+    function box(list: string, item: string): HTMLInputElement {
+        const node = el('view-config').querySelector<HTMLInputElement>(`[data-list="${list}"] input[data-item="${item}"]`);
+        if (!node) throw new Error(`missing ${list}/${item}`);
+        return node;
+    }
+
+    async function openWith(view?: object) {
+        vi.mocked(GetSettings).mockResolvedValueOnce({...saved, view} as never);
+        dialog.open();
+        await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+        await vi.waitFor(() => expect(box('paper', 'a4')).toBeTruthy());
+    }
+
+    afterEach(() => {
+        el('settings-close').click();
+        vi.mocked(SaveSettings).mockClear();
+        delete document.documentElement.dataset.theme;
+    });
+
+    it('comes after the theme and before the API keys, under its heading', () => {
+        const part = el('settings-sections');
+        expect(part.previousElementSibling).toBe(el('theme').closest('.field'));
+        expect(part.nextElementSibling?.contains(el('tmdb-key'))).toBe(true);
+        expect(document.getElementById(part.getAttribute('aria-labelledby') ?? '')?.textContent).toBe('Sections shown');
+        expect(part.contains(el('view-config'))).toBe(true);
+    });
+
+    it('lists the sections and the items Go sends, all ticked when no view is saved', async () => {
+        await openWith(undefined);
+        const sections = Array.from(el('view-config').querySelectorAll<HTMLElement>('[data-section]'), (s) => s.dataset.section);
+        expect(sections).toEqual(['download', 'print', 'pages']);
+        for (const input of el('view-config').querySelectorAll<HTMLInputElement>('input[data-item]')) expect(input.checked).toBe(true);
+        expect(sectionBox('print').disabled).toBe(true);
+    });
+
+    it('shows the saved view each time it opens', async () => {
+        await openWith({hiddenSections: ['download'], hidden: {paper: ['letter']}});
+        expect(sectionBox('download').checked).toBe(false);
+        expect(box('paper', 'letter').checked).toBe(false);
+        box('paper', 'a5').click();
+        el('settings-close').click();
+
+        await openWith(undefined);
+        expect(sectionBox('download').checked).toBe(true);
+        expect(box('paper', 'letter').checked).toBe(true);
+        expect(box('paper', 'a5').checked).toBe(true);
+    });
+
+    it('shows the default ticked when the saved view hides a whole list', async () => {
+        await openWith({hidden: {pageKind: ['dotgrid', 'moon']}});
+        expect(box('pageKind', 'dotgrid').checked).toBe(true);
+        expect(box('pageKind', 'moon').checked).toBe(false);
+        expect(box('pageKind', 'dotgrid').disabled).toBe(true);
+    });
+
+    it('saves the view with the other settings and the theme', async () => {
+        await openWith(undefined);
+        box('paper', 'letter').click();
+        sectionBox('pages').click();
+        document.querySelector<HTMLButtonElement>('#theme [data-value="dark"]')?.click();
+        el<HTMLInputElement>('bgg-token').value = 'token';
+        el('settings-save').click();
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(SaveSettings).mock.calls[0][0]).toMatchObject({
+            theme: 'dark',
+            bggToken: 'token',
+            language: '',
+            view: {hiddenSections: ['pages'], hidden: {paper: ['letter']}},
+        });
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('Saved'));
+    });
+
+    it('saves an empty view when everything is shown', async () => {
+        await openWith(undefined);
+        el('settings-save').click();
+        await vi.waitFor(() => expect(SaveSettings).toHaveBeenCalledTimes(1));
+        const view = vi.mocked(SaveSettings).mock.calls[0][0].view;
+        expect(view?.hiddenSections).toBeUndefined();
+        expect(view?.hidden).toBeUndefined();
+    });
+
+    it('keeps the ticks when saving fails', async () => {
+        vi.mocked(SaveSettings).mockRejectedValueOnce(new Error('disk full'));
+        await openWith(undefined);
+        box('paper', 'letter').click();
+        el('settings-save').click();
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('disk full'));
+        expect(box('paper', 'letter').checked).toBe(false);
+    });
+
+    it('clears the status when a box changes', async () => {
+        vi.mocked(SaveSettings).mockRejectedValueOnce(new Error('disk full'));
+        await openWith(undefined);
+        el('settings-save').click();
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('disk full'));
+        box('media', 'movies').click();
+        expect(el('settings-status').textContent).toBe('');
+    });
+
+    it('names the part in Spanish', async () => {
+        await openWith(undefined);
+        setLang('es');
+        applyDom(document);
+        expect(el('sections-title').textContent).toBe('Secciones visibles');
+        expect(el('view-config').querySelector('[data-section="pages"] > legend label')?.textContent?.trim()).toBe('Crear páginas');
+        expect(el('view-config').querySelector('[data-section="print"] .view-note')?.textContent).toBe('Siempre visible');
     });
 });

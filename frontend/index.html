@@ -230,7 +230,14 @@
         <!-- System | Light | Dark: filled by settings.ts. -->
         <div id="theme" class="segmented" role="radiogroup" aria-labelledby="theme-label"></div>
     </div>
-    <div class="field">
+    <!-- The sections and list items the app shows: filled by viewConfig.ts
+         from view.ts SECTIONS and the lists Go sends. -->
+    <section id="settings-sections" class="settings-section settings-sections" aria-labelledby="sections-title">
+        <h3 id="sections-title" data-i18n="settings.sections">Sections shown</h3>
+        <p class="hint" data-i18n="settings.sectionsHint">Untick what you don't use. Each list keeps at least one item.</p>
+        <div id="view-config" class="view-config"></div>
+    </section>
+    <div class="field settings-section">
         <label for="tmdb-key" data-i18n="settings.tmdbKey">TMDB API key</label>
         <div class="row">
             <input id="tmdb-key" type="password" autocomplete="off" spellcheck="false"/>
