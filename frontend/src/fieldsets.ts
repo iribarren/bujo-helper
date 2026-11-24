@@ -11,6 +11,7 @@ import {label, t, type MessageKey} from './i18n';
 import {renderLettering, type Lettering} from './lettering';
 import {restoreSelect} from './prefs';
 import {initRadioGroup, type RadioGroup} from './radioGroup';
+import {chooseShown, visibleItems, type View} from './view';
 
 // Preset is a Go preset with an ID, an English label and a default flag.
 export interface Preset {
@@ -37,6 +38,8 @@ export interface SharedFieldsetsConfig {
     onPaperChange: () => void;
     // Called when the user picks another font or toggles Colour-in.
     onLetteringChange: () => void;
+    // The sections and list items shown at first (see setView).
+    view?: View;
 }
 
 // SharedPrefs are the remembered values of the shared fields; an unset or
@@ -62,10 +65,17 @@ export interface SharedFieldsets {
     hint: HTMLParagraphElement;
     // The Font picker and Colour-in; lettering.options() is what Go gets.
     lettering: Lettering;
-    // Fills Paper from the Go papers; the first time, the default is checked.
+    // Fills Paper from the Go papers the view shows, keeping the checked
+    // paper when it is still shown, else checking the shown default.
     setPapers: (papers: main.PrintPaperInfo[]) => void;
-    // Fills Cut mode from the Go cut modes, the default selected.
+    // Fills Cut mode from the Go cut modes the view shows, the shown
+    // default selected.
     setCuts: (cuts: Preset[]) => void;
+    // Shows only the papers and cut modes the view shows (Print covers and
+    // Make pages share them), keeping the chosen ones that are still shown,
+    // else the fallback ones (the remembered ones), else the shown default.
+    // It calls no change callback.
+    setView: (view: View, fallback: {paper?: string; cut?: string}) => void;
     // Shows the text field when it applies, the hint otherwise.
     showText: (on: boolean) => void;
     // Shows the Font picker and Colour-in when lettering applies.
@@ -98,16 +108,25 @@ export function titled<T extends HTMLElement>(node: T, key: MessageKey): T {
     return node;
 }
 
-// fillSelect fills select with the presets, named by their IDs, the default
-// selected.
-export function fillSelect(select: HTMLSelectElement, kind: string, presets: Preset[]) {
-    select.replaceChildren(...presets.map((preset) => {
+// fillShown fills select with the presets of the list kind (a view list
+// id, also their label kind) that view shows, named by text (by their IDs
+// when unset), and selects the first of wanted that is shown, else the
+// shown default (see chooseShown).
+export function fillShown<T extends Preset>(
+    select: HTMLSelectElement,
+    kind: string,
+    presets: readonly T[],
+    view: View,
+    wanted: ReadonlyArray<string | undefined>,
+    text: (preset: T) => string = (preset) => label(kind, preset.id, preset.label),
+) {
+    select.replaceChildren(...visibleItems(view, kind, presets).map((preset) => {
         const option = el('option');
-        option.textContent = label(kind, preset.id, preset.label);
+        option.textContent = text(preset);
         option.value = preset.id;
-        option.selected = preset.default;
         return option;
     }));
+    select.value = chooseShown(view, kind, presets, wanted);
 }
 
 // labelOptions names the options of a select by their preset IDs.
@@ -131,6 +150,8 @@ export function syncFieldsets(root: HTMLElement) {
 // options column and wires Paper.
 export function renderSharedFieldsets(config: SharedFieldsetsConfig): SharedFieldsets {
     const {prefix} = config;
+    let view = config.view;
+    // Every paper and cut mode from Go; the view picks those shown.
     let papers: main.PrintPaperInfo[] = [];
     let cuts: Preset[] = [];
 
@@ -185,11 +206,15 @@ export function renderSharedFieldsets(config: SharedFieldsetsConfig): SharedFiel
 
     config.container.append(pageGroup, letteringGroup);
 
-    function labelPapers() {
-        paper.replaceOptions(papers.map((p) => {
+    // showPapers shows the papers the view shows, named in the current
+    // language, and checks the first of wanted that is shown, else the
+    // shown default.
+    function showPapers(wanted: ReadonlyArray<string | undefined>) {
+        paper.replaceOptions(visibleItems(view, 'paper', papers).map((p) => {
             const name = label('paper', p.id, p.label);
             return {value: p.id, label: name, title: `${name} · ${p.width} × ${p.height} mm`};
         }));
+        paper.value = chooseShown(view, 'paper', papers, wanted);
     }
 
     function showText(on: boolean) {
@@ -211,27 +236,29 @@ export function renderSharedFieldsets(config: SharedFieldsetsConfig): SharedFiel
         hint,
         lettering,
         setPapers: (list) => {
-            const first = papers.length === 0;
             papers = list;
-            labelPapers();
-            const preset = list.find((p) => p.default);
-            if (first && preset) paper.value = preset.id;
+            showPapers([paper.value]);
         },
         setCuts: (list) => {
             cuts = list;
-            fillSelect(cut, 'cut', cuts);
+            fillShown(cut, 'cut', cuts, view, []);
+        },
+        setView: (next, fallback) => {
+            view = next;
+            showPapers([paper.value, fallback.paper]);
+            fillShown(cut, 'cut', cuts, view, [cut.value, fallback.cut]);
         },
         showText,
         showLettering: lettering.show,
         restore: (prefs) => {
-            if (prefs.paper && papers.some((p) => p.id === prefs.paper)) paper.value = prefs.paper;
+            if (prefs.paper && visibleItems(view, 'paper', papers).some((p) => p.id === prefs.paper)) paper.value = prefs.paper;
             restoreSelect(cut, prefs.cut);
             if (credits && prefs.credits !== undefined) credits.checked = prefs.credits;
             if (prefs.text) text.value = prefs.text;
             lettering.restore(prefs.font, prefs.colourIn ?? false);
         },
         relabel: () => {
-            labelPapers();
+            showPapers([paper.value]);
             labelOptions(cut, 'cut', cuts);
             lettering.relabel();
         },

@@ -414,6 +414,23 @@ describe('Sections shown', () => {
         await vi.waitFor(() => expect(el('settings-status').textContent).toBe('Saved'));
     });
 
+    it('gives the saved view once loaded, and the new one once saved', async () => {
+        await openWith({hiddenSections: ['pages'], hidden: {paper: ['letter']}});
+        expect(dialog.view()).toEqual({hiddenSections: ['pages'], hidden: {paper: ['letter']}});
+        box('paper', 'a5').click();
+        // Unsaved ticks are not the saved view.
+        expect(dialog.view()).toEqual({hiddenSections: ['pages'], hidden: {paper: ['letter']}});
+        vi.mocked(GetSettings).mockResolvedValueOnce({...saved, view: {hidden: {paper: ['letter', 'a5']}}} as never);
+        el('settings-save').click();
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('Saved'));
+        expect(dialog.view()).toEqual({hidden: {paper: ['letter', 'a5']}});
+    });
+
+    it('gives no view for an older settings file', async () => {
+        await openWith(undefined);
+        expect(dialog.view()).toBeUndefined();
+    });
+
     it('saves an empty view when everything is shown', async () => {
         await openWith(undefined);
         el('settings-save').click();

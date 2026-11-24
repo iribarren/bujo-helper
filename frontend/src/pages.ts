@@ -15,6 +15,7 @@ import {pageForms, type PageForm} from './pageForms';
 import {prefsSaver} from './prefs';
 import {initPreview} from './preview';
 import {initRadioGroup} from './radioGroup';
+import {chooseShown, visibleItems, type View} from './view';
 
 export interface PagesDeps {
     // The folder the save dialog starts in.
@@ -27,6 +28,16 @@ export interface PagesDeps {
     // The kind and shared options remembered from the last run
     // (GetSettings); the defaults when unset.
     savedPrefs?: settings.PagesPrefs;
+    // The list items shown at first (see applyView); every one when unset.
+    view?: View;
+}
+
+export interface PagesTab {
+    // Shows only the page kinds, papers and cut modes the view shows,
+    // keeping the chosen ones that are still shown, else the remembered
+    // ones, else the shown default. Nothing is saved; the same view again
+    // changes nothing. Each kind keeps its form options while hidden.
+    applyView: (view: View) => void;
 }
 
 function byId<T extends HTMLElement>(id: string): T {
@@ -55,7 +66,7 @@ export function parseDefaults(json: string): Record<string, unknown> {
     }
 }
 
-export function initPages(deps: PagesDeps): void {
+export function initPages(deps: PagesDeps): PagesTab {
     const ui = {
         kindTitle: byId<HTMLHeadingElement>('pages-kind-title'),
         forms: byId<HTMLDivElement>('pages-form'),
@@ -77,6 +88,9 @@ export function initPages(deps: PagesDeps): void {
     // kinds' own form options are not remembered.
     const saved = deps.savedPrefs ?? new settings.PagesPrefs();
     const saver = prefsSaver('Make pages', currentPrefs, SavePagesPrefs);
+    // The list items shown, and the view as applied last.
+    let view = deps.view;
+    let viewKey = JSON.stringify(view ?? null);
     // changed previews a user change and remembers it.
     const changed = () => {
         update();
@@ -95,11 +109,13 @@ export function initPages(deps: PagesDeps): void {
         cutTitle: 'pages.cutTitle',
         text: {id: 'title', label: 'pages.title', title: 'pages.titleTitle'},
         hint: 'pages.noTitle',
+        view,
         onPaperChange: changed,
         onLetteringChange: changed,
     });
 
-    // The page kinds, papers and cut modes from Go; empty until they load.
+    // The page kinds, papers and cut modes from Go, every one the view may
+    // show; empty until they load.
     let kinds: main.PageKindInfo[] = [];
     let papers: main.PrintPaperInfo[] = [];
     // The forms built so far, by kind ID; each keeps its options while
@@ -250,15 +266,30 @@ export function initPages(deps: PagesDeps): void {
         }
     }
 
-    // labelKinds names the page kinds in the current language.
-    function labelKinds() {
-        kindGroup.replaceOptions(kinds.map((k) => ({value: k.id, label: label('pageKind', k.id, k.label)})));
+    // showKinds shows the page kinds the view shows, named in the current
+    // language, and checks the first of wanted that is shown, else the
+    // shown default.
+    function showKinds(wanted: ReadonlyArray<string | undefined>) {
+        kindGroup.replaceOptions(visibleItems(view, 'pageKind', kinds)
+            .map((k) => ({value: k.id, label: label('pageKind', k.id, k.label)})));
+        kindGroup.value = chooseShown(view, 'pageKind', kinds, wanted);
+    }
+
+    // applyView shows the lists as view says (see PagesTab.applyView).
+    function applyView(next: View) {
+        const key = JSON.stringify(next ?? null);
+        if (key === viewKey) return;
+        view = next;
+        viewKey = key;
+        showKinds([kindGroup.value, saved.kind]);
+        shared.setView(view, {paper: saved.paper, cut: saved.cut});
+        update();
     }
 
     // relabel shows the tab's dynamic text in the current language, keeping
     // the choices.
     function relabel() {
-        labelKinds();
+        showKinds([kindGroup.value]);
         shared.relabel();
         const kind = currentKind();
         ui.kindTitle.textContent = kind ? label('pageKind', kind.id, kind.label) : '';
@@ -272,10 +303,9 @@ export function initPages(deps: PagesDeps): void {
             await Promise.allSettled([PageKinds(), PrintPapers(), PrintCutModes(), letteringFonts()]);
         if (kindList.status === 'fulfilled') {
             kinds = kindList.value ?? [];
-            labelKinds();
-            // The remembered kind, or the default when it is not offered.
-            const preset = kinds.find((k) => k.id === saved.kind) ?? kinds.find((k) => k.default);
-            if (preset) kindGroup.value = preset.id;
+            // The remembered kind, or the shown default when it is hidden
+            // or no longer offered.
+            showKinds([saved.kind]);
         } else {
             deps.showError(t('pages.errKinds', {error: errorText(kindList.reason)}));
         }
@@ -316,4 +346,6 @@ export function initPages(deps: PagesDeps): void {
     onLangChange(relabel);
     update();
     load();
+
+    return {applyView};
 }

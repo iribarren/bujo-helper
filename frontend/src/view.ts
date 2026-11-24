@@ -74,6 +74,11 @@ export function sectionShown(view: View, id: string): boolean {
     return !(view?.hiddenSections ?? []).includes(id);
 }
 
+// hiddenSections are the ids of the sections the view hides, in tab order.
+export function hiddenSections(view: View): string[] {
+    return SECTIONS.filter((s) => !sectionShown(view, s.id)).map((s) => s.id);
+}
+
 // hiddenIds are the IDs hidden in the list with that id.
 export function hiddenIds(view: View, listId: string): string[] {
     return view?.hidden?.[listId] ?? [];
@@ -101,4 +106,15 @@ export function visibleItems<T extends ViewItem>(view: View, listId: string, ite
 export function shownDefault<T extends ViewItem>(view: View, listId: string, items: readonly T[]): T | undefined {
     const shown = visibleItems(view, listId, items);
     return shown.find((item) => item.default) ?? shown[0];
+}
+
+// chooseShown is the id to select in the list with that id: the first of
+// wanted that is shown (e.g. the current choice, then the remembered one),
+// else the shown default; "" for an empty list.
+export function chooseShown<T extends ViewItem>(
+    view: View, listId: string, items: readonly T[], wanted: ReadonlyArray<string | undefined>,
+): string {
+    const shown = visibleItems(view, listId, items);
+    const kept = wanted.find((id) => id && shown.some((item) => item.id === id));
+    return kept ?? shownDefault(view, listId, items)?.id ?? '';
 }

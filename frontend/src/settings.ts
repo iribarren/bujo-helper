@@ -6,6 +6,7 @@ import {useLanguage} from './language';
 import {letteringFonts} from './lettering';
 import {initRadioGroup} from './radioGroup';
 import {applyTheme} from './theme';
+import type {View} from './view';
 import {initViewConfig} from './viewConfig';
 import bggLogoLight from './assets/powered-by-bgg-rgb.svg';
 import bggLogoDark from './assets/powered-by-bgg-reversed-rgb.svg';
@@ -33,10 +34,14 @@ export interface SettingsDialog {
     // hasBGGToken reports whether a BoardGameGeek token is saved (a token
     // built into the app is not a saved one).
     hasBGGToken(): boolean;
+    // view is the saved view: the sections and list items shown (undefined
+    // in older settings files, which show everything).
+    view(): View;
 }
 
 export interface SettingsOptions {
-    // onChange is called when the saved settings are loaded or saved.
+    // onChange is called when the saved settings are loaded or saved:
+    // at startup, each time the dialog opens and after a save.
     onChange(): void;
 }
 
@@ -377,5 +382,6 @@ export function initSettings(opts: SettingsOptions): SettingsDialog {
             (current.igdbClientId || '').trim() !== '' && (current.igdbClientSecret || '').trim() !== '',
         hasBHLKey: () => (current.bhlApiKey || '').trim() !== '',
         hasBGGToken: () => (current.bggToken || '').trim() !== '',
+        view: () => current.view,
     };
 }

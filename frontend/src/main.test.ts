@@ -13,13 +13,16 @@ import {useLanguage} from './language';
 
 // builtInBGGToken settles what HasBuiltInBGGToken answers; until a test
 // calls it, the answer is pending, as if Go had not replied yet.
-const {mediaTypes, builtInBGGToken} = vi.hoisted(() => {
+// startView is the view GetSettings answers at startup; the last tests start
+// the app again with Download hidden.
+const {mediaTypes, builtInBGGToken, startView} = vi.hoisted(() => {
     let settle: (has: boolean) => void = () => undefined;
     const answer = new Promise<boolean>((resolve) => {
         settle = resolve;
     });
     return {
         builtInBGGToken: {answer, settle: (has: boolean) => settle(has)},
+        startView: {value: undefined as unknown},
         mediaTypes: [
         {id: 'books', label: 'Books', creatorLabel: 'Author', sources: ['Apple Books', 'Open Library', 'Amazon']},
         {id: 'nature', label: 'Nature', creatorLabel: '', sources: ['Wikimedia Commons', 'Biodiversity Heritage Library']},
@@ -46,7 +49,9 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     }
     stubs.MediaTypes = vi.fn(async () => mediaTypes);
     // Startup reads the language, the theme and the remembered tab options.
-    stubs.GetSettings = vi.fn(async () => ({language: 'en', theme: 'dark', print: {header: 'Saved header'}, pages: {title: 'Saved title'}}));
+    stubs.GetSettings = vi.fn(async () => ({
+        language: 'en', theme: 'dark', print: {header: 'Saved header'}, pages: {title: 'Saved title'}, view: startView.value,
+    }));
     stubs.DefaultOutputDir = vi.fn(async () => '/covers');
     stubs.HasBuiltInBGGToken = vi.fn(() => builtInBGGToken.answer);
     for (const name of ['PrintPapers', 'PrintFormats', 'PrintSizes', 'PrintCutModes']) {
@@ -483,3 +488,121 @@ describe('make pages', () => {
         expect(await exportDir()).toBe('/out');
     });
 });
+
+describe('view', () => {
+    const radios = () => Array.from(el('media-type').querySelectorAll<HTMLElement>('[role="radio"]'), (r) => r.dataset.value);
+    const checkedType = () => el('media-type').querySelector<HTMLElement>('[aria-checked="true"]')?.dataset.value;
+
+    // saveView saves the settings with Go answering view once they are
+    // saved, as the Settings dialog does.
+    async function saveView(view: unknown) {
+        vi.mocked(GetSettings).mockResolvedValueOnce({language: 'en'} as never);
+        el('settings-open').click();
+        await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+        vi.mocked(GetSettings).mockResolvedValueOnce({language: 'en', view} as never);
+        el('settings-save').click();
+        await vi.waitFor(() => expect(el('settings-status').textContent).toBe('Saved'));
+        el('settings-close').click();
+    }
+
+    afterEach(async () => {
+        await saveView(undefined);
+        el('tab-download').click();
+    });
+
+    it('hides Download and media types once saved, moving to Print covers', async () => {
+        el('tab-download').click();
+        selectType('books');
+        await saveView({hiddenSections: ['download'], hidden: {media: ['books', 'nature']}});
+        expect(el('tab-download').hidden).toBe(true);
+        expect(el('app').dataset.tab).toBe('print');
+        expect(el('panel-download').hidden).toBe(true);
+        expect(el('panel-print').hidden).toBe(false);
+        expect(radios()).toEqual(mediaTypes.map((t) => t.id).filter((id) => id !== 'books' && id !== 'nature'));
+        // The chosen type is hidden: the first shown one, with its sources.
+        expect(checkedType()).toBe('anime');
+        expect(el('sources').hidden).toBe(true);
+        // Print covers keeps every media type for its cards.
+        expect(el<HTMLSelectElement>('print-media').options.length).toBe(mediaTypes.length);
+    });
+
+    it('keeps the chosen media type while it is shown', async () => {
+        el('tab-download').click();
+        selectType('podcasts');
+        await saveView({hidden: {media: ['books']}});
+        expect(el('app').dataset.tab).toBe('download');
+        expect(checkedType()).toBe('podcasts');
+        expect(el('sources').textContent).toContain('Apple Podcasts');
+    });
+
+    it('shows Download and every media type again', async () => {
+        await saveView({hiddenSections: ['download'], hidden: {media: ['books']}});
+        await saveView(undefined);
+        expect(el('tab-download').hidden).toBe(false);
+        expect(radios()).toEqual(mediaTypes.map((t) => t.id));
+        el('tab-download').click();
+        expect(el('panel-download').hidden).toBe(false);
+    });
+
+    it('skips a hidden tab with the arrow keys and Ctrl+Enter does not start', async () => {
+        await saveView({hiddenSections: ['download']});
+        el('tab-print').dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true, cancelable: true}));
+        expect(el('app').dataset.tab).toBe('pages');
+        el('tab-pages').dispatchEvent(new KeyboardEvent('keydown', {key: 'ArrowRight', bubbles: true, cancelable: true}));
+        expect(el('app').dataset.tab).toBe('print');
+        el<HTMLTextAreaElement>('items').value = 'Dune, Frank Herbert';
+        vi.mocked(Start).mockClear();
+        try {
+            document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true}));
+            expect(Start).not.toHaveBeenCalled();
+        } finally {
+            el<HTMLTextAreaElement>('items').value = '';
+        }
+    });
+
+    it('hides the Make pages tab and its kinds', async () => {
+        el('tab-pages').click();
+        await saveView({hiddenSections: ['pages']});
+        expect(el('tab-pages').hidden).toBe(true);
+        // Download comes first.
+        expect(el('app').dataset.tab).toBe('download');
+    });
+});
+
+// Last: these start the app again, with Download hidden in the saved view.
+describe('startup with Download hidden', () => {
+    let app: typeof import('../wailsjs/go/main/App');
+    // The folders Print covers listed while starting (mock calls are
+    // cleared before each test).
+    let listed: string[] = [];
+
+    beforeAll(async () => {
+        vi.resetModules();
+        startView.value = {hiddenSections: ['download'], hidden: {media: ['books']}};
+        app = await import('../wailsjs/go/main/App');
+        vi.mocked(app.ListCovers).mockClear();
+        const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+        document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
+        await import('./main');
+        await vi.waitFor(() => expect(el('media-type').querySelectorAll('[role="radio"]').length).toBe(mediaTypes.length - 1));
+        await vi.waitFor(() => expect(app.ListCovers).toHaveBeenCalled());
+        listed = vi.mocked(app.ListCovers).mock.calls.map(([dir]) => dir);
+    });
+
+    it('opens on Print covers, in the output folder', async () => {
+        expect(el('app').dataset.tab).toBe('print');
+        expect(el('tab-download').hidden).toBe(true);
+        expect(el('panel-download').hidden).toBe(true);
+        expect(el('panel-print').hidden).toBe(false);
+        expect(el('tab-print').getAttribute('aria-selected')).toBe('true');
+        // Once, in the output folder: not before it is known.
+        expect(listed).toEqual(['/covers']);
+        expect(el<HTMLInputElement>('print-dir').value).toBe('/covers');
+    });
+
+    it('offers only the shown media types', () => {
+        expect(el('media-type').querySelector('[data-value="books"]')).toBeNull();
+        expect(el('media-type').querySelector('[aria-checked="true"]')?.getAttribute('data-value')).toBe('nature');
+    });
+});
+

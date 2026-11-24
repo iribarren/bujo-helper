@@ -11,12 +11,13 @@
 
 import {ChooseFolder, ExportPDF, ListCovers, OpenFile, PreviewPDF, PrintCropModes, PrintCutModes, PrintFormats, PrintPages, PrintPapers, PrintSizes, SavePrintPrefs} from '../wailsjs/go/main/App';
 import {main, settings, sheet} from '../wailsjs/go/models';
-import {fillSelect, labelOptions, renderSharedFieldsets, syncFieldsets} from './fieldsets';
+import {fillShown, labelOptions, renderSharedFieldsets, syncFieldsets} from './fieldsets';
 import {getLang, has, label, onLangChange, pluralKey, t, tn, type MessageKey} from './i18n';
 import {letteringFonts} from './lettering';
 import {prefsSaver, restoreSelect} from './prefs';
 import {initPreview} from './preview';
 import {initRadioGroup} from './radioGroup';
+import type {View} from './view';
 
 export interface PrintDeps {
     // The download output folder; the print sheet shows it until the user
@@ -34,6 +35,8 @@ export interface PrintDeps {
     // The options remembered from the last run (GetSettings); the
     // defaults when unset.
     savedPrefs?: settings.PrintPrefs;
+    // The list items shown at first (see applyView); every one when unset.
+    view?: View;
 }
 
 export interface PrintSheet {
@@ -44,6 +47,11 @@ export interface PrintSheet {
     // Shows dir from now on, as if picked with Browse…; the next activate
     // loads it.
     showFolder: (dir: string) => void;
+    // Shows only the formats, sizes, crop modes, papers and cut modes the
+    // view shows, keeping the chosen ones that are still shown, else the
+    // remembered ones, else the shown default. Nothing is saved; the same
+    // view again changes nothing. Cards for keeps every media type.
+    applyView: (view: View) => void;
 }
 
 interface Card {
@@ -228,6 +236,9 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     // The remembered options; saving starts once they are restored.
     const saved = deps.savedPrefs ?? new settings.PrintPrefs();
     const saver = prefsSaver('Print covers', currentPrefs, SavePrintPrefs);
+    // The list items shown, and the view as applied last.
+    let view = deps.view;
+    let viewKey = JSON.stringify(view ?? null);
     // Page (paper, cut mode, credits page) and Lettering (the header, font
     // and Colour-in), as in Make pages. The tab keeps its own font and
     // Colour-in while the user switches tabs.
@@ -239,6 +250,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         credits: {label: 'print.credits', title: 'print.creditsTitle'},
         text: {id: 'header', label: 'print.header', title: 'print.headerTitle'},
         hint: 'print.noHeader',
+        view,
         onPaperChange: () => {
             updateSelection();
             saver.save();
@@ -264,6 +276,7 @@ export function initPrint(deps: PrintDeps): PrintSheet {
     let loadSeq = 0;
     let exporting = false;
     let lastPdf = '';
+    // The lists below hold every item Go sends; the view picks those shown.
     // The cover size presets, from PrintSizes; empty until they load.
     let sizes: main.PrintSizeInfo[] = [];
     // The paper size presets, from PrintPapers; empty until they load.
@@ -761,6 +774,28 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         ]);
     }
 
+    // showLists fills format, size and crop mode with the items the view
+    // shows, selecting the first of each wanted id that is shown, else the
+    // shown default.
+    function showLists(wanted: {format?: string; size?: string; crop?: string}[]) {
+        fillShown(ui.format, 'format', formats, view, wanted.map((w) => w.format));
+        fillShown(ui.size, 'size', sizes, view, wanted.map((w) => w.size), (size) => sizeLabel(size));
+        fillShown(ui.crop, 'crop', crops, view, wanted.map((w) => w.crop));
+    }
+
+    // applyView shows the lists as view says (see PrintSheet.applyView).
+    function applyView(next: View) {
+        const key = JSON.stringify(next ?? null);
+        if (key === viewKey) return;
+        view = next;
+        viewKey = key;
+        const current = {format: ui.format.value, size: ui.size.value, crop: ui.crop.value};
+        showLists([current, saved]);
+        shared.setView(view, {paper: saved.paper, cut: saved.cut});
+        syncMedia();
+        updateFormat();
+    }
+
     // relabel shows the tab's dynamic text in the current language, keeping
     // the selections and the header.
     function relabel() {
@@ -782,23 +817,11 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             [PrintFormats(), PrintSizes(), PrintPapers(), PrintCutModes(), PrintCropModes(), letteringFonts()]);
         if (formatList.status === 'fulfilled') {
             formats = formatList.value ?? [];
-            ui.format.replaceChildren(...formats.map((format) => {
-                const option = el('option', '', label('format', format.id, format.label));
-                option.value = format.id;
-                option.selected = format.default;
-                return option;
-            }));
         } else {
             deps.showError(t('print.errFormats', {error: errorText(formatList.reason)}));
         }
         if (sizeList.status === 'fulfilled') {
             sizes = sizeList.value ?? [];
-            ui.size.replaceChildren(...sizes.map((size) => {
-                const option = el('option', '', sizeLabel(size));
-                option.value = size.id;
-                option.selected = size.default;
-                return option;
-            }));
         } else {
             deps.showError(t('print.errSizes', {error: errorText(sizeList.reason)}));
         }
@@ -815,7 +838,6 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         }
         if (cropList.status === 'fulfilled') {
             crops = cropList.value ?? [];
-            fillSelect(ui.crop, 'crop', crops);
         } else {
             deps.showError(t('print.errCrops', {error: errorText(cropList.reason)}));
         }
@@ -824,6 +846,8 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         } else {
             deps.showError(t('lettering.errFonts', {error: errorText(fontList.reason)}));
         }
+        // The shown defaults first; then the remembered options, if shown.
+        showLists([]);
         restorePrefs();
         updateFormat();
         saver.start();
@@ -894,5 +918,6 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         showFolder: (dir) => {
             chosenDir = dir;
         },
+        applyView,
     };
 }

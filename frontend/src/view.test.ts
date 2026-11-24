@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 import {describe, expect, it, vi} from 'vitest';
 
 import {en} from './i18n/en';
-import {SECTIONS, defaultItem, sectionShown, shownDefault, visibleItems, type View} from './view';
+import {SECTIONS, chooseShown, defaultItem, hiddenSections, sectionShown, shownDefault, visibleItems, type View} from './view';
 
 vi.mock('../wailsjs/go/main/App', () => ({
     MediaTypes: vi.fn(), PageKinds: vi.fn(), PrintCropModes: vi.fn(), PrintCutModes: vi.fn(),
@@ -56,6 +56,13 @@ describe('sectionShown', () => {
     });
 });
 
+describe('hiddenSections', () => {
+    it('lists the hidden optional sections, in tab order', () => {
+        expect(hiddenSections(undefined)).toEqual([]);
+        expect(hiddenSections({hiddenSections: ['pages', 'print', 'download', 'later']})).toEqual(['download', 'pages']);
+    });
+});
+
 describe('visibleItems', () => {
     it('keeps every item, in order, when nothing is hidden', () => {
         expect(visibleItems(undefined, 'paper', papers)).toEqual(papers);
@@ -85,5 +92,21 @@ describe('defaultItem and shownDefault', () => {
         expect(shownDefault(undefined, 'paper', papers)?.id).toBe('a4');
         expect(shownDefault({hidden: {paper: ['a4']}}, 'paper', papers)?.id).toBe('letter');
         expect(shownDefault({hidden: {paper: ['a4', 'letter']}}, 'paper', papers)?.id).toBe('a5');
+    });
+});
+
+describe('chooseShown', () => {
+    it('keeps the first wanted id that is shown', () => {
+        expect(chooseShown(undefined, 'paper', papers, ['a5', 'letter'])).toBe('a5');
+        expect(chooseShown({hidden: {paper: ['a5']}}, 'paper', papers, ['a5', 'letter'])).toBe('letter');
+        expect(chooseShown(undefined, 'paper', papers, ['', undefined, 'gone', 'letter'])).toBe('letter');
+    });
+
+    it('picks the shown default when no wanted id is shown', () => {
+        expect(chooseShown(undefined, 'paper', papers, [])).toBe('a4');
+        expect(chooseShown({hidden: {paper: ['a4', 'a5']}}, 'paper', papers, ['a5'])).toBe('letter');
+        // Every item hidden: the default stays.
+        expect(chooseShown({hidden: {paper: ['a4', 'letter', 'a5']}}, 'paper', papers, ['letter'])).toBe('a4');
+        expect(chooseShown(undefined, 'paper', [], ['a4'])).toBe('');
     });
 });
