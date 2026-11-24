@@ -1399,6 +1399,82 @@ func TestLoadSettingsErrorIsNotFatal(t *testing.T) {
 	}
 }
 
+func TestFirstRunIsTrueOnceWhenNoSettingsFileExisted(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "bujo-helper", "settings.json")
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+
+	if !a.FirstRun() {
+		t.Fatal("FirstRun with no settings file = false, want true")
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Errorf("settings file not written by FirstRun: %v", err)
+	}
+	if a.FirstRun() {
+		t.Error("second FirstRun = true, want false")
+	}
+
+	// The next run finds the file.
+	b := newApp(media.NewRegistry(), http.DefaultClient)
+	b.loadSettings(path)
+	if b.FirstRun() {
+		t.Error("FirstRun on the next run = true, want false")
+	}
+}
+
+func TestFirstRunIsFalseWithASettingsFileOrNoPath(t *testing.T) {
+	dir := t.TempDir()
+	saved := filepath.Join(dir, "saved.json")
+	if err := settings.Save(saved, settings.Settings{TMDBAPIKey: "k"}); err != nil {
+		t.Fatal(err)
+	}
+	broken := filepath.Join(dir, "broken.json")
+	if err := os.WriteFile(broken, []byte("{broken"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		name, path string
+	}{
+		{"saved settings", saved},
+		{"unreadable settings", broken},
+		{"unknown settings location", ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			a := newApp(media.NewRegistry(), http.DefaultClient)
+			a.loadSettings(tt.path)
+			if a.FirstRun() {
+				t.Error("FirstRun = true, want false")
+			}
+		})
+	}
+	// FirstRun leaves an existing file as it is.
+	if data, err := os.ReadFile(broken); err != nil || string(data) != "{broken" {
+		t.Errorf("broken file now holds %q (err %v), want it unchanged", data, err)
+	}
+}
+
+func TestFirstRunReportsAFailedWriteOnce(t *testing.T) {
+	parent := filepath.Join(t.TempDir(), "bujo-helper")
+	path := filepath.Join(parent, "settings.json")
+	a := newApp(media.NewRegistry(), http.DefaultClient)
+	a.loadSettings(path)
+	// The folder cannot be created now: a file holds its name.
+	if err := os.WriteFile(parent, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	logs := captureLog(t)
+
+	if !a.FirstRun() {
+		t.Fatal("FirstRun = false, want true although the file cannot be written")
+	}
+	if out := logs.String(); !strings.Contains(out, "settings:") {
+		t.Errorf("log = %q, want the failed write logged", out)
+	}
+	if a.FirstRun() {
+		t.Error("second FirstRun = true, want false")
+	}
+}
+
 // withConfigDir points the user config directory at a temporary folder on
 // every OS and returns it.
 func withConfigDir(t *testing.T) string {
@@ -1436,6 +1512,10 @@ func TestNewAppMigratesTheLegacySettings(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(base, "bujo-helper", "settings.json")); err != nil {
 		t.Errorf("new settings file not written: %v", err)
+	}
+	// A migrated user has run the app before.
+	if a.FirstRun() {
+		t.Error("FirstRun after migrating the legacy settings = true, want false")
 	}
 	if err := a.SaveSettings(settings.Settings{TMDBAPIKey: "new-key"}); err != nil {
 		t.Fatalf("SaveSettings after migration: %v", err)

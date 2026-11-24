@@ -4,6 +4,7 @@ import {
     Cancel,
     ChooseFolder,
     DefaultOutputDir,
+    FirstRun,
     GetSettings,
     HasBuiltInBGGToken,
     ImportCSV,
@@ -765,6 +766,13 @@ async function init() {
     updateProgress();
     if (appRoot.dataset.tab === 'print') printSheet.activate();
     else ui.items.focus();
+    // The first run on this computer opens Settings, once: Go writes the
+    // settings file when it answers. A failure only skips it.
+    try {
+        if (await FirstRun()) settingsDialog.open();
+    } catch (err) {
+        console.warn(`Could not ask whether this is the first run: ${errorText(err)}`);
+    }
 }
 
 init();

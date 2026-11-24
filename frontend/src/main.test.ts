@@ -3,7 +3,7 @@ import {resolve} from 'node:path';
 
 import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 
-import {ChooseFolder, ExportPage, GetSettings, ListCovers, Start} from '../wailsjs/go/main/App';
+import {ChooseFolder, ExportPage, FirstRun, GetSettings, ListCovers, Start} from '../wailsjs/go/main/App';
 import {BrowserOpenURL, EventsOn} from '../wailsjs/runtime/runtime';
 import {useLanguage} from './language';
 
@@ -14,8 +14,9 @@ import {useLanguage} from './language';
 // builtInBGGToken settles what HasBuiltInBGGToken answers; until a test
 // calls it, the answer is pending, as if Go had not replied yet.
 // startView is the view GetSettings answers at startup; the last tests start
-// the app again with Download hidden.
-const {mediaTypes, builtInBGGToken, startView} = vi.hoisted(() => {
+// the app again with Download hidden, and on the first run (firstRun is what
+// FirstRun answers).
+const {mediaTypes, builtInBGGToken, startView, firstRun} = vi.hoisted(() => {
     let settle: (has: boolean) => void = () => undefined;
     const answer = new Promise<boolean>((resolve) => {
         settle = resolve;
@@ -23,6 +24,7 @@ const {mediaTypes, builtInBGGToken, startView} = vi.hoisted(() => {
     return {
         builtInBGGToken: {answer, settle: (has: boolean) => settle(has)},
         startView: {value: undefined as unknown},
+        firstRun: {value: false},
         mediaTypes: [
         {id: 'books', label: 'Books', creatorLabel: 'Author', sources: ['Apple Books', 'Open Library', 'Amazon']},
         {id: 'nature', label: 'Nature', creatorLabel: '', sources: ['Wikimedia Commons', 'Biodiversity Heritage Library']},
@@ -54,6 +56,7 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     }));
     stubs.DefaultOutputDir = vi.fn(async () => '/covers');
     stubs.HasBuiltInBGGToken = vi.fn(() => builtInBGGToken.answer);
+    stubs.FirstRun = vi.fn(async () => firstRun.value);
     for (const name of ['PrintPapers', 'PrintFormats', 'PrintSizes', 'PrintCutModes']) {
         stubs[name] = vi.fn(async () => []);
     }
@@ -121,6 +124,10 @@ async function resetFolders() {
     for (const mock of [Start, ListCovers, ChooseFolder, ExportPage]) vi.mocked(mock).mockReset();
 }
 
+// The FirstRun calls of the startup (mock calls are cleared before each
+// test).
+let firstRunCalls = 0;
+
 beforeAll(async () => {
     // jsdom has no modal dialogs.
     HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
@@ -138,6 +145,15 @@ beforeAll(async () => {
         handlers.set(event, handler as (payload: unknown) => void);
     }
     await vi.waitFor(() => expect(el('media-type').querySelectorAll('[role="radio"]').length).toBe(mediaTypes.length));
+    await vi.waitFor(() => expect(FirstRun).toHaveBeenCalled());
+    firstRunCalls = vi.mocked(FirstRun).mock.calls.length;
+});
+
+describe('first run', () => {
+    it('leaves Settings closed when it is not the first run', () => {
+        expect(firstRunCalls).toBe(1);
+        expect(el<HTMLDialogElement>('settings-dialog').open).toBe(false);
+    });
 });
 
 describe('items placeholder', () => {
@@ -622,3 +638,40 @@ describe('startup with Download hidden', () => {
     });
 });
 
+// Last: these start the app again on its first run on this computer.
+describe('startup on the first run', () => {
+    let app: typeof import('../wailsjs/go/main/App');
+
+    // startAgain starts the app again, with FirstRun answering answer.
+    async function startAgain(answer: () => Promise<boolean>) {
+        vi.resetModules();
+        startView.value = undefined;
+        app = await import('../wailsjs/go/main/App');
+        vi.mocked(app.FirstRun).mockImplementation(answer);
+        const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+        document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
+        await import('./main');
+        await vi.waitFor(() => expect(el('media-type').querySelectorAll('[role="radio"]').length).toBe(mediaTypes.length));
+        await vi.waitFor(() => expect(app.FirstRun).toHaveBeenCalledTimes(1));
+    }
+
+    it('opens Settings on General', async () => {
+        await startAgain(async () => true);
+        await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+        expect(el('settings-tab-general').getAttribute('aria-selected')).toBe('true');
+        expect(el('settings-panel-general').hidden).toBe(false);
+        el('settings-close').click();
+    });
+
+    it('starts normally when FirstRun fails', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        await startAgain(async () => {
+            throw new Error('boom');
+        });
+        await vi.waitFor(() => expect(warn).toHaveBeenCalledWith(expect.stringContaining('boom')));
+        expect(el<HTMLDialogElement>('settings-dialog').open).toBe(false);
+        // Startup got to its end: the item list has the focus.
+        expect(document.activeElement).toBe(el('items'));
+        warn.mockRestore();
+    });
+});

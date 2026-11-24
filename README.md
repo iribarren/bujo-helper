@@ -1124,7 +1124,7 @@ To add a language, add a dictionary next to `frontend/src/i18n/en.ts` (the compi
 
 ## Theme and sections shown
 
-**Settings** has three tabs: **General** (language, theme and sections shown), **API keys** (TMDB, IGDB, BHL and BoardGameGeek) and **About** (fonts and credits). **Save** saves every tab at once. The tip that suggests a key opens Settings on **API keys**.
+**Settings** has three tabs: **General** (language, theme and sections shown), **API keys** (TMDB, IGDB, BHL and BoardGameGeek) and **About** (fonts and credits). **Save** saves every tab at once. Settings opens by itself on the app's first run on a computer (once: closing it without saving counts); the tip that suggests a key opens it on **API keys**.
 
 The theme and the sections shown are in **General** and apply as soon as you click **Save**.
 

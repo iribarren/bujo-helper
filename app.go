@@ -145,6 +145,9 @@ type App struct {
 	settingsMu   sync.Mutex
 	settingsPath string
 	settings     settings.Settings
+	// firstRun is true until FirstRun reports it: no settings file existed
+	// when loadSettings ran.
+	firstRun bool
 
 	// lang is the UI language of dialogs, errors and PDF labels; the
 	// frontend sets it with SetLanguage. The zero value means English.
@@ -248,12 +251,15 @@ func (a *App) assetHandler() http.Handler {
 }
 
 // loadSettings reads the settings file at path and remembers path for
-// SaveSettings. A read error is logged and leaves the settings empty: the
-// app still works, only without the saved keys.
+// SaveSettings, and whether the file was missing for FirstRun. A read error
+// is logged and leaves the settings empty: the app still works, only
+// without the saved keys.
 func (a *App) loadSettings(path string) {
 	var s settings.Settings
+	first := false
 	if path != "" {
-		var err error
+		_, err := os.Stat(path)
+		first = errors.Is(err, os.ErrNotExist)
 		if s, err = settings.Load(path); err != nil {
 			log.Printf("settings: %v", err)
 		}
@@ -262,6 +268,24 @@ func (a *App) loadSettings(path string) {
 	defer a.settingsMu.Unlock()
 	a.settingsPath = path
 	a.settings = s
+	a.firstRun = first
+}
+
+// FirstRun reports whether this is the app's first run on this computer:
+// no settings file existed at startup. It reports true once: that call
+// writes the settings file, so later calls and later runs report false. A
+// failed write is logged; FirstRun still reports true this once.
+func (a *App) FirstRun() bool {
+	a.settingsMu.Lock()
+	defer a.settingsMu.Unlock()
+	if !a.firstRun {
+		return false
+	}
+	a.firstRun = false
+	if err := a.saveSettingsLocked(a.settings); err != nil {
+		log.Printf("settings: %v", err)
+	}
+	return true
 }
 
 // GetSettings returns the current settings.
