@@ -240,7 +240,6 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         text: {id: 'header', label: 'print.header', title: 'print.headerTitle'},
         hint: 'print.noHeader',
         onPaperChange: () => {
-            updateSizeLabels();
             updateSelection();
             saver.save();
         },
@@ -442,7 +441,6 @@ export function initPrint(deps: PrintDeps): PrintSheet {
             const info = await PrintPages(paths, opts);
             if (seq !== pagesSeq) return;
             exact = {key, pathsKey: JSON.stringify(paths), shapeKey: shapeKey(paths, opts.format, opts.paper, opts.crop), info};
-            updateSizeLabels();
             updateSelection();
         } catch (err) {
             if (seq !== pagesSeq) return;
@@ -452,7 +450,11 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         }
     }
 
+    // updateSelection shows the selection, its page count and the size
+    // labels, which follow the selected images' shapes, and asks for the
+    // exact count.
     function updateSelection() {
+        updateSizeLabels();
         const n = selected.size;
         const layout = currentLayout();
         const paths = selectedPaths();
@@ -712,7 +714,6 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         shared.showLettering(format?.usesLettering ?? false);
         headerInput.placeholder = headerExample(ui.format.value);
         syncFieldsets(ui.options);
-        updateSizeLabels();
         updateSelection();
     }
 
@@ -769,7 +770,6 @@ export function initPrint(deps: PrintDeps): PrintSheet {
         shared.relabel();
         labelOptions(ui.crop, 'crop', crops);
         labelMedia();
-        updateSizeLabels();
         headerInput.placeholder = headerExample(ui.format.value);
         if (ui.empty.textContent) ui.empty.textContent = t(emptyKey);
         if (exporting) ui.status.textContent = t('print.exporting');

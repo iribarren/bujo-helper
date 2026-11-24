@@ -23,7 +23,7 @@ Close five open review follow-ups chosen by the user, on branch `fix/review-foll
 
 ## Tasks
 - [x] T1 Thumbnail tests: `makeThumb` "over N pixels" assertion (RED by removing the DecodeConfig cap); per-Thumbs limit. Route: inline (2 files, already read; small mechanical refactor).
-- [ ] T2 Frontend test gaps (sequencing, header page count, paper/size, TMDB tip on tv, shapeKey guard, joined removal error). Route: delegated writer (several test files, preparation reading).
+- [x] T2 Frontend test gaps (sequencing, header page count, paper/size, TMDB tip on tv, shapeKey guard, joined removal error). Route: delegated writer (several test files, preparation reading).
 - [ ] T3 CirrusSearch escaping in every provider query builder + table tests. Route: delegated writer (mapping all callers).
 - [ ] T4 Replay a skipped preview resize when the request ends, with or without a new document. Route: delegated writer.
 - [ ] T5 Quote comma round-trip rule, frontend + Go side, README. Route: delegated writer.
@@ -45,5 +45,11 @@ Route evidence: writer trigger (each task touches 2+ non-trivial files or needs 
 
 - T1: `Thumbs.maxPixels` (default `defaultMaxThumbPixels` 50 MP, a const now); `makeThumb(path, maxPixels)`; both thumbnail tests set `th.maxPixels`, run `t.Parallel()`; `TestThumbsRefuseHugeHeaders` asserts `makeThumb`'s exact "100000 x 100000 image is over 50000000 pixels" error. RED (cap replaced by `if false`): HugeHeaders got `png: invalid format: chunk out of order`; OversizedImages got 200s. GREEN: go build ok; go vet clean; go test 3460 passed (20 pkgs); `go test -race ./internal/gallery/` 13 passed; gofmt empty; tsc clean; vitest 395 passed (16 files); npm run build ok.
 
+- T1 assess `865c1ac..44f63d9`: medium, `under_budget`. Stop-hook preflight then reviewed it anyway: consent granted; review-reliability approved, no findings; acknowledged (lineage `review-6e5718afe8dd6ae8`, authority burned). Reviewed boundary: `44f63d9`.
+
+- T2 (delegated writer): tests for request sequencing (`pagesSeq` page counts incl. older failure + retry; `loadSeq` folder listings), header-tied page count, paper relabelling of size options and toolbar count, TMDB tip on `movies`/`tv` (main.test.ts), the `shapeKey` guard, and the joined removal error (`TestCreditSidecarFailureReportsAFailedRemoval`, via a per-Downloader `remove` hook, nil = `os.Remove`). ExportPDF `{size, paper}` was already covered (`paper > drives PrintPages and ExportPDF with the same options`).
+  - Real bug (RED): `selection shape > keeps the square counts on another paper while the selection is the same` failed: `expected 'Standard · 70 mm (6 per page)' to be 'Standard · 70 mm (12 per page)'`. `updateSelection()` did not refresh the size labels, so after a selection change they kept the old selection's square/wide counts until the next count arrived (or forever if it failed). Fix: `updateSelection()` calls `updateSizeLabels()`; the four separate calls before it were removed. Other new tests passed first time; each was checked by removing its guard (test fails).
+  - GREEN (writer): go build ok; go vet clean; go test 3461 passed; gofmt empty; tsc clean; vitest 407 passed (16 files); npm run build ok. Parent spot check: vitest 407 passed.
+
 ## Next step
-T2.
+T3.

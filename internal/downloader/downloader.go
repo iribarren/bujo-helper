@@ -126,6 +126,9 @@ type Downloader struct {
 	// match only, as a lower-ranked hit is usually a different work and the
 	// next provider is more likely to have the right cover.
 	MaxCandidates int
+	// remove deletes a saved file; nil means os.Remove. Tests replace it,
+	// as a failed removal cannot be provoked portably.
+	remove func(path string) error
 }
 
 // Run downloads a cover for every item in req and returns the counts.
@@ -197,7 +200,11 @@ func (d *Downloader) Run(ctx context.Context, req Request, onResult func(ItemRes
 	if opts.Language == "" {
 		opts.Language = loc.Language
 	}
-	job := &itemJob{mt: mt, client: client, outDir: req.OutputDir, opts: opts, loc: loc, maxCandidates: max(d.MaxCandidates, 1)}
+	remove := d.remove
+	if remove == nil {
+		remove = os.Remove
+	}
+	job := &itemJob{mt: mt, client: client, outDir: req.OutputDir, opts: opts, loc: loc, maxCandidates: max(d.MaxCandidates, 1), remove: remove}
 	for range workers {
 		wg.Add(1)
 		go func() {
@@ -219,6 +226,7 @@ type itemJob struct {
 	opts          media.Options
 	loc           locale.Locale
 	maxCandidates int
+	remove        func(path string) error
 }
 
 func (j *itemJob) run(ctx context.Context, index int, item media.Item) ItemResult {
@@ -357,7 +365,7 @@ func (s *itemSearch) tryProvider(ctx context.Context, i int, keep func(media.Can
 			// image whose credit cannot be saved is not kept.
 			if c.Credit != "" {
 				if err := saveCredit(path, c.Credit); err != nil {
-					if rmErr := os.Remove(path); rmErr != nil {
+					if rmErr := s.job.remove(path); rmErr != nil {
 						err = errors.Join(err, fmt.Errorf("remove uncredited image: %w", rmErr))
 					}
 					return "", "", err
