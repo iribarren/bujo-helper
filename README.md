@@ -997,6 +997,37 @@ How the chart is drawn:
 
 The cut mode does not apply.
 
+### Plant care cards
+
+A care card for each of your plants, to keep next to its plate: the plant's name, its picture, and ruled **Light**, **Water**, **Soil** and **Notes** fields. Pair it with a plate from the [Nature](#nature) media type. With no plants it prints blank cards to fill in by hand.
+
+To make one: open **Make pages**, pick **Plant care cards**, click **Add plant**, choose its image and fill in what you know, choose the card size, and click **Export PDF…**.
+
+| Setting | Rule |
+|---------|------|
+| Plants | the list of plants, by name; click one to edit it, **×** removes it. **Add plant** adds a blank one |
+| Name | the printed name. Leave it empty to take it from the image's file name: a nature download named `Monstera - Monstera deliciosa.jpg` prints **Monstera** with *Monstera deliciosa* in italics under it. The plant's button shows that name too ("Unnamed plant" without an image) |
+| Image | **Choose…** picks a JPEG or PNG file, such as a downloaded nature plate; the form shows its file name (the full path in the tooltip), and **Remove** takes it off. It is read when the page is drawn, so the file must stay where it is |
+| Light, Water, Soil, Notes | optional; what you type prints on the field's writing lines, cut with "…" when it does not fit. An empty field stays blank lines to write on by hand |
+| Card size | **A6** (default), **4 × 6 in** or **Full page**, tiled on each paper as [recipe cards](#recipe-cards) are |
+| Font, Colour-in | the shared [Lettering](#lettering) controls, for the plant names. There is no shared **Title**: each card prints its plant's name |
+| Paper | any |
+
+How a card is drawn:
+
+| Part | Rule |
+|------|------|
+| Cut line | dashed grey around each A6 or 4 × 6 card; Full page has none |
+| Image | at the top, at most 40 % of the card's height, centred and **contained, not cropped**: the whole plate shows with its shape kept, since a cropped botanical plate loses part of the plant. Colour-in never changes it |
+| Name | centred in the chosen [lettering font](#lettering), from 16 pt (22 pt on Full page) shrinking to 9 pt, then cut with "…"; outlined with [Colour-in](#colour-in) at 14 pt or larger. A writing line when there is no name |
+| Scientific name | from the file name, under the name, small and in the Go italic |
+| Fields | the labels in a column on the left (in the UI language: Luz, Riego, Sustrato, Notas in Spanish), each over writing lines: two each for Light, Water and Soil when the card has room, else one; Notes takes the rest |
+| Blank cards | a writing line for the name and the four ruled fields. They fill the slots left on the last page, or a whole page when there are no plants |
+
+Limits: at most 50 plants; a name of up to 100 characters; light, water and soil up to 200; notes up to 600; an image path of up to 4096 bytes. More is an error naming the plant by its number, shown in the preview. Line breaks and runs of spaces become one space, and a plant with nothing typed and no image is dropped. An image that is missing or not a readable JPEG or PNG is an error naming the plant, also shown in the preview.
+
+The cards have their own cut lines, so the cut mode does not apply.
+
 ## Lettering
 
 Headers, titles and quote card text can print in one of ten bundled lettering fonts instead of the plain Go sans, and as hollow outlines to colour in by hand, the way bubble letters drawn with a pen are coloured. The controls sit in the **Lettering** fieldset of [Print sheet](#print-sheet) (for **Full page**, **Checklist** and **Review cards**) and [Make pages](#generated-pages) (every page kind).
@@ -1012,10 +1043,10 @@ Each tab keeps its own font and Colour-in until the app closes. With the **Defau
 | Text | Font |
 |------|------|
 | Full page and Checklist headers, Dot grid, Moon calendar, Month calendar, Habit tracker, Quote cards, Visited map and Kitchen conversions titles | the chosen font, outlined with Colour-in |
-| Recipe card titles and Kitchen conversions table headings | the chosen font, outlined with Colour-in at 14 pt or larger; a title or heading shrunk below 14 pt to fit stays filled |
+| Recipe card titles, plant care card names and Kitchen conversions table headings | the chosen font, outlined with Colour-in at 14 pt or larger; a title, name or heading shrunk below 14 pt to fit stays filled |
 | Quote card text | the chosen font, outlined with Colour-in at 14 pt or larger; text shrunk below 14 pt to fit its card stays filled |
 | Review card titles | the chosen font, always filled: at 9.5 pt they are too small for outlines |
-| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels, month calendar weekdays and day numbers, habit names and day numbers, quote authors and the Wikiquote credit, visited map country lists, recipe card meta lines, headings, ingredients and steps, conversion table cells and caption | always the Go font |
+| Captions, dates, stub text, spines, polaroid captions, checklist rows, credits, moon calendar labels, month calendar weekdays and day numbers, habit names and day numbers, quote authors and the Wikiquote credit, visited map country lists, recipe card meta lines, headings, ingredients and steps, plant care card scientific names, labels and field text, conversion table cells and caption | always the Go font |
 
 Headers still shrink from 20 pt down to 12 pt to fit, then end with "…". A bundled font fits into 96 % of the width, leaving room for swashes; the Default (Go) font keeps its bold header and the full width.
 
@@ -1029,7 +1060,7 @@ Colour-in prints letters as black outlines (PDF text rendering mode 1) instead o
 | **hollow** | Bungee Outline, Londrina Outline | outlined by design, never stroked again; the box shows checked, and your own choice comes back with the next font |
 | **no outline** | Sacramento, Amatic SC | too thin to outline: letters stay filled |
 
-On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font. On a [visited map](#visited-map), it draws the countries as black outlines with no fills, the visited ones heavier. On [quote cards](#quote-cards), the quote text is outlined too when it prints at 14 pt or larger; the cut lines and frames do not change. On a [month calendar](#month-calendar) and a [habit tracker](#habit-tracker), only the title changes: their boxes are already outlines. On [recipe cards](#recipe-cards), the recipe titles are outlined at 14 pt or larger; photos, cut lines and writing lines do not change. On [kitchen conversions](#kitchen-conversions), the table headings are outlined too and the grey fill of the header rows is left off, so only outlines remain.
+On a [moon calendar](#moon-calendar), Colour-in also draws the moons as outlines only (the disc and the terminator, no fills), ready to shade by hand, whatever the font. On a [visited map](#visited-map), it draws the countries as black outlines with no fills, the visited ones heavier. On [quote cards](#quote-cards), the quote text is outlined too when it prints at 14 pt or larger; the cut lines and frames do not change. On a [month calendar](#month-calendar) and a [habit tracker](#habit-tracker), only the title changes: their boxes are already outlines. On [recipe cards](#recipe-cards), the recipe titles are outlined at 14 pt or larger; photos, cut lines and writing lines do not change. On [plant care cards](#plant-care-cards), the plant names are outlined at 14 pt or larger; the images, labels and writing lines do not change. On [kitchen conversions](#kitchen-conversions), the table headings are outlined too and the grey fill of the header rows is left off, so only outlines remain.
 
 ### Bundled fonts
 

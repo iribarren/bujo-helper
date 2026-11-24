@@ -1278,9 +1278,11 @@ textarea {
     margin: 0;
 }
 
-/* Recipe cards: the recipe list, one pill per recipe with a remove
-   button, and the selected recipe's fields. */
-.recipes-list {
+/* Recipe and plant care cards (cardList in recipesForm.ts): the card
+   list, one pill per card with a remove button, and the selected card's
+   fields. */
+.recipes-list,
+.plants-list {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -1289,11 +1291,13 @@ textarea {
     list-style: none;
 }
 
-.recipes-list:empty {
+.recipes-list:empty,
+.plants-list:empty {
     display: none;
 }
 
-.recipes-item {
+.recipes-item,
+.plants-item {
     display: flex;
     align-items: center;
     max-width: 100%;
@@ -1302,12 +1306,14 @@ textarea {
     background: var(--surface);
 }
 
-.recipes-item:has([aria-current="true"]) {
+.recipes-item:has([aria-current="true"]),
+.plants-item:has([aria-current="true"]) {
     border-color: var(--accent);
     background: var(--accent-soft);
 }
 
-.field .recipes-pick {
+.field .recipes-pick,
+.field .plants-pick {
     min-width: 0;
     height: 26px;
     padding: 0 4px 0 10px;
@@ -1318,24 +1324,29 @@ textarea {
     text-overflow: ellipsis;
 }
 
-.field .recipes-pick[aria-current="true"] {
+.field .recipes-pick[aria-current="true"],
+.field .plants-pick[aria-current="true"] {
     color: var(--accent);
     font-weight: 600;
 }
 
-.recipes-list-field .field-hint {
+.recipes-list-field .field-hint,
+.plants-list-field .field-hint {
     margin: 0;
 }
 
-.recipes-status:empty {
+.recipes-status:empty,
+.plants-status:empty {
     display: none;
 }
 
-.recipes-status.error {
+.recipes-status.error,
+.plants-status.error {
     color: var(--failed);
 }
 
-.recipes-editor {
+.recipes-editor,
+.plants-editor {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -1347,7 +1358,8 @@ textarea {
 }
 
 .recipes-ingredients-field textarea,
-.recipes-steps-field textarea {
+.recipes-steps-field textarea,
+.plants-notes-field textarea {
     height: auto;
     min-height: 0;
     font-family: inherit;
@@ -1361,11 +1373,13 @@ textarea {
     margin: 0;
 }
 
-.recipes-photo-row {
+.recipes-photo-row,
+.plants-image-row {
     align-items: center;
 }
 
-.recipes-photo-name {
+.recipes-photo-name,
+.plants-image-name {
     min-width: 0;
     overflow: hidden;
     font-size: 13px;
@@ -1374,11 +1388,13 @@ textarea {
     white-space: nowrap;
 }
 
-.recipes-photo-name.muted {
+.recipes-photo-name.muted,
+.plants-image-name.muted {
     color: var(--muted);
 }
 
-.field .recipes-photo-row .link-button {
+.field .recipes-photo-row .link-button,
+.field .plants-image-row .link-button {
     font-size: 13px;
 }
 
