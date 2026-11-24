@@ -170,33 +170,86 @@ func TestAniListSearch(t *testing.T) {
 }
 
 // AniList returns romaji, English and native titles and synonyms; an exact
-// match on any of them ranks first, whatever AniList's order.
+// match on any of them ranks first, whatever AniList's order: each case runs
+// on the fixture as AniList sent it and with its results reversed. Each
+// fixture is served through the provider of its own media type.
 func TestAniListMatchesAnyTitle(t *testing.T) {
 	for _, tt := range []struct {
-		name    string
-		fixture string
-		query   string
-		want    string
+		name      string
+		mediaType string
+		fixture   string
+		query     string
+		want      string
 	}{
-		{"romaji", "anilist_frieren_anime.json", "Sousou no Frieren 2nd Season", "Frieren: Beyond Journey’s End Season 2"},
-		{"romaji of the top hit", "anilist_shingeki_anime.json", "Shingeki no Kyojin", "Attack on Titan"},
-		{"native", "anilist_shingeki_anime.json", "進撃の巨人", "Attack on Titan"},
-		{"synonym", "anilist_shingeki_anime.json", "Attack on Titan Season 4", "Attack on Titan Final Season"},
-		{"short synonym", "anilist_shingeki_anime.json", "AoT", "Attack on Titan"},
-		{"English", "anilist_berserk_manga.json", "Berserk: The Prototype", "Berserk: The Prototype"},
+		{"romaji", "ANIME", "anilist_frieren_anime.json", "Sousou no Frieren 2nd Season", "Frieren: Beyond Journey’s End Season 2"},
+		{"romaji of the top hit", "ANIME", "anilist_shingeki_anime.json", "Shingeki no Kyojin", "Attack on Titan"},
+		{"native", "ANIME", "anilist_shingeki_anime.json", "進撃の巨人", "Attack on Titan"},
+		{"synonym", "ANIME", "anilist_shingeki_anime.json", "Attack on Titan Season 4", "Attack on Titan Final Season"},
+		{"short synonym", "ANIME", "anilist_shingeki_anime.json", "AoT", "Attack on Titan"},
+		{"English", "MANGA", "anilist_berserk_manga.json", "Berserk: The Prototype", "Berserk: The Prototype"},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
-			var fake fakeAniList
-			srv := fake.serve(t, http.StatusOK, fixture(t, tt.fixture))
-			got, err := newTestAniList(srv, "ANIME").Search(context.Background(), media.Item{Title: tt.query}, media.Options{})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got[0].Title != tt.want {
-				t.Errorf("%q: first = %q, want %q (all %q)", tt.query, got[0].Title, tt.want, candidateTitles(got))
-			}
-		})
+		body := fixture(t, tt.fixture)
+		for _, order := range []struct {
+			name string
+			body []byte
+		}{
+			{"AniList order", body},
+			{"reversed", reverseAniListMedia(t, body)},
+		} {
+			t.Run(tt.name+"/"+order.name, func(t *testing.T) {
+				var fake fakeAniList
+				srv := fake.serve(t, http.StatusOK, order.body)
+				got, err := newTestAniList(srv, tt.mediaType).Search(context.Background(), media.Item{Title: tt.query}, media.Options{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(got) == 0 {
+					t.Fatalf("%q: no candidates", tt.query)
+				}
+				if got[0].Title != tt.want {
+					t.Errorf("%q: first = %q, want %q (all %q)", tt.query, got[0].Title, tt.want, candidateTitles(got))
+				}
+
+				calls := fake.calls()
+				if len(calls) != 1 {
+					t.Fatalf("requests = %d, want 1", len(calls))
+				}
+				for key, want := range map[string]any{"search": tt.query, "type": tt.mediaType} {
+					if got := calls[0].Variables[key]; got != want {
+						t.Errorf("variable %s = %#v, want %#v", key, got, want)
+					}
+				}
+			})
+		}
 	}
+}
+
+// reverseAniListMedia returns the AniList response body with its
+// data.Page.media results in reverse order.
+func reverseAniListMedia(t *testing.T, body []byte) []byte {
+	t.Helper()
+	var resp struct {
+		Data struct {
+			Page struct {
+				Media []json.RawMessage `json:"media"`
+			} `json:"Page"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		t.Fatal(err)
+	}
+	m := resp.Data.Page.Media
+	if len(m) < 2 {
+		t.Fatalf("fixture has %d results; reversing proves nothing", len(m))
+	}
+	for i, j := 0, len(m)-1; i < j; i, j = i+1, j-1 {
+		m[i], m[j] = m[j], m[i]
+	}
+	out, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 // Two anime are titled Berserk: the 1997 series (English "Berserk") and the
