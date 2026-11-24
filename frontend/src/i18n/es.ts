@@ -405,6 +405,14 @@ export const es: Messages = {
     'settings.errRead': 'No se han podido leer los ajustes: {error}',
     'settings.errReload': 'Guardado, pero no se han podido volver a cargar los ajustes: {error}',
 
+    'view.media': 'Tipos de medio',
+    'view.paper': 'Papel',
+    'view.format': 'Formatos',
+    'view.size': 'Tamaños de portada',
+    'view.crop': 'Recortar a',
+    'view.cut': 'Modos de corte',
+    'view.pageKind': 'Tipos de página',
+
     // About section of the Settings dialog.
     'about.title': 'Acerca de',
     'about.fontsIntro': 'Fuentes de rotulación incluidas en la aplicación, cada una con su propia licencia. Abre una para leerla.',

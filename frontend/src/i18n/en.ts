@@ -412,6 +412,15 @@ export const en = {
     'settings.errRead': 'Could not read the settings: {error}',
     'settings.errReload': 'Saved, but could not reload the settings: {error}',
 
+    // The lists of the Sections part of the Settings dialog (see view.ts).
+    'view.media': 'Media types',
+    'view.paper': 'Paper',
+    'view.format': 'Formats',
+    'view.size': 'Cover sizes',
+    'view.crop': 'Crop to',
+    'view.cut': 'Cut modes',
+    'view.pageKind': 'Page kinds',
+
     // About section of the Settings dialog: the bundled lettering fonts and
     // their licences, and the other bundled software.
     'about.title': 'About',
