@@ -63,5 +63,8 @@ Strategy: `exception-ok` — one feature branch, tried by the user, then merged 
 
 - 2026-11-24 T6 (inline): README features list (theme, hide what you don't use), new section "Theme and sections shown" (theme values, the tree, shared paper/cut, required minimum, fallbacks, Cards for unaffected, `"view"` stores hidden IDs, how to add a section), project layout (view.ts, viewConfig.ts, theme.ts; settings package); ROADMAP shared convention "Sections shown". Passive docs: no RED; structural readback. Parent spot check of T5: vitest 542/542.
 
+- Review `a18a0c3..9d9e033` (T5+T6; medium, 17 files, 832 lines, `slice_budget_reached`): consent granted; reliability approved; acknowledged, lineage `review-3e18910825b968b2`. Advisory (open, informational): R3-print-live-paper-refresh-unproved (`print.ts:794-796`, no test that a live view change refreshes the Print paper list), R3-settings-onchange-view-source (`main.ts:722-727`, where the live view comes from).
+- Review `main..9d9e033` (whole branch, asked by the stop hook; medium, 30 files, 2330 lines): consent granted; reliability approved; acknowledged, lineage `review-96baa53d74d03528`. Advisory (open, informational): R3-view-reload-failure-unproved (`settings.ts:385`, no test for a failed reload after Save).
+
 ## Next step
-Review T5+T6 from `a18a0c3`; then the user tries the branch before the local merge.
+The user tries the branch (`wails dev -tags webkit2_41`); merge to main locally on their OK. Optional follow-ups: the three open advisory test gaps above.
