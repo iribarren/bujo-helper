@@ -307,8 +307,8 @@ describe('key tip', () => {
 });
 
 describe('theme', () => {
-    it('applies the saved theme at startup', () => {
-        expect(document.documentElement.dataset.theme).toBe('dark');
+    it('applies the saved theme at startup', async () => {
+        await vi.waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'));
     });
 });
 
