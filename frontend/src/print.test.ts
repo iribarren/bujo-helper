@@ -3,7 +3,7 @@ import {resolve} from 'node:path';
 
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import {ExportPDF, PreviewPDF, PrintCropModes, PrintPages, PrintSizes, SavePrintPrefs} from '../wailsjs/go/main/App';
+import {ExportPDF, ListCovers, PreviewPDF, PrintCropModes, PrintPages, PrintPapers, PrintSizes, SavePrintPrefs} from '../wailsjs/go/main/App';
 import {main, settings, sheet} from '../wailsjs/go/models';
 import {useLanguage} from './language';
 import {activeCrop, initPrint, perPageOf, sizePerPageOf, usesCutOf, usesSizeOf, type SelectionShape} from './print';
@@ -793,5 +793,317 @@ describe('Print covers remembered options', () => {
         await vi.waitFor(() => expect(warn).toHaveBeenCalledWith(expect.stringContaining('disk full')));
         expect(showError).not.toHaveBeenCalled();
         warn.mockRestore();
+    });
+});
+
+describe('Print covers page count', () => {
+    function el<T extends HTMLElement>(id: string): T {
+        const node = document.getElementById(id);
+        if (!node) throw new Error(`missing #${id}`);
+        return node as T;
+    }
+
+    // Two papers with different counts, so a stale count shows: A5 fits
+    // fewer covers, fewer squares and fewer checklist rows below a header.
+    const papers = [
+        {id: 'a4', label: 'A4', width: 210, height: 297, default: true, cover: 25, large: 9, square: 15, squareLarge: 6, rows: 25, headerRows: 20},
+        {id: 'a5', label: 'A5', width: 148, height: 210, default: false, cover: 12, large: 4, square: 6, squareLarge: 2, rows: 12, headerRows: 10},
+    ].map((p) => main.PrintPaperInfo.createFrom({
+        id: p.id, label: p.label, width: p.width, height: p.height, default: p.default,
+        perPage: {covers: {standard: p.cover, large: p.large}, checklist: {'': p.rows}},
+        headerPerPage: {checklist: p.headerRows},
+        squarePerPage: {covers: {standard: p.square, large: p.squareLarge}},
+        cropPerPage: {},
+    }));
+    const sizes = [
+        {id: 'standard', label: 'Standard', coverHeight: 70, default: true},
+        {id: 'large', label: 'Large', coverHeight: 100, default: false},
+    ].map((s) => main.PrintSizeInfo.createFrom(s));
+    const coversOf = (n: number, from = 1) => Array.from({length: n}, (_, i) => main.CoverView.createFrom({
+        path: `/covers/${from + i}.jpg`, name: `${from + i}.jpg`, width: 400, height: 600, thumbUrl: String(from + i),
+    }));
+
+    // A PrintPages request the test answers when it chooses.
+    interface Request {
+        paths: string[];
+        opts: sheet.Options;
+        resolve: (info: main.PrintPagesInfo) => void;
+        reject: (err: Error) => void;
+    }
+    let requests: Request[] = [];
+
+    beforeEach(() => {
+        requests = [];
+        vi.mocked(PrintPages).mockImplementation((paths, opts) => new Promise((resolve, reject) => {
+            requests.push({paths, opts, resolve, reject});
+        }));
+        vi.mocked(ExportPDF).mockClear();
+    });
+
+    afterEach(() => {
+        vi.mocked(PrintPages).mockImplementation(async () => main.PrintPagesInfo.createFrom({pages: 1, allSquare: false, widePerPage: null}));
+    });
+
+    // mount shows a fresh Print covers tab listing n covers, and waits for
+    // its lists to load and the gallery to fill.
+    async function mount(n: number, showError: (message: string) => void = () => {}) {
+        vi.mocked(PrintPapers).mockResolvedValueOnce(papers);
+        vi.mocked(PrintSizes).mockResolvedValueOnce(sizes);
+        vi.mocked(ListCovers).mockResolvedValueOnce(coversOf(n));
+        const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+        document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
+        const tab = initPrint({
+            outputFolder: () => '/covers',
+            showError,
+            hideError: () => {},
+            mediaTypes: () => [],
+            mediaType: () => 'books',
+            previewDelay: 0,
+        });
+        await vi.waitFor(() => expect(el<HTMLSelectElement>('print-size').options.length).toBe(sizes.length));
+        await vi.waitFor(() => expect(el('print-paper').querySelectorAll('[role="radio"]').length).toBe(papers.length));
+        tab.activate();
+        await vi.waitFor(() => expect(el('gallery').children.length).toBe(n));
+        return tab;
+    }
+
+    const info = (pages: number, shape: Partial<main.PrintPagesInfo> = {}) =>
+        main.PrintPagesInfo.createFrom({pages, allSquare: false, exact: true, widePerPage: null, ...shape});
+
+    // latest is the latest PrintPages request.
+    function latest(): Request {
+        const last = requests[requests.length - 1];
+        if (!last) throw new Error('no PrintPages request');
+        return last;
+    }
+
+    // settle lets the answers already given reach the page.
+    const settle = () => new Promise((r) => setTimeout(r, 0));
+
+    const selection = () => el('selection').textContent;
+
+    function sizeOption(id: string): string | null {
+        return el<HTMLSelectElement>('print-size').querySelector(`option[value="${id}"]`)!.textContent;
+    }
+
+    function choose(id: string, value: string) {
+        const select = el<HTMLSelectElement>(id);
+        select.value = value;
+        select.dispatchEvent(new Event('change'));
+    }
+
+    function pickPaper(id: string) {
+        el('print-paper').querySelector<HTMLButtonElement>(`[role="radio"][data-value="${id}"]`)!.click();
+    }
+
+    // uncheck deselects the nth cover of the gallery.
+    function uncheck(n: number) {
+        el('gallery').querySelectorAll<HTMLInputElement>('.card-check')[n].click();
+    }
+
+    function typeHeader(text: string) {
+        const header = el<HTMLInputElement>('print-header');
+        header.value = text;
+        header.dispatchEvent(new Event('input'));
+    }
+
+    describe('request sequencing', () => {
+        // twoRequests selects both covers, then only the second, leaving
+        // both counts unanswered: the older one for two covers, the
+        // latest one for one.
+        async function twoRequests(): Promise<[older: Request, newer: Request]> {
+            await mount(2);
+            el('select-all').click();
+            const older = latest();
+            uncheck(0);
+            const newer = latest();
+            expect(older.paths).toEqual(['/covers/1.jpg', '/covers/2.jpg']);
+            expect(newer.paths).toEqual(['/covers/2.jpg']);
+            return [older, newer];
+        }
+
+        it('keeps the newer page count when an older answer arrives last', async () => {
+            const [older, newer] = await twoRequests();
+            newer.resolve(info(7));
+            await vi.waitFor(() => expect(selection()).toBe('1 selected · 7 pages'));
+            older.resolve(info(99));
+            await settle();
+            expect(selection()).toBe('1 selected · 7 pages');
+        });
+
+        it('ignores an older answer that arrives first', async () => {
+            const [older, newer] = await twoRequests();
+            older.resolve(info(99));
+            await settle();
+            // The estimate, until the latest request is answered.
+            expect(selection()).toBe('1 selected · 1 page');
+            newer.resolve(info(7));
+            await vi.waitFor(() => expect(selection()).toBe('1 selected · 7 pages'));
+        });
+
+        it('ignores an older failure, and retries the latest request once it fails', async () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            try {
+                const [older, newer] = await twoRequests();
+                const sent = requests.length;
+                older.reject(new Error('busy'));
+                await settle();
+                // The latest request is still the one in flight: not sent again.
+                choose('print-size', 'standard');
+                expect(requests.length).toBe(sent);
+                expect(warn).not.toHaveBeenCalled();
+
+                newer.reject(new Error('busy'));
+                await vi.waitFor(() => expect(warn).toHaveBeenCalledWith(expect.stringContaining('busy')));
+                choose('print-size', 'standard');
+                expect(requests.length).toBe(sent + 1);
+                expect(latest().paths).toEqual(['/covers/2.jpg']);
+                latest().resolve(info(5));
+                await vi.waitFor(() => expect(selection()).toBe('1 selected · 5 pages'));
+            } finally {
+                warn.mockRestore();
+            }
+        });
+
+        // reload lists the covers again, from /old then from /new, and
+        // returns both listings unanswered.
+        async function twoListings(tab: Awaited<ReturnType<typeof mount>>) {
+            const listings: Array<{resolve: (c: main.CoverView[]) => void; reject: (err: Error) => void}> = [];
+            vi.mocked(ListCovers).mockImplementation(() => new Promise((resolve, reject) => listings.push({resolve, reject})));
+            try {
+                tab.showFolder('/old');
+                tab.activate();
+                tab.showFolder('/new');
+                tab.activate();
+            } finally {
+                vi.mocked(ListCovers).mockImplementation(async () => coverList.map((c) => main.CoverView.createFrom(c)));
+            }
+            expect(vi.mocked(ListCovers).mock.calls.slice(-2).map(([dir]) => dir)).toEqual(['/old', '/new']);
+            return listings;
+        }
+
+        const names = () => Array.from(el('gallery').querySelectorAll('.card-name'), (n) => n.textContent);
+
+        it('keeps the newer listing when an older one arrives last', async () => {
+            const tab = await mount(2);
+            const [older, newer] = await twoListings(tab);
+            newer.resolve(coversOf(1, 9));
+            await vi.waitFor(() => expect(names()).toEqual(['9.jpg']));
+            expect(el('gallery').hasAttribute('aria-busy')).toBe(false);
+            older.resolve(coversOf(3));
+            await settle();
+            expect(names()).toEqual(['9.jpg']);
+            expect(el<HTMLInputElement>('print-dir').value).toBe('/new');
+        });
+
+        it('ignores an older listing that fails after a newer one', async () => {
+            const showError = vi.fn();
+            const tab = await mount(2, showError);
+            const [older, newer] = await twoListings(tab);
+            // Busy until the latest listing arrives.
+            older.reject(new Error('gone'));
+            await settle();
+            expect(el('gallery').getAttribute('aria-busy')).toBe('true');
+            newer.resolve(coversOf(1, 9));
+            await vi.waitFor(() => expect(names()).toEqual(['9.jpg']));
+            expect(el('gallery').hasAttribute('aria-busy')).toBe(false);
+            expect(showError).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('header', () => {
+        it('leaves room for fewer checklist rows', async () => {
+            await mount(21);
+            choose('print-format', 'checklist');
+            el('select-all').click();
+            // The estimate: 25 rows a page, 20 below a header.
+            expect(selection()).toBe('21 selected · 1 page');
+            typeHeader('My list');
+            expect(selection()).toBe('21 selected · 2 pages');
+            expect(latest().opts.header).toBe('My list');
+            latest().resolve(info(3));
+            await vi.waitFor(() => expect(selection()).toBe('21 selected · 3 pages'));
+            // Without the header, the count of no header again.
+            typeHeader('');
+            expect(selection()).toBe('21 selected · 1 page');
+            expect(latest().opts.header).toBe('');
+        });
+
+        it('counts a blank header as none', async () => {
+            await mount(21);
+            choose('print-format', 'checklist');
+            el('select-all').click();
+            const sent = requests.length;
+            typeHeader('   ');
+            expect(selection()).toBe('21 selected · 1 page');
+            expect(requests.length).toBe(sent);
+        });
+
+        it('never changes the count of a format without one', async () => {
+            await mount(21);
+            choose('print-format', 'covers');
+            el('select-all').click();
+            const sent = requests.length;
+            typeHeader('My list');
+            expect(selection()).toBe('21 selected · 1 page');
+            expect(requests.length).toBe(sent);
+        });
+    });
+
+    describe('paper', () => {
+        it('relabels the size options and the toolbar page count', async () => {
+            await mount(13);
+            el('select-all').click();
+            expect(sizeOption('standard')).toBe('Standard · 70 mm (25 per page)');
+            expect(sizeOption('large')).toBe('Large · 100 mm (9 per page)');
+            expect(selection()).toBe('13 selected · 1 page');
+
+            pickPaper('a5');
+            expect(sizeOption('standard')).toBe('Standard · 70 mm (12 per page)');
+            expect(sizeOption('large')).toBe('Large · 100 mm (4 per page)');
+            expect(selection()).toBe('13 selected · 2 pages');
+            expect(latest().opts).toEqual(expect.objectContaining({paper: 'a5', size: 'standard'}));
+
+            choose('print-size', 'large');
+            expect(selection()).toBe('13 selected · 4 pages');
+            el('export-pdf').click();
+            await vi.waitFor(() => expect(ExportPDF).toHaveBeenCalled());
+            expect(vi.mocked(ExportPDF).mock.lastCall![2]).toEqual(expect.objectContaining({paper: 'a5', size: 'large'}));
+        });
+    });
+
+    describe('selection shape', () => {
+        it('labels the sizes with wide counts only on the paper they were counted for', async () => {
+            await mount(2);
+            el('select-all').click();
+            expect(latest().opts.paper).toBe('a4');
+            latest().resolve(info(1, {widePerPage: {standard: 10, large: 3}}));
+            await vi.waitFor(() => expect(sizeOption('standard')).toBe('Standard · 70 mm (10 per page)'));
+
+            // Until A5 is counted, its 2:3 counts, not A4's wide ones.
+            pickPaper('a5');
+            expect(sizeOption('standard')).toBe('Standard · 70 mm (12 per page)');
+            expect(sizeOption('large')).toBe('Large · 100 mm (4 per page)');
+            latest().resolve(info(1, {widePerPage: {standard: 5}}));
+            await vi.waitFor(() => expect(sizeOption('standard')).toBe('Standard · 70 mm (5 per page)'));
+            expect(sizeOption('large')).toBe('Large · 100 mm (4 per page)');
+
+            pickPaper('a4');
+            expect(sizeOption('standard')).toBe('Standard · 70 mm (25 per page)');
+        });
+
+        it('keeps the square counts on another paper while the selection is the same', async () => {
+            await mount(2);
+            el('select-all').click();
+            latest().resolve(info(1, {allSquare: true}));
+            await vi.waitFor(() => expect(sizeOption('standard')).toBe('Standard · 70 mm (15 per page)'));
+
+            pickPaper('a5');
+            expect(sizeOption('standard')).toBe('Standard · 70 mm (6 per page)');
+            expect(sizeOption('large')).toBe('Large · 100 mm (2 per page)');
+            // Another selection may not be square: the 2:3 counts until it is counted.
+            uncheck(0);
+            expect(sizeOption('standard')).toBe('Standard · 70 mm (12 per page)');
+        });
     });
 });

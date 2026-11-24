@@ -4,7 +4,7 @@ import {SearchQuotes} from '../wailsjs/go/main/App';
 import {applyDom, setLang} from './i18n';
 import {pageForms, type PageForm} from './pageForms';
 import {parseDefaults} from './pages';
-import {quoteLines} from './quotesForm';
+import {formatQuoteLine, quoteLines, type Quote} from './quotesForm';
 
 vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     const original = await importOriginal<Record<string, unknown>>();
@@ -145,6 +145,31 @@ describe('quote cards form', () => {
         expect(own().value).toBe('Hi, Me');
         expect(form.options()).toEqual({quotes: [{text: 'Hi', author: 'Me', source: ''}], style: 'framed', perPage: 8});
         expect(quotesForm('{"style":"odd","perPage":5}').options()).toEqual({quotes: [], style: 'classic', perPage: 6});
+    });
+
+    it('round-trips default quotes with commas and quotes through the textarea', () => {
+        const defaults = [
+            {text: 'Free at last', author: 'Martin Luther King, Jr.', source: ''},
+            {text: 'Stay hungry, stay foolish', author: '', source: ''},
+            {text: '"Be yourself"', author: 'Oscar Wilde', source: ''},
+            {text: 'Less is more', author: 'Mies van der Rohe', source: ''},
+        ];
+        const form = quotesForm(JSON.stringify({quotes: defaults, style: 'classic', perPage: 6}));
+        expect(own().value).toBe([
+            'Free at last, "Martin Luther King, Jr."',
+            '"Stay hungry, stay foolish"',
+            '"""Be yourself""", Oscar Wilde',
+            'Less is more, Mies van der Rohe',
+        ].join('\n'));
+        expect(form.options().quotes).toEqual(defaults);
+        // Editing the text without changing what it parses to sends the same
+        // quotes and changes nothing.
+        typeOwn(`${own().value}\n`);
+        expect(onChange).not.toHaveBeenCalled();
+        expect(form.options().quotes).toEqual(defaults);
+        typeOwn('Free at last, "Martin Luther King, Jr."');
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(form.options().quotes).toEqual([defaults[0]]);
     });
 
     it('searches the trimmed query with the button or Enter, and not an empty one', async () => {
@@ -441,5 +466,92 @@ describe('quoteLines', () => {
         [', Nobody', [{text: '', author: 'Nobody', source: ''}]],
     ])('reads %j', (text, want) => {
         expect(quoteLines(text)).toEqual(want);
+    });
+});
+
+describe('quoteLines with double quotes', () => {
+    it.each([
+        ['Free at last, "Martin Luther King, Jr."', {text: 'Free at last', author: 'Martin Luther King, Jr.'}],
+        ['Stay hungry, stay foolish, "Jobs, Steve"', {text: 'Stay hungry, stay foolish', author: 'Jobs, Steve'}],
+        ['"Stay hungry, stay foolish"', {text: 'Stay hungry, stay foolish', author: ''}],
+        ['  "Stay hungry, stay foolish"  ', {text: 'Stay hungry, stay foolish', author: ''}],
+        ['"Be yourself", Oscar Wilde', {text: 'Be yourself', author: 'Oscar Wilde'}],
+        ['"Be yourself" , "Wilde, Oscar"', {text: 'Be yourself', author: 'Wilde, Oscar'}],
+        ['"He said ""hi"", twice", Anon', {text: 'He said "hi", twice', author: 'Anon'}],
+        ['""""', {text: '"', author: ''}],
+        ['"  padded  ", "  me  "', {text: '  padded  ', author: '  me  '}],
+        ['"", Nobody', {text: '', author: 'Nobody'}],
+        [', "Doe, J."', {text: '', author: 'Doe, J.'}],
+        ['"Hi", Dwayne "The Rock" Johnson', {text: 'Hi', author: 'Dwayne "The Rock" Johnson'}],
+    ])('reads %j', (line, want) => {
+        expect(quoteLines(line)).toEqual([{...want, source: ''}]);
+    });
+
+    // Lines that are not well-formed with quoting split at the last comma,
+    // as before.
+    it.each([
+        ['"Hi", he said, Bob', {text: '"Hi", he said', author: 'Bob'}],
+        ['"Unclosed, quote', {text: '"Unclosed', author: 'quote'}],
+        ['"Closed" then text, Bob', {text: '"Closed" then text', author: 'Bob'}],
+        ['"a", "b" extra', {text: '"a"', author: '"b" extra'}],
+        ['Say "hi", Bob', {text: 'Say "hi"', author: 'Bob'}],
+        ['Hi, Dwayne "Rock"', {text: 'Hi', author: 'Dwayne "Rock"'}],
+        ['"a" b, "c"', {text: '"a" b', author: '"c"'}],
+        ['He said "no"', {text: 'He said "no"', author: ''}],
+        ['Hello, "unclosed', {text: 'Hello', author: '"unclosed'}],
+    ])('reads %j as before', (line, want) => {
+        expect(quoteLines(line)).toEqual([{...want, source: ''}]);
+    });
+});
+
+describe('formatQuoteLine', () => {
+    it.each([
+        [{text: 'Less is more', author: 'Mies van der Rohe'}, 'Less is more, Mies van der Rohe'],
+        [{text: 'Stay hungry, stay foolish', author: 'Steve Jobs'}, 'Stay hungry, stay foolish, Steve Jobs'],
+        [{text: 'Free at last', author: 'Martin Luther King, Jr.'}, 'Free at last, "Martin Luther King, Jr."'],
+        [{text: 'Stay hungry, stay foolish', author: ''}, '"Stay hungry, stay foolish"'],
+        [{text: 'No comma', author: ''}, 'No comma'],
+        [{text: '"Be yourself"', author: 'Oscar Wilde'}, '"""Be yourself""", Oscar Wilde'],
+        [{text: 'Hi', author: '"Anon"'}, 'Hi, """Anon"""'],
+        [{text: 'Hi', author: 'Dwayne "Rock"'}, 'Hi, "Dwayne ""Rock"""'],
+        [{text: 'Say "hi"', author: 'Bob'}, 'Say "hi", Bob'],
+        [{text: ' padded ', author: 'Me'}, '" padded ", Me'],
+        [{text: '', author: 'Nobody'}, ', Nobody'],
+    ])('writes %j as %j', (quote, want) => {
+        expect(formatQuoteLine({...quote, source: ''})).toBe(want);
+    });
+
+    const QUOTES: Array<Pick<Quote, 'text' | 'author'>> = [
+        {text: 'Less is more', author: 'Mies van der Rohe'},
+        {text: 'Stay hungry, stay foolish', author: 'Steve Jobs'},
+        {text: 'Stay hungry, stay foolish', author: ''},
+        {text: 'Free at last', author: 'Martin Luther King, Jr.'},
+        {text: 'One, two, three', author: 'Doe, J.'},
+        {text: '"Be yourself"', author: 'Oscar Wilde'},
+        {text: '"', author: '"'},
+        {text: '""', author: ''},
+        {text: 'Say "hi", twice', author: ''},
+        {text: 'Say "hi"', author: 'Dwayne "The Rock" Johnson'},
+        {text: 'a, "x', author: 'b""c"'},
+        {text: 'x, "y"', author: 'z, w'},
+        {text: 'Ends with a comma,', author: ''},
+        {text: 'Ends with a comma,', author: 'Me,'},
+        {text: 'No author', author: ''},
+        {text: '', author: 'Nobody'},
+        {text: '', author: 'Doe, J.'},
+        {text: '  padded  ', author: '  me  '},
+        {text: ' lead', author: ''},
+        {text: 'trail ', author: 'x'},
+        {text: 'Quote', author: ', comma first'},
+    ];
+
+    it.each(QUOTES)('round-trips %j', (quote) => {
+        const q: Quote = {...quote, source: ''};
+        expect(quoteLines(formatQuoteLine(q))).toEqual([q]);
+    });
+
+    it('round-trips every quote as one textarea', () => {
+        const quotes: Quote[] = QUOTES.map((q) => ({...q, source: ''}));
+        expect(quoteLines(quotes.map(formatQuoteLine).join('\n'))).toEqual(quotes);
     });
 });

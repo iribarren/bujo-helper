@@ -30,13 +30,10 @@ func pngHeader(w, h uint32) []byte {
 	return b.Bytes()
 }
 
-// Images over maxThumbPixels get no thumbnail, like unreadable files;
-// those at the limit still do.
+// Images over the handler's pixel limit get no thumbnail, like unreadable
+// files; those at the limit still do.
 func TestThumbsRefuseOversizedImages(t *testing.T) {
-	orig := maxThumbPixels
-	maxThumbPixels = 100 * 100
-	t.Cleanup(func() { maxThumbPixels = orig })
-
+	t.Parallel()
 	dir := t.TempDir()
 	writeImage(t, dir, "at-limit.png", 100, 100)
 	writeImage(t, dir, "wide.jpg", 101, 100)
@@ -46,6 +43,7 @@ func TestThumbsRefuseOversizedImages(t *testing.T) {
 		t.Fatal(err)
 	}
 	th := NewThumbs()
+	th.maxPixels = 100 * 100
 	th.Allow(covers)
 	want := map[string]int{"at-limit.png": http.StatusOK, "wide.jpg": http.StatusNotFound, "tall.png": http.StatusNotFound}
 	for _, c := range covers {
@@ -56,8 +54,10 @@ func TestThumbsRefuseOversizedImages(t *testing.T) {
 }
 
 // A file whose header claims a huge image is refused from the header
-// alone, with the real limit.
+// alone, with the real limit. The full decode would fail too (there is no
+// pixel data), so the test checks makeThumb's error, not just the 404.
 func TestThumbsRefuseHugeHeaders(t *testing.T) {
+	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "huge.png")
 	if err := os.WriteFile(path, pngHeader(100_000, 100_000), 0o644); err != nil {
@@ -72,7 +72,15 @@ func TestThumbsRefuseHugeHeaders(t *testing.T) {
 	}
 	th := NewThumbs()
 	th.Allow(covers)
+	if th.maxPixels != defaultMaxThumbPixels {
+		t.Errorf("default limit %d, want %d", th.maxPixels, defaultMaxThumbPixels)
+	}
 	if rec := get(th, path); rec.Code != http.StatusNotFound {
 		t.Errorf("status %d, want 404", rec.Code)
+	}
+	_, err = makeThumb(path, th.maxPixels)
+	want := "100000 x 100000 image is over 50000000 pixels"
+	if err == nil || err.Error() != want {
+		t.Errorf("makeThumb error %v, want %q", err, want)
 	}
 }

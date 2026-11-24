@@ -62,8 +62,8 @@ func NewTaxonResolver(client *http.Client) *TaxonResolver {
 	}
 }
 
-// taxonQuery restricts a Wikidata search to taxa (instance of taxon).
-const taxonQuery = " haswbstatement:P31=Q16521"
+// taxonFilter restricts a Wikidata search to taxa (instance of taxon).
+const taxonFilter = "haswbstatement:P31=Q16521"
 
 // Resolve returns the taxon name names. It returns an error wrapping
 // media.ErrNotFound when no taxon is plausibly named so.
@@ -131,7 +131,7 @@ type taxonName struct {
 }
 
 func (r *TaxonResolver) lookup(ctx context.Context, name string) (Taxon, error) {
-	ids, err := wikidataItemSearch(ctx, r.Client, r.WikidataURL, name+taxonQuery)
+	ids, err := wikidataItemSearch(ctx, r.Client, r.WikidataURL, name, taxonFilter)
 	if err != nil {
 		return Taxon{}, err
 	}

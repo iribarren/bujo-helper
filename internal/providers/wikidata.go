@@ -139,31 +139,10 @@ func (p *WikidataITunes) Search(ctx context.Context, item media.Item, opts media
 // search returns the Q-ids of entities matching title that have an iTunes
 // movie ID. Full-text search with haswbstatement is used because the
 // label-prefix search (wbsearchentities) ranks films below novels, bands
-// and places, often past any useful limit.
+// and places, often past any useful limit. title is searched for
+// literally; a title without words finds nothing.
 func (p *WikidataITunes) search(ctx context.Context, title string) ([]string, error) {
-	q := url.Values{
-		"action":      {"query"},
-		"list":        {"search"},
-		"srsearch":    {title + " haswbstatement:P6398"},
-		"srnamespace": {"0"},
-		"srlimit":     {strconv.Itoa(wikidataSearchLimit)},
-		"srprop":      {""},
-		"format":      {"json"},
-	}
-	var body wikidataSearchResponse
-	if err := getJSONWith(ctx, p.Client, p.WikidataURL+"?"+q.Encode(), web.SetWikimediaHeaders, &body); err != nil {
-		return nil, err
-	}
-	if err := body.Error.err(); err != nil {
-		return nil, err
-	}
-	var ids []string
-	for _, s := range body.Query.Search {
-		if strings.HasPrefix(s.Title, "Q") {
-			ids = append(ids, s.Title)
-		}
-	}
-	return ids, nil
+	return wikidataItemSearch(ctx, p.Client, p.WikidataURL, title, "haswbstatement:P6398")
 }
 
 // films reads the entities and keeps, in ids order, those with an iTunes

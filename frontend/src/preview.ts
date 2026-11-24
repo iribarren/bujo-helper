@@ -218,11 +218,22 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
         timer = undefined;
     }
 
-    // stop drops requests and the busy state they hold.
-    function stop() {
-        drop();
+    // endRequest ends the busy state of a request that brings no new
+    // document (an error, a message, a cancel), and replays a resize skipped
+    // while it was on its way: the page shown, if any, is redrawn quietly
+    // for the sheet's size. A request that brings a document hands its busy
+    // state to the page draw instead (see run), which draws at the sheet's
+    // size anyway.
+    function endRequest() {
         requesting = false;
         updateBusy();
+        redrawIfResized();
+    }
+
+    // stop drops requests and ends the busy state they hold.
+    function stop() {
+        drop();
+        endRequest();
     }
 
     function sheetSize() {
@@ -235,7 +246,8 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
     // request or a page draw is on its way: a new document is drawn at the
     // sheet's size anyway, and a page being drawn is redrawn once it is
     // drawn, rather than cancelled (which would leave the preview busy
-    // until a redraw of it finished).
+    // until a redraw of it finished). A request that ends without a new
+    // document replays a skipped resize (see endRequest).
     function redrawIfResized() {
         if (!shown || requesting || drawing) return;
         const size = sheetSize();
@@ -324,10 +336,9 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
             // Forget the key so the same options can be tried again.
             wanted = '';
             clear();
-            requesting = false;
             message = {key: 'preview.error', params: {error: errorText(err)}};
             renderLabels();
-            updateBusy();
+            endRequest();
         }
     }
 
@@ -346,14 +357,17 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
     }
 
     function showMessage(key: MessageKey) {
-        stop();
+        // Cleared first, so that stopping has no page left to redraw.
         clear();
+        stop();
         wanted = '';
         message = {key};
         renderLabels();
     }
 
     function cancel() {
+        // A page still drawing is not redrawn by stop: it redraws itself
+        // for the sheet's size once drawn.
         stop();
         // A page still drawing finishes unseen.
         drawing = false;

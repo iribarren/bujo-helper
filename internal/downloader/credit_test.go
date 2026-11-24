@@ -2,10 +2,12 @@ package downloader
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
 
 	"bujo-helper/internal/media"
@@ -127,5 +129,38 @@ func TestCreditSidecarFailureRemovesTheImage(t *testing.T) {
 	// No uncredited image is left behind.
 	if got, want := dirNames(t, dir), []string{"Wheat Field with Cypresses - Vincent van Gogh.jpg.credit.txt"}; !slices.Equal(got, want) {
 		t.Errorf("files = %q, want only the blocking directory", got)
+	}
+}
+
+func TestCreditSidecarFailureReportsAFailedRemoval(t *testing.T) {
+	srv := imageServer(t)
+	d := newDownloader(srv, credited("met", testCredit, srv.URL+"/cover.jpg"))
+	// Removing a file cannot be made to fail portably, so the removal is
+	// replaced; it fails as a locked file would.
+	var removed []string
+	d.remove = func(path string) error {
+		removed = append(removed, path)
+		return errors.New("file is locked")
+	}
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "Wheat Field with Cypresses - Vincent van Gogh.jpg.credit.txt"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	res, _ := run(t, d, context.Background(), Request{MediaType: "books", Items: []media.Item{{Title: "Wheat Field with Cypresses", Creator: "Vincent van Gogh"}}, OutputDir: dir})
+
+	if res[0].Status != StatusFailed {
+		t.Fatalf("status = %s, want failed", res[0].Status)
+	}
+	image := filepath.Join(dir, "Wheat Field with Cypresses - Vincent van Gogh.jpg")
+	if !slices.Equal(removed, []string{image}) {
+		t.Errorf("removed = %q, want only the uncredited image %q", removed, image)
+	}
+	// Both failures are reported: why the image is not kept, and that it
+	// is still there.
+	for _, want := range []string{"met: write credit: ", "remove uncredited image: file is locked"} {
+		if !strings.Contains(res[0].Error, want) {
+			t.Errorf("error = %q, want it to contain %q", res[0].Error, want)
+		}
 	}
 }

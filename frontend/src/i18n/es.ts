@@ -241,7 +241,7 @@ export const es: Messages = {
     'pages.quotesPicked': 'Citas elegidas ({n})',
     'pages.quotesRemove': 'Quitar cita: {quote}',
     'pages.quotesOwn': 'Tus citas: Cita, Autor',
-    'pages.quotesOwnHint': 'Una por línea; el autor va tras la última coma.',
+    'pages.quotesOwnHint': 'Una por línea; el autor va tras la última coma. Pon entre comillas dobles un autor con coma, o una cita con coma y sin autor: Libres al fin, "Martin Luther King, Jr."',
     'pages.quotesStyle': 'Estilo',
     'pages.quotesStyleTitle': 'Cómo se componen las citas en las tarjetas.',
     'pages.styleClassic': 'Clásico',

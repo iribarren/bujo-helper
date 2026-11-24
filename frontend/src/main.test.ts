@@ -31,6 +31,9 @@ const {mediaTypes, builtInBGGToken} = vi.hoisted(() => {
         {id: 'blank', label: 'Blank', creatorLabel: '  '},
         {id: 'boardgames', label: 'Board games', creatorLabel: 'Year', sources: ['BoardGameGeek']},
         {id: 'podcasts', label: 'Podcasts', creatorLabel: 'Host', sources: ['Apple Podcasts']},
+        // Both are best served by TMDB, which needs a key.
+        {id: 'movies', label: 'Movies', creatorLabel: 'Year', sources: ['TMDB', 'Wikidata']},
+        {id: 'tv', label: 'TV series', creatorLabel: 'Year', sources: ['TMDB', 'IMDb']},
     ],
     };
 });
@@ -260,6 +263,27 @@ describe('key tip', () => {
         await vi.waitFor(() => expect(el<HTMLInputElement>('bgg-token').value).toBe(saved.bggToken ?? ''));
         el('settings-close').click();
     }
+
+    it('suggests a TMDB key for movies and TV series until one is saved', async () => {
+        for (const type of ['movies', 'tv']) {
+            selectType(type);
+            expect(el('key-tip').hidden, type).toBe(false);
+            expect(el('key-tip-what').textContent, type).toBe('a TMDB API key');
+            expect(el('key-tip-why').textContent, type).toBe('for better movie and TV posters.');
+        }
+
+        await openSettings({language: 'en', tmdbApiKey: 'saved-key'});
+        expect(el('key-tip').hidden).toBe(true);
+        selectType('movies');
+        expect(el('key-tip').hidden).toBe(true);
+        // A key of blanks is no key.
+        await openSettings({language: 'en', tmdbApiKey: '  '});
+        expect(el('key-tip').hidden).toBe(false);
+        selectType('tv');
+        expect(el('key-tip').hidden).toBe(false);
+        selectType('books');
+        expect(el('key-tip').hidden).toBe(true);
+    });
 
     // One sequential case: the built-in token answer arrives once, at
     // startup, and cannot be taken back.

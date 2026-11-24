@@ -509,3 +509,44 @@ func TestSearchSkipsRepeatedTitles(t *testing.T) {
 		t.Errorf("parsed pages %q, want Einstein, B, C", pages)
 	}
 }
+
+func TestSearchSendsTheNameLiterally(t *testing.T) {
+	tests := []struct {
+		name, query string
+		want        []string // srsearch sent; nil means no request
+	}{
+		{"leading minus", "-Einstein", []string{"Einstein"}},
+		{"quoted phrase", `"Mark Twain"`, []string{"Mark Twain"}},
+		{"keyword prefix", "intitle:Gandhi", []string{"intitle Gandhi"}},
+		{"operator word", "Simon AND Garfunkel", []string{"Simon and Garfunkel"}},
+		{"plain name", "Albert Einstein", []string{"Albert Einstein"}},
+		// Nothing is left to search for.
+		{"syntax only", `"-*~?"`, nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fs := newFixtureServer(t)
+			var mu sync.Mutex
+			var sent []string
+			fs.override = func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				sent = append(sent, r.URL.Query().Get("srsearch"))
+				mu.Unlock()
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(`{"batchcomplete":"","query":{"search":[]}}`))
+			}
+			_, err := fs.client().Search(context.Background(), tt.query, "en")
+			if !errors.Is(err, ErrNotFound) {
+				t.Errorf("err = %v, want ErrNotFound", err)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if !slices.Equal(sent, tt.want) {
+				t.Errorf("srsearch = %q, want %q", sent, tt.want)
+			}
+			if n := len(fs.requestPaths()); n != len(tt.want) {
+				t.Errorf("requests = %d, want %d", n, len(tt.want))
+			}
+		})
+	}
+}
