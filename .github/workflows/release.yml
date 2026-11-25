@@ -17,13 +17,17 @@ jobs:
           # Older Ubuntu = older glibc, so the binary runs on more distros.
           - os: ubuntu-22.04
             platform: linux/amd64
+            tags: webkit2_41
+            binary: build/bin/bujo-helper
             asset: bujo-helper-${{ github.ref_name }}-linux-amd64.tar.gz
           - os: windows-latest
             platform: windows/amd64
+            binary: build/bin/bujo-helper.exe
             asset: bujo-helper-${{ github.ref_name }}-windows-amd64.zip
           # Universal binary: runs on Intel and Apple Silicon Macs.
           - os: macos-latest
             platform: darwin/universal
+            binary: build/bin/bujo-helper.app/Contents/MacOS/bujo-helper
             asset: bujo-helper-${{ github.ref_name }}-macos-universal.zip
     runs-on: ${{ matrix.os }}
 
@@ -55,42 +59,81 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 
+      # The version shown in the Windows file properties and the macOS
+      # Info.plist comes from the tag (v1.2.3 -> 1.2.3), not from wails.json.
+      - name: Set the version from the tag
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const config = JSON.parse(fs.readFileSync("wails.json", "utf8"));
+            config.info.productVersion = process.argv[1];
+            fs.writeFileSync("wails.json", JSON.stringify(config, null, 2) + "\n");
+          ' "${REF_NAME#v}"
+
       # The BoardGameGeek token is built in from the BGG_TOKEN repository
       # secret. It is passed through the environment (never inlined in the
       # script) and never printed. Without the secret (forks) it is empty:
-      # the build still succeeds and has no built-in token.
-      - name: Build (Linux)
-        if: runner.os == 'Linux'
+      # the build still succeeds, with a warning, and has no built-in token.
+      # -trimpath also keeps -ldflags (and so the token) out of the Go build
+      # settings, which the check below relies on.
+      - name: Build
+        shell: bash
         env:
           BGG_TOKEN: ${{ secrets.BGG_TOKEN }}
-        run: wails build -clean -platform ${{ matrix.platform }} -tags webkit2_41 -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=${BGG_TOKEN}"
+          PLATFORM: ${{ matrix.platform }}
+          TAGS: ${{ matrix.tags }}
+        run: |
+          if [ -z "$BGG_TOKEN" ]; then
+            echo "::warning title=No BoardGameGeek token::The BGG_TOKEN secret is empty, so this build has no built-in BoardGameGeek token."
+          fi
+          args=(-clean -trimpath -platform "$PLATFORM")
+          if [ -n "$TAGS" ]; then
+            args+=(-tags "$TAGS")
+          fi
+          wails build "${args[@]}" -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=${BGG_TOKEN}"
 
-      - name: Build (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
+      # Wails strips the symbol table, so look for the token bytes in the
+      # binary instead. With -trimpath they are there only if -X set the
+      # variable. grep -q prints nothing, so the token stays out of the log.
+      - name: Check the token was linked
+        shell: bash
         env:
           BGG_TOKEN: ${{ secrets.BGG_TOKEN }}
-        run: wails build -clean -platform ${{ matrix.platform }} -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=$env:BGG_TOKEN"
+          BINARY: ${{ matrix.binary }}
+        run: |
+          if [ -z "$BGG_TOKEN" ]; then
+            echo "No BGG_TOKEN secret; nothing to check."
+            exit 0
+          fi
+          if ! grep -qaF -- "$BGG_TOKEN" "$BINARY"; then
+            echo "::error title=Token not linked::The BoardGameGeek token is not in $BINARY; check the -X symbol name."
+            exit 1
+          fi
 
-      - name: Build (macOS)
-        if: runner.os == 'macOS'
-        env:
-          BGG_TOKEN: ${{ secrets.BGG_TOKEN }}
-        run: wails build -clean -platform ${{ matrix.platform }} -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=${BGG_TOKEN}"
-
+      # The asset name contains the tag, so it goes through the environment
+      # rather than being inlined in the scripts.
       - name: Package (Linux)
         if: runner.os == 'Linux'
-        run: tar czf "${{ matrix.asset }}" -C build/bin bujo-helper
+        env:
+          ASSET: ${{ matrix.asset }}
+        run: tar czf "$ASSET" -C build/bin bujo-helper
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path build/bin/bujo-helper.exe -DestinationPath "${{ matrix.asset }}"
+        env:
+          ASSET: ${{ matrix.asset }}
+        run: Compress-Archive -Path build/bin/bujo-helper.exe -DestinationPath $env:ASSET
 
       - name: Package (macOS)
         if: runner.os == 'macOS'
+        env:
+          ASSET: ${{ matrix.asset }}
         # ditto keeps the .app bundle's permissions and symlinks intact.
-        run: ditto -c -k --keepParent build/bin/bujo-helper.app "${{ matrix.asset }}"
+        run: ditto -c -k --keepParent build/bin/bujo-helper.app "$ASSET"
 
       - uses: actions/upload-artifact@v4
         with:
