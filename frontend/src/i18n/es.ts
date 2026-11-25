@@ -12,17 +12,12 @@ export const es: Messages = {
     'app.tabPages': 'Crear páginas',
     'app.dismiss': 'Cerrar',
 
-    // Key tip above the list.
-    'tip.add': 'Consejo: añade',
-    'tip.in': 'en',
-    'tip.tmdbWhat': 'una clave de API de TMDB',
-    'tip.tmdbWhy': 'para obtener mejores carteles de películas y series.',
-    'tip.igdbWhat': 'credenciales de IGDB',
-    'tip.igdbWhy': 'para obtener carátulas de todos los juegos; sin ellas, Steam solo tiene portadas de juegos de PC.',
-    'tip.bhlWhat': 'una clave de API de BHL',
-    'tip.bhlWhy': 'para obtener más láminas de historia natural.',
-    'tip.bggWhat': 'un token de BoardGameGeek',
-    'tip.bggWhy': 'para descargar carátulas de juegos de mesa; esta versión no incluye ninguno.',
+    // Key tip above the list: one sentence per provider, with the Settings
+    // button where {settings} is.
+    'tip.tmdb': 'Consejo: añade una clave de API de TMDB en {settings} para obtener mejores carteles de películas y series.',
+    'tip.igdb': 'Consejo: añade credenciales de IGDB en {settings} para obtener carátulas de todos los juegos; sin ellas, Steam solo tiene portadas de juegos de PC.',
+    'tip.bhl': 'Consejo: añade una clave de API de BHL en {settings} para obtener más láminas de historia natural.',
+    'tip.bgg': 'Consejo: añade un token de BoardGameGeek en {settings} para descargar carátulas de juegos de mesa; esta versión no incluye ninguno.',
 
     // Download tab.
     'download.import': 'Importar CSV…',

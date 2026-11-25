@@ -14,11 +14,8 @@
         </div>
     </header>
 
-    <p id="key-tip" class="tip" hidden>
-        <span data-i18n="tip.add">Tip: add</span> <span id="key-tip-what">a TMDB API key</span> <span data-i18n="tip.in">in</span>
-        <button id="key-tip-settings" class="link-button" type="button" data-i18n="app.settings">Settings</button>
-        <span id="key-tip-why">for better movie and TV posters.</span>
-    </p>
+    <!-- main.ts writes the tip sentence around the Settings button. -->
+    <p id="key-tip" class="tip" hidden><button id="key-tip-settings" class="link-button" type="button" data-i18n="app.settings">Settings</button></p>
 
     <div id="tabs" class="tabs" role="tablist" aria-label="Sections" data-i18n-aria-label="app.sections">
         <button id="tab-download" class="tab" type="button" role="tab" data-tab="download" aria-selected="true"
@@ -68,7 +65,6 @@
             <label class="field">
                 <span data-i18n="download.country">Country</span>
                 <input id="country" type="text" value="es" maxlength="2" size="3" autocomplete="off" spellcheck="false"
-                       title="Two-letter store country code, e.g. es, us, gb, de. Covers of local editions are preferred."
                        data-i18n-title="download.countryTitle"/>
             </label>
         </div>
@@ -119,22 +115,22 @@
             <legend data-i18n="print.groupLayout">Layout</legend>
             <label class="field">
                 <span data-i18n="print.format">Format</span>
-                <select id="print-format" title="What to print for each cover: a sheet of covers, a review card with its title, a date, stars and lines, a book spine in the cover's main colour for a bookshelf tracker, a movie ticket stub with the title, Date and Where fields and stars, a full page of covers under a header, sized to fit, to glue into a journal without cutting, a checklist (TBR list or watchlist) with a checkbox, thumbnail, title and creator per row under a header, or a polaroid frame with the title as a caption."
+                <select id="print-format"
                         data-i18n-title="print.formatTitle"></select>
             </label>
             <label id="print-size-field" class="field">
                 <span data-i18n="print.size">Cover size</span>
-                <select id="print-size" title="Height of each printed cover, spine or polaroid picture. Smaller sizes fit more per page."
+                <select id="print-size"
                         data-i18n-title="print.sizeTitle"></select>
             </label>
             <label id="print-crop-field" class="field">
                 <span data-i18n="print.crop">Crop to</span>
-                <select id="print-crop" title="Cut each photo to a standard print shape. Photos are centre-cropped to fill their window exactly; the image files are not changed. None: whole images at the cover size. Instant mini: a 54 × 86 mm white frame around a 46 × 62 mm photo. Square: square photos at the cover size. Photo strip: 2 × 6 in strips of 3 or 4 consecutive photos. Wallet: 64 × 89 mm photos."
+                <select id="print-crop"
                         data-i18n-title="print.cropTitle"></select>
             </label>
             <label id="print-media-field" class="field" hidden>
                 <span data-i18n="print.cardsFor">Cards for</span>
-                <select id="print-media" title="Media type of the covers. It sets the date label on the cards, e.g. Read on or Watched on."
+                <select id="print-media"
                         data-i18n-title="print.cardsForTitle"></select>
             </label>
         </fieldset>
@@ -150,10 +146,10 @@
             <span id="selection" class="muted" aria-live="polite">0 selected · 0 pages</span>
             <div id="print-pager" class="pager toolbar-end" hidden>
                 <button id="print-prev" class="pager-button" type="button" disabled aria-label="Previous page"
-                        title="Previous page" data-i18n-aria-label="preview.prev" data-i18n-title="preview.prev">‹</button>
+                        data-i18n-aria-label="preview.prev" data-i18n-title="preview.prev">‹</button>
                 <span id="print-preview-count" class="muted" aria-live="polite"></span>
                 <button id="print-next" class="pager-button" type="button" disabled aria-label="Next page"
-                        title="Next page" data-i18n-aria-label="preview.next" data-i18n-title="preview.next">›</button>
+                        data-i18n-aria-label="preview.next" data-i18n-title="preview.next">›</button>
             </div>
         </div>
 
@@ -193,10 +189,10 @@
             <h2 class="preview-title" data-i18n="pages.preview">Preview</h2>
             <div class="pager">
                 <button id="pages-prev" class="pager-button" type="button" disabled aria-label="Previous page"
-                        title="Previous page" data-i18n-aria-label="preview.prev" data-i18n-title="preview.prev">‹</button>
+                        data-i18n-aria-label="preview.prev" data-i18n-title="preview.prev">‹</button>
                 <span id="pages-count" class="muted" aria-live="polite"></span>
                 <button id="pages-next" class="pager-button" type="button" disabled aria-label="Next page"
-                        title="Next page" data-i18n-aria-label="preview.next" data-i18n-title="preview.next">›</button>
+                        data-i18n-aria-label="preview.next" data-i18n-title="preview.next">›</button>
             </div>
         </div>
         <div class="page-well">

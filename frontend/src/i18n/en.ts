@@ -17,17 +17,12 @@ export const en = {
     'app.tabPages': 'Make pages',
     'app.dismiss': 'Dismiss',
 
-    // Key tip above the list.
-    'tip.add': 'Tip: add',
-    'tip.in': 'in',
-    'tip.tmdbWhat': 'a TMDB API key',
-    'tip.tmdbWhy': 'for better movie and TV posters.',
-    'tip.igdbWhat': 'IGDB credentials',
-    'tip.igdbWhy': 'for box art of all games; without them, Steam covers PC games only.',
-    'tip.bhlWhat': 'a BHL API key',
-    'tip.bhlWhy': 'for more natural-history plates.',
-    'tip.bggWhat': 'a BoardGameGeek token',
-    'tip.bggWhy': 'to download board game box art; this build has none built in.',
+    // Key tip above the list: one sentence per provider, with the Settings
+    // button where {settings} is.
+    'tip.tmdb': 'Tip: add a TMDB API key in {settings} for better movie and TV posters.',
+    'tip.igdb': 'Tip: add IGDB credentials in {settings} for box art of all games; without them, Steam covers PC games only.',
+    'tip.bhl': 'Tip: add a BHL API key in {settings} for more natural-history plates.',
+    'tip.bgg': 'Tip: add a BoardGameGeek token in {settings} to download board game box art; this build has none built in.',
 
     // Download tab.
     'download.import': 'Import CSV…',
