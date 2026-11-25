@@ -63,7 +63,8 @@ func NewCardGrid(page Page) (Grid, error) {
 func newFixedGrid(page Page, w, h float64, noun string) (Grid, error) {
 	usableW := page.Width - 2*MinMargin
 	usableH := page.Height - 2*MinMargin
-	// A small tolerance keeps an exact fit from being lost to rounding.
+	// A small tolerance keeps an exact fit from being lost to rounding
+	// (TestNewFixedGridToleratesAnExactFit, card_test.go).
 	const tol = 1e-9
 	if w > usableW+tol || h > usableH+tol {
 		return Grid{}, fmt.Errorf("a %v × %v mm %s does not fit on a %v × %v mm page", w, h, noun, page.Width, page.Height)

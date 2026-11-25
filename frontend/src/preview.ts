@@ -112,15 +112,16 @@ async function loadPdf(url: string, isStale: () => boolean): Promise<PdfDoc | un
         if (!isStale()) throw err;
     }
     // A newer request won while this one loaded: free it.
-    void task.destroy();
+    destroy(task);
     return undefined;
 }
 
-// free frees a document. Freeing is housekeeping: it never stops the
-// preview from showing the next document.
-function free(doc: PdfDoc) {
+// destroy frees a loading task and the document it loaded. Freeing is
+// housekeeping: a destroy that throws or rejects never stops the preview
+// from showing the next document, nor leaves a rejection unhandled.
+function destroy(task: {destroy: () => Promise<void>}) {
     try {
-        doc.loadingTask.destroy().catch(() => {});
+        task.destroy().catch(() => {});
     } catch {
         // Nothing to free.
     }
@@ -200,7 +201,7 @@ export function initPreview(el: PreviewElements, opts: PreviewOptions = {}): Pre
         drawing = false;
         renderTask?.cancel();
         renderTask = undefined;
-        if (shown) free(shown.doc);
+        if (shown) destroy(shown.doc.loadingTask);
         shown = undefined;
         updateBusy();
     }

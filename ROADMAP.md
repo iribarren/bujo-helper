@@ -771,7 +771,7 @@ Open items found during the reviews of Parts 1–3 (see the feature documents in
 **Acceptance**
 - Downloader tests for barcode naming and duplicate suffixes; README updated.
 
-## 39. [ ] Test and robustness polish
+## 39. [x] Test and robustness polish
 
 **Why:** small review advisories left open across features; each is cheap, together they harden the code.
 
@@ -784,6 +784,12 @@ Open items found during the reviews of Parts 1–3 (see the feature documents in
 
 **Acceptance**
 - Each fix has a test that fails before it; no output change except where a bug is fixed.
+
+**Done in branch `feat/test-robustness-polish`** (see `odd/tasks/test-robustness-polish.md`):
+- Frontend: a failing `loadingTask.destroy` (throw or rejection) no longer leaks an unhandled rejection; `holdDraw()` keeps every held draw; a failed `PrintFormats` binding falls back to the built-in covers format so the cover sheet still exports; the lettering retry test waits for the fonts instead of one microtask hop (865cf63).
+- Print formats: bleed is padded from both axes, so the horizontal bleed no longer falls short; content-stream tests for spines, card text, bleed placement and ticket stub notches and perforations; README spines colour wording corrected (934d956).
+- Tests: the Go licence route body, AniList title matching per media type and independent of AniList's order, and `newFixedGrid`'s exact-fit tolerance.
+- The busy indicator and cover-size error text were already fixed and tested before this item.
 
 ## 40. [ ] Release and build tooling
 

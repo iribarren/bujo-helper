@@ -922,9 +922,14 @@ func TestAssetHandlerServesFonts(t *testing.T) {
 		{"/fonts/go.ttf", "font/ttf", http.StatusOK, font("go").HeaderTTF()},
 		{"/fonts/luckiest-guy/licence", "text/plain; charset=utf-8", http.StatusOK, []byte(font("luckiest-guy").LicenceText)},
 		{"/fonts/pacifico/licence", "text/plain; charset=utf-8", http.StatusOK, []byte(font("pacifico").LicenceText)},
+		// The default font's licence is the Go fonts' BSD text, not an OFL.txt.
+		{"/fonts/go/licence", "text/plain; charset=utf-8", http.StatusOK, []byte(font("go").LicenceText)},
 		{"/fonts/comic-sans.ttf", "", http.StatusNotFound, nil},
 	}
 	for _, tt := range tests {
+		if tt.body != nil && len(tt.body) == 0 {
+			t.Errorf("%s: the registry body is empty, so the check proves nothing", tt.target)
+		}
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tt.target, nil))
 		if rec.Code != tt.want {

@@ -60,6 +60,56 @@ func TestNewCardGridRejectsTinyPages(t *testing.T) {
 	}
 }
 
+// An item exactly as wide (or tall) as n items fill the usable page gives n
+// columns (rows) even when the float quotient lands just below n, as it
+// does for 7 columns across A5 and 11 across Letter; a micrometre wider
+// gives n-1 (or no grid, for one item). Three A5 Standard polaroid frames
+// are such an exact fit (TestPolaroidGridPapersAndSizes).
+func TestNewFixedGridToleratesAnExactFit(t *testing.T) {
+	const wider = 1e-6 // mm, far above the tolerance, far below any real size
+	shortfall := false
+	for _, paper := range []string{"a4", "letter", "a5"} {
+		p, err := PaperByID(paper)
+		if err != nil {
+			t.Fatal(err)
+		}
+		usableW, usableH := p.Page.Width-2*MinMargin, p.Page.Height-2*MinMargin
+		for n := 1; n <= 12; n++ {
+			w := (usableW - float64(n-1)*Gap) / float64(n)
+			h := (usableH - float64(n-1)*Gap) / float64(n)
+			if (usableW+Gap)/(w+Gap) < float64(n) || (usableH+Gap)/(h+Gap) < float64(n) {
+				shortfall = true
+			}
+
+			g, err := newFixedGrid(p.Page, w, h, "item")
+			if err != nil {
+				t.Fatalf("%s, %d × %d exact fit: %v", paper, n, n, err)
+			}
+			if g.Columns != n || g.Rows != n {
+				t.Errorf("%s, %d × %d exact fit: grid is %d × %d", paper, n, n, g.Columns, g.Rows)
+			}
+
+			g, err = newFixedGrid(p.Page, w+wider, h+wider, "item")
+			if n == 1 {
+				if err == nil {
+					t.Errorf("%s: an item wider and taller than the usable page = %+v, want an error", paper, g)
+				}
+				continue
+			}
+			if err != nil {
+				t.Fatalf("%s, %d × %d fit made wider: %v", paper, n, n, err)
+			}
+			if g.Columns != n-1 || g.Rows != n-1 {
+				t.Errorf("%s, %d × %d fit made %v mm wider and taller: grid is %d × %d, want %d × %d",
+					paper, n, n, wider, g.Columns, g.Rows, n-1, n-1)
+			}
+		}
+	}
+	if !shortfall {
+		t.Error("no exact fit's quotient fell short of n, so the tolerance went untested")
+	}
+}
+
 func TestCellsPaginate(t *testing.T) {
 	g, err := NewCardGrid(A4)
 	if err != nil {

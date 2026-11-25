@@ -3,7 +3,7 @@ import {resolve} from 'node:path';
 
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from 'vitest';
 
-import {ExportPDF, ListCovers, PreviewPDF, PrintCropModes, PrintPages, PrintPapers, PrintSizes, SavePrintPrefs} from '../wailsjs/go/main/App';
+import {ExportPDF, ListCovers, PreviewPDF, PrintCropModes, PrintFormats, PrintPages, PrintPapers, PrintSizes, SavePrintPrefs} from '../wailsjs/go/main/App';
 import {main, settings, sheet} from '../wailsjs/go/models';
 import {useLanguage} from './language';
 import {activeCrop, initPrint, perPageOf, sizePerPageOf, usesCutOf, usesSizeOf, type SelectionShape} from './print';
@@ -783,6 +783,20 @@ describe('Print covers remembered options', () => {
         header.dispatchEvent(new Event('change'));
         await vi.waitFor(() => expect(SavePrintPrefs).toHaveBeenCalledTimes(1));
         expect(vi.mocked(SavePrintPrefs).mock.lastCall![0].header).toBe('My list');
+    });
+
+    it('still exports the cover sheet when the print formats fail to load', async () => {
+        const showError = vi.fn();
+        vi.mocked(PrintFormats).mockRejectedValueOnce(new Error('no formats'));
+        await mount(undefined, showError);
+        expect(showError).toHaveBeenCalledWith('Could not load print formats: no formats');
+        const format = el<HTMLSelectElement>('print-format');
+        expect(Array.from(format.options, (o) => o.value)).toEqual(['covers']);
+        expect(format.value).toBe('covers');
+        el('select-all').click();
+        await vi.waitFor(() => expect(PrintPages).toHaveBeenCalled());
+        expect(vi.mocked(PrintPages).mock.lastCall![1]).toMatchObject({format: 'covers'});
+        expect(el<HTMLButtonElement>('export-pdf').disabled).toBe(false);
     });
 
     it('logs a failed save without showing an error', async () => {

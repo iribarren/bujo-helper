@@ -62,6 +62,28 @@ func TestDominantColorPicksTheMajority(t *testing.T) {
 	}
 }
 
+// The buckets are fixed, not clustered: a hue whose shades straddle a
+// bucket edge is split, and a smaller solid area can beat it. Red levels
+// 127 and 128 fall into buckets 7 and 8.
+func TestDominantColorSplitsAHueAcrossABucketEdge(t *testing.T) {
+	img := image.NewNRGBA(image.Rect(0, 0, 10, 10))
+	for y := range 10 {
+		for x := range 10 {
+			c := color.NRGBA{0, 0, 200, 255} // 40 %
+			switch {
+			case y < 3:
+				c = color.NRGBA{127, 0, 0, 255} // 30 %
+			case y < 6:
+				c = color.NRGBA{128, 0, 0, 255} // 30 %
+			}
+			img.SetNRGBA(x, y, c)
+		}
+	}
+	if got, want := dominantColor(img), (color.RGBA{0, 0, 200, 255}); got != want {
+		t.Errorf("dominantColor = %v, want the 40 %% blue %v over the split 60 %% red", got, want)
+	}
+}
+
 func TestDominantColorOfANoisyImage(t *testing.T) {
 	hue := color.RGBA{180, 60, 40, 255}
 	rng := rand.New(rand.NewSource(1))

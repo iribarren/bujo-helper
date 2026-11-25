@@ -180,15 +180,14 @@ type croppedImage struct {
 func (c croppedImage) Bounds() image.Rectangle { return c.r }
 
 // printCroppedImage decodes the image at path, crops its middle to the
-// shape of window and returns it as printImage does for a printed height of
-// window.H, so it fills window exactly with no distortion. The file is
-// never changed.
+// shape of window and returns it as printImage does for box window, so it
+// fills window exactly with no distortion. The file is never changed.
 func printCroppedImage(path string, window Box, bleed bool) (printed, error) {
 	src, err := decodeImage(path)
 	if err != nil {
 		return printed{}, err
 	}
-	return encodePrinted(path, cropImage(src, centreCrop(src.Bounds(), window.W/window.H)), window.H, bleed)
+	return encodePrintedOn(path, cropImage(src, centreCrop(src.Bounds(), window.W/window.H)), window, bleed)
 }
 
 // printCroppedImages prepares the image of every photo with

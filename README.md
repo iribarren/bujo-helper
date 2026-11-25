@@ -527,7 +527,7 @@ The **Spines** format prints one book spine per selected cover, to cut out and s
 - **Width:** 8 to 12 mm, in a fixed repeating pattern (10, 12, 9, 11, 8, 12, 10, 9, 11, 10 mm) for a natural shelf look, so every full row holds the same number of spines.
 - **Spacing:** 2 mm between spines, 4 mm between rows, at least 8 mm margins; rows are centred on the page.
 - **Long titles** shrink (down to 5 pt), then end with "…"; text never leaves its strip.
-- **Dominant colour:** the colour of the largest area of similar pixels; transparent areas count as white.
+- **Dominant colour:** the most common colour once every pixel is rounded into coarse colour buckets (16 levels a channel), averaged over that bucket; transparent areas count as white. The shades of a gradient can fall into neighbouring buckets and count separately, so a smaller flat area can win over a larger gradient.
 
 Spines per page (spines per row × rows):
 
