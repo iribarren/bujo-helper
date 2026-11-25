@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, type Mock, vi} from 'vitest';
 
 import {applyDom, setLang} from './i18n';
 import {habitList, pageForms, type PageForm} from './pageForms';
@@ -8,7 +8,7 @@ import {parseDefaults} from './pages';
 const MOON_DEFAULTS = '{"month":0,"year":0,"layout":"grid","hemisphere":"north"}';
 
 let box: HTMLDivElement;
-let onChange: ReturnType<typeof vi.fn>;
+let onChange: Mock<() => void>;
 // The forms a test built, disposed after it so their language listeners
 // do not pile up.
 let built: PageForm[] = [];
@@ -17,7 +17,7 @@ let built: PageForm[] = [];
 function moonForm(defaults = MOON_DEFAULTS): PageForm {
     box = document.createElement('div');
     document.body.replaceChildren(box);
-    onChange = vi.fn();
+    onChange = vi.fn<() => void>();
     const form = pageForms.moon(box, 'test-moon', parseDefaults(defaults), onChange);
     built.push(form);
     return form;
@@ -244,7 +244,7 @@ describe('visited map form', () => {
     function mapForm(defaults = MAP_DEFAULTS): PageForm {
         box = document.createElement('div');
         document.body.replaceChildren(box);
-        onChange = vi.fn();
+        onChange = vi.fn<() => void>();
         const form = pageForms.map(box, 'test-map', parseDefaults(defaults), onChange);
         built.push(form);
         return form;
@@ -412,7 +412,7 @@ describe('visited map form', () => {
 function kindForm(kind: string, defaults: string): PageForm {
     box = document.createElement('div');
     document.body.replaceChildren(box);
-    onChange = vi.fn();
+    onChange = vi.fn<() => void>();
     const form = pageForms[kind](box, `test-${kind}`, parseDefaults(defaults), onChange);
     built.push(form);
     return form;

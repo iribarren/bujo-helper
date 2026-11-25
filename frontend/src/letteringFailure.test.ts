@@ -4,7 +4,6 @@ import {resolve} from 'node:path';
 import {beforeAll, describe, expect, it, vi} from 'vitest';
 
 import {PreviewPage, PrintPages} from '../wailsjs/go/main/App';
-import {main} from '../wailsjs/go/models';
 import {initPages} from './pages';
 import {initPrint} from './print';
 import {fakePdf, resetFakePdfs} from './previewMock';

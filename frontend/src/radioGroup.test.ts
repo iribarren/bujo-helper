@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {beforeEach, describe, expect, it, type Mock, vi} from 'vitest';
 
 import {initRadioGroup, type RadioGroup} from './radioGroup';
 
@@ -10,7 +10,7 @@ const OPTIONS = [
 
 let container: HTMLDivElement;
 let group: RadioGroup;
-let onChange: ReturnType<typeof vi.fn>;
+let onChange: Mock<() => void>;
 
 function radio(value: string): HTMLButtonElement {
     const node = container.querySelector<HTMLButtonElement>(`[role="radio"][data-value="${value}"]`);
@@ -35,7 +35,7 @@ function expectChecked(value: string) {
 beforeEach(() => {
     document.body.innerHTML = '<div id="group" role="radiogroup"></div>';
     container = document.getElementById('group') as HTMLDivElement;
-    onChange = vi.fn();
+    onChange = vi.fn<() => void>();
     group = initRadioGroup(container, onChange);
     group.replaceOptions(OPTIONS);
 });

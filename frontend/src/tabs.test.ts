@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {beforeEach, describe, expect, it, type Mock, vi} from 'vitest';
 
 import {initTabs, type Tabs} from './tabs';
 
@@ -35,11 +35,11 @@ function expectSelected(name: string) {
 }
 
 let tabs: Tabs;
-let onSelect: ReturnType<typeof vi.fn>;
+let onSelect: Mock<(name: string) => void>;
 
 beforeEach(() => {
     document.body.innerHTML = MARKUP;
-    onSelect = vi.fn();
+    onSelect = vi.fn<(name: string) => void>();
     tabs = initTabs(el('tabs'), onSelect);
 });
 

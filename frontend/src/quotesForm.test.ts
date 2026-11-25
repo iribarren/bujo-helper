@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, type Mock, vi} from 'vitest';
 
 import {SearchQuotes} from '../wailsjs/go/main/App';
 import {applyDom, setLang} from './i18n';
@@ -46,13 +46,13 @@ function deferred<T>() {
 }
 
 let box: HTMLDivElement;
-let onChange: ReturnType<typeof vi.fn>;
+let onChange: Mock<() => void>;
 let built: PageForm[] = [];
 
 function quotesForm(defaults = QUOTES_DEFAULTS): PageForm {
     box = document.createElement('div');
     document.body.replaceChildren(box);
-    onChange = vi.fn();
+    onChange = vi.fn<() => void>();
     const form = pageForms.quotes(box, 'test-quotes', parseDefaults(defaults), onChange);
     built.push(form);
     return form;

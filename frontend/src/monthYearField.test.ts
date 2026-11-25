@@ -1,17 +1,17 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, type Mock, vi} from 'vitest';
 
 import {applyDom, setLang} from './i18n';
 import {monthYearField, type MonthYear} from './monthYearField';
 
 let box: HTMLDivElement;
-let onChange: ReturnType<typeof vi.fn>;
+let onChange: Mock<() => void>;
 let built: MonthYear[] = [];
 
 // field builds the Month and Year row from defaults, as a kind's form does.
 function field(defaults: Record<string, unknown> = {month: 0, year: 0}): MonthYear {
     box = document.createElement('div');
     document.body.replaceChildren(box);
-    onChange = vi.fn();
+    onChange = vi.fn<() => void>();
     const row = monthYearField(box, 'test', defaults, onChange);
     built.push(row);
     return row;
