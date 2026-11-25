@@ -59,6 +59,7 @@ Out of scope: building the CLI in the release, a dynamic pdf.js import, other i1
 - `frontend/src/print.ts:91` builds `print.headerExample.${formatId}` before a guard (looked up as `print.headerExample.` when the ID is empty; harmless fallback). Guard it like `label()`.
 - Pager buttons carry both `aria-label` and `data-i18n-aria-label` (same duplication as the titles).
 - Run the release workflow once before the next real release (a throwaway `v0.0.0-test` tag on a fork, or a `workflow_dispatch` dry run) to prove the bash build on Windows, the binary paths and the token check.
+- 2026-11-25: user asked for the merge. Merged to main locally in `83d5f40`.
 
 ## Next step
-Done on the branch. User checks, then local `--no-ff` merge. Open follow-ups: see **Follow-ups**.
+Done. Open follow-ups: see **Follow-ups**.

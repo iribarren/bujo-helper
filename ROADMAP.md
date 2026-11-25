@@ -791,7 +791,7 @@ Open items found during the reviews of Parts 1–3 (see the feature documents in
 - Tests: the Go licence route body, AniList title matching per media type and independent of AniList's order, and `newFixedGrid`'s exact-fit tolerance.
 - The busy indicator and cover-size error text were already fixed and tested before this item.
 
-## 40. [x] Release and build tooling
+## 40. [x] Release and build tooling (83d5f40)
 
 **Why:** leftovers from the release work (sources: `odd/tasks/bujo-helper-release.md`, `odd/tasks/boardgames.md`, `odd/tasks/live-preview.md`).
 
