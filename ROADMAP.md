@@ -771,7 +771,7 @@ Open items found during the reviews of Parts 1–3 (see the feature documents in
 **Acceptance**
 - Downloader tests for barcode naming and duplicate suffixes; README updated.
 
-## 39. [x] Test and robustness polish
+## 39. [x] Test and robustness polish (0585dd0)
 
 **Why:** small review advisories left open across features; each is cheap, together they harden the code.
 
