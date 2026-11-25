@@ -73,17 +73,15 @@ const EXAMPLES: Record<string, string> = {
 };
 
 // The tip shown above the list for media types whose best source needs a
-// key, while none is saved: what to add, why (message keys), and whether it
-// is saved.
+// key, while none is saved: its sentence (a message key, with {settings}
+// where the Settings button goes) and whether the key is saved.
 interface KeyTip {
-    what: MessageKey;
-    why: MessageKey;
+    text: MessageKey;
     saved(): boolean;
 }
 
 const TMDB_TIP: KeyTip = {
-    what: 'tip.tmdbWhat',
-    why: 'tip.tmdbWhy',
+    text: 'tip.tmdb',
     saved: () => settingsDialog?.hasTMDBKey() ?? false,
 };
 
@@ -91,19 +89,16 @@ const KEY_TIPS: Record<string, KeyTip> = {
     movies: TMDB_TIP,
     tv: TMDB_TIP,
     games: {
-        what: 'tip.igdbWhat',
-        why: 'tip.igdbWhy',
+        text: 'tip.igdb',
         saved: () => settingsDialog?.hasIGDBCredentials() ?? false,
     },
     nature: {
-        what: 'tip.bhlWhat',
-        why: 'tip.bhlWhy',
+        text: 'tip.bhl',
         saved: () => settingsDialog?.hasBHLKey() ?? false,
     },
     // A token built into the app works as well as a saved one.
     boardgames: {
-        what: 'tip.bggWhat',
-        why: 'tip.bggWhy',
+        text: 'tip.bgg',
         saved: () => builtInBGGToken || (settingsDialog?.hasBGGToken() ?? false),
     },
 };
@@ -126,8 +121,6 @@ const ui = {
     mediaType: initRadioGroup(byId<HTMLDivElement>('media-type'), () => updateMediaType()),
     settingsOpen: byId<HTMLButtonElement>('settings-open'),
     keyTip: byId<HTMLParagraphElement>('key-tip'),
-    keyTipWhat: byId<HTMLSpanElement>('key-tip-what'),
-    keyTipWhy: byId<HTMLSpanElement>('key-tip-why'),
     keyTipSettings: byId<HTMLButtonElement>('key-tip-settings'),
     rateLimit: byId<HTMLParagraphElement>('rate-limit'),
     banner: byId<HTMLDivElement>('banner'),
@@ -272,8 +265,10 @@ function updateKeyTip() {
     const tip = KEY_TIPS[ui.mediaType.value];
     ui.keyTip.hidden = !tip || tip.saved();
     if (tip) {
-        ui.keyTipWhat.textContent = t(tip.what);
-        ui.keyTipWhy.textContent = t(tip.why);
+        // The sentence as text around the Settings button itself, which
+        // keeps its click handler and its data-i18n label.
+        const [before, after = ''] = t(tip.text).split('{settings}');
+        ui.keyTip.replaceChildren(before, ui.keyTipSettings, after);
     }
 }
 
@@ -281,15 +276,18 @@ function updateKeyTip() {
 // button, e.g. "Sample books CSV".
 function updateSampleButton() {
     const type = currentMediaType();
-    const button = `sample.button.${type?.id}`;
-    const title = `sample.title.${type?.id}`;
-    if (type && has(button) && has(title)) {
+    if (!type) {
+        ui.sampleCsv.textContent = t('sample.button');
+        ui.sampleCsv.title = t('sample.title', {creator: creatorLabel()});
+        return;
+    }
+    const button = `sample.button.${type.id}`;
+    const title = `sample.title.${type.id}`;
+    if (has(button) && has(title)) {
         ui.sampleCsv.textContent = t(button);
         ui.sampleCsv.title = t(title);
     } else {
-        ui.sampleCsv.textContent = type
-            ? t('sample.buttonFor', {media: type.label.toLowerCase()})
-            : t('sample.button');
+        ui.sampleCsv.textContent = t('sample.buttonFor', {media: type.label.toLowerCase()});
         ui.sampleCsv.title = t('sample.title', {creator: creatorLabel()});
     }
 }
@@ -388,8 +386,10 @@ function statusText(status: string): string {
 // failureText is why an item failed or was cancelled: the translated reason
 // for its code, or Go's English error when there is no code.
 function failureText(ev: ItemEvent): string {
-    const key = `status.code.${ev.code}`;
-    if (ev.code && has(key)) return t(key);
+    if (ev.code) {
+        const key = `status.code.${ev.code}`;
+        if (has(key)) return t(key);
+    }
     return ev.error || statusText(ev.status);
 }
 

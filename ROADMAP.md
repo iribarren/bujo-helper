@@ -791,7 +791,7 @@ Open items found during the reviews of Parts 1–3 (see the feature documents in
 - Tests: the Go licence route body, AniList title matching per media type and independent of AniList's order, and `newFixedGrid`'s exact-fit tolerance.
 - The busy indicator and cover-size error text were already fixed and tested before this item.
 
-## 40. [ ] Release and build tooling
+## 40. [x] Release and build tooling
 
 **Why:** leftovers from the release work (sources: `odd/tasks/bujo-helper-release.md`, `odd/tasks/boardgames.md`, `odd/tasks/live-preview.md`).
 
@@ -801,6 +801,12 @@ Open items found during the reviews of Parts 1–3 (see the feature documents in
 
 **Acceptance**
 - `vite build` has no chunk warning; the workflow passes `actionlint` (or a YAML parse check); tests for the i18n fixes.
+
+**Done in branch `feat/release-build-tooling`** (see `odd/tasks/release-build-tooling.md`):
+- Release workflow: one bash build step for all three OSes, built with `-trimpath`; a warning when `BGG_TOKEN` is empty, and a failed build when the token is not in the binary; the tag and asset names go through env; the version comes from the tag (`v1.2.3[-suffix]` → `1.2.3`, other tags fail) and `wails.json` keeps `0.0.0` (6ea15f3, 8fe290c).
+- Frontend: pdf.js in its own chunk, so `vite build` no longer warns (3ec2283); test files type-checked in `npm test` through `tsconfig.test.json` (26e0a50); key tips as whole sentences, tooltips only in the dictionary, no keys built from `undefined`, listener test cleanup in `afterEach` (c9a536f).
+- Label fit tested across six poster ratios, with a long label that gets truncated (712384d).
+- Checked with a YAML parse; `actionlint` is not installed.
 
 ## 41. [ ] Source checks and documented limitations
 

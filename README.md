@@ -1209,7 +1209,7 @@ The [release workflow](.github/workflows/release.yml) does this with the `BGG_TO
 
 ## Releasing
 
-Pushing a tag that starts with `v` runs the [release workflow](.github/workflows/release.yml). It builds the Linux and Windows binaries on GitHub Actions and publishes them as a GitHub release with generated notes:
+Pushing a tag that starts with `v` runs the [release workflow](.github/workflows/release.yml). It builds the Linux, Windows and macOS binaries on GitHub Actions and publishes them as a GitHub release with generated notes. The version in the binaries comes from the tag (`v0.2.0` → `0.2.0`); `wails.json` keeps `0.0.0` for local builds. Without the `BGG_TOKEN` secret the build warns and has no built-in token; with it, the build fails if the token did not end up in the binary:
 
 ```sh
 git tag -a v0.2.0 -m "v0.2.0"

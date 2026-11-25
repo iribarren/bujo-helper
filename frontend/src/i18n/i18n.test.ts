@@ -2,7 +2,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 
 import {en} from './en';
 import {es} from './es';
-import {applyDom, detectLang, getLang, label, onLangChange, setCatalog, setLang, t, tn} from './index';
+import {applyDom, detectLang, getLang, label, onLangChange, pluralKey, setCatalog, setLang, t, tn} from './index';
 
 afterEach(() => {
     setLang('en');
@@ -93,12 +93,53 @@ describe('label', () => {
         expect(label('media', 'comics', 'Comics')).toBe('Comics');
         expect(label('media', '', 'Fallback')).toBe('Fallback');
     });
+
+    // A message "<kind>.undefined" must never answer for a missing ID, so
+    // the tests add one and check it is not looked up.
+    describe('without an ID', () => {
+        const source: Record<string, string> = en;
+        afterEach(() => {
+            delete source['media.undefined'];
+            delete source['media.undefined_other'];
+        });
+
+        it('is the fallback, not a message built from undefined', () => {
+            source['media.undefined'] = 'Wrong';
+            expect(label('media', undefined, 'Fallback')).toBe('Fallback');
+            expect(label('media', '', 'Fallback')).toBe('Fallback');
+        });
+
+        it('has the fallback plural message', () => {
+            source['media.undefined_other'] = 'Wrong';
+            expect(pluralKey('media', undefined, 'download.items')).toBe('download.items');
+            expect(pluralKey('media', '', 'download.items')).toBe('download.items');
+        });
+    });
+});
+
+describe('key tips', () => {
+    // Translators see each tip as one sentence, with {settings} where the
+    // Settings button goes.
+    it.each([['en', en], ['es', es]] as const)('are whole %s sentences with one {settings}', (_lang, messages) => {
+        const catalog: Record<string, string> = messages;
+        const tips = Object.keys(catalog).filter((key) => key.startsWith('tip.')).sort();
+        expect(tips).toEqual(['tip.bgg', 'tip.bhl', 'tip.igdb', 'tip.tmdb']);
+        for (const key of tips) expect(catalog[key].split('{settings}'), key).toHaveLength(2);
+    });
 });
 
 describe('onLangChange', () => {
+    // What a test subscribed or spied on, released after it even when an
+    // assertion fails, before the language is set back to English.
+    const releases: Array<() => void> = [];
+    afterEach(() => {
+        for (const release of releases.splice(0).reverse()) release();
+    });
+
     it('notifies on a change until unsubscribed', () => {
         const cb = vi.fn();
         const off = onLangChange(cb);
+        releases.push(off);
         setLang('es');
         expect(cb).toHaveBeenCalledTimes(1);
         expect(cb).toHaveBeenCalledWith('es');
@@ -111,18 +152,15 @@ describe('onLangChange', () => {
 
     it('keeps notifying the other listeners when one throws', () => {
         const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-        const offBad = onLangChange(() => {
+        releases.push(() => error.mockRestore());
+        releases.push(onLangChange(() => {
             throw new Error('relabel failed');
-        });
+        }));
         const cb = vi.fn();
-        const off = onLangChange(cb);
+        releases.push(onLangChange(cb));
         expect(() => setLang('es')).not.toThrow();
         expect(cb).toHaveBeenCalledWith('es');
         expect(error).toHaveBeenCalled();
-        offBad();
-        off();
-        setLang('en');
-        error.mockRestore();
     });
 });
 

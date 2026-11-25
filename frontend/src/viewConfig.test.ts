@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, type Mock, vi} from 'vitest';
 
 import {PrintSizes} from '../wailsjs/go/main/App';
 import {setLang} from './i18n';
@@ -57,7 +57,7 @@ vi.mock('../wailsjs/go/main/App', () => ({
 
 let container: HTMLElement;
 let config: ViewConfig;
-let changed: ReturnType<typeof vi.fn>;
+let changed: Mock<() => void>;
 
 function section(id: string): HTMLElement {
     const node = container.querySelector<HTMLElement>(`[data-section="${id}"]`);
@@ -105,7 +105,7 @@ function text(node: Element | null | undefined): string {
 async function build(view?: View): Promise<void> {
     container = document.createElement('div');
     document.body.replaceChildren(container);
-    changed = vi.fn();
+    changed = vi.fn<() => void>();
     config = initViewConfig(container, changed);
     await config.load();
     config.fill(view);

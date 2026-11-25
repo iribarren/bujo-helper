@@ -4,7 +4,11 @@ import {resolve} from 'node:path';
 import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 
 import {ChooseFolder, ExportPage, FirstRun, GetSettings, ListCovers, Start} from '../wailsjs/go/main/App';
+import {main} from '../wailsjs/go/models';
 import {BrowserOpenURL, EventsOn} from '../wailsjs/runtime/runtime';
+import {has} from './i18n';
+import {en} from './i18n/en';
+import {es} from './i18n/es';
 import {useLanguage} from './language';
 
 // main.ts wires the whole page when imported, so these tests load the real
@@ -39,6 +43,8 @@ const {mediaTypes, builtInBGGToken, startView, firstRun} = vi.hoisted(() => {
         // Both are best served by TMDB, which needs a key.
         {id: 'movies', label: 'Movies', creatorLabel: 'Year', sources: ['TMDB', 'Wikidata']},
         {id: 'tv', label: 'TV series', creatorLabel: 'Year', sources: ['TMDB', 'IMDb']},
+        // Best served by IGDB, which needs credentials.
+        {id: 'games', label: 'Games', creatorLabel: 'Year', sources: ['IGDB', 'Steam']},
     ],
     };
 });
@@ -67,6 +73,18 @@ vi.mock('../wailsjs/go/main/App', async (importOriginal) => {
     stubs.PrintPapers = vi.fn(async () => [{id: 'a5', label: 'A5', width: 148, height: 210, default: true}]);
     return stubs;
 });
+
+// has is spied on, to see which message keys main.ts builds.
+vi.mock('./i18n', async (importOriginal) => {
+    const original = await importOriginal<typeof import('./i18n')>();
+    return {...original, has: vi.fn(original.has)};
+});
+
+// lookedUpByMistake are the keys has was asked about that were built from a
+// missing ID or code, e.g. "status.code.undefined".
+function lookedUpByMistake(calls: Array<[key: string]>): string[] {
+    return calls.map(([key]) => key).filter((key) => key.includes('undefined'));
+}
 
 vi.mock('../wailsjs/runtime/runtime', () => ({
     EventsOn: vi.fn(() => () => undefined),
@@ -263,11 +281,51 @@ describe('tabs', () => {
 });
 
 describe('key tip', () => {
-    it('suggests a BHL key for nature while none is saved', () => {
+    afterEach(async () => {
+        await useLanguage('en');
+        selectType('books');
+    });
+
+    // Each tip is one dictionary sentence, with the Settings button where
+    // {settings} is.
+    const sentences: Record<'en' | 'es', Array<[type: string, sentence: string]>> = {
+        en: [
+            ['movies', 'Tip: add a TMDB API key in Settings for better movie and TV posters.'],
+            ['tv', 'Tip: add a TMDB API key in Settings for better movie and TV posters.'],
+            ['games', 'Tip: add IGDB credentials in Settings for box art of all games; without them, Steam covers PC games only.'],
+            ['nature', 'Tip: add a BHL API key in Settings for more natural-history plates.'],
+            ['boardgames', 'Tip: add a BoardGameGeek token in Settings to download board game box art; this build has none built in.'],
+        ],
+        es: [
+            ['movies', 'Consejo: añade una clave de API de TMDB en Ajustes para obtener mejores carteles de películas y series.'],
+            ['tv', 'Consejo: añade una clave de API de TMDB en Ajustes para obtener mejores carteles de películas y series.'],
+            ['games', 'Consejo: añade credenciales de IGDB en Ajustes para obtener carátulas de todos los juegos; sin ellas, Steam solo tiene portadas de juegos de PC.'],
+            ['nature', 'Consejo: añade una clave de API de BHL en Ajustes para obtener más láminas de historia natural.'],
+            ['boardgames', 'Consejo: añade un token de BoardGameGeek en Ajustes para descargar carátulas de juegos de mesa; esta versión no incluye ninguno.'],
+        ],
+    };
+    for (const lang of ['en', 'es'] as const) {
+        it(`reads as one ${lang} sentence with a working Settings button in place`, async () => {
+            await useLanguage(lang);
+            for (const [type, sentence] of sentences[lang]) {
+                selectType(type);
+                expect(el('key-tip').hidden, type).toBe(false);
+                expect(el('key-tip').textContent, type).toBe(sentence);
+                expect(el('key-tip-settings').parentElement, type).toBe(el('key-tip'));
+            }
+            el('key-tip-settings').click();
+            await vi.waitFor(() => expect(el<HTMLDialogElement>('settings-dialog').open).toBe(true));
+            expect(el('settings-tab-keys').getAttribute('aria-selected')).toBe('true');
+            el('settings-close').click();
+        });
+    }
+
+    it('follows a language change while it shows', async () => {
         selectType('nature');
-        expect(el('key-tip').hidden).toBe(false);
-        expect(el('key-tip-what').textContent).toBe('a BHL API key');
-        expect(el('key-tip-why').textContent).toBe('for more natural-history plates.');
+        await useLanguage('es');
+        expect(el('key-tip').textContent).toBe('Consejo: añade una clave de API de BHL en Ajustes para obtener más láminas de historia natural.');
+        await useLanguage('en');
+        expect(el('key-tip').textContent).toBe('Tip: add a BHL API key in Settings for more natural-history plates.');
     });
 
     it('is hidden for a type whose sources need no key', () => {
@@ -289,8 +347,6 @@ describe('key tip', () => {
         for (const type of ['movies', 'tv']) {
             selectType(type);
             expect(el('key-tip').hidden, type).toBe(false);
-            expect(el('key-tip-what').textContent, type).toBe('a TMDB API key');
-            expect(el('key-tip-why').textContent, type).toBe('for better movie and TV posters.');
         }
 
         await openSettings({language: 'en', tmdbApiKey: 'saved-key'});
@@ -327,8 +383,7 @@ describe('key tip', () => {
     it('asks for a BoardGameGeek token for board games until one is saved or built in', async () => {
         selectType('boardgames');
         expect(el('key-tip').hidden).toBe(false);
-        expect(el('key-tip-what').textContent).toBe('a BoardGameGeek token');
-        expect(el('key-tip-why').textContent).toBe('to download board game box art; this build has none built in.');
+        expect(el('key-tip').textContent).toBe('Tip: add a BoardGameGeek token in Settings to download board game box art; this build has none built in.');
 
         await openSettings({language: 'en', bggToken: 'saved-token'});
         expect(el('key-tip').hidden).toBe(true);
@@ -601,6 +656,66 @@ describe('view', () => {
     });
 });
 
+describe('tooltips', () => {
+    afterEach(async () => {
+        await useLanguage('en');
+    });
+
+    // The markup carries the message key alone, so the English text lives in
+    // the dictionary only.
+    it('are not written in English in the markup next to their message key', () => {
+        const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+        const markup = new DOMParser().parseFromString(html, 'text/html');
+        expect(markup.querySelectorAll('[data-i18n-title]').length).toBeGreaterThan(0);
+        const both = Array.from(markup.querySelectorAll('[title][data-i18n-title]'), (node) => node.id);
+        expect(both).toEqual([]);
+    });
+
+    // English is the start language here, so the first case checks what
+    // startup applied.
+    for (const [lang, messages] of [['en', en], ['es', es]] as const) {
+        it(`show the ${lang} dictionary text`, async () => {
+            await useLanguage(lang);
+            const catalog: Record<string, string> = messages;
+            const titled = Array.from(document.querySelectorAll<HTMLElement>('[data-i18n-title]'));
+            expect(titled.length).toBeGreaterThan(0);
+            for (const node of titled) {
+                expect(node.title, node.id).toBe(catalog[node.dataset.i18nTitle ?? '']);
+            }
+        });
+    }
+});
+
+describe('failed items', () => {
+    afterEach(resetFolders);
+
+    // failed is the job:item event of the first item failing with code.
+    function failed(code: string | undefined) {
+        return {index: 0, title: 'Dune', creator: 'Frank Herbert', status: 'failed', path: '', source: '', matched: '', code, error: 'boom'};
+    }
+
+    it('show the translated reason, or Go\'s error without a code, and build no key from a missing code', async () => {
+        el<HTMLInputElement>('output-dir').value = '/covers';
+        el<HTMLTextAreaElement>('items').value = 'Dune, Frank Herbert';
+        vi.mocked(Start).mockResolvedValueOnce([new main.ItemView({index: 0, title: 'Dune', creator: 'Frank Herbert'})]);
+        el('start').click();
+        await vi.waitFor(() => expect(el('results').children.length).toBe(1));
+        const detail = () => el('results').querySelector('.result-detail')?.textContent;
+
+        vi.mocked(has).mockClear();
+        handler('job:item')(failed(undefined));
+        expect(detail()).toBe('boom');
+        handler('job:item')(failed(''));
+        expect(detail()).toBe('boom');
+        expect(lookedUpByMistake(vi.mocked(has).mock.calls)).toEqual([]);
+        handler('job:item')(failed('not_found'));
+        expect(detail()).toBe('Not found');
+
+        handler('job:done')({ok: 0, failed: 1, cancelled: 0});
+        await vi.waitFor(() => expect(el('start').hidden).toBe(false));
+    });
+});
+
 // Last: these start the app again, with Download hidden in the saved view.
 describe('startup with Download hidden', () => {
     let app: typeof import('../wailsjs/go/main/App');
@@ -673,5 +788,23 @@ describe('startup on the first run', () => {
         // Startup got to its end: the item list has the focus.
         expect(document.activeElement).toBe(el('items'));
         warn.mockRestore();
+    });
+});
+
+// Last: this starts the app again, with the media types unreadable.
+describe('startup when the media types cannot be read', () => {
+    it('shows the error and names no media type, building no key from a missing one', async () => {
+        vi.resetModules();
+        startView.value = undefined;
+        const app = await import('../wailsjs/go/main/App');
+        vi.mocked(app.MediaTypes).mockRejectedValueOnce(new Error('no media types'));
+        const i18n = await import('./i18n');
+        const html = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
+        document.body.innerHTML = html.slice(html.indexOf('<body>') + '<body>'.length, html.indexOf('</body>'));
+        await import('./main');
+        await vi.waitFor(() => expect(app.FirstRun).toHaveBeenCalledTimes(1));
+        expect(el('banner-text').textContent).toBe('no media types');
+        expect(el('sample-csv').textContent).toBe('Sample CSV');
+        expect(lookedUpByMistake(vi.mocked(i18n.has).mock.calls)).toEqual([]);
     });
 });

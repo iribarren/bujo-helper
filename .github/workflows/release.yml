@@ -17,18 +17,45 @@ jobs:
           # Older Ubuntu = older glibc, so the binary runs on more distros.
           - os: ubuntu-22.04
             platform: linux/amd64
+            tags: webkit2_41
+            binary: build/bin/bujo-helper
             asset: bujo-helper-${{ github.ref_name }}-linux-amd64.tar.gz
           - os: windows-latest
             platform: windows/amd64
+            binary: build/bin/bujo-helper.exe
             asset: bujo-helper-${{ github.ref_name }}-windows-amd64.zip
           # Universal binary: runs on Intel and Apple Silicon Macs.
           - os: macos-latest
             platform: darwin/universal
+            binary: build/bin/bujo-helper.app/Contents/MacOS/bujo-helper
             asset: bujo-helper-${{ github.ref_name }}-macos-universal.zip
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
+
+      # The version shown in the Windows file properties and the macOS
+      # Info.plist comes from the tag, not from wails.json: v1.2.3 -> 1.2.3,
+      # and a pre-release suffix is dropped (v1.2.3-rc1 -> 1.2.3). Windows
+      # needs a numeric version, so any other tag fails here, before the
+      # tests and the build.
+      - name: Set the version from the tag
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          version="${REF_NAME#v}"
+          version="${version%%-*}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error title=Bad tag::The tag must look like v1.2.3 (optionally v1.2.3-suffix)."
+            exit 1
+          fi
+          node -e '
+            const fs = require("fs");
+            const config = JSON.parse(fs.readFileSync("wails.json", "utf8"));
+            config.info.productVersion = process.argv[1];
+            fs.writeFileSync("wails.json", JSON.stringify(config, null, 2) + "\n");
+          ' "$version"
 
       - uses: actions/setup-go@v5
         with:
@@ -58,39 +85,66 @@ jobs:
       # The BoardGameGeek token is built in from the BGG_TOKEN repository
       # secret. It is passed through the environment (never inlined in the
       # script) and never printed. Without the secret (forks) it is empty:
-      # the build still succeeds and has no built-in token.
-      - name: Build (Linux)
-        if: runner.os == 'Linux'
+      # the build still succeeds, with a warning, and has no built-in token.
+      # -trimpath also keeps -ldflags (and so the token) out of the Go build
+      # settings, which the check below relies on.
+      - name: Build
+        shell: bash
         env:
           BGG_TOKEN: ${{ secrets.BGG_TOKEN }}
-        run: wails build -clean -platform ${{ matrix.platform }} -tags webkit2_41 -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=${BGG_TOKEN}"
+          PLATFORM: ${{ matrix.platform }}
+          TAGS: ${{ matrix.tags }}
+        run: |
+          if [ -z "$BGG_TOKEN" ]; then
+            echo "::warning title=No BoardGameGeek token::The BGG_TOKEN secret is empty, so this build has no built-in BoardGameGeek token."
+          fi
+          args=(-clean -trimpath -platform "$PLATFORM")
+          if [ -n "$TAGS" ]; then
+            args+=(-tags "$TAGS")
+          fi
+          wails build "${args[@]}" -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=${BGG_TOKEN}"
 
-      - name: Build (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
+      # Wails strips the symbol table, so look for the token bytes in the
+      # binary instead. With -trimpath they are there only if -X set the
+      # variable. grep -q prints nothing, so the token stays out of the log.
+      - name: Check the token was linked
+        shell: bash
         env:
           BGG_TOKEN: ${{ secrets.BGG_TOKEN }}
-        run: wails build -clean -platform ${{ matrix.platform }} -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=$env:BGG_TOKEN"
+          BINARY: ${{ matrix.binary }}
+        run: |
+          if [ -z "$BGG_TOKEN" ]; then
+            echo "No BGG_TOKEN secret; nothing to check."
+            exit 0
+          fi
+          if ! grep -qaF -- "$BGG_TOKEN" "$BINARY"; then
+            echo "::error title=Token not linked::The BoardGameGeek token is not in $BINARY; check the -X symbol name."
+            exit 1
+          fi
 
-      - name: Build (macOS)
-        if: runner.os == 'macOS'
-        env:
-          BGG_TOKEN: ${{ secrets.BGG_TOKEN }}
-        run: wails build -clean -platform ${{ matrix.platform }} -ldflags "-X bujo-helper/internal/buildinfo.BGGToken=${BGG_TOKEN}"
-
+      # The asset name contains the tag, so it goes through the environment
+      # rather than being inlined in the scripts.
       - name: Package (Linux)
         if: runner.os == 'Linux'
-        run: tar czf "${{ matrix.asset }}" -C build/bin bujo-helper
+        env:
+          ASSET: ${{ matrix.asset }}
+          BINARY: ${{ matrix.binary }}
+        run: tar czf "$ASSET" -C "$(dirname "$BINARY")" "$(basename "$BINARY")"
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path build/bin/bujo-helper.exe -DestinationPath "${{ matrix.asset }}"
+        env:
+          ASSET: ${{ matrix.asset }}
+          BINARY: ${{ matrix.binary }}
+        run: Compress-Archive -Path $env:BINARY -DestinationPath $env:ASSET
 
       - name: Package (macOS)
         if: runner.os == 'macOS'
+        env:
+          ASSET: ${{ matrix.asset }}
         # ditto keeps the .app bundle's permissions and symlinks intact.
-        run: ditto -c -k --keepParent build/bin/bujo-helper.app "${{ matrix.asset }}"
+        run: ditto -c -k --keepParent build/bin/bujo-helper.app "$ASSET"
 
       - uses: actions/upload-artifact@v4
         with:

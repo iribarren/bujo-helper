@@ -94,17 +94,20 @@ export function tn(key: PluralKey, n: number, params?: Params): string {
 }
 
 // label is the translated label of a Go preset by its ID, the message
-// "<kind>.<id>", or fallback (Go's English label) when there is none.
-export function label(kind: string, id: string, fallback: string): string {
+// "<kind>.<id>", or fallback (Go's English label) when there is none or the
+// ID is missing or empty.
+export function label(kind: string, id: string | undefined, fallback: string): string {
+    if (!id) return fallback;
     const key = `${kind}.${id}`;
-    return id !== '' && has(key) ? t(key) : fallback;
+    return has(key) ? t(key) : fallback;
 }
 
 // pluralKey is the plural message "<kind>.<id>" when it exists, else
-// fallback.
-export function pluralKey(kind: string, id: string, fallback: PluralKey): PluralKey {
+// fallback (also for a missing or empty ID).
+export function pluralKey(kind: string, id: string | undefined, fallback: PluralKey): PluralKey {
+    if (!id) return fallback;
     const key = `${kind}.${id}`;
-    return id !== '' && has(`${key}_other`) ? (key as PluralKey) : fallback;
+    return has(`${key}_other`) ? (key as PluralKey) : fallback;
 }
 
 // The attributes applyDom fills, and what each sets.
